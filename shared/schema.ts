@@ -81,7 +81,11 @@ export const insertFollowUpSchema = createInsertSchema(followUps).pick({
 });
 
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
-export type Customer = typeof customers.$inferSelect;
+export type Customer = typeof customers.$inferSelect & {
+  lastFollowUpRemarks?: string | null;
+  nextFollowUpDate?: Date | null;
+  nextFollowUpType?: string | null;
+};
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertFollowUp = z.infer<typeof insertFollowUpSchema>;

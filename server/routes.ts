@@ -13,7 +13,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/customers", async (_req, res) => {
     try {
       const customers = await storage.getCustomers();
-      res.json(customers);
+      
+      // Fetch the most recent follow-up for each customer
+      const customersWithFollowUps = await Promise.all(
+        customers.map(async (customer) => {
+          const followUps = await storage.getFollowUpsByCustomer(customer.id);
+          const mostRecent = followUps.length > 0 ? followUps[0] : null;
+          
+          return {
+            ...customer,
+            lastFollowUpRemarks: mostRecent?.remarks || null,
+            nextFollowUpDate: mostRecent?.followUpDateTime || null,
+            nextFollowUpType: mostRecent?.type || null,
+          };
+        })
+      );
+      
+      res.json(customersWithFollowUps);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
