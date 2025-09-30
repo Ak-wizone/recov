@@ -12,7 +12,10 @@ export interface IStorage {
   
   // Payment operations
   getPaymentsByCustomer(customerId: string): Promise<Payment[]>;
+  getPayment(id: string): Promise<Payment | undefined>;
   createPayment(payment: InsertPayment): Promise<Payment>;
+  updatePayment(id: string, payment: Partial<InsertPayment>): Promise<Payment | undefined>;
+  deletePayment(id: string): Promise<boolean>;
   
   // Bulk operations
   createCustomers(customers: InsertCustomer[]): Promise<Customer[]>;
@@ -61,6 +64,11 @@ export class DatabaseStorage implements IStorage {
       .where(eq(payments.customerId, customerId));
   }
 
+  async getPayment(id: string): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment || undefined;
+  }
+
   async createPayment(insertPayment: InsertPayment): Promise<Payment> {
     // Create the payment
     const [payment] = await db
@@ -102,6 +110,73 @@ export class DatabaseStorage implements IStorage {
       .values(customersData)
       .returning();
     return result;
+  }
+
+  async updatePayment(id: string, updates: Partial<InsertPayment>): Promise<Payment | undefined> {
+    // Get the old payment to calculate amount difference
+    const oldPayment = await this.getPayment(id);
+    if (!oldPayment) return undefined;
+
+    const [updatedPayment] = await db
+      .update(payments)
+      .set(updates)
+      .where(eq(payments.id, id))
+      .returning();
+
+    // If amount changed, update customer's amount owed
+    if (updates.amount && oldPayment.amount !== updates.amount) {
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.id, updatedPayment.customerId));
+
+      if (customer) {
+        const oldAmount = parseFloat(oldPayment.amount);
+        const newAmount = parseFloat(updates.amount);
+        const difference = newAmount - oldAmount;
+        
+        const currentOwed = parseFloat(customer.amountOwed);
+        const newOwed = Math.max(0, currentOwed - difference);
+
+        await db
+          .update(customers)
+          .set({ amountOwed: newOwed.toFixed(2) })
+          .where(eq(customers.id, updatedPayment.customerId));
+      }
+    }
+
+    return updatedPayment || undefined;
+  }
+
+  async deletePayment(id: string): Promise<boolean> {
+    // Get the payment first to restore the amount to customer
+    const payment = await this.getPayment(id);
+    if (!payment) return false;
+
+    // Restore the payment amount back to customer's debt
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, payment.customerId));
+
+    if (customer) {
+      const currentOwed = parseFloat(customer.amountOwed);
+      const paymentAmount = parseFloat(payment.amount);
+      const newOwed = currentOwed + paymentAmount;
+
+      await db
+        .update(customers)
+        .set({ amountOwed: newOwed.toFixed(2) })
+        .where(eq(customers.id, payment.customerId));
+    }
+
+    // Delete the payment
+    const result = await db
+      .delete(payments)
+      .where(eq(payments.id, id))
+      .returning();
+
+    return result.length > 0;
   }
 }
 
