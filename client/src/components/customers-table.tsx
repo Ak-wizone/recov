@@ -389,8 +389,19 @@ export function CustomersTable({
                       </div>
                     </TableCell>
                     <TableCell className="py-4">
-                      <div className="text-sm text-gray-700" data-testid={`text-last-followup-${customer.id}`}>
-                        {truncate(customer.lastFollowUpRemarks, 50)}
+                      <div className="flex flex-col gap-1" data-testid={`text-last-followup-${customer.id}`}>
+                        {customer.lastFollowUpDate ? (
+                          <>
+                            <div className="text-xs text-gray-500">
+                              {format(new Date(customer.lastFollowUpDate), "MMM dd, yyyy HH:mm")}
+                            </div>
+                            <div className="text-sm text-gray-700">
+                              {truncate(customer.lastFollowUpRemarks, 50)}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="text-sm text-gray-400">—</span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell className="py-4">

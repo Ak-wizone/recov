@@ -14,17 +14,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const customers = await storage.getCustomers();
       
-      // Fetch the most recent follow-up for each customer
+      // Fetch the most recent past and next future follow-ups for each customer
       const customersWithFollowUps = await Promise.all(
         customers.map(async (customer) => {
           const followUps = await storage.getFollowUpsByCustomer(customer.id);
-          const mostRecent = followUps.length > 0 ? followUps[0] : null;
+          const now = new Date();
+          
+          // Find the most recent past follow-up (last follow-up)
+          const lastFollowUp = followUps.find(f => new Date(f.followUpDateTime) < now);
+          
+          // Find the next future follow-up
+          const nextFollowUp = followUps.slice().reverse().find(f => new Date(f.followUpDateTime) >= now);
           
           return {
             ...customer,
-            lastFollowUpRemarks: mostRecent?.remarks || null,
-            nextFollowUpDate: mostRecent?.followUpDateTime || null,
-            nextFollowUpType: mostRecent?.type || null,
+            lastFollowUpRemarks: lastFollowUp?.remarks || null,
+            lastFollowUpDate: lastFollowUp?.followUpDateTime || null,
+            nextFollowUpDate: nextFollowUp?.followUpDateTime || null,
+            nextFollowUpType: nextFollowUp?.type || null,
           };
         })
       );
