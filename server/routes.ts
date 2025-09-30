@@ -103,6 +103,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update payment
+  app.patch("/api/payments/:id", async (req, res) => {
+    try {
+      const result = insertPaymentSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+
+      const payment = await storage.updatePayment(req.params.id, result.data);
+      if (!payment) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+      res.json(payment);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete payment
+  app.delete("/api/payments/:id", async (req, res) => {
+    try {
+      const success = await storage.deletePayment(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Excel import
   app.post("/api/customers/import", upload.single("file"), async (req, res) => {
     try {
