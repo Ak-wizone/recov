@@ -23,6 +23,15 @@ export const payments = pgTable("payments", {
   paymentDate: timestamp("payment_date").defaultNow().notNull(),
 });
 
+export const followUps = pgTable("follow_ups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // Meeting, Call, WhatsApp, Email
+  remarks: text("remarks").notNull(),
+  followUpDateTime: timestamp("follow_up_date_time").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertCustomerSchema = createInsertSchema(customers).pick({
   name: true,
   amountOwed: true,
@@ -57,7 +66,23 @@ export const insertPaymentSchema = createInsertSchema(payments).pick({
   notes: z.string().optional(),
 });
 
+export const insertFollowUpSchema = createInsertSchema(followUps).pick({
+  customerId: true,
+  type: true,
+  remarks: true,
+  followUpDateTime: true,
+}).extend({
+  customerId: z.string().min(1, "Customer ID is required"),
+  type: z.enum(["Meeting", "Call", "WhatsApp", "Email"], {
+    errorMap: () => ({ message: "Type must be Meeting, Call, WhatsApp, or Email" }),
+  }),
+  remarks: z.string().min(1, "Remarks are required"),
+  followUpDateTime: z.string().min(1, "Follow-up date and time are required"),
+});
+
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Customer = typeof customers.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
+export type InsertFollowUp = z.infer<typeof insertFollowUpSchema>;
+export type FollowUp = typeof followUps.$inferSelect;
