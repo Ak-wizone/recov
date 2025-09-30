@@ -1,6 +1,6 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, customers, payments } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, customers, payments, followUps } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Customer operations
@@ -17,8 +17,16 @@ export interface IStorage {
   updatePayment(id: string, payment: Partial<InsertPayment>): Promise<Payment | undefined>;
   deletePayment(id: string): Promise<boolean>;
   
+  // Follow-up operations
+  getFollowUpsByCustomer(customerId: string): Promise<FollowUp[]>;
+  getFollowUp(id: string): Promise<FollowUp | undefined>;
+  createFollowUp(followUp: InsertFollowUp): Promise<FollowUp>;
+  updateFollowUp(id: string, followUp: Partial<InsertFollowUp>): Promise<FollowUp | undefined>;
+  deleteFollowUp(id: string): Promise<boolean>;
+  
   // Bulk operations
   createCustomers(customers: InsertCustomer[]): Promise<Customer[]>;
+  deleteCustomers(ids: string[]): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -177,6 +185,65 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     return result.length > 0;
+  }
+
+  async getFollowUpsByCustomer(customerId: string): Promise<FollowUp[]> {
+    return await db
+      .select()
+      .from(followUps)
+      .where(eq(followUps.customerId, customerId))
+      .orderBy(desc(followUps.followUpDateTime));
+  }
+
+  async getFollowUp(id: string): Promise<FollowUp | undefined> {
+    const [followUp] = await db.select().from(followUps).where(eq(followUps.id, id));
+    return followUp || undefined;
+  }
+
+  async createFollowUp(insertFollowUp: InsertFollowUp): Promise<FollowUp> {
+    const [followUp] = await db
+      .insert(followUps)
+      .values({
+        customerId: insertFollowUp.customerId,
+        type: insertFollowUp.type,
+        remarks: insertFollowUp.remarks,
+        followUpDateTime: new Date(insertFollowUp.followUpDateTime),
+      })
+      .returning();
+    return followUp;
+  }
+
+  async updateFollowUp(id: string, updates: Partial<InsertFollowUp>): Promise<FollowUp | undefined> {
+    const updateData: any = { ...updates };
+    if (updateData.followUpDateTime) {
+      updateData.followUpDateTime = new Date(updateData.followUpDateTime);
+    }
+    
+    const [followUp] = await db
+      .update(followUps)
+      .set(updateData)
+      .where(eq(followUps.id, id))
+      .returning();
+    return followUp || undefined;
+  }
+
+  async deleteFollowUp(id: string): Promise<boolean> {
+    const result = await db
+      .delete(followUps)
+      .where(eq(followUps.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async deleteCustomers(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    
+    let count = 0;
+    for (const id of ids) {
+      const deleted = await this.deleteCustomer(id);
+      if (deleted) count++;
+    }
+    return count;
   }
 }
 

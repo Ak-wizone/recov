@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -129,6 +129,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Payment not found" });
       }
       res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get follow-ups for a customer
+  app.get("/api/customers/:id/followups", async (req, res) => {
+    try {
+      const followUps = await storage.getFollowUpsByCustomer(req.params.id);
+      res.json(followUps);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create follow-up
+  app.post("/api/followups", async (req, res) => {
+    try {
+      const result = insertFollowUpSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+
+      const followUp = await storage.createFollowUp(result.data);
+      res.status(201).json(followUp);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update follow-up
+  app.patch("/api/followups/:id", async (req, res) => {
+    try {
+      const result = insertFollowUpSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+
+      const followUp = await storage.updateFollowUp(req.params.id, result.data);
+      if (!followUp) {
+        return res.status(404).json({ message: "Follow-up not found" });
+      }
+      res.json(followUp);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete follow-up
+  app.delete("/api/followups/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteFollowUp(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Follow-up not found" });
+      }
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk delete customers
+  app.post("/api/customers/bulk-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Invalid request: ids array required" });
+      }
+
+      const count = await storage.deleteCustomers(ids);
+      res.json({ deleted: count });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
