@@ -8,6 +8,7 @@ export const customers = pgTable("customers", {
   name: text("name").notNull(),
   amountOwed: decimal("amount_owed", { precision: 10, scale: 2 }).notNull(),
   category: text("category").notNull(), // Alpha, Beta, Gamma, Delta
+  assignedUser: text("assigned_user"),
   mobile: text("mobile").notNull(),
   email: text("email").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -36,6 +37,7 @@ export const insertCustomerSchema = createInsertSchema(customers).pick({
   name: true,
   amountOwed: true,
   category: true,
+  assignedUser: true,
   mobile: true,
   email: true,
 }).extend({
@@ -46,6 +48,9 @@ export const insertCustomerSchema = createInsertSchema(customers).pick({
   category: z.enum(["Alpha", "Beta", "Gamma", "Delta"], {
     errorMap: () => ({ message: "Category must be Alpha, Beta, Gamma, or Delta" }),
   }),
+  assignedUser: z.enum(["Manpreet Bedi", "Bilal Ahamad", "Anjali Dhiman", "Princi Soni"], {
+    errorMap: () => ({ message: "Invalid assigned user" }),
+  }).optional(),
   mobile: z.string().min(1, "Mobile number is required"),
   email: z.string().email("Invalid email address"),
 });
