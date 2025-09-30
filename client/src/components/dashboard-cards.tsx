@@ -23,17 +23,17 @@ export function DashboardCards({ customers }: DashboardCardsProps) {
   });
 
   const categoryIcons = {
-    Alpha: <AlertTriangle className="h-5 w-5 text-red-600" />,
-    Beta: <Clock className="h-5 w-5 text-yellow-600" />,
-    Gamma: <Info className="h-5 w-5 text-blue-600" />,
-    Delta: <CheckCircle className="h-5 w-5 text-green-600" />,
+    Alpha: <AlertTriangle className="h-5 w-5 text-green-600" />,
+    Beta: <Clock className="h-5 w-5 text-blue-600" />,
+    Gamma: <Info className="h-5 w-5 text-yellow-600" />,
+    Delta: <CheckCircle className="h-5 w-5 text-red-600" />,
   };
 
   const categoryColors = {
-    Alpha: "bg-red-100",
-    Beta: "bg-yellow-100",
-    Gamma: "bg-blue-100",
-    Delta: "bg-green-100",
+    Alpha: "bg-green-100",
+    Beta: "bg-blue-100",
+    Gamma: "bg-yellow-100",
+    Delta: "bg-red-100",
   };
 
   return (

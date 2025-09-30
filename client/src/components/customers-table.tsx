@@ -14,7 +14,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MessageCircle, Mail, DollarSign, Edit, Trash2, History, Calendar } from "lucide-react";
+import { MessageCircle, Mail, DollarSign, Edit, Trash2, History, Calendar, ChevronDown, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 
@@ -126,10 +133,10 @@ export function CustomersTable({
   });
 
   const categoryColors = {
-    Alpha: "bg-red-100 text-red-800",
-    Beta: "bg-yellow-100 text-yellow-800",
-    Gamma: "bg-blue-100 text-blue-800",
-    Delta: "bg-green-100 text-green-800",
+    Alpha: "bg-green-100 text-green-800",
+    Beta: "bg-blue-100 text-blue-800",
+    Gamma: "bg-yellow-100 text-yellow-800",
+    Delta: "bg-red-100 text-red-800",
   };
 
   const followUpTypeColors = {
@@ -172,8 +179,8 @@ export function CustomersTable({
   }
 
   return (
-    <Card className="border border-[#E2E8F0]">
-      <CardHeader className="border-b border-[#E2E8F0]">
+    <Card className="border border-[#E2E8F0] shadow-sm">
+      <CardHeader className="border-b border-[#E2E8F0] bg-white">
         <CardTitle className="text-lg font-semibold text-[#1E293B]">
           Customer Debtors Management
         </CardTitle>
@@ -199,11 +206,11 @@ export function CustomersTable({
           </div>
         )}
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-full">
             <TableHeader>
               {/* Header Row with Column Names */}
-              <TableRow className="bg-[#F1F5F9]">
-                <TableHead className="w-[50px]">
+              <TableRow className="bg-[#F1F5F9] border-b-2 border-gray-300">
+                <TableHead className="w-[50px] py-4 font-semibold">
                   <Checkbox
                     checked={selectedIds.length === filteredCustomers.length && filteredCustomers.length > 0}
                     onCheckedChange={handleSelectAll}
@@ -211,7 +218,7 @@ export function CustomersTable({
                   />
                 </TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-[#E2E8F0]"
+                  className="cursor-pointer hover:bg-[#E2E8F0] py-4 font-semibold transition-colors"
                   onClick={() => handleSort("name")}
                   data-testid="header-name"
                 >
@@ -221,7 +228,7 @@ export function CustomersTable({
                   </div>
                 </TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-[#E2E8F0]"
+                  className="cursor-pointer hover:bg-[#E2E8F0] py-4 font-semibold transition-colors"
                   onClick={() => handleSort("amountOwed")}
                   data-testid="header-amount"
                 >
@@ -231,7 +238,7 @@ export function CustomersTable({
                   </div>
                 </TableHead>
                 <TableHead
-                  className="cursor-pointer hover:bg-[#E2E8F0]"
+                  className="cursor-pointer hover:bg-[#E2E8F0] py-4 font-semibold transition-colors"
                   onClick={() => handleSort("category")}
                   data-testid="header-category"
                 >
@@ -240,86 +247,86 @@ export function CustomersTable({
                     <span className="ml-1">↕</span>
                   </div>
                 </TableHead>
-                <TableHead>Mobile Number</TableHead>
-                <TableHead>Email Address</TableHead>
-                <TableHead>Last Follow Up</TableHead>
-                <TableHead>Next Follow Up</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="py-4 font-semibold">Mobile Number</TableHead>
+                <TableHead className="py-4 font-semibold">Email Address</TableHead>
+                <TableHead className="py-4 font-semibold">Last Follow Up</TableHead>
+                <TableHead className="py-4 font-semibold">Next Follow Up</TableHead>
+                <TableHead className="py-4 font-semibold">Actions</TableHead>
               </TableRow>
               {/* Search Row */}
-              <TableRow className="bg-white">
-                <TableHead className="py-2"></TableHead>
-                <TableHead className="py-2">
+              <TableRow className="bg-white border-b">
+                <TableHead className="py-3"></TableHead>
+                <TableHead className="py-3">
                   <Input
                     type="text"
                     placeholder="Search name..."
                     value={nameSearch}
                     onChange={(e) => setNameSearch(e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-10 min-w-[140px]"
                     data-testid="input-search-name"
                   />
                 </TableHead>
-                <TableHead className="py-2">
+                <TableHead className="py-3">
                   <Input
                     type="text"
                     placeholder="Search amount..."
                     value={amountSearch}
                     onChange={(e) => setAmountSearch(e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-10 min-w-[140px]"
                     data-testid="input-search-amount"
                   />
                 </TableHead>
-                <TableHead className="py-2">
+                <TableHead className="py-3">
                   <Input
                     type="text"
                     placeholder="Search category..."
                     value={categorySearch}
                     onChange={(e) => setCategorySearch(e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-10 min-w-[140px]"
                     data-testid="input-search-category"
                   />
                 </TableHead>
-                <TableHead className="py-2">
+                <TableHead className="py-3">
                   <Input
                     type="text"
                     placeholder="Search mobile..."
                     value={mobileSearch}
                     onChange={(e) => setMobileSearch(e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-10 min-w-[140px]"
                     data-testid="input-search-mobile"
                   />
                 </TableHead>
-                <TableHead className="py-2">
+                <TableHead className="py-3">
                   <Input
                     type="text"
                     placeholder="Search email..."
                     value={emailSearch}
                     onChange={(e) => setEmailSearch(e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-10 min-w-[140px]"
                     data-testid="input-search-email"
                   />
                 </TableHead>
-                <TableHead className="py-2">
+                <TableHead className="py-3">
                   <Input
                     type="text"
                     placeholder="Search remarks..."
                     value={lastFollowUpSearch}
                     onChange={(e) => setLastFollowUpSearch(e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-10 min-w-[140px]"
                     data-testid="input-search-last-followup"
                   />
                 </TableHead>
-                <TableHead className="py-2">
+                <TableHead className="py-3">
                   <Input
                     type="text"
                     placeholder="Search next..."
                     value={nextFollowUpSearch}
                     onChange={(e) => setNextFollowUpSearch(e.target.value)}
-                    className="h-8 text-sm"
+                    className="h-10 min-w-[140px]"
                     data-testid="input-search-next-followup"
                   />
                 </TableHead>
-                <TableHead className="py-2"></TableHead>
+                <TableHead className="py-3"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -333,17 +340,17 @@ export function CustomersTable({
                 sortedCustomers.map((customer) => (
                   <TableRow
                     key={customer.id}
-                    className="hover:bg-[#F1F5F9]"
+                    className="border-b border-gray-200 hover:bg-[#F8FAFC] transition-colors"
                     data-testid={`row-customer-${customer.id}`}
                   >
-                    <TableCell>
+                    <TableCell className="py-4">
                       <Checkbox
                         checked={selectedIds.includes(customer.id)}
                         onCheckedChange={(checked) => handleSelectOne(customer.id, checked as boolean)}
                         data-testid={`checkbox-customer-${customer.id}`}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <div className="flex items-center">
                         <Avatar className="h-10 w-10 bg-[#2563EB] text-white">
                           <AvatarFallback className="bg-[#2563EB] text-white">
@@ -358,12 +365,12 @@ export function CustomersTable({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <div className="text-lg font-semibold text-[#DC2626]" data-testid={`text-amount-${customer.id}`}>
                         ${parseFloat(customer.amountOwed).toFixed(2)}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <Badge
                         className={categoryColors[customer.category as keyof typeof categoryColors]}
                         data-testid={`badge-category-${customer.id}`}
@@ -371,22 +378,22 @@ export function CustomersTable({
                         {customer.category}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <div className="text-sm text-[#1E293B]" data-testid={`text-mobile-${customer.id}`}>
                         {customer.mobile}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <div className="text-sm text-[#1E293B]" data-testid={`text-email-${customer.id}`}>
                         {customer.email}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <div className="text-sm text-gray-700" data-testid={`text-last-followup-${customer.id}`}>
                         {truncate(customer.lastFollowUpRemarks, 50)}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="py-4">
                       <div className="flex flex-col gap-1" data-testid={`text-next-followup-${customer.id}`}>
                         {customer.nextFollowUpDate ? (
                           <>
@@ -407,72 +414,75 @@ export function CustomersTable({
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          className="bg-[#25D366] hover:bg-[#1EBE57] text-white"
-                          onClick={() => onWhatsApp(customer)}
-                          title="Send WhatsApp"
-                          data-testid={`button-whatsapp-${customer.id}`}
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-blue-500 hover:bg-blue-700 text-white"
-                          onClick={() => onEmail(customer)}
-                          title="Send Email"
-                          data-testid={`button-email-${customer.id}`}
-                        >
-                          <Mail className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-[#059669] hover:bg-[#047857] text-white"
-                          onClick={() => onPayment(customer)}
-                          title="Record Payment"
-                          data-testid={`button-payment-${customer.id}`}
-                        >
-                          <DollarSign className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onPaymentHistory(customer)}
-                          title="Payment History"
-                          data-testid={`button-history-${customer.id}`}
-                        >
-                          <History className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-purple-500 hover:bg-purple-700 text-white"
-                          onClick={() => onFollowUp(customer)}
-                          title="Schedule Follow Up"
-                          data-testid={`button-followup-${customer.id}`}
-                        >
-                          <Calendar className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-yellow-500 hover:bg-yellow-700 text-white"
-                          onClick={() => onEdit(customer)}
-                          title="Edit Customer"
-                          data-testid={`button-edit-${customer.id}`}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-[#DC2626] hover:bg-[#B91C1C] text-white"
-                          onClick={() => onDelete(customer)}
-                          title="Delete Customer"
-                          data-testid={`button-delete-${customer.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <TableCell className="py-4">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            className="min-w-[100px]"
+                            data-testid={`button-actions-${customer.id}`}
+                          >
+                            Actions
+                            <ChevronDown className="ml-2 h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuItem
+                            onClick={() => onWhatsApp(customer)}
+                            data-testid={`button-whatsapp-${customer.id}`}
+                          >
+                            <MessageCircle className="mr-2 h-4 w-4 text-[#25D366]" />
+                            Send WhatsApp
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => onEmail(customer)}
+                            data-testid={`button-email-${customer.id}`}
+                          >
+                            <Mail className="mr-2 h-4 w-4 text-blue-500" />
+                            Send Email
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onPayment(customer)}
+                            data-testid={`button-payment-${customer.id}`}
+                          >
+                            <DollarSign className="mr-2 h-4 w-4 text-[#059669]" />
+                            Record Payment
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => onPaymentHistory(customer)}
+                            data-testid={`button-history-${customer.id}`}
+                          >
+                            <History className="mr-2 h-4 w-4 text-gray-600" />
+                            Payment History
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onFollowUp(customer)}
+                            data-testid={`button-followup-${customer.id}`}
+                          >
+                            <Calendar className="mr-2 h-4 w-4 text-purple-500" />
+                            Schedule Follow Up
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => onEdit(customer)}
+                            data-testid={`button-edit-${customer.id}`}
+                          >
+                            <Edit className="mr-2 h-4 w-4 text-yellow-600" />
+                            Edit Customer
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => onDelete(customer)}
+                            className="text-red-600 focus:text-red-600"
+                            data-testid={`button-delete-${customer.id}`}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Customer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))

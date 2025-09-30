@@ -12,8 +12,6 @@ import { FollowUpDialog } from "@/components/followup-dialog";
 import { DeleteDialog } from "@/components/delete-dialog";
 import { ExcelImportDialog } from "@/components/excel-import-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -25,15 +23,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, FileDown, FileUp, Search, X, AlertCircle, Clock, Calendar as CalendarIcon, CheckCircle2 } from "lucide-react";
-import { isToday, isBefore, isAfter, startOfDay, endOfDay } from "date-fns";
+import { Plus, FileDown, FileUp, X, AlertCircle, Clock, Calendar as CalendarIcon, CheckCircle2, CalendarDays, CalendarRange } from "lucide-react";
+import { isToday, isTomorrow, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 
-type FollowUpFilter = "overdue" | "today" | "upcoming" | "none" | null;
+type FollowUpFilter = "overdue" | "today" | "tomorrow" | "thisWeek" | "thisMonth" | "none" | null;
 
 export default function Home() {
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [followUpFilter, setFollowUpFilter] = useState<FollowUpFilter>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -111,35 +107,64 @@ export default function Home() {
   // Calculate follow-up filter counts
   const now = new Date();
   const overdueCount = customers.filter(c => 
-    c.nextFollowUpDate && isBefore(new Date(c.nextFollowUpDate), now)
+    c.nextFollowUpDate && isBefore(new Date(c.nextFollowUpDate), startOfDay(now))
   ).length;
   const dueTodayCount = customers.filter(c => 
     c.nextFollowUpDate && isToday(new Date(c.nextFollowUpDate))
   ).length;
-  const upcomingCount = customers.filter(c => 
-    c.nextFollowUpDate && isAfter(new Date(c.nextFollowUpDate), endOfDay(now))
+  const tomorrowCount = customers.filter(c => 
+    c.nextFollowUpDate && isTomorrow(new Date(c.nextFollowUpDate))
   ).length;
+  const thisWeekCount = customers.filter(c => {
+    if (!c.nextFollowUpDate) return false;
+    const date = new Date(c.nextFollowUpDate);
+    return isWithinInterval(date, {
+      start: startOfDay(now),
+      end: endOfWeek(now)
+    }) && !isToday(date) && !isTomorrow(date);
+  }).length;
+  const thisMonthCount = customers.filter(c => {
+    if (!c.nextFollowUpDate) return false;
+    const date = new Date(c.nextFollowUpDate);
+    return isWithinInterval(date, {
+      start: startOfDay(now),
+      end: endOfMonth(now)
+    }) && !isWithinInterval(date, {
+      start: startOfDay(now),
+      end: endOfWeek(now)
+    });
+  }).length;
   const noFollowUpCount = customers.filter(c => !c.nextFollowUpDate).length;
 
   const filteredCustomers = customers.filter((customer) => {
-    const matchesSearch = customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.mobile.includes(searchQuery);
-    const matchesCategory = categoryFilter === "all" || !categoryFilter || customer.category === categoryFilter;
-    
     let matchesFollowUpFilter = true;
     if (followUpFilter) {
       const followUpDate = customer.nextFollowUpDate ? new Date(customer.nextFollowUpDate) : null;
       
       switch (followUpFilter) {
         case "overdue":
-          matchesFollowUpFilter = followUpDate ? isBefore(followUpDate, now) : false;
+          matchesFollowUpFilter = followUpDate ? isBefore(followUpDate, startOfDay(now)) : false;
           break;
         case "today":
           matchesFollowUpFilter = followUpDate ? isToday(followUpDate) : false;
           break;
-        case "upcoming":
-          matchesFollowUpFilter = followUpDate ? isAfter(followUpDate, endOfDay(now)) : false;
+        case "tomorrow":
+          matchesFollowUpFilter = followUpDate ? isTomorrow(followUpDate) : false;
+          break;
+        case "thisWeek":
+          matchesFollowUpFilter = followUpDate ? isWithinInterval(followUpDate, {
+            start: startOfDay(now),
+            end: endOfWeek(now)
+          }) && !isToday(followUpDate) && !isTomorrow(followUpDate) : false;
+          break;
+        case "thisMonth":
+          matchesFollowUpFilter = followUpDate ? isWithinInterval(followUpDate, {
+            start: startOfDay(now),
+            end: endOfMonth(now)
+          }) && !isWithinInterval(followUpDate, {
+            start: startOfDay(now),
+            end: endOfWeek(now)
+          }) : false;
           break;
         case "none":
           matchesFollowUpFilter = !followUpDate;
@@ -147,7 +172,7 @@ export default function Home() {
       }
     }
     
-    return matchesSearch && matchesCategory && matchesFollowUpFilter;
+    return matchesFollowUpFilter;
   });
 
   const handleEdit = (customer: Customer) => {
@@ -247,7 +272,7 @@ export default function Home() {
         <DashboardCards customers={customers} />
 
         {/* Follow-Up Filter Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
           <Card
             className={`cursor-pointer transition-all border-2 ${
               followUpFilter === "overdue" ? "border-red-500 bg-red-50" : "border-[#E2E8F0] hover:border-red-300"
@@ -256,12 +281,10 @@ export default function Home() {
             data-testid="card-filter-overdue"
           >
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Overdue Follow-Ups</p>
-                  <p className="text-2xl font-bold text-red-600">{overdueCount}</p>
-                </div>
-                <AlertCircle className="h-8 w-8 text-red-500" />
+              <div className="flex flex-col items-center justify-center text-center">
+                <AlertCircle className="h-8 w-8 text-red-500 mb-2" />
+                <p className="text-xs font-medium text-gray-600 mb-1">Overdue</p>
+                <p className="text-xl font-bold text-red-600">{overdueCount}</p>
               </div>
             </CardContent>
           </Card>
@@ -274,30 +297,58 @@ export default function Home() {
             data-testid="card-filter-today"
           >
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Due Today</p>
-                  <p className="text-2xl font-bold text-orange-600">{dueTodayCount}</p>
-                </div>
-                <Clock className="h-8 w-8 text-orange-500" />
+              <div className="flex flex-col items-center justify-center text-center">
+                <Clock className="h-8 w-8 text-orange-500 mb-2" />
+                <p className="text-xs font-medium text-gray-600 mb-1">Due Today</p>
+                <p className="text-xl font-bold text-orange-600">{dueTodayCount}</p>
               </div>
             </CardContent>
           </Card>
 
           <Card
             className={`cursor-pointer transition-all border-2 ${
-              followUpFilter === "upcoming" ? "border-blue-500 bg-blue-50" : "border-[#E2E8F0] hover:border-blue-300"
+              followUpFilter === "tomorrow" ? "border-yellow-500 bg-yellow-50" : "border-[#E2E8F0] hover:border-yellow-300"
             }`}
-            onClick={() => setFollowUpFilter(followUpFilter === "upcoming" ? null : "upcoming")}
-            data-testid="card-filter-upcoming"
+            onClick={() => setFollowUpFilter(followUpFilter === "tomorrow" ? null : "tomorrow")}
+            data-testid="card-filter-tomorrow"
           >
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Upcoming</p>
-                  <p className="text-2xl font-bold text-blue-600">{upcomingCount}</p>
-                </div>
-                <CalendarIcon className="h-8 w-8 text-blue-500" />
+              <div className="flex flex-col items-center justify-center text-center">
+                <CalendarDays className="h-8 w-8 text-yellow-500 mb-2" />
+                <p className="text-xs font-medium text-gray-600 mb-1">Tomorrow</p>
+                <p className="text-xl font-bold text-yellow-600">{tomorrowCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`cursor-pointer transition-all border-2 ${
+              followUpFilter === "thisWeek" ? "border-blue-500 bg-blue-50" : "border-[#E2E8F0] hover:border-blue-300"
+            }`}
+            onClick={() => setFollowUpFilter(followUpFilter === "thisWeek" ? null : "thisWeek")}
+            data-testid="card-filter-thisweek"
+          >
+            <CardContent className="p-4">
+              <div className="flex flex-col items-center justify-center text-center">
+                <CalendarRange className="h-8 w-8 text-blue-500 mb-2" />
+                <p className="text-xs font-medium text-gray-600 mb-1">This Week</p>
+                <p className="text-xl font-bold text-blue-600">{thisWeekCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`cursor-pointer transition-all border-2 ${
+              followUpFilter === "thisMonth" ? "border-purple-500 bg-purple-50" : "border-[#E2E8F0] hover:border-purple-300"
+            }`}
+            onClick={() => setFollowUpFilter(followUpFilter === "thisMonth" ? null : "thisMonth")}
+            data-testid="card-filter-thismonth"
+          >
+            <CardContent className="p-4">
+              <div className="flex flex-col items-center justify-center text-center">
+                <CalendarIcon className="h-8 w-8 text-purple-500 mb-2" />
+                <p className="text-xs font-medium text-gray-600 mb-1">This Month</p>
+                <p className="text-xl font-bold text-purple-600">{thisMonthCount}</p>
               </div>
             </CardContent>
           </Card>
@@ -310,12 +361,10 @@ export default function Home() {
             data-testid="card-filter-no-followup"
           >
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">No Follow-Up</p>
-                  <p className="text-2xl font-bold text-gray-600">{noFollowUpCount}</p>
-                </div>
-                <CheckCircle2 className="h-8 w-8 text-gray-500" />
+              <div className="flex flex-col items-center justify-center text-center">
+                <CheckCircle2 className="h-8 w-8 text-gray-500 mb-2" />
+                <p className="text-xs font-medium text-gray-600 mb-1">No Follow-Up</p>
+                <p className="text-xl font-bold text-gray-600">{noFollowUpCount}</p>
               </div>
             </CardContent>
           </Card>
@@ -326,9 +375,11 @@ export default function Home() {
           <div className="mb-6 flex items-center gap-2">
             <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg flex items-center gap-2">
               <span className="text-sm font-medium">
-                Filter: {followUpFilter === "overdue" ? "Overdue Follow-Ups" : 
+                Filter: {followUpFilter === "overdue" ? "Overdue" : 
                          followUpFilter === "today" ? "Due Today" : 
-                         followUpFilter === "upcoming" ? "Upcoming" : "No Follow-Up"}
+                         followUpFilter === "tomorrow" ? "Tomorrow" :
+                         followUpFilter === "thisWeek" ? "This Week" :
+                         followUpFilter === "thisMonth" ? "This Month" : "No Follow-Up"}
               </span>
               <Button
                 size="sm"
@@ -342,39 +393,6 @@ export default function Home() {
             </div>
           </div>
         )}
-
-        {/* Search and Filter */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-[#E2E8F0]">
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex-1 w-full sm:w-auto">
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Search customers..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 border-[#E2E8F0]"
-                  data-testid="input-search"
-                />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              </div>
-            </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Select value={categoryFilter || "all"} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[180px] border-[#E2E8F0]" data-testid="select-category-filter">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="Alpha">Alpha</SelectItem>
-                  <SelectItem value="Beta">Beta</SelectItem>
-                  <SelectItem value="Gamma">Gamma</SelectItem>
-                  <SelectItem value="Delta">Delta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
 
         {/* Customers Table */}
         <CustomersTable
