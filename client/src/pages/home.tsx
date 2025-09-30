@@ -8,6 +8,7 @@ import { CustomersTable } from "@/components/customers-table";
 import { CustomerFormDialog } from "@/components/customer-form-dialog";
 import { PaymentDialog } from "@/components/payment-dialog";
 import { PaymentHistoryDialog } from "@/components/payment-history-dialog";
+import { FollowUpDialog } from "@/components/followup-dialog";
 import { DeleteDialog } from "@/components/delete-dialog";
 import { ExcelImportDialog } from "@/components/excel-import-dialog";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export default function Home() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+  const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
@@ -80,6 +82,11 @@ export default function Home() {
   const handlePaymentHistory = (customer: Customer) => {
     setSelectedCustomer(customer);
     setIsPaymentHistoryOpen(true);
+  };
+
+  const handleFollowUp = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsFollowUpDialogOpen(true);
   };
 
   const handleDelete = (customer: Customer) => {
@@ -185,6 +192,7 @@ export default function Home() {
           onEdit={handleEdit}
           onPayment={handlePayment}
           onPaymentHistory={handlePaymentHistory}
+          onFollowUp={handleFollowUp}
           onDelete={handleDelete}
           onWhatsApp={handleWhatsApp}
           onEmail={handleEmail}
@@ -214,6 +222,12 @@ export default function Home() {
       <PaymentHistoryDialog
         open={isPaymentHistoryOpen}
         onOpenChange={setIsPaymentHistoryOpen}
+        customer={selectedCustomer || undefined}
+      />
+
+      <FollowUpDialog
+        open={isFollowUpDialogOpen}
+        onOpenChange={setIsFollowUpDialogOpen}
         customer={selectedCustomer || undefined}
       />
 

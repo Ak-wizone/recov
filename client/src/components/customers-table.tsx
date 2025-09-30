@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { MessageCircle, Mail, DollarSign, Edit, Trash2, History } from "lucide-react";
+import { MessageCircle, Mail, DollarSign, Edit, Trash2, History, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface CustomersTableProps {
@@ -21,6 +21,7 @@ interface CustomersTableProps {
   onEdit: (customer: Customer) => void;
   onPayment: (customer: Customer) => void;
   onPaymentHistory: (customer: Customer) => void;
+  onFollowUp: (customer: Customer) => void;
   onDelete: (customer: Customer) => void;
   onWhatsApp: (customer: Customer) => void;
   onEmail: (customer: Customer) => void;
@@ -32,6 +33,7 @@ export function CustomersTable({
   onEdit,
   onPayment,
   onPaymentHistory,
+  onFollowUp,
   onDelete,
   onWhatsApp,
   onEmail,
@@ -236,6 +238,15 @@ export function CustomersTable({
                           data-testid={`button-history-${customer.id}`}
                         >
                           <History className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-purple-500 hover:bg-purple-700 text-white"
+                          onClick={() => onFollowUp(customer)}
+                          title="Schedule Follow Up"
+                          data-testid={`button-followup-${customer.id}`}
+                        >
+                          <Calendar className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
