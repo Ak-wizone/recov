@@ -104,26 +104,39 @@ export default function Home() {
     },
   });
 
-  // Calculate follow-up filter counts
+  // Calculate follow-up filter counts and amounts
   const now = new Date();
-  const overdueCount = customers.filter(c => 
+  
+  const overdueCustomers = customers.filter(c => 
     c.nextFollowUpDate && isBefore(new Date(c.nextFollowUpDate), startOfDay(now))
-  ).length;
-  const dueTodayCount = customers.filter(c => 
+  );
+  const overdueCount = overdueCustomers.length;
+  const overdueAmount = overdueCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
+  
+  const dueTodayCustomers = customers.filter(c => 
     c.nextFollowUpDate && isToday(new Date(c.nextFollowUpDate))
-  ).length;
-  const tomorrowCount = customers.filter(c => 
+  );
+  const dueTodayCount = dueTodayCustomers.length;
+  const dueTodayAmount = dueTodayCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
+  
+  const tomorrowCustomers = customers.filter(c => 
     c.nextFollowUpDate && isTomorrow(new Date(c.nextFollowUpDate))
-  ).length;
-  const thisWeekCount = customers.filter(c => {
+  );
+  const tomorrowCount = tomorrowCustomers.length;
+  const tomorrowAmount = tomorrowCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
+  
+  const thisWeekCustomers = customers.filter(c => {
     if (!c.nextFollowUpDate) return false;
     const date = new Date(c.nextFollowUpDate);
     return isWithinInterval(date, {
       start: startOfDay(now),
       end: endOfWeek(now)
     }) && !isToday(date) && !isTomorrow(date);
-  }).length;
-  const thisMonthCount = customers.filter(c => {
+  });
+  const thisWeekCount = thisWeekCustomers.length;
+  const thisWeekAmount = thisWeekCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
+  
+  const thisMonthCustomers = customers.filter(c => {
     if (!c.nextFollowUpDate) return false;
     const date = new Date(c.nextFollowUpDate);
     return isWithinInterval(date, {
@@ -133,8 +146,13 @@ export default function Home() {
       start: startOfDay(now),
       end: endOfWeek(now)
     });
-  }).length;
-  const noFollowUpCount = customers.filter(c => !c.nextFollowUpDate).length;
+  });
+  const thisMonthCount = thisMonthCustomers.length;
+  const thisMonthAmount = thisMonthCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
+  
+  const noFollowUpCustomers = customers.filter(c => !c.nextFollowUpDate);
+  const noFollowUpCount = noFollowUpCustomers.length;
+  const noFollowUpAmount = noFollowUpCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
 
   const filteredCustomers = customers.filter((customer) => {
     let matchesFollowUpFilter = true;
@@ -285,6 +303,7 @@ export default function Home() {
                 <AlertCircle className="h-8 w-8 text-red-500 mb-2" />
                 <p className="text-xs font-medium text-gray-600 mb-1">Overdue</p>
                 <p className="text-xl font-bold text-red-600">{overdueCount}</p>
+                <p className="text-xs text-gray-500 mt-1">₹{overdueAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -301,6 +320,7 @@ export default function Home() {
                 <Clock className="h-8 w-8 text-orange-500 mb-2" />
                 <p className="text-xs font-medium text-gray-600 mb-1">Due Today</p>
                 <p className="text-xl font-bold text-orange-600">{dueTodayCount}</p>
+                <p className="text-xs text-gray-500 mt-1">₹{dueTodayAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -317,6 +337,7 @@ export default function Home() {
                 <CalendarDays className="h-8 w-8 text-yellow-500 mb-2" />
                 <p className="text-xs font-medium text-gray-600 mb-1">Tomorrow</p>
                 <p className="text-xl font-bold text-yellow-600">{tomorrowCount}</p>
+                <p className="text-xs text-gray-500 mt-1">₹{tomorrowAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -333,6 +354,7 @@ export default function Home() {
                 <CalendarRange className="h-8 w-8 text-blue-500 mb-2" />
                 <p className="text-xs font-medium text-gray-600 mb-1">This Week</p>
                 <p className="text-xl font-bold text-blue-600">{thisWeekCount}</p>
+                <p className="text-xs text-gray-500 mt-1">₹{thisWeekAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -349,6 +371,7 @@ export default function Home() {
                 <CalendarIcon className="h-8 w-8 text-purple-500 mb-2" />
                 <p className="text-xs font-medium text-gray-600 mb-1">This Month</p>
                 <p className="text-xl font-bold text-purple-600">{thisMonthCount}</p>
+                <p className="text-xs text-gray-500 mt-1">₹{thisMonthAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -365,6 +388,7 @@ export default function Home() {
                 <CheckCircle2 className="h-8 w-8 text-gray-500 mb-2" />
                 <p className="text-xs font-medium text-gray-600 mb-1">No Follow-Up</p>
                 <p className="text-xl font-bold text-gray-600">{noFollowUpCount}</p>
+                <p className="text-xs text-gray-500 mt-1">₹{noFollowUpAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
