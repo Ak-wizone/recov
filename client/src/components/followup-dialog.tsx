@@ -1,10 +1,14 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { insertFollowUpSchema, type InsertFollowUp, type Customer } from "@shared/schema";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { insertFollowUpSchema, type InsertFollowUp, type Customer, type FollowUp } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar, Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +57,16 @@ export function FollowUpDialog({
     },
   });
 
+  const { data: followUps = [], isLoading: isLoadingFollowUps } = useQuery<FollowUp[]>({
+    queryKey: ["/api/customers", customer?.id, "followups"],
+    enabled: !!customer && open,
+  });
+
+  // Sort follow-ups by date (newest first)
+  const sortedFollowUps = [...followUps].sort((a, b) => 
+    new Date(b.followUpDateTime).getTime() - new Date(a.followUpDateTime).getTime()
+  );
+
   useEffect(() => {
     if (customer && open) {
       form.reset({
@@ -95,9 +109,16 @@ export function FollowUpDialog({
 
   if (!customer) return null;
 
+  const followUpTypeColors = {
+    Meeting: "bg-purple-100 text-purple-800",
+    Call: "bg-blue-100 text-blue-800",
+    WhatsApp: "bg-green-100 text-green-800",
+    Email: "bg-orange-100 text-orange-800",
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Schedule Follow Up</DialogTitle>
         </DialogHeader>
@@ -113,6 +134,52 @@ export function FollowUpDialog({
             </span>
           </p>
         </div>
+
+        {/* Follow-Up History Section */}
+        {sortedFollowUps.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              Follow-Up History ({sortedFollowUps.length})
+            </h3>
+            <ScrollArea className="h-48 w-full rounded-md border border-gray-200 p-4">
+              <div className="space-y-3">
+                {sortedFollowUps.map((followUp) => {
+                  const followUpDate = new Date(followUp.followUpDateTime);
+                  const isPast = followUpDate < new Date();
+                  
+                  return (
+                    <div 
+                      key={followUp.id} 
+                      className={`p-3 rounded-lg border ${isPast ? 'bg-gray-50 border-gray-200' : 'bg-blue-50 border-blue-200'}`}
+                      data-testid={`followup-history-${followUp.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge className={followUpTypeColors[followUp.type as keyof typeof followUpTypeColors]}>
+                            {followUp.type}
+                          </Badge>
+                          {!isPast && (
+                            <Badge className="bg-yellow-100 text-yellow-800">
+                              Upcoming
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-600 flex items-center gap-1 whitespace-nowrap">
+                          <Calendar className="h-3 w-3" />
+                          {format(followUpDate, "MMM dd, yyyy HH:mm")}
+                        </div>
+                      </div>
+                      <p className="text-sm text-gray-700">
+                        {followUp.remarks}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
