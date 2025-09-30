@@ -298,12 +298,12 @@ export default function Home() {
             onClick={() => setFollowUpFilter(followUpFilter === "overdue" ? null : "overdue")}
             data-testid="card-filter-overdue"
           >
-            <CardContent className="p-4">
+            <CardContent className="p-5">
               <div className="flex flex-col items-center justify-center text-center">
-                <AlertCircle className="h-8 w-8 text-red-500 mb-2" />
-                <p className="text-xs font-medium text-gray-600 mb-1">Overdue</p>
-                <p className="text-xl font-bold text-red-600">{overdueCount}</p>
-                <p className="text-xs text-gray-500 mt-1">₹{overdueAmount.toFixed(2)}</p>
+                <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">Overdue</p>
+                <p className="text-3xl font-bold text-red-600">{overdueCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{overdueAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -315,12 +315,12 @@ export default function Home() {
             onClick={() => setFollowUpFilter(followUpFilter === "today" ? null : "today")}
             data-testid="card-filter-today"
           >
-            <CardContent className="p-4">
+            <CardContent className="p-5">
               <div className="flex flex-col items-center justify-center text-center">
-                <Clock className="h-8 w-8 text-orange-500 mb-2" />
-                <p className="text-xs font-medium text-gray-600 mb-1">Due Today</p>
-                <p className="text-xl font-bold text-orange-600">{dueTodayCount}</p>
-                <p className="text-xs text-gray-500 mt-1">₹{dueTodayAmount.toFixed(2)}</p>
+                <Clock className="h-10 w-10 text-orange-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">Due Today</p>
+                <p className="text-3xl font-bold text-orange-600">{dueTodayCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{dueTodayAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -332,12 +332,12 @@ export default function Home() {
             onClick={() => setFollowUpFilter(followUpFilter === "tomorrow" ? null : "tomorrow")}
             data-testid="card-filter-tomorrow"
           >
-            <CardContent className="p-4">
+            <CardContent className="p-5">
               <div className="flex flex-col items-center justify-center text-center">
-                <CalendarDays className="h-8 w-8 text-yellow-500 mb-2" />
-                <p className="text-xs font-medium text-gray-600 mb-1">Tomorrow</p>
-                <p className="text-xl font-bold text-yellow-600">{tomorrowCount}</p>
-                <p className="text-xs text-gray-500 mt-1">₹{tomorrowAmount.toFixed(2)}</p>
+                <CalendarDays className="h-10 w-10 text-yellow-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">Tomorrow</p>
+                <p className="text-3xl font-bold text-yellow-600">{tomorrowCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{tomorrowAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -349,12 +349,12 @@ export default function Home() {
             onClick={() => setFollowUpFilter(followUpFilter === "thisWeek" ? null : "thisWeek")}
             data-testid="card-filter-thisweek"
           >
-            <CardContent className="p-4">
+            <CardContent className="p-5">
               <div className="flex flex-col items-center justify-center text-center">
-                <CalendarRange className="h-8 w-8 text-blue-500 mb-2" />
-                <p className="text-xs font-medium text-gray-600 mb-1">This Week</p>
-                <p className="text-xl font-bold text-blue-600">{thisWeekCount}</p>
-                <p className="text-xs text-gray-500 mt-1">₹{thisWeekAmount.toFixed(2)}</p>
+                <CalendarRange className="h-10 w-10 text-blue-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">This Week</p>
+                <p className="text-3xl font-bold text-blue-600">{thisWeekCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{thisWeekAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -366,12 +366,12 @@ export default function Home() {
             onClick={() => setFollowUpFilter(followUpFilter === "thisMonth" ? null : "thisMonth")}
             data-testid="card-filter-thismonth"
           >
-            <CardContent className="p-4">
+            <CardContent className="p-5">
               <div className="flex flex-col items-center justify-center text-center">
-                <CalendarIcon className="h-8 w-8 text-purple-500 mb-2" />
-                <p className="text-xs font-medium text-gray-600 mb-1">This Month</p>
-                <p className="text-xl font-bold text-purple-600">{thisMonthCount}</p>
-                <p className="text-xs text-gray-500 mt-1">₹{thisMonthAmount.toFixed(2)}</p>
+                <CalendarIcon className="h-10 w-10 text-purple-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">This Month</p>
+                <p className="text-3xl font-bold text-purple-600">{thisMonthCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{thisMonthAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -383,12 +383,12 @@ export default function Home() {
             onClick={() => setFollowUpFilter(followUpFilter === "none" ? null : "none")}
             data-testid="card-filter-no-followup"
           >
-            <CardContent className="p-4">
+            <CardContent className="p-5">
               <div className="flex flex-col items-center justify-center text-center">
-                <CheckCircle2 className="h-8 w-8 text-gray-500 mb-2" />
-                <p className="text-xs font-medium text-gray-600 mb-1">No Follow-Up</p>
-                <p className="text-xl font-bold text-gray-600">{noFollowUpCount}</p>
-                <p className="text-xs text-gray-500 mt-1">₹{noFollowUpAmount.toFixed(2)}</p>
+                <CheckCircle2 className="h-10 w-10 text-gray-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">No Follow-Up</p>
+                <p className="text-3xl font-bold text-gray-600">{noFollowUpCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{noFollowUpAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
