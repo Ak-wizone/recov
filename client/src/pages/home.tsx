@@ -23,14 +23,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, FileDown, FileUp, X, AlertCircle, Clock, Calendar as CalendarIcon, CheckCircle2, CalendarDays, CalendarRange } from "lucide-react";
+import { Plus, FileDown, FileUp, X, AlertCircle, Clock, Calendar as CalendarIcon, CheckCircle2, CalendarDays, CalendarRange, Users } from "lucide-react";
 import { isToday, isTomorrow, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type FollowUpFilter = "overdue" | "today" | "tomorrow" | "thisWeek" | "thisMonth" | "none" | null;
 
 export default function Home() {
   const { toast } = useToast();
   const [followUpFilter, setFollowUpFilter] = useState<FollowUpFilter>(null);
+  const [assignedUserFilter, setAssignedUserFilter] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -190,7 +198,12 @@ export default function Home() {
       }
     }
     
-    return matchesFollowUpFilter;
+    let matchesAssignedUserFilter = true;
+    if (assignedUserFilter) {
+      matchesAssignedUserFilter = customer.assignedUser === assignedUserFilter;
+    }
+    
+    return matchesFollowUpFilter && matchesAssignedUserFilter;
   });
 
   const handleEdit = (customer: Customer) => {
@@ -394,27 +407,76 @@ export default function Home() {
           </Card>
         </div>
 
-        {/* Active Filter Indicator */}
-        {followUpFilter && (
-          <div className="mb-6 flex items-center gap-2">
-            <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg flex items-center gap-2">
-              <span className="text-sm font-medium">
-                Filter: {followUpFilter === "overdue" ? "Overdue" : 
-                         followUpFilter === "today" ? "Due Today" : 
-                         followUpFilter === "tomorrow" ? "Tomorrow" :
-                         followUpFilter === "thisWeek" ? "This Week" :
-                         followUpFilter === "thisMonth" ? "This Month" : "No Follow-Up"}
-              </span>
+        {/* Assigned User Filter */}
+        <div className="mb-6 flex items-center justify-center gap-4">
+          <div className="flex items-center gap-3 bg-white p-4 rounded-lg border-2 border-[#E2E8F0] shadow-sm">
+            <Users className="h-5 w-5 text-[#2563EB]" />
+            <span className="text-sm font-semibold text-gray-700">Filter by Assigned User:</span>
+            <Select value={assignedUserFilter || "all"} onValueChange={(value) => setAssignedUserFilter(value === "all" ? null : value)}>
+              <SelectTrigger className="w-[200px]" data-testid="select-filter-assigned-user">
+                <SelectValue placeholder="All Users" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Users</SelectItem>
+                <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
+                <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
+                <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
+                <SelectItem value="Princi Soni">Princi Soni</SelectItem>
+              </SelectContent>
+            </Select>
+            {assignedUserFilter && (
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={clearFollowUpFilter}
-                className="h-6 w-6 p-0 hover:bg-blue-200"
-                data-testid="button-clear-filter"
+                onClick={() => setAssignedUserFilter(null)}
+                className="h-8 w-8 p-0"
+                data-testid="button-clear-user-filter"
               >
                 <X className="h-4 w-4" />
               </Button>
-            </div>
+            )}
+          </div>
+        </div>
+
+        {/* Active Filter Indicator */}
+        {(followUpFilter || assignedUserFilter) && (
+          <div className="mb-6 flex items-center gap-2 flex-wrap">
+            {followUpFilter && (
+              <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-lg flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  Follow-Up: {followUpFilter === "overdue" ? "Overdue" : 
+                           followUpFilter === "today" ? "Due Today" : 
+                           followUpFilter === "tomorrow" ? "Tomorrow" :
+                           followUpFilter === "thisWeek" ? "This Week" :
+                           followUpFilter === "thisMonth" ? "This Month" : "No Follow-Up"}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={clearFollowUpFilter}
+                  className="h-6 w-6 p-0 hover:bg-blue-200"
+                  data-testid="button-clear-filter"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            {assignedUserFilter && (
+              <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg flex items-center gap-2">
+                <span className="text-sm font-medium">
+                  Assigned: {assignedUserFilter}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setAssignedUserFilter(null)}
+                  className="h-6 w-6 p-0 hover:bg-green-200"
+                  data-testid="button-clear-assigned-filter"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
