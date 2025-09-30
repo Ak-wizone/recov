@@ -47,6 +47,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download sample import template (must be before :id route)
+  app.get("/api/customers/sample-template", async (_req, res) => {
+    try {
+      const sampleData = [
+        {
+          Name: "John Doe",
+          "Amount Owed": "15000.00",
+          Category: "Alpha",
+          "Assigned User": "Manpreet Bedi",
+          Mobile: "+919876543210",
+          Email: "john.doe@example.com",
+        },
+        {
+          Name: "Jane Smith",
+          "Amount Owed": "25000.50",
+          Category: "Beta",
+          "Assigned User": "Bilal Ahamad",
+          Mobile: "+918765432109",
+          Email: "jane.smith@example.com",
+        },
+        {
+          Name: "Robert Johnson",
+          "Amount Owed": "10500.75",
+          Category: "Gamma",
+          "Assigned User": "Anjali Dhiman",
+          Mobile: "+917654321098",
+          Email: "robert.j@example.com",
+        },
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(sampleData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sample Data");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=customer_import_template.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get single customer
   app.get("/api/customers/:id", async (req, res) => {
     try {
@@ -249,6 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         name: row.name || row.Name || "",
         amountOwed: String(row.amountOwed || row["Amount Owed"] || row.amount || 0),
         category: row.category || row.Category || "Alpha",
+        assignedUser: row.assignedUser || row["Assigned User"] || undefined,
         mobile: row.mobile || row.Mobile || row.phone || "",
         email: row.email || row.Email || "",
       }));
@@ -286,6 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         Name: customer.name,
         "Amount Owed": customer.amountOwed,
         Category: customer.category,
+        "Assigned User": customer.assignedUser || "",
         Mobile: customer.mobile,
         Email: customer.email,
         "Created At": customer.createdAt.toISOString(),

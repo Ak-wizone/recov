@@ -282,6 +282,26 @@ export default function Home() {
                 Add Customer
               </Button>
               <Button
+                onClick={() => {
+                  const a = document.createElement("a");
+                  a.href = "/api/customers/sample-template";
+                  a.download = "customer_import_template.xlsx";
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  toast({
+                    title: "Success",
+                    description: "Sample template downloaded successfully",
+                  });
+                }}
+                variant="outline"
+                className="border-[#059669] text-[#059669] hover:bg-[#059669] hover:text-white"
+                data-testid="button-download-template"
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                Download Template
+              </Button>
+              <Button
                 onClick={() => setIsImportDialogOpen(true)}
                 className="bg-[#059669] hover:bg-[#047857] text-white"
                 data-testid="button-import-excel"
