@@ -20,11 +20,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const followUps = await storage.getFollowUpsByCustomer(customer.id);
           const now = new Date();
           
-          // Find the most recent past follow-up (last follow-up)
-          const lastFollowUp = followUps.find(f => new Date(f.followUpDateTime) < now);
+          // Split follow-ups into past and future
+          const pastFollowUps = followUps.filter(f => new Date(f.followUpDateTime) < now);
+          const futureFollowUps = followUps.filter(f => new Date(f.followUpDateTime) >= now);
           
-          // Find the next future follow-up
-          const nextFollowUp = followUps.slice().reverse().find(f => new Date(f.followUpDateTime) >= now);
+          // Get the most recent past follow-up (first in DESC sorted array)
+          const lastFollowUp = pastFollowUps.length > 0 ? pastFollowUps[0] : null;
+          
+          // Get the nearest future follow-up (last in DESC sorted array)
+          const nextFollowUp = futureFollowUps.length > 0 ? futureFollowUps[futureFollowUps.length - 1] : null;
           
           return {
             ...customer,
