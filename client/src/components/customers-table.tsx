@@ -526,21 +526,11 @@ export function CustomersTable({
                       </div>
                     </TableCell>
                     <TableCell className="py-4">
-                      <div className="flex flex-col gap-1" data-testid={`text-next-followup-${customer.id}`}>
+                      <div data-testid={`text-next-followup-${customer.id}`}>
                         {customer.nextFollowUpDate ? (
-                          <>
-                            <div className="text-sm font-medium text-gray-900">
-                              {format(new Date(customer.nextFollowUpDate), "MMM dd, yyyy HH:mm")}
-                            </div>
-                            {customer.nextFollowUpType && (
-                              <Badge
-                                className={followUpTypeColors[customer.nextFollowUpType as keyof typeof followUpTypeColors]}
-                                data-testid={`badge-followup-type-${customer.id}`}
-                              >
-                                {customer.nextFollowUpType}
-                              </Badge>
-                            )}
-                          </>
+                          <div className="text-sm font-medium text-gray-900">
+                            {format(new Date(customer.nextFollowUpDate), "MMM dd, yyyy HH:mm")}
+                          </div>
                         ) : (
                           <span className="text-sm text-gray-400">—</span>
                         )}
