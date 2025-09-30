@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -47,13 +48,25 @@ export function PaymentDialog({
   const form = useForm<InsertPayment>({
     resolver: zodResolver(insertPaymentSchema),
     defaultValues: {
-      customerId: customer?.id || "",
+      customerId: "",
       amount: "",
       paymentMethod: "",
       receiptNumber: "",
       notes: "",
     },
   });
+
+  useEffect(() => {
+    if (customer && open) {
+      form.reset({
+        customerId: customer.id,
+        amount: "",
+        paymentMethod: "",
+        receiptNumber: "",
+        notes: "",
+      });
+    }
+  }, [customer, open, form]);
 
   const paymentMutation = useMutation({
     mutationFn: (data: InsertPayment) => apiRequest("POST", "/api/payments", data),
