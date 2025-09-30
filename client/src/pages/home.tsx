@@ -219,14 +219,14 @@ export default function Home() {
   };
 
   const handleWhatsApp = (customer: Customer) => {
-    const message = encodeURIComponent(`Hello ${customer.name}, this is regarding your outstanding balance of $${customer.amountOwed}.`);
+    const message = encodeURIComponent(`Hello ${customer.name}, this is regarding your outstanding balance of ₹${customer.amountOwed}.`);
     const phoneNumber = customer.mobile.replace(/\D/g, '');
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
   };
 
   const handleEmail = (customer: Customer) => {
     const subject = encodeURIComponent('Outstanding Balance Notice');
-    const body = encodeURIComponent(`Dear ${customer.name},\n\nThis is regarding your outstanding balance of $${customer.amountOwed}.\n\nBest regards`);
+    const body = encodeURIComponent(`Dear ${customer.name},\n\nThis is regarding your outstanding balance of ₹${customer.amountOwed}.\n\nBest regards`);
     window.location.href = `mailto:${customer.email}?subject=${subject}&body=${body}`;
   };
 

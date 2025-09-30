@@ -367,7 +367,7 @@ export function CustomersTable({
                     </TableCell>
                     <TableCell className="py-4">
                       <div className="text-lg font-semibold text-[#DC2626]" data-testid={`text-amount-${customer.id}`}>
-                        ${parseFloat(customer.amountOwed).toFixed(2)}
+                        ₹{parseFloat(customer.amountOwed).toFixed(2)}
                       </div>
                     </TableCell>
                     <TableCell className="py-4">

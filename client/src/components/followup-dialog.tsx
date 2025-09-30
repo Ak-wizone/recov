@@ -109,7 +109,7 @@ export function FollowUpDialog({
           <p className="text-sm text-gray-600">
             Current Amount Owed:{" "}
             <span className="text-[#DC2626] font-semibold" data-testid="text-followup-amount-owed">
-              ${parseFloat(customer.amountOwed).toFixed(2)}
+              ₹{parseFloat(customer.amountOwed).toFixed(2)}
             </span>
           </p>
         </div>

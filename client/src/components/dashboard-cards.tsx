@@ -47,7 +47,7 @@ export function DashboardCards({ customers }: DashboardCardsProps) {
                   {category} Category
                 </p>
                 <p className="text-2xl font-bold text-[#1E293B]" data-testid={`text-amount-${category.toLowerCase()}`}>
-                  ${total.toFixed(2)}
+                  ₹{total.toFixed(2)}
                 </p>
                 <p className="text-sm text-gray-600 mt-1" data-testid={`text-count-${category.toLowerCase()}`}>
                   {count} clients

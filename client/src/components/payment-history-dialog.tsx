@@ -113,13 +113,13 @@ export function PaymentHistoryDialog({
             <div>
               <span className="text-gray-600">Total Paid:</span>
               <span className="text-[#059669] font-semibold ml-2" data-testid="text-total-paid">
-                ${totalPaid.toFixed(2)}
+                ₹{totalPaid.toFixed(2)}
               </span>
             </div>
             <div>
               <span className="text-gray-600">Outstanding:</span>
               <span className="text-[#DC2626] font-semibold ml-2" data-testid="text-outstanding">
-                ${outstanding.toFixed(2)}
+                ₹{outstanding.toFixed(2)}
               </span>
             </div>
           </div>
@@ -155,7 +155,7 @@ export function PaymentHistoryDialog({
                       {format(new Date(payment.paymentDate), "yyyy-MM-dd HH:mm")}
                     </TableCell>
                     <TableCell className="text-sm text-[#059669] font-semibold">
-                      +${parseFloat(payment.amount).toFixed(2)}
+                      +₹{parseFloat(payment.amount).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-sm text-[#1E293B]">
                       {payment.paymentMethod}
