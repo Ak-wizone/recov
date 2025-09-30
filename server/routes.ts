@@ -30,6 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...customer,
             lastFollowUpRemarks: lastFollowUp?.remarks || null,
             lastFollowUpDate: lastFollowUp?.followUpDateTime || null,
+            lastFollowUpType: lastFollowUp?.type || null,
             nextFollowUpDate: nextFollowUp?.followUpDateTime || null,
             nextFollowUpType: nextFollowUp?.type || null,
           };

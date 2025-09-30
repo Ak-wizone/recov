@@ -72,6 +72,7 @@ export function CustomersTable({
   const [mobileSearch, setMobileSearch] = useState("");
   const [emailSearch, setEmailSearch] = useState("");
   const [lastFollowUpSearch, setLastFollowUpSearch] = useState("");
+  const [remarksSearch, setRemarksSearch] = useState("");
   const [nextFollowUpSearch, setNextFollowUpSearch] = useState("");
 
   const handleSort = (field: keyof Customer) => {
@@ -148,14 +149,18 @@ export function CustomersTable({
     const matchesAssignedUser = (customer.assignedUser || "").toLowerCase().includes(assignedUserSearch.toLowerCase());
     const matchesMobile = customer.mobile.includes(mobileSearch);
     const matchesEmail = customer.email.toLowerCase().includes(emailSearch.toLowerCase());
-    const matchesLastFollowUp = (customer.lastFollowUpRemarks || "").toLowerCase().includes(lastFollowUpSearch.toLowerCase());
+    const lastFollowUpStr = customer.lastFollowUpDate 
+      ? `${format(new Date(customer.lastFollowUpDate), "MMM dd, yyyy HH:mm")} ${customer.lastFollowUpType || ""}`
+      : "";
+    const matchesLastFollowUp = lastFollowUpStr.toLowerCase().includes(lastFollowUpSearch.toLowerCase());
+    const matchesRemarks = (customer.lastFollowUpRemarks || "").toLowerCase().includes(remarksSearch.toLowerCase());
     const nextFollowUpStr = customer.nextFollowUpDate 
       ? `${format(new Date(customer.nextFollowUpDate), "MMM dd, yyyy HH:mm")} ${customer.nextFollowUpType || ""}`
       : "";
     const matchesNextFollowUp = nextFollowUpStr.toLowerCase().includes(nextFollowUpSearch.toLowerCase());
 
     return matchesName && matchesAmount && matchesCategory && matchesAssignedUser && matchesMobile && 
-           matchesEmail && matchesLastFollowUp && matchesNextFollowUp;
+           matchesEmail && matchesLastFollowUp && matchesRemarks && matchesNextFollowUp;
   });
 
   const sortedCustomers = [...filteredCustomers].sort((a, b) => {
@@ -297,6 +302,7 @@ export function CustomersTable({
                 <TableHead className="py-4 font-semibold">Mobile Number</TableHead>
                 <TableHead className="py-4 font-semibold">Email Address</TableHead>
                 <TableHead className="py-4 font-semibold">Last Follow Up</TableHead>
+                <TableHead className="py-4 font-semibold">Remarks</TableHead>
                 <TableHead className="py-4 font-semibold">Next Follow Up</TableHead>
                 <TableHead className="py-4 font-semibold">Actions</TableHead>
               </TableRow>
@@ -366,11 +372,21 @@ export function CustomersTable({
                 <TableHead className="py-3">
                   <Input
                     type="text"
-                    placeholder="Search remarks..."
+                    placeholder="Search follow-up..."
                     value={lastFollowUpSearch}
                     onChange={(e) => setLastFollowUpSearch(e.target.value)}
                     className="h-10 min-w-[140px]"
                     data-testid="input-search-last-followup"
+                  />
+                </TableHead>
+                <TableHead className="py-3">
+                  <Input
+                    type="text"
+                    placeholder="Search remarks..."
+                    value={remarksSearch}
+                    onChange={(e) => setRemarksSearch(e.target.value)}
+                    className="h-10 min-w-[140px]"
+                    data-testid="input-search-remarks"
                   />
                 </TableHead>
                 <TableHead className="py-3">
@@ -389,7 +405,7 @@ export function CustomersTable({
             <TableBody>
               {sortedCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={11} className="text-center py-8 text-gray-500">
                     No customers found. Add a customer to get started.
                   </TableCell>
                 </TableRow>
@@ -490,13 +506,23 @@ export function CustomersTable({
                             <div className="text-xs text-gray-500">
                               {format(new Date(customer.lastFollowUpDate), "MMM dd, yyyy HH:mm")}
                             </div>
-                            <div className="text-sm text-gray-700">
-                              {truncate(customer.lastFollowUpRemarks, 50)}
-                            </div>
+                            {customer.lastFollowUpType && (
+                              <Badge
+                                className={followUpTypeColors[customer.lastFollowUpType as keyof typeof followUpTypeColors]}
+                                data-testid={`badge-last-followup-type-${customer.id}`}
+                              >
+                                {customer.lastFollowUpType}
+                              </Badge>
+                            )}
                           </>
                         ) : (
                           <span className="text-sm text-gray-400">—</span>
                         )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="text-sm text-gray-700" data-testid={`text-remarks-${customer.id}`}>
+                        {truncate(customer.lastFollowUpRemarks, 50)}
                       </div>
                     </TableCell>
                     <TableCell className="py-4">
