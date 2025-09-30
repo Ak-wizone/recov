@@ -115,25 +115,30 @@ export default function Home() {
   // Calculate follow-up filter counts and amounts
   const now = new Date();
   
-  const overdueCustomers = customers.filter(c => 
+  // First apply assigned user filter to base customers list
+  const customersByAssignedUser = assignedUserFilter 
+    ? customers.filter(c => c.assignedUser === assignedUserFilter)
+    : customers;
+  
+  const overdueCustomers = customersByAssignedUser.filter(c => 
     c.nextFollowUpDate && isBefore(new Date(c.nextFollowUpDate), startOfDay(now))
   );
   const overdueCount = overdueCustomers.length;
   const overdueAmount = overdueCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
   
-  const dueTodayCustomers = customers.filter(c => 
+  const dueTodayCustomers = customersByAssignedUser.filter(c => 
     c.nextFollowUpDate && isToday(new Date(c.nextFollowUpDate))
   );
   const dueTodayCount = dueTodayCustomers.length;
   const dueTodayAmount = dueTodayCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
   
-  const tomorrowCustomers = customers.filter(c => 
+  const tomorrowCustomers = customersByAssignedUser.filter(c => 
     c.nextFollowUpDate && isTomorrow(new Date(c.nextFollowUpDate))
   );
   const tomorrowCount = tomorrowCustomers.length;
   const tomorrowAmount = tomorrowCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
   
-  const thisWeekCustomers = customers.filter(c => {
+  const thisWeekCustomers = customersByAssignedUser.filter(c => {
     if (!c.nextFollowUpDate) return false;
     const date = new Date(c.nextFollowUpDate);
     return isWithinInterval(date, {
@@ -144,7 +149,7 @@ export default function Home() {
   const thisWeekCount = thisWeekCustomers.length;
   const thisWeekAmount = thisWeekCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
   
-  const thisMonthCustomers = customers.filter(c => {
+  const thisMonthCustomers = customersByAssignedUser.filter(c => {
     if (!c.nextFollowUpDate) return false;
     const date = new Date(c.nextFollowUpDate);
     return isWithinInterval(date, {
@@ -158,7 +163,7 @@ export default function Home() {
   const thisMonthCount = thisMonthCustomers.length;
   const thisMonthAmount = thisMonthCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
   
-  const noFollowUpCustomers = customers.filter(c => !c.nextFollowUpDate);
+  const noFollowUpCustomers = customersByAssignedUser.filter(c => !c.nextFollowUpDate);
   const noFollowUpCount = noFollowUpCustomers.length;
   const noFollowUpAmount = noFollowUpCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
 
@@ -300,7 +305,7 @@ export default function Home() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Dashboard Cards */}
-        <DashboardCards customers={customers} />
+        <DashboardCards customers={customersByAssignedUser} />
 
         {/* Follow-Up Filter Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
