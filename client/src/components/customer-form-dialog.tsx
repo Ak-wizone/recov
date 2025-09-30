@@ -50,6 +50,7 @@ export function CustomerFormDialog({
       name: "",
       amountOwed: "0",
       category: "Alpha",
+      assignedUser: undefined,
       mobile: "",
       email: "",
     },
@@ -61,6 +62,7 @@ export function CustomerFormDialog({
         name: customer.name,
         amountOwed: customer.amountOwed,
         category: customer.category as "Alpha" | "Beta" | "Gamma" | "Delta",
+        assignedUser: customer.assignedUser as "Manpreet Bedi" | "Bilal Ahamad" | "Anjali Dhiman" | "Princi Soni" | undefined,
         mobile: customer.mobile,
         email: customer.email,
       });
@@ -69,6 +71,7 @@ export function CustomerFormDialog({
         name: "",
         amountOwed: "0",
         category: "Alpha",
+        assignedUser: undefined,
         mobile: "",
         email: "",
       });
@@ -188,6 +191,30 @@ export function CustomerFormDialog({
                       <SelectItem value="Beta">Beta</SelectItem>
                       <SelectItem value="Gamma">Gamma</SelectItem>
                       <SelectItem value="Delta">Delta</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="assignedUser"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Assigned User</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger data-testid="select-assigned-user">
+                        <SelectValue placeholder="Select assigned user (optional)" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
+                      <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
+                      <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
+                      <SelectItem value="Princi Soni">Princi Soni</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

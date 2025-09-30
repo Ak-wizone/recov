@@ -14,6 +14,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MessageCircle, Mail, DollarSign, Edit, Trash2, History, Calendar, ChevronDown, MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
@@ -24,6 +31,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface CustomersTableProps {
   customers: Customer[];
@@ -50,6 +59,7 @@ export function CustomersTable({
   onEmail,
   onBulkDelete,
 }: CustomersTableProps) {
+  const { toast } = useToast();
   const [sortField, setSortField] = useState<keyof Customer | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -58,6 +68,7 @@ export function CustomersTable({
   const [nameSearch, setNameSearch] = useState("");
   const [amountSearch, setAmountSearch] = useState("");
   const [categorySearch, setCategorySearch] = useState("");
+  const [assignedUserSearch, setAssignedUserSearch] = useState("");
   const [mobileSearch, setMobileSearch] = useState("");
   const [emailSearch, setEmailSearch] = useState("");
   const [lastFollowUpSearch, setLastFollowUpSearch] = useState("");
@@ -95,11 +106,46 @@ export function CustomersTable({
     }
   };
 
+  const handleCategoryChange = async (customerId: string, newCategory: string) => {
+    try {
+      await apiRequest("PATCH", `/api/customers/${customerId}`, { category: newCategory });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({
+        title: "Success",
+        description: "Category updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAssignedUserChange = async (customerId: string, newAssignedUser: string) => {
+    try {
+      await apiRequest("PATCH", `/api/customers/${customerId}`, { assignedUser: newAssignedUser });
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({
+        title: "Success",
+        description: "Assigned user updated successfully",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   // Filter customers based on column searches (AND logic)
   const filteredCustomers = customers.filter((customer) => {
     const matchesName = customer.name.toLowerCase().includes(nameSearch.toLowerCase());
     const matchesAmount = customer.amountOwed.toString().includes(amountSearch);
     const matchesCategory = customer.category.toLowerCase().includes(categorySearch.toLowerCase());
+    const matchesAssignedUser = (customer.assignedUser || "").toLowerCase().includes(assignedUserSearch.toLowerCase());
     const matchesMobile = customer.mobile.includes(mobileSearch);
     const matchesEmail = customer.email.toLowerCase().includes(emailSearch.toLowerCase());
     const matchesLastFollowUp = (customer.lastFollowUpRemarks || "").toLowerCase().includes(lastFollowUpSearch.toLowerCase());
@@ -108,7 +154,7 @@ export function CustomersTable({
       : "";
     const matchesNextFollowUp = nextFollowUpStr.toLowerCase().includes(nextFollowUpSearch.toLowerCase());
 
-    return matchesName && matchesAmount && matchesCategory && matchesMobile && 
+    return matchesName && matchesAmount && matchesCategory && matchesAssignedUser && matchesMobile && 
            matchesEmail && matchesLastFollowUp && matchesNextFollowUp;
   });
 
@@ -247,6 +293,7 @@ export function CustomersTable({
                     <span className="ml-1">↕</span>
                   </div>
                 </TableHead>
+                <TableHead className="py-4 font-semibold">Assigned User</TableHead>
                 <TableHead className="py-4 font-semibold">Mobile Number</TableHead>
                 <TableHead className="py-4 font-semibold">Email Address</TableHead>
                 <TableHead className="py-4 font-semibold">Last Follow Up</TableHead>
@@ -284,6 +331,16 @@ export function CustomersTable({
                     onChange={(e) => setCategorySearch(e.target.value)}
                     className="h-10 min-w-[140px]"
                     data-testid="input-search-category"
+                  />
+                </TableHead>
+                <TableHead className="py-3">
+                  <Input
+                    type="text"
+                    placeholder="Search user..."
+                    value={assignedUserSearch}
+                    onChange={(e) => setAssignedUserSearch(e.target.value)}
+                    className="h-10 min-w-[140px]"
+                    data-testid="input-search-assigned-user"
                   />
                 </TableHead>
                 <TableHead className="py-3">
@@ -332,7 +389,7 @@ export function CustomersTable({
             <TableBody>
               {sortedCustomers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                     No customers found. Add a customer to get started.
                   </TableCell>
                 </TableRow>
@@ -371,12 +428,50 @@ export function CustomersTable({
                       </div>
                     </TableCell>
                     <TableCell className="py-4">
-                      <Badge
-                        className={categoryColors[customer.category as keyof typeof categoryColors]}
-                        data-testid={`badge-category-${customer.id}`}
+                      <Select
+                        value={customer.category}
+                        onValueChange={(value) => handleCategoryChange(customer.id, value)}
                       >
-                        {customer.category}
-                      </Badge>
+                        <SelectTrigger className="w-[130px]" data-testid={`select-category-${customer.id}`}>
+                          <SelectValue>
+                            <Badge className={categoryColors[customer.category as keyof typeof categoryColors]}>
+                              {customer.category}
+                            </Badge>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Alpha">
+                            <Badge className={categoryColors.Alpha}>Alpha</Badge>
+                          </SelectItem>
+                          <SelectItem value="Beta">
+                            <Badge className={categoryColors.Beta}>Beta</Badge>
+                          </SelectItem>
+                          <SelectItem value="Gamma">
+                            <Badge className={categoryColors.Gamma}>Gamma</Badge>
+                          </SelectItem>
+                          <SelectItem value="Delta">
+                            <Badge className={categoryColors.Delta}>Delta</Badge>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <Select
+                        value={customer.assignedUser || ""}
+                        onValueChange={(value) => handleAssignedUserChange(customer.id, value)}
+                      >
+                        <SelectTrigger className="w-[160px]" data-testid={`select-assigned-user-${customer.id}`}>
+                          <SelectValue placeholder="Assign user">
+                            {customer.assignedUser || "Not assigned"}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
+                          <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
+                          <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
+                          <SelectItem value="Princi Soni">Princi Soni</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell className="py-4">
                       <div className="text-sm text-[#1E293B]" data-testid={`text-mobile-${customer.id}`}>
