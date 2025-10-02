@@ -133,76 +133,98 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-64 bg-background border-r border-border h-screen flex flex-col" data-testid="sidebar">
-      <div className="p-6 border-b border-border">
-        <h1 className="text-2xl font-bold text-primary" data-testid="text-app-title">
+    <div className="w-72 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 h-screen flex flex-col shadow-2xl" data-testid="sidebar">
+      <div className="p-8 border-b border-slate-700/50">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent animate-pulse" data-testid="text-app-title">
           Business Manager
         </h1>
+        <p className="text-slate-400 text-sm mt-2">Complete Business Solution</p>
       </div>
 
-      <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+      <nav className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
         {navItems.map((item) => (
-          <div key={item.name}>
+          <div key={item.name} className="group">
             {item.subItems ? (
               <div>
                 <button
                   onClick={() => toggleExpanded(item.name)}
                   className={cn(
-                    "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                    "hover:bg-accent hover:text-accent-foreground",
-                    "text-muted-foreground"
+                    "w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-semibold",
+                    "transition-all duration-300 transform hover:scale-105",
+                    "hover:bg-gradient-to-r hover:from-blue-600 hover:to-cyan-600 hover:shadow-lg hover:shadow-blue-500/50",
+                    "text-slate-300 hover:text-white",
+                    expandedItems.has(item.name) && "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/50"
                   )}
                   data-testid={`button-toggle-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
                 >
                   <div className="flex items-center gap-3">
-                    {item.icon}
-                    <span>{item.name}</span>
+                    <div className="transition-transform duration-300 group-hover:rotate-12">
+                      {item.icon}
+                    </div>
+                    <span className="tracking-wide">{item.name}</span>
                   </div>
-                  {expandedItems.has(item.name) ? (
+                  <div className={cn(
+                    "transition-transform duration-300",
+                    expandedItems.has(item.name) && "rotate-180"
+                  )}>
                     <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
+                  </div>
                 </button>
-                {expandedItems.has(item.name) && (
-                  <div className="ml-4 mt-1 space-y-1">
+                <div className={cn(
+                  "overflow-hidden transition-all duration-500 ease-in-out",
+                  expandedItems.has(item.name) ? "max-h-96 opacity-100 mt-2" : "max-h-0 opacity-0"
+                )}>
+                  <div className="ml-6 space-y-1.5 border-l-2 border-blue-500/30 pl-4">
                     {item.subItems.map((subItem) => (
                       <Link
                         key={subItem.name}
                         href={subItem.path}
                         className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium",
+                          "transition-all duration-300 transform hover:translate-x-1",
                           isActive(subItem.path)
-                            ? "bg-primary text-primary-foreground"
-                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                            ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/50 scale-105"
+                            : "text-slate-400 hover:text-white hover:bg-slate-700/50"
                         )}
                         data-testid={`link-${subItem.name.toLowerCase().replace(/\s+/g, "-")}`}
                       >
-                        {subItem.icon}
+                        <div className="transition-transform duration-300 hover:scale-110">
+                          {subItem.icon}
+                        </div>
                         <span>{subItem.name}</span>
                       </Link>
                     ))}
                   </div>
-                )}
+                </div>
               </div>
             ) : (
               <Link
                 href={item.path}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold",
+                  "transition-all duration-300 transform hover:scale-105",
                   isActive(item.path)
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl shadow-emerald-500/50"
+                    : "text-slate-300 hover:text-white hover:bg-gradient-to-r hover:from-blue-600 hover:to-cyan-600 hover:shadow-lg hover:shadow-blue-500/50"
                 )}
                 data-testid={`link-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
               >
-                {item.icon}
-                <span>{item.name}</span>
+                <div className="transition-transform duration-300 group-hover:rotate-12">
+                  {item.icon}
+                </div>
+                <span className="tracking-wide">{item.name}</span>
               </Link>
             )}
           </div>
         ))}
       </nav>
+
+      <div className="p-4 border-t border-slate-700/50">
+        <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-xl p-4 border border-purple-500/30">
+          <p className="text-xs text-slate-300 font-medium">Version 2.0</p>
+          <p className="text-xs text-slate-500 mt-1">All systems operational</p>
+        </div>
+      </div>
     </div>
   );
 }
