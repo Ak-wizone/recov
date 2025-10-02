@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import MasterCustomers from "@/pages/master-customers";
 import MasterItems from "@/pages/master-items";
 import Invoices from "@/pages/invoices";
+import Receipts from "@/pages/receipts";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/invoices" component={Invoices} />
+        <Route path="/receipts" component={Receipts} />
         <Route path="/masters/customers" component={MasterCustomers} />
         <Route path="/masters/items" component={MasterItems} />
         <Route component={NotFound} />
