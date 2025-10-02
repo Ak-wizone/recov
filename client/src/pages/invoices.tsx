@@ -373,105 +373,101 @@ export default function Invoices() {
       {/* Dashboard Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card
-          className={`cursor-pointer transition-all border-2 ${
+          className={`cursor-pointer transition-all border-0 ${
             activeCardFilter === null
-              ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-              : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
+              ? "bg-blue-100 dark:bg-blue-900/40 shadow-md"
+              : "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40"
           }`}
           onClick={() => setActiveCardFilter(null)}
           data-testid="card-all-invoices"
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Invoices</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{totalCount}</p>
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                  ₹{totalAmount.toFixed(2)}
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  Profit: ₹{totalProfit.toFixed(2)}
-                </p>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-500 p-3 rounded-xl flex-shrink-0">
+                <Users className="h-6 w-6 text-white" />
               </div>
-              <Users className="h-10 w-10 text-blue-500" />
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Total Invoices</p>
+                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{totalCount}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card
-          className={`cursor-pointer transition-all border-2 ${
+          className={`cursor-pointer transition-all border-0 ${
             activeCardFilter === "Paid"
-              ? "border-green-500 bg-green-50 dark:bg-green-950/30"
-              : "border-gray-200 dark:border-gray-700 hover:border-green-300"
+              ? "bg-green-100 dark:bg-green-900/40 shadow-md"
+              : "bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40"
           }`}
           onClick={() => setActiveCardFilter(activeCardFilter === "Paid" ? null : "Paid")}
           data-testid="card-paid"
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Paid</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{paidCount}</p>
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                  ₹{paidAmount.toFixed(2)}
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  Profit: ₹{paidProfit.toFixed(2)}
-                </p>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-green-500 p-3 rounded-xl flex-shrink-0">
+                <CheckCircle2 className="h-6 w-6 text-white" />
               </div>
-              <CheckCircle2 className="h-10 w-10 text-green-500" />
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Paid</p>
+                <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                  ₹{paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{paidCount}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card
-          className={`cursor-pointer transition-all border-2 ${
+          className={`cursor-pointer transition-all border-0 ${
             activeCardFilter === "Unpaid"
-              ? "border-red-500 bg-red-50 dark:bg-red-950/30"
-              : "border-gray-200 dark:border-gray-700 hover:border-red-300"
+              ? "bg-orange-100 dark:bg-orange-900/40 shadow-md"
+              : "bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40"
           }`}
           onClick={() => setActiveCardFilter(activeCardFilter === "Unpaid" ? null : "Unpaid")}
           data-testid="card-unpaid"
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Unpaid</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{unpaidCount}</p>
-                <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                  ₹{unpaidAmount.toFixed(2)}
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  Profit: ₹{unpaidProfit.toFixed(2)}
-                </p>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-orange-500 p-3 rounded-xl flex-shrink-0">
+                <AlertCircle className="h-6 w-6 text-white" />
               </div>
-              <AlertCircle className="h-10 w-10 text-red-500" />
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Unpaid</p>
+                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                  ₹{unpaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{unpaidCount}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         <Card
-          className={`cursor-pointer transition-all border-2 ${
+          className={`cursor-pointer transition-all border-0 ${
             activeCardFilter === "Partial"
-              ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30"
-              : "border-gray-200 dark:border-gray-700 hover:border-yellow-300"
+              ? "bg-cyan-100 dark:bg-cyan-900/40 shadow-md"
+              : "bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40"
           }`}
           onClick={() => setActiveCardFilter(activeCardFilter === "Partial" ? null : "Partial")}
           data-testid="card-partial"
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Partial</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{partialCount}</p>
-                <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                  ₹{partialAmount.toFixed(2)}
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  Profit: ₹{partialProfit.toFixed(2)}
-                </p>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-cyan-500 p-3 rounded-xl flex-shrink-0">
+                <Clock className="h-6 w-6 text-white" />
               </div>
-              <Clock className="h-10 w-10 text-yellow-500" />
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Partial</p>
+                <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+                  ₹{partialAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{partialCount}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
