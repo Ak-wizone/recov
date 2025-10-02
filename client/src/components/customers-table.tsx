@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MessageCircle, Mail, DollarSign, Edit, Trash2, History, Calendar, ChevronDown, MoreVertical } from "lucide-react";
+import { MessageCircle, Mail, DollarSign, Edit, Trash2, History, Calendar, ChevronDown, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -63,6 +63,10 @@ export function CustomersTable({
   const [sortField, setSortField] = useState<keyof Customer | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   
   // Column search states
   const [nameSearch, setNameSearch] = useState("");
@@ -182,6 +186,13 @@ export function CustomersTable({
     if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
     return 0;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(sortedCustomers.length / pageSize);
+  const paginatedCustomers = sortedCustomers.slice(
+    currentPage * pageSize,
+    (currentPage + 1) * pageSize
+  );
 
   const categoryColors = {
     Alpha: "bg-green-100 text-green-800",
@@ -403,14 +414,14 @@ export function CustomersTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedCustomers.length === 0 ? (
+              {paginatedCustomers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={11} className="text-center py-8 text-gray-500">
                     No customers found. Add a customer to get started.
                   </TableCell>
                 </TableRow>
               ) : (
-                sortedCustomers.map((customer) => (
+                paginatedCustomers.map((customer) => (
                   <TableRow
                     key={customer.id}
                     className="border-b border-gray-200 hover:bg-[#F8FAFC] transition-colors"
@@ -612,6 +623,74 @@ export function CustomersTable({
             </TableBody>
           </Table>
         </div>
+        
+        {/* Pagination Controls */}
+        {sortedCustomers.length > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700">
+                Showing {currentPage * pageSize + 1} to {Math.min((currentPage + 1) * pageSize, sortedCustomers.length)} of {sortedCustomers.length} customers
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={pageSize.toString()} onValueChange={(value) => {
+                setPageSize(Number(value));
+                setCurrentPage(0);
+              }}>
+                <SelectTrigger className="w-[100px]" data-testid="select-page-size">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5 / page</SelectItem>
+                  <SelectItem value="10">10 / page</SelectItem>
+                  <SelectItem value="20">20 / page</SelectItem>
+                  <SelectItem value="50">50 / page</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(0)}
+                  disabled={currentPage === 0}
+                  data-testid="button-first-page"
+                >
+                  First
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 0}
+                  data-testid="button-prev-page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="flex items-center px-3 text-sm">
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  data-testid="button-next-page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(totalPages - 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  data-testid="button-last-page"
+                >
+                  Last
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
