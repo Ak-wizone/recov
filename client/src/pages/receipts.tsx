@@ -5,6 +5,7 @@ import { Receipt } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { ReceiptTable } from "@/components/receipt-table";
 import ReceiptFormDialog from "@/components/receipt-form-dialog";
+import { ImportModal } from "@/components/import-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -24,6 +25,7 @@ export default function Receipts() {
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
@@ -232,6 +234,15 @@ export default function Receipts() {
         </Button>
         <Button
           variant="outline"
+          onClick={() => setIsImportDialogOpen(true)}
+          className="gap-2"
+          data-testid="button-import"
+        >
+          <FileUp className="h-4 w-4" />
+          Import
+        </Button>
+        <Button
+          variant="outline"
           onClick={() => downloadTemplateMutation.mutate()}
           disabled={downloadTemplateMutation.isPending}
           className="gap-2"
@@ -264,6 +275,13 @@ export default function Receipts() {
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         receipt={selectedReceipt || undefined}
+      />
+
+      {/* Import Dialog */}
+      <ImportModal
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+        module="receipts"
       />
 
       {/* Delete Confirmation Dialog */}

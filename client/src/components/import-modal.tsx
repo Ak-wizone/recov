@@ -13,7 +13,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 interface ImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  module?: 'customers' | 'items' | 'invoices';
+  module?: 'customers' | 'items' | 'invoices' | 'receipts';
 }
 
 export function ImportModal({ open, onOpenChange, module = 'customers' }: ImportModalProps) {
@@ -29,12 +29,18 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     if (module === 'invoices') {
       return `/api/invoices/import`;
     }
+    if (module === 'receipts') {
+      return `/api/receipts/import`;
+    }
     return `/api/masters/${module}/import`;
   };
 
   const getQueryKey = () => {
     if (module === 'invoices') {
       return `/api/invoices`;
+    }
+    if (module === 'receipts') {
+      return `/api/receipts`;
     }
     return `/api/masters/${module}`;
   };
@@ -75,6 +81,9 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     if (module === 'invoices') {
       return `/api/invoices/template`;
     }
+    if (module === 'receipts') {
+      return `/api/receipts/template`;
+    }
     return `/api/masters/${module}/template`;
   };
 
@@ -86,7 +95,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = module === 'invoices' ? `${module}_template.xlsx` : `master_${module}_template.xlsx`;
+      a.download = (module === 'invoices' || module === 'receipts') ? `${module}_template.xlsx` : `master_${module}_template.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
