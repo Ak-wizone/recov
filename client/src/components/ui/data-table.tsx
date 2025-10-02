@@ -347,12 +347,13 @@ export function DataTable<TData, TValue>({
       )}
 
       <div className="rounded-md border bg-card">
-        <ScrollArea className="w-full">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
+        <ScrollArea className="w-full whitespace-nowrap">
+          <div className="w-max min-w-full">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => {
                     const canSort = header.column.getCanSort();
                     const sortDirection = header.column.getIsSorted();
 
@@ -398,11 +399,12 @@ export function DataTable<TData, TValue>({
                       </TableHead>
                     );
                   })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>{renderTableBody()}</TableBody>
-          </Table>
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>{renderTableBody()}</TableBody>
+            </Table>
+          </div>
         </ScrollArea>
       </div>
 
