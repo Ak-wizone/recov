@@ -210,6 +210,146 @@ export default function MasterCustomers() {
         enableSorting: true,
       },
       {
+        accessorKey: "billingAddress",
+        header: "Billing Address",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-billingAddress-${row.original.id}`}>
+            {row.original.billingAddress || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "pincode",
+        header: "Pincode",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-pincode-${row.original.id}`}>
+            {row.original.pincode || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "country",
+        header: "Country",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-country-${row.original.id}`}>
+            {row.original.country || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "msmeNumber",
+        header: "MSME Number",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-msmeNumber-${row.original.id}`}>
+            {row.original.msmeNumber || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "incorporationCertNumber",
+        header: "Incorporation Certificate Number",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-incorporationCertNumber-${row.original.id}`}>
+            {row.original.incorporationCertNumber || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "incorporationDate",
+        header: "Incorporation Date",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-incorporationDate-${row.original.id}`}>
+            {row.original.incorporationDate ? new Date(row.original.incorporationDate).toLocaleDateString('en-IN') : "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "companyType",
+        header: "Company Type",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-companyType-${row.original.id}`}>
+            {row.original.companyType || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "primaryContactName",
+        header: "Primary Contact Name",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-primaryContactName-${row.original.id}`}>
+            {row.original.primaryContactName || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "secondaryContactName",
+        header: "Secondary Contact Name",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-secondaryContactName-${row.original.id}`}>
+            {row.original.secondaryContactName || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "secondaryMobile",
+        header: "Secondary Mobile",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-secondaryMobile-${row.original.id}`}>
+            {row.original.secondaryMobile || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "secondaryEmail",
+        header: "Secondary Email",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-secondaryEmail-${row.original.id}`}>
+            {row.original.secondaryEmail || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "interestApplicableFrom",
+        header: "Interest Applicable From",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-interestApplicableFrom-${row.original.id}`}>
+            {row.original.interestApplicableFrom || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "interestRate",
+        header: "Interest Rate (%)",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-interestRate-${row.original.id}`}>
+            {row.original.interestRate ? `${row.original.interestRate}%` : "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "salesPerson",
+        header: "Sales Person",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-salesPerson-${row.original.id}`}>
+            {row.original.salesPerson || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
         accessorKey: "isActive",
         header: "Status",
         cell: ({ row }) => (
