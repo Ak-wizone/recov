@@ -322,137 +322,161 @@ export function CustomersTable({
                     data-testid="checkbox-select-all"
                   />
                 </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-[#E2E8F0] py-4 font-semibold transition-colors"
-                  onClick={() => handleSort("name")}
-                  data-testid="header-name"
-                >
-                  <div className="flex items-center">
-                    Customer Name
-                    <span className="ml-1">↕</span>
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-[#E2E8F0] py-4 font-semibold transition-colors"
-                  onClick={() => handleSort("amountOwed")}
-                  data-testid="header-amount"
-                >
-                  <div className="flex items-center">
-                    Amount Owed
-                    <span className="ml-1">↕</span>
-                  </div>
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer hover:bg-[#E2E8F0] py-4 font-semibold transition-colors"
-                  onClick={() => handleSort("category")}
-                  data-testid="header-category"
-                >
-                  <div className="flex items-center">
-                    Category
-                    <span className="ml-1">↕</span>
-                  </div>
-                </TableHead>
-                <TableHead className="py-4 font-semibold">Assigned User</TableHead>
-                <TableHead className="py-4 font-semibold">Mobile Number</TableHead>
-                <TableHead className="py-4 font-semibold">Email Address</TableHead>
-                <TableHead className="py-4 font-semibold">Last Follow Up</TableHead>
-                <TableHead className="py-4 font-semibold">Remarks</TableHead>
-                <TableHead className="py-4 font-semibold">Next Follow Up</TableHead>
+                {visibleColumns.name && (
+                  <TableHead
+                    className="cursor-pointer hover:bg-[#E2E8F0] py-4 font-semibold transition-colors"
+                    onClick={() => handleSort("name")}
+                    data-testid="header-name"
+                  >
+                    <div className="flex items-center">
+                      Customer Name
+                      <span className="ml-1">↕</span>
+                    </div>
+                  </TableHead>
+                )}
+                {visibleColumns.amountOwed && (
+                  <TableHead
+                    className="cursor-pointer hover:bg-[#E2E8F0] py-4 font-semibold transition-colors"
+                    onClick={() => handleSort("amountOwed")}
+                    data-testid="header-amount"
+                  >
+                    <div className="flex items-center">
+                      Amount Owed
+                      <span className="ml-1">↕</span>
+                    </div>
+                  </TableHead>
+                )}
+                {visibleColumns.category && (
+                  <TableHead
+                    className="cursor-pointer hover:bg-[#E2E8F0] py-4 font-semibold transition-colors"
+                    onClick={() => handleSort("category")}
+                    data-testid="header-category"
+                  >
+                    <div className="flex items-center">
+                      Category
+                      <span className="ml-1">↕</span>
+                    </div>
+                  </TableHead>
+                )}
+                {visibleColumns.assignedUser && <TableHead className="py-4 font-semibold">Assigned User</TableHead>}
+                {visibleColumns.mobile && <TableHead className="py-4 font-semibold">Mobile Number</TableHead>}
+                {visibleColumns.email && <TableHead className="py-4 font-semibold">Email Address</TableHead>}
+                {visibleColumns.lastFollowUp && <TableHead className="py-4 font-semibold">Last Follow Up</TableHead>}
+                {visibleColumns.remarks && <TableHead className="py-4 font-semibold">Remarks</TableHead>}
+                {visibleColumns.nextFollowUp && <TableHead className="py-4 font-semibold">Next Follow Up</TableHead>}
                 <TableHead className="py-4 font-semibold">Actions</TableHead>
               </TableRow>
               {/* Search Row */}
               <TableRow className="bg-white border-b">
                 <TableHead className="py-3"></TableHead>
-                <TableHead className="py-3">
-                  <Input
-                    type="text"
-                    placeholder="Search name..."
-                    value={nameSearch}
-                    onChange={(e) => setNameSearch(e.target.value)}
-                    className="h-10 min-w-[140px]"
-                    data-testid="input-search-name"
-                  />
-                </TableHead>
-                <TableHead className="py-3">
-                  <Input
-                    type="text"
-                    placeholder="Search amount..."
-                    value={amountSearch}
-                    onChange={(e) => setAmountSearch(e.target.value)}
-                    className="h-10 min-w-[140px]"
-                    data-testid="input-search-amount"
-                  />
-                </TableHead>
-                <TableHead className="py-3">
-                  <Input
-                    type="text"
-                    placeholder="Search category..."
-                    value={categorySearch}
-                    onChange={(e) => setCategorySearch(e.target.value)}
-                    className="h-10 min-w-[140px]"
-                    data-testid="input-search-category"
-                  />
-                </TableHead>
-                <TableHead className="py-3">
-                  <Input
-                    type="text"
-                    placeholder="Search user..."
-                    value={assignedUserSearch}
-                    onChange={(e) => setAssignedUserSearch(e.target.value)}
-                    className="h-10 min-w-[140px]"
-                    data-testid="input-search-assigned-user"
-                  />
-                </TableHead>
-                <TableHead className="py-3">
-                  <Input
-                    type="text"
-                    placeholder="Search mobile..."
-                    value={mobileSearch}
-                    onChange={(e) => setMobileSearch(e.target.value)}
-                    className="h-10 min-w-[140px]"
-                    data-testid="input-search-mobile"
-                  />
-                </TableHead>
-                <TableHead className="py-3">
-                  <Input
-                    type="text"
-                    placeholder="Search email..."
-                    value={emailSearch}
-                    onChange={(e) => setEmailSearch(e.target.value)}
-                    className="h-10 min-w-[140px]"
-                    data-testid="input-search-email"
-                  />
-                </TableHead>
-                <TableHead className="py-3">
-                  <Input
-                    type="text"
-                    placeholder="Search follow-up..."
-                    value={lastFollowUpSearch}
-                    onChange={(e) => setLastFollowUpSearch(e.target.value)}
-                    className="h-10 min-w-[140px]"
-                    data-testid="input-search-last-followup"
-                  />
-                </TableHead>
-                <TableHead className="py-3">
-                  <Input
-                    type="text"
-                    placeholder="Search remarks..."
-                    value={remarksSearch}
-                    onChange={(e) => setRemarksSearch(e.target.value)}
-                    className="h-10 min-w-[140px]"
-                    data-testid="input-search-remarks"
-                  />
-                </TableHead>
-                <TableHead className="py-3">
-                  <Input
-                    type="text"
-                    placeholder="Search next..."
-                    value={nextFollowUpSearch}
-                    onChange={(e) => setNextFollowUpSearch(e.target.value)}
-                    className="h-10 min-w-[140px]"
-                    data-testid="input-search-next-followup"
-                  />
-                </TableHead>
+                {visibleColumns.name && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search name..."
+                      value={nameSearch}
+                      onChange={(e) => setNameSearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-name"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.amountOwed && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search amount..."
+                      value={amountSearch}
+                      onChange={(e) => setAmountSearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-amount"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.category && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search category..."
+                      value={categorySearch}
+                      onChange={(e) => setCategorySearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-category"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.assignedUser && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search user..."
+                      value={assignedUserSearch}
+                      onChange={(e) => setAssignedUserSearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-assigned-user"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.mobile && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search mobile..."
+                      value={mobileSearch}
+                      onChange={(e) => setMobileSearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-mobile"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.email && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search email..."
+                      value={emailSearch}
+                      onChange={(e) => setEmailSearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-email"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.lastFollowUp && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search follow-up..."
+                      value={lastFollowUpSearch}
+                      onChange={(e) => setLastFollowUpSearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-last-followup"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.remarks && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search remarks..."
+                      value={remarksSearch}
+                      onChange={(e) => setRemarksSearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-remarks"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.nextFollowUp && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search next..."
+                      value={nextFollowUpSearch}
+                      onChange={(e) => setNextFollowUpSearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-next-followup"
+                    />
+                  </TableHead>
+                )}
                 <TableHead className="py-3"></TableHead>
               </TableRow>
             </TableHeader>
@@ -477,119 +501,137 @@ export function CustomersTable({
                         data-testid={`checkbox-customer-${customer.id}`}
                       />
                     </TableCell>
-                    <TableCell className="py-4">
-                      <div className="flex items-center">
-                        <Avatar className="h-10 w-10 bg-[#2563EB] text-white">
-                          <AvatarFallback className="bg-[#2563EB] text-white">
-                            {getInitials(customer.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="ml-4">
-                          <div className="font-medium text-[#1E293B]" data-testid={`text-customer-name-${customer.id}`}>
-                            {customer.name}
-                          </div>
-                          <div className="text-sm text-gray-500">ID: #{customer.id.slice(0, 8)}</div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <div className="text-lg font-semibold text-[#DC2626]" data-testid={`text-amount-${customer.id}`}>
-                        ₹{parseFloat(customer.amountOwed).toFixed(2)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <Select
-                        value={customer.category}
-                        onValueChange={(value) => handleCategoryChange(customer.id, value)}
-                      >
-                        <SelectTrigger className="w-[130px]" data-testid={`select-category-${customer.id}`}>
-                          <SelectValue>
-                            <Badge className={categoryColors[customer.category as keyof typeof categoryColors]}>
-                              {customer.category}
-                            </Badge>
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Alpha">
-                            <Badge className={categoryColors.Alpha}>Alpha</Badge>
-                          </SelectItem>
-                          <SelectItem value="Beta">
-                            <Badge className={categoryColors.Beta}>Beta</Badge>
-                          </SelectItem>
-                          <SelectItem value="Gamma">
-                            <Badge className={categoryColors.Gamma}>Gamma</Badge>
-                          </SelectItem>
-                          <SelectItem value="Delta">
-                            <Badge className={categoryColors.Delta}>Delta</Badge>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <Select
-                        value={customer.assignedUser || ""}
-                        onValueChange={(value) => handleAssignedUserChange(customer.id, value)}
-                      >
-                        <SelectTrigger className="w-[160px]" data-testid={`select-assigned-user-${customer.id}`}>
-                          <SelectValue placeholder="Assign user">
-                            {customer.assignedUser || "Not assigned"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
-                          <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
-                          <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
-                          <SelectItem value="Princi Soni">Princi Soni</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <div className="text-sm text-[#1E293B]" data-testid={`text-mobile-${customer.id}`}>
-                        {customer.mobile}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <div className="text-sm text-[#1E293B]" data-testid={`text-email-${customer.id}`}>
-                        {customer.email}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <div className="flex flex-col gap-1" data-testid={`text-last-followup-${customer.id}`}>
-                        {customer.lastFollowUpDate ? (
-                          <>
-                            <div className="text-xs text-gray-500">
-                              {format(new Date(customer.lastFollowUpDate), "MMM dd, yyyy HH:mm")}
+                    {visibleColumns.name && (
+                      <TableCell className="py-4">
+                        <div className="flex items-center">
+                          <Avatar className="h-10 w-10 bg-[#2563EB] text-white">
+                            <AvatarFallback className="bg-[#2563EB] text-white">
+                              {getInitials(customer.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="ml-4">
+                            <div className="font-medium text-[#1E293B]" data-testid={`text-customer-name-${customer.id}`}>
+                              {customer.name}
                             </div>
-                            {customer.lastFollowUpType && (
-                              <Badge
-                                className={followUpTypeColors[customer.lastFollowUpType as keyof typeof followUpTypeColors]}
-                                data-testid={`badge-last-followup-type-${customer.id}`}
-                              >
-                                {customer.lastFollowUpType}
-                              </Badge>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-sm text-gray-400">—</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <div className="text-sm text-gray-700" data-testid={`text-remarks-${customer.id}`}>
-                        {truncate(customer.lastFollowUpRemarks, 50)}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <div data-testid={`text-next-followup-${customer.id}`}>
-                        {customer.nextFollowUpDate ? (
-                          <div className="text-sm font-medium text-gray-900">
-                            {format(new Date(customer.nextFollowUpDate), "MMM dd, yyyy HH:mm")}
+                            <div className="text-sm text-gray-500">ID: #{customer.id.slice(0, 8)}</div>
                           </div>
-                        ) : (
-                          <span className="text-sm text-gray-400">—</span>
-                        )}
-                      </div>
-                    </TableCell>
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.amountOwed && (
+                      <TableCell className="py-4">
+                        <div className="text-lg font-semibold text-[#DC2626]" data-testid={`text-amount-${customer.id}`}>
+                          ₹{parseFloat(customer.amountOwed).toFixed(2)}
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.category && (
+                      <TableCell className="py-4">
+                        <Select
+                          value={customer.category}
+                          onValueChange={(value) => handleCategoryChange(customer.id, value)}
+                        >
+                          <SelectTrigger className="w-[130px]" data-testid={`select-category-${customer.id}`}>
+                            <SelectValue>
+                              <Badge className={categoryColors[customer.category as keyof typeof categoryColors]}>
+                                {customer.category}
+                              </Badge>
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Alpha">
+                              <Badge className={categoryColors.Alpha}>Alpha</Badge>
+                            </SelectItem>
+                            <SelectItem value="Beta">
+                              <Badge className={categoryColors.Beta}>Beta</Badge>
+                            </SelectItem>
+                            <SelectItem value="Gamma">
+                              <Badge className={categoryColors.Gamma}>Gamma</Badge>
+                            </SelectItem>
+                            <SelectItem value="Delta">
+                              <Badge className={categoryColors.Delta}>Delta</Badge>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    )}
+                    {visibleColumns.assignedUser && (
+                      <TableCell className="py-4">
+                        <Select
+                          value={customer.assignedUser || ""}
+                          onValueChange={(value) => handleAssignedUserChange(customer.id, value)}
+                        >
+                          <SelectTrigger className="w-[160px]" data-testid={`select-assigned-user-${customer.id}`}>
+                            <SelectValue placeholder="Assign user">
+                              {customer.assignedUser || "Not assigned"}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
+                            <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
+                            <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
+                            <SelectItem value="Princi Soni">Princi Soni</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    )}
+                    {visibleColumns.mobile && (
+                      <TableCell className="py-4">
+                        <div className="text-sm text-[#1E293B]" data-testid={`text-mobile-${customer.id}`}>
+                          {customer.mobile}
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.email && (
+                      <TableCell className="py-4">
+                        <div className="text-sm text-[#1E293B]" data-testid={`text-email-${customer.id}`}>
+                          {customer.email}
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.lastFollowUp && (
+                      <TableCell className="py-4">
+                        <div className="flex flex-col gap-1" data-testid={`text-last-followup-${customer.id}`}>
+                          {customer.lastFollowUpDate ? (
+                            <>
+                              <div className="text-xs text-gray-500">
+                                {format(new Date(customer.lastFollowUpDate), "MMM dd, yyyy HH:mm")}
+                              </div>
+                              {customer.lastFollowUpType && (
+                                <Badge
+                                  className={followUpTypeColors[customer.lastFollowUpType as keyof typeof followUpTypeColors]}
+                                  data-testid={`badge-last-followup-type-${customer.id}`}
+                                >
+                                  {customer.lastFollowUpType}
+                                </Badge>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-sm text-gray-400">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.remarks && (
+                      <TableCell className="py-4">
+                        <div className="text-sm text-gray-700" data-testid={`text-remarks-${customer.id}`}>
+                          {truncate(customer.lastFollowUpRemarks, 50)}
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.nextFollowUp && (
+                      <TableCell className="py-4">
+                        <div data-testid={`text-next-followup-${customer.id}`}>
+                          {customer.nextFollowUpDate ? (
+                            <div className="text-sm font-medium text-gray-900">
+                              {format(new Date(customer.nextFollowUpDate), "MMM dd, yyyy HH:mm")}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">—</span>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
                     <TableCell className="py-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
