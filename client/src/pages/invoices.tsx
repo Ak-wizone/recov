@@ -38,6 +38,11 @@ export default function Invoices() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
+  
+  const currentDate = new Date();
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
+  const [activeCardFilter, setActiveCardFilter] = useState<string | null>(null);
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
@@ -157,31 +162,40 @@ export default function Invoices() {
     },
   });
 
-  // Calculate statistics by status and assigned user
-  const invoicesByAssignedUser = assignedUserFilter
-    ? invoices.filter(inv => inv.assignedUser === assignedUserFilter)
-    : invoices;
+  // Filter invoices by selected month and year
+  const monthFilteredInvoices = invoices.filter((invoice) => {
+    const invoiceDate = new Date(invoice.invoiceDate);
+    return (
+      invoiceDate.getFullYear() === selectedYear &&
+      invoiceDate.getMonth() === selectedMonth
+    );
+  });
 
-  const paidInvoices = invoicesByAssignedUser.filter(inv => inv.status === "Paid");
+  // Calculate statistics for cards based on month-filtered data
+  const paidInvoices = monthFilteredInvoices.filter(inv => inv.status === "Paid");
   const paidCount = paidInvoices.length;
   const paidAmount = paidInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
   const paidProfit = paidInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
 
-  const unpaidInvoices = invoicesByAssignedUser.filter(inv => inv.status === "Unpaid");
+  const unpaidInvoices = monthFilteredInvoices.filter(inv => inv.status === "Unpaid");
   const unpaidCount = unpaidInvoices.length;
   const unpaidAmount = unpaidInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
   const unpaidProfit = unpaidInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
 
-  const partialInvoices = invoicesByAssignedUser.filter(inv => inv.status === "Partial");
+  const partialInvoices = monthFilteredInvoices.filter(inv => inv.status === "Partial");
   const partialCount = partialInvoices.length;
   const partialAmount = partialInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
   const partialProfit = partialInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
 
-  const totalCount = invoicesByAssignedUser.length;
-  const totalAmount = invoicesByAssignedUser.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
-  const totalProfit = invoicesByAssignedUser.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
+  const totalCount = monthFilteredInvoices.length;
+  const totalAmount = monthFilteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
+  const totalProfit = monthFilteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
 
+  // Filter table data by month/year, status filter, assigned user, and active card
   const filteredInvoices = invoices.filter((invoice) => {
+    const invoiceDate = new Date(invoice.invoiceDate);
+    const matchesMonth = invoiceDate.getFullYear() === selectedYear && invoiceDate.getMonth() === selectedMonth;
+    
     let matchesStatusFilter = true;
     if (statusFilter) {
       matchesStatusFilter = invoice.status === statusFilter;
@@ -192,7 +206,12 @@ export default function Invoices() {
       matchesAssignedUserFilter = invoice.assignedUser === assignedUserFilter;
     }
 
-    return matchesStatusFilter && matchesAssignedUserFilter;
+    let matchesCardFilter = true;
+    if (activeCardFilter) {
+      matchesCardFilter = invoice.status === activeCardFilter;
+    }
+
+    return matchesMonth && matchesStatusFilter && matchesAssignedUserFilter && matchesCardFilter;
   });
 
   const handleEdit = (invoice: Invoice) => {
