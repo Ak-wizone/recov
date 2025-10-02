@@ -388,7 +388,7 @@ export default function Invoices() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Total Invoices</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 break-all">
+                <p className="text-xl font-bold text-blue-600 dark:text-blue-400 break-all">
                   ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{totalCount}</p>
@@ -413,7 +413,7 @@ export default function Invoices() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Paid</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400 break-all">
+                <p className="text-xl font-bold text-green-600 dark:text-green-400 break-all">
                   ₹{paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{paidCount}</p>
