@@ -363,78 +363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single master customer
-  app.get("/api/masters/customers/:id", async (req, res) => {
-    try {
-      const customer = await storage.getMasterCustomer(req.params.id);
-      if (!customer) {
-        return res.status(404).json({ message: "Customer not found" });
-      }
-      res.json(customer);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Create master customer
-  app.post("/api/masters/customers", async (req, res) => {
-    try {
-      const result = insertMasterCustomerSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: fromZodError(result.error).message });
-      }
-      const customer = await storage.createMasterCustomer(result.data);
-      res.json(customer);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Update master customer
-  app.put("/api/masters/customers/:id", async (req, res) => {
-    try {
-      const result = insertMasterCustomerSchema.partial().safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: fromZodError(result.error).message });
-      }
-      const customer = await storage.updateMasterCustomer(req.params.id, result.data);
-      if (!customer) {
-        return res.status(404).json({ message: "Customer not found" });
-      }
-      res.json(customer);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Delete master customer
-  app.delete("/api/masters/customers/:id", async (req, res) => {
-    try {
-      const deleted = await storage.deleteMasterCustomer(req.params.id);
-      if (!deleted) {
-        return res.status(404).json({ message: "Customer not found" });
-      }
-      res.json({ message: "Customer deleted successfully" });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Bulk delete master customers
-  app.post("/api/masters/customers/bulk-delete", async (req, res) => {
-    try {
-      const { ids } = req.body;
-      if (!Array.isArray(ids)) {
-        return res.status(400).json({ message: "ids must be an array" });
-      }
-      const deleted = await storage.deleteMasterCustomers(ids);
-      res.json({ deleted });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Download sample import template for master customers
+  // Download sample import template for master customers (MUST BE BEFORE /:id)
   app.get("/api/masters/customers/template", async (_req, res) => {
     try {
       const sampleData = [
@@ -484,7 +413,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Import master customers from Excel
+  // Export all master customers to Excel (MUST BE BEFORE /:id)
+  app.get("/api/masters/customers/export", async (_req, res) => {
+    try {
+      const customers = await storage.getMasterCustomers();
+      
+      const data = customers.map(customer => ({
+        "Client Name": customer.clientName,
+        "Category": customer.category,
+        "Billing Address": customer.billingAddress || "",
+        "City": customer.city || "",
+        "Pincode": customer.pincode || "",
+        "State": customer.state || "",
+        "Country": customer.country || "",
+        "GST Number": customer.gstNumber || "",
+        "PAN Number": customer.panNumber || "",
+        "MSME Number": customer.msmeNumber || "",
+        "Incorporation Cert Number": customer.incorporationCertNumber || "",
+        "Incorporation Date": customer.incorporationDate ? new Date(customer.incorporationDate).toLocaleDateString() : "",
+        "Company Type": customer.companyType || "",
+        "Primary Contact Name": customer.primaryContactName || "",
+        "Primary Mobile": customer.primaryMobile || "",
+        "Primary Email": customer.primaryEmail || "",
+        "Secondary Contact Name": customer.secondaryContactName || "",
+        "Secondary Mobile": customer.secondaryMobile || "",
+        "Secondary Email": customer.secondaryEmail || "",
+        "Payment Terms (Days)": customer.paymentTermsDays,
+        "Credit Limit": customer.creditLimit || "",
+        "Interest Applicable From": customer.interestApplicableFrom || "",
+        "Interest Rate": customer.interestRate || "",
+        "Sales Person": customer.salesPerson || "",
+        "Status": customer.isActive,
+        "Created At": customer.createdAt.toISOString(),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Master Customers");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=master_customers_export.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Import master customers from Excel (MUST BE BEFORE /:id)
   app.post("/api/masters/customers/import", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
@@ -531,49 +508,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export all master customers to Excel
-  app.get("/api/masters/customers/export", async (_req, res) => {
+  // Bulk delete master customers (MUST BE BEFORE /:id)
+  app.post("/api/masters/customers/bulk-delete", async (req, res) => {
     try {
-      const customers = await storage.getMasterCustomers();
-      
-      const data = customers.map(customer => ({
-        "Client Name": customer.clientName,
-        "Category": customer.category,
-        "Billing Address": customer.billingAddress || "",
-        "City": customer.city || "",
-        "Pincode": customer.pincode || "",
-        "State": customer.state || "",
-        "Country": customer.country || "",
-        "GST Number": customer.gstNumber || "",
-        "PAN Number": customer.panNumber || "",
-        "MSME Number": customer.msmeNumber || "",
-        "Incorporation Cert Number": customer.incorporationCertNumber || "",
-        "Incorporation Date": customer.incorporationDate ? new Date(customer.incorporationDate).toLocaleDateString() : "",
-        "Company Type": customer.companyType || "",
-        "Primary Contact Name": customer.primaryContactName || "",
-        "Primary Mobile": customer.primaryMobile || "",
-        "Primary Email": customer.primaryEmail || "",
-        "Secondary Contact Name": customer.secondaryContactName || "",
-        "Secondary Mobile": customer.secondaryMobile || "",
-        "Secondary Email": customer.secondaryEmail || "",
-        "Payment Terms (Days)": customer.paymentTermsDays,
-        "Credit Limit": customer.creditLimit || "",
-        "Interest Applicable From": customer.interestApplicableFrom || "",
-        "Interest Rate": customer.interestRate || "",
-        "Sales Person": customer.salesPerson || "",
-        "Status": customer.isActive,
-        "Created At": customer.createdAt.toISOString(),
-      }));
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) {
+        return res.status(400).json({ message: "ids must be an array" });
+      }
+      const deleted = await storage.deleteMasterCustomers(ids);
+      res.json({ deleted });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Master Customers");
+  // Create master customer
+  app.post("/api/masters/customers", async (req, res) => {
+    try {
+      const result = insertMasterCustomerSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const customer = await storage.createMasterCustomer(result.data);
+      res.json(customer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  // Update master customer
+  app.put("/api/masters/customers/:id", async (req, res) => {
+    try {
+      const result = insertMasterCustomerSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const customer = await storage.updateMasterCustomer(req.params.id, result.data);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      res.json(customer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=master_customers_export.xlsx");
-      res.send(buffer);
+  // Delete master customer
+  app.delete("/api/masters/customers/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteMasterCustomer(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      res.json({ message: "Customer deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single master customer (MUST BE AFTER specific routes)
+  app.get("/api/masters/customers/:id", async (req, res) => {
+    try {
+      const customer = await storage.getMasterCustomer(req.params.id);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      res.json(customer);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
