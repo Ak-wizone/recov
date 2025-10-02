@@ -12,9 +12,6 @@ export const customers = pgTable("customers", {
   mobile: text("mobile").notNull(),
   email: text("email").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: text("created_by"),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  updatedBy: text("updated_by"),
 });
 
 export const payments = pgTable("payments", {
@@ -25,10 +22,6 @@ export const payments = pgTable("payments", {
   receiptNumber: text("receipt_number"),
   notes: text("notes"),
   paymentDate: timestamp("payment_date").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: text("created_by"),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  updatedBy: text("updated_by"),
 });
 
 export const followUps = pgTable("follow_ups", {
@@ -38,9 +31,6 @@ export const followUps = pgTable("follow_ups", {
   remarks: text("remarks").notNull(),
   followUpDateTime: timestamp("follow_up_date_time").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: text("created_by"),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  updatedBy: text("updated_by"),
 });
 
 export const insertCustomerSchema = createInsertSchema(customers).pick({
@@ -144,9 +134,6 @@ export const masterCustomers = pgTable("master_customers", {
   // Status
   isActive: text("is_active").notNull().default("Active"), // Active, Inactive
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  createdBy: text("created_by"),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  updatedBy: text("updated_by"),
 });
 
 export const insertMasterCustomerSchema = createInsertSchema(masterCustomers).pick({
