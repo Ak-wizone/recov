@@ -350,10 +350,9 @@ export function DataTable<TData, TValue>({
         </div>
       )}
 
-      <div className="rounded-md border bg-card">
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="w-max min-w-full">
-            <Table>
+      <div className="rounded-md border bg-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
                   <TableRow key={headerGroup.id} className="bg-[#F1F5F9] border-b-2 border-gray-300">
@@ -433,7 +432,6 @@ export function DataTable<TData, TValue>({
               <TableBody>{renderTableBody()}</TableBody>
             </Table>
           </div>
-        </ScrollArea>
       </div>
 
       {enablePagination && !isLoading && data.length > 0 && (
