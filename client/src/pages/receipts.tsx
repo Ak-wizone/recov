@@ -328,15 +328,15 @@ export default function Receipts() {
         </Card>
 
         {/* Week 4 Card */}
-        <Card className="bg-pastel-pink border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '500ms' }}>
+        <Card className="bg-pastel-blue border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '500ms' }}>
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
-              <div className="bg-pastel-pink-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
+              <div className="bg-pastel-blue-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
                 <CalendarDays className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Week 4</p>
-                <p className="text-2xl font-bold text-pastel-pink-icon" data-testid="text-week4-amount">
+                <p className="text-2xl font-bold text-pastel-blue-icon" data-testid="text-week4-amount">
                   ₹{week4.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-xs text-gray-600 mt-1" data-testid="text-week4-count">
@@ -348,15 +348,15 @@ export default function Receipts() {
         </Card>
 
         {/* Week 5 Card */}
-        <Card className="bg-pastel-cyan border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '600ms' }}>
+        <Card className="bg-pastel-green border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '600ms' }}>
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
-              <div className="bg-pastel-cyan-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
+              <div className="bg-pastel-green-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
                 <CalendarDays className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Week 5</p>
-                <p className="text-2xl font-bold text-pastel-cyan-icon" data-testid="text-week5-amount">
+                <p className="text-2xl font-bold text-pastel-green-icon" data-testid="text-week5-amount">
                   ₹{week5.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-xs text-gray-600 mt-1" data-testid="text-week5-count">
