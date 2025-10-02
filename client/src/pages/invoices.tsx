@@ -374,11 +374,11 @@ export default function Invoices() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card
           className={`cursor-pointer transition-all border-2 ${
-            statusFilter === null
+            activeCardFilter === null
               ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
               : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
           }`}
-          onClick={() => setStatusFilter(null)}
+          onClick={() => setActiveCardFilter(null)}
           data-testid="card-all-invoices"
         >
           <CardContent className="p-4">
@@ -400,11 +400,11 @@ export default function Invoices() {
 
         <Card
           className={`cursor-pointer transition-all border-2 ${
-            statusFilter === "Paid"
+            activeCardFilter === "Paid"
               ? "border-green-500 bg-green-50 dark:bg-green-950/30"
               : "border-gray-200 dark:border-gray-700 hover:border-green-300"
           }`}
-          onClick={() => setStatusFilter("Paid")}
+          onClick={() => setActiveCardFilter(activeCardFilter === "Paid" ? null : "Paid")}
           data-testid="card-paid"
         >
           <CardContent className="p-4">
@@ -426,11 +426,11 @@ export default function Invoices() {
 
         <Card
           className={`cursor-pointer transition-all border-2 ${
-            statusFilter === "Unpaid"
+            activeCardFilter === "Unpaid"
               ? "border-red-500 bg-red-50 dark:bg-red-950/30"
               : "border-gray-200 dark:border-gray-700 hover:border-red-300"
           }`}
-          onClick={() => setStatusFilter("Unpaid")}
+          onClick={() => setActiveCardFilter(activeCardFilter === "Unpaid" ? null : "Unpaid")}
           data-testid="card-unpaid"
         >
           <CardContent className="p-4">
@@ -452,11 +452,11 @@ export default function Invoices() {
 
         <Card
           className={`cursor-pointer transition-all border-2 ${
-            statusFilter === "Partial"
+            activeCardFilter === "Partial"
               ? "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30"
               : "border-gray-200 dark:border-gray-700 hover:border-yellow-300"
           }`}
-          onClick={() => setStatusFilter("Partial")}
+          onClick={() => setActiveCardFilter(activeCardFilter === "Partial" ? null : "Partial")}
           data-testid="card-partial"
         >
           <CardContent className="p-4">
