@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, customers, payments, followUps, masterCustomers, masterItems } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, customers, payments, followUps, masterCustomers, masterItems, invoices } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -43,6 +43,14 @@ export interface IStorage {
   updateMasterItem(id: string, item: Partial<InsertMasterItem>): Promise<MasterItem | undefined>;
   deleteMasterItem(id: string): Promise<boolean>;
   deleteMasterItems(ids: string[]): Promise<number>;
+  
+  // Invoice operations
+  getInvoices(): Promise<Invoice[]>;
+  getInvoice(id: string): Promise<Invoice | undefined>;
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
+  deleteInvoice(id: string): Promise<boolean>;
+  deleteInvoices(ids: string[]): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -357,6 +365,59 @@ export class DatabaseStorage implements IStorage {
     let count = 0;
     for (const id of ids) {
       const deleted = await this.deleteMasterItem(id);
+      if (deleted) count++;
+    }
+    return count;
+  }
+
+  async getInvoices(): Promise<Invoice[]> {
+    return await db.select().from(invoices).orderBy(desc(invoices.createdAt));
+  }
+
+  async getInvoice(id: string): Promise<Invoice | undefined> {
+    const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
+    return invoice || undefined;
+  }
+
+  async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
+    const [invoice] = await db
+      .insert(invoices)
+      .values({
+        ...insertInvoice,
+        invoiceDate: new Date(insertInvoice.invoiceDate),
+      })
+      .returning();
+    return invoice;
+  }
+
+  async updateInvoice(id: string, updates: Partial<InsertInvoice>): Promise<Invoice | undefined> {
+    const updateData: any = { ...updates };
+    if (updates.invoiceDate) {
+      updateData.invoiceDate = new Date(updates.invoiceDate);
+    }
+    
+    const [invoice] = await db
+      .update(invoices)
+      .set(updateData)
+      .where(eq(invoices.id, id))
+      .returning();
+    return invoice || undefined;
+  }
+
+  async deleteInvoice(id: string): Promise<boolean> {
+    const result = await db
+      .delete(invoices)
+      .where(eq(invoices.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async deleteInvoices(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    
+    let count = 0;
+    for (const id of ids) {
+      const deleted = await this.deleteInvoice(id);
       if (deleted) count++;
     }
     return count;
