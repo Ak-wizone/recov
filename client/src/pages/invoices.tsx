@@ -386,9 +386,9 @@ export default function Invoices() {
               <div className="bg-blue-500 p-3 rounded-xl flex-shrink-0">
                 <Users className="h-6 w-6 text-white" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Total Invoices</p>
-                <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 break-all">
                   ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{totalCount}</p>
@@ -411,9 +411,9 @@ export default function Invoices() {
               <div className="bg-green-500 p-3 rounded-xl flex-shrink-0">
                 <CheckCircle2 className="h-6 w-6 text-white" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Paid</p>
-                <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 break-all">
                   ₹{paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{paidCount}</p>
@@ -436,9 +436,9 @@ export default function Invoices() {
               <div className="bg-orange-500 p-3 rounded-xl flex-shrink-0">
                 <AlertCircle className="h-6 w-6 text-white" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Unpaid</p>
-                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400 break-all">
                   ₹{unpaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{unpaidCount}</p>
@@ -461,9 +461,9 @@ export default function Invoices() {
               <div className="bg-cyan-500 p-3 rounded-xl flex-shrink-0">
                 <Clock className="h-6 w-6 text-white" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Partial</p>
-                <p className="text-3xl font-bold text-cyan-600 dark:text-cyan-400">
+                <p className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 break-all">
                   ₹{partialAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{partialCount}</p>
