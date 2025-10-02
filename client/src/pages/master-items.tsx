@@ -441,6 +441,7 @@ export default function MasterItems() {
       <ImportModal
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
+        module="items"
       />
     </div>
   );

@@ -13,9 +13,10 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 interface ImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  module?: 'customers' | 'items';
 }
 
-export function ImportModal({ open, onOpenChange }: ImportModalProps) {
+export function ImportModal({ open, onOpenChange, module = 'customers' }: ImportModalProps) {
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -26,18 +27,18 @@ export function ImportModal({ open, onOpenChange }: ImportModalProps) {
 
   const importMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await fetch("/api/masters/customers/import", {
+      const response = await fetch(`/api/masters/${module}/import`, {
         method: "POST",
         body: formData,
       });
-      if (!response.ok) throw new Error("Failed to import customers");
+      if (!response.ok) throw new Error(`Failed to import ${module}`);
       return response.json();
     },
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/masters/${module}`] });
       toast({
         title: "Import Completed",
-        description: `Successfully imported ${data.success} customers. ${data.errors > 0 ? `${data.errors} rows had errors.` : ''}`,
+        description: `Successfully imported ${data.success} ${module}. ${data.errors > 0 ? `${data.errors} rows had errors.` : ''}`,
       });
       resetModal();
       onOpenChange(false);
@@ -53,13 +54,13 @@ export function ImportModal({ open, onOpenChange }: ImportModalProps) {
 
   const downloadTemplateMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/masters/customers/template");
+      const response = await fetch(`/api/masters/${module}/template`);
       if (!response.ok) throw new Error("Failed to download template");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "master_customers_template.xlsx";
+      a.download = `master_${module}_template.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -147,10 +148,14 @@ export function ImportModal({ open, onOpenChange }: ImportModalProps) {
       setUploadProgress(60);
 
       const errors: ValidationError[] = [];
-      rows.forEach((row: ImportRow, index: number) => {
-        const rowErrors = validateMasterCustomerRow(row, index + 2);
-        errors.push(...rowErrors);
-      });
+      
+      // Only validate for customers module, items validation is done on backend
+      if (module === 'customers') {
+        rows.forEach((row: ImportRow, index: number) => {
+          const rowErrors = validateMasterCustomerRow(row, index + 2);
+          errors.push(...rowErrors);
+        });
+      }
 
       setPreviewData(rows);
       setValidationErrors(errors);
@@ -158,7 +163,9 @@ export function ImportModal({ open, onOpenChange }: ImportModalProps) {
 
       toast({
         title: "File Processed",
-        description: `Found ${rows.length} rows. ${errors.length > 0 ? `${errors.length} validation errors detected.` : 'All rows are valid.'}`,
+        description: module === 'customers' 
+          ? `Found ${rows.length} rows. ${errors.length > 0 ? `${errors.length} validation errors detected.` : 'All rows are valid.'}`
+          : `Found ${rows.length} rows ready to import.`,
       });
     } catch (error: any) {
       toast({
@@ -191,10 +198,10 @@ export function ImportModal({ open, onOpenChange }: ImportModalProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2" data-testid="text-import-title">
             <FileSpreadsheet className="h-5 w-5" />
-            Import Master Customers
+            Import Master {module.charAt(0).toUpperCase() + module.slice(1)}
           </DialogTitle>
           <DialogDescription>
-            Upload a CSV or Excel file to bulk import master customers. Download the template to see the required format.
+            Upload a CSV or Excel file to bulk import master {module}. Download the template to see the required format.
           </DialogDescription>
         </DialogHeader>
 
