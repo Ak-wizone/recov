@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -574,6 +574,220 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Customer not found" });
       }
       res.json(customer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ===== MASTER ITEMS ROUTES =====
+
+  // Get all master items
+  app.get("/api/masters/items", async (_req, res) => {
+    try {
+      const items = await storage.getMasterItems();
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Download sample template for import (MUST BE BEFORE /:id)
+  app.get("/api/masters/items/template", async (_req, res) => {
+    try {
+      const sampleData = [
+        {
+          "Item Type": "product",
+          "Name": "Laptop - Dell XPS 15",
+          "Description": "High-performance laptop for professionals",
+          "Unit": "PCS",
+          "Tax": "18%",
+          "SKU": "LAP-DEL-001",
+          "Sale Unit Price": "85000",
+          "Buy Unit Price": "70000",
+          "Opening Quantity": "10",
+          "HSN": "8471",
+          "SAC": ""
+        },
+        {
+          "Item Type": "service",
+          "Name": "IT Consulting",
+          "Description": "Professional IT consultation services",
+          "Unit": "Hour",
+          "Tax": "18%",
+          "SKU": "SRV-IT-001",
+          "Sale Unit Price": "2500",
+          "Buy Unit Price": "",
+          "Opening Quantity": "",
+          "HSN": "",
+          "SAC": "998314"
+        }
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(sampleData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Master Items Template");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=master_items_template.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Export master items (MUST BE BEFORE /:id)
+  app.get("/api/masters/items/export", async (_req, res) => {
+    try {
+      const items = await storage.getMasterItems();
+      
+      const data = items.map(item => ({
+        "Item Type": item.itemType,
+        "Name": item.name,
+        "Description": item.description || "",
+        "Unit": item.unit,
+        "Tax": item.tax,
+        "SKU": item.sku,
+        "Sale Unit Price": item.saleUnitPrice,
+        "Buy Unit Price": item.buyUnitPrice || "",
+        "Opening Quantity": item.openingQuantity || "",
+        "HSN": item.hsn || "",
+        "SAC": item.sac || "",
+        "Status": item.isActive,
+        "Created At": item.createdAt.toISOString(),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Master Items");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=master_items_export.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Import master items from Excel (MUST BE BEFORE /:id)
+  app.post("/api/masters/items/import", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      const items = data.map((row: any) => ({
+        itemType: String(row["Item Type"] || row.itemType || row.ItemType || "").trim().toLowerCase(),
+        name: String(row["Name"] || row.name || "").trim(),
+        description: String(row["Description"] || row.description || "").trim() || undefined,
+        unit: String(row["Unit"] || row.unit || "").trim(),
+        tax: String(row["Tax"] || row.tax || "").trim(),
+        sku: String(row["SKU"] || row.sku || "").trim(),
+        saleUnitPrice: String(row["Sale Unit Price"] || row.saleUnitPrice || row.SaleUnitPrice || "").trim(),
+        buyUnitPrice: String(row["Buy Unit Price"] || row.buyUnitPrice || row.BuyUnitPrice || "").trim() || undefined,
+        openingQuantity: String(row["Opening Quantity"] || row.openingQuantity || row.OpeningQuantity || "").trim() || undefined,
+        hsn: String(row["HSN"] || row.hsn || "").trim() || undefined,
+        sac: String(row["SAC"] || row.sac || "").trim() || undefined,
+      }));
+
+      const results = [];
+      const errors = [];
+
+      for (let i = 0; i < items.length; i++) {
+        const result = insertMasterItemSchema.safeParse(items[i]);
+        if (result.success) {
+          const item = await storage.createMasterItem(result.data);
+          results.push(item);
+        } else {
+          errors.push({ row: i + 2, error: fromZodError(result.error).message });
+        }
+      }
+
+      res.json({ 
+        success: results.length, 
+        errors: errors.length,
+        items: results,
+        errorDetails: errors
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk delete master items (MUST BE BEFORE /:id)
+  app.post("/api/masters/items/bulk-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) {
+        return res.status(400).json({ message: "ids must be an array" });
+      }
+      const deleted = await storage.deleteMasterItems(ids);
+      res.json({ deleted });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create master item
+  app.post("/api/masters/items", async (req, res) => {
+    try {
+      const result = insertMasterItemSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const item = await storage.createMasterItem(result.data);
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update master item
+  app.put("/api/masters/items/:id", async (req, res) => {
+    try {
+      const result = insertMasterItemSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const item = await storage.updateMasterItem(req.params.id, result.data);
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete master item
+  app.delete("/api/masters/items/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteMasterItem(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      res.json({ message: "Item deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single master item (MUST BE AFTER specific routes)
+  app.get("/api/masters/items/:id", async (req, res) => {
+    try {
+      const item = await storage.getMasterItem(req.params.id);
+      if (!item) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
