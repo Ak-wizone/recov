@@ -221,7 +221,7 @@ export function MasterCustomerFormDialog({
                   Company & Compliance
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-mint p-4 rounded-lg">
                     <FormField
                       control={form.control}
                       name="clientName"
