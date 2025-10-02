@@ -226,34 +226,162 @@ export default function Receipts() {
       </div>
 
       {/* Dashboard Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-purple-600 dark:text-purple-300">Total Receipts</p>
-                <p className="text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2" data-testid="text-total-count">
-                  {totalCount}
-                </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Today Card */}
+        <Card className="bg-pastel-blue border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-pastel-blue-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
+                <Calendar className="h-5 w-5" />
               </div>
-              <div className="h-12 w-12 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center">
-                <ReceiptIcon className="h-6 w-6 text-purple-600 dark:text-purple-300" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Today</p>
+                <p className="text-2xl font-bold text-pastel-blue-icon" data-testid="text-today-amount">
+                  ₹{todayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-1" data-testid="text-today-count">
+                  {todayCount} receipt{todayCount !== 1 ? 's' : ''}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-green-600 dark:text-green-300">Total Amount</p>
-                <p className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2" data-testid="text-total-amount">
-                  ₹{totalAmount.toFixed(2)}
+        {/* Yesterday Card */}
+        <Card className="bg-pastel-green border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '100ms' }}>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-pastel-green-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
+                <Clock className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Yesterday</p>
+                <p className="text-2xl font-bold text-pastel-green-icon" data-testid="text-yesterday-amount">
+                  ₹{yesterdayAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-1" data-testid="text-yesterday-count">
+                  {yesterdayCount} receipt{yesterdayCount !== 1 ? 's' : ''}
                 </p>
               </div>
-              <div className="h-12 w-12 rounded-full bg-green-200 dark:bg-green-800 flex items-center justify-center">
-                <DollarSign className="h-6 w-6 text-green-600 dark:text-green-300" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Week 1 Card */}
+        <Card className="bg-pastel-orange border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '200ms' }}>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-pastel-orange-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Week 1</p>
+                <p className="text-2xl font-bold text-pastel-orange-icon" data-testid="text-week1-amount">
+                  ₹{week1.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-1" data-testid="text-week1-count">
+                  {week1.count} receipt{week1.count !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Week 2 Card */}
+        <Card className="bg-pastel-teal border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '300ms' }}>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-pastel-teal-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Week 2</p>
+                <p className="text-2xl font-bold text-pastel-teal-icon" data-testid="text-week2-amount">
+                  ₹{week2.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-1" data-testid="text-week2-count">
+                  {week2.count} receipt{week2.count !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Week 3 Card */}
+        <Card className="bg-pastel-purple border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '400ms' }}>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-pastel-purple-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Week 3</p>
+                <p className="text-2xl font-bold text-pastel-purple-icon" data-testid="text-week3-amount">
+                  ₹{week3.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-1" data-testid="text-week3-count">
+                  {week3.count} receipt{week3.count !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Week 4 Card */}
+        <Card className="bg-pastel-pink border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '500ms' }}>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-pastel-pink-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Week 4</p>
+                <p className="text-2xl font-bold text-pastel-pink-icon" data-testid="text-week4-amount">
+                  ₹{week4.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-1" data-testid="text-week4-count">
+                  {week4.count} receipt{week4.count !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Week 5 Card */}
+        <Card className="bg-pastel-cyan border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '600ms' }}>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-pastel-cyan-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
+                <CalendarDays className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Week 5</p>
+                <p className="text-2xl font-bold text-pastel-cyan-icon" data-testid="text-week5-amount">
+                  ₹{week5.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-1" data-testid="text-week5-count">
+                  {week5.count} receipt{week5.count !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Total Card */}
+        <Card className="bg-pastel-indigo border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '700ms' }}>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-pastel-indigo-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Total</p>
+                <p className="text-2xl font-bold text-pastel-indigo-icon" data-testid="text-total-amount">
+                  ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-1" data-testid="text-total-count">
+                  {totalCount} receipt{totalCount !== 1 ? 's' : ''}
+                </p>
               </div>
             </div>
           </CardContent>
