@@ -24,6 +24,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [importResults, setImportResults] = useState<any>(null);
 
   const getImportEndpoint = () => {
     if (module === 'invoices') {
@@ -57,16 +58,23 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: [getQueryKey()] });
       
-      const successMessage = `Successfully imported ${data.success} ${module}.`;
-      const duplicateMessage = data.duplicates > 0 ? ` ${data.duplicates} duplicate(s) skipped.` : '';
-      const errorMessage = data.errors > 0 ? ` ${data.errors} row(s) had errors.` : '';
+      setImportResults(data);
       
-      toast({
-        title: "Import Completed",
-        description: successMessage + duplicateMessage + errorMessage,
-      });
-      resetModal();
-      onOpenChange(false);
+      const hasErrors = data.errorDetails && data.errorDetails.length > 0;
+      const hasDuplicates = data.duplicateDetails && data.duplicateDetails.length > 0;
+      
+      if (hasErrors || hasDuplicates) {
+        toast({
+          title: "Import Completed with Issues",
+          description: `${data.success} ${module} imported successfully. Please review the errors below.`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Import Completed",
+          description: `Successfully imported ${data.success} ${module}.`,
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -122,6 +130,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     setValidationErrors([]);
     setIsProcessing(false);
     setUploadProgress(0);
+    setImportResults(null);
   };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -397,6 +406,86 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
             </>
           )}
 
+          {importResults && (importResults.errorDetails?.length > 0 || importResults.duplicateDetails?.length > 0) && (
+            <div className="space-y-4" data-testid="import-results">
+              <Alert variant="default">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <p className="font-semibold mb-2">Import Summary:</p>
+                  <p className="text-sm">✓ {importResults.success} records imported successfully</p>
+                  {importResults.errorDetails?.length > 0 && (
+                    <p className="text-sm text-red-600">✗ {importResults.errorDetails.length} records failed validation</p>
+                  )}
+                  {importResults.duplicateDetails?.length > 0 && (
+                    <p className="text-sm text-yellow-600">⚠ {importResults.duplicateDetails.length} duplicate records skipped</p>
+                  )}
+                </AlertDescription>
+              </Alert>
+
+              {importResults.errorDetails?.length > 0 && (
+                <div className="border rounded-lg overflow-hidden" data-testid="error-details-table">
+                  <div className="bg-red-50 px-4 py-2 border-b">
+                    <h4 className="font-semibold text-red-800">Validation Errors</h4>
+                    <p className="text-sm text-red-600">The following rows have errors and were not imported:</p>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-24">Row Number</TableHead>
+                          <TableHead>Error Details</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {importResults.errorDetails.map((error: any, idx: number) => (
+                          <TableRow key={idx} data-testid={`error-row-${idx}`}>
+                            <TableCell className="font-medium" data-testid={`error-row-number-${idx}`}>
+                              Row {error.row}
+                            </TableCell>
+                            <TableCell className="text-sm text-red-600" data-testid={`error-message-${idx}`}>
+                              {error.error}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {importResults.duplicateDetails?.length > 0 && (
+                <div className="border rounded-lg overflow-hidden" data-testid="duplicate-details-table">
+                  <div className="bg-yellow-50 px-4 py-2 border-b">
+                    <h4 className="font-semibold text-yellow-800">Duplicate Records</h4>
+                    <p className="text-sm text-yellow-600">The following rows were skipped because they already exist:</p>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-24">Row Number</TableHead>
+                          <TableHead>Details</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {importResults.duplicateDetails.map((duplicate: any, idx: number) => (
+                          <TableRow key={idx} data-testid={`duplicate-row-${idx}`}>
+                            <TableCell className="font-medium" data-testid={`duplicate-row-number-${idx}`}>
+                              Row {duplicate.row}
+                            </TableCell>
+                            <TableCell className="text-sm text-yellow-600" data-testid={`duplicate-message-${idx}`}>
+                              {duplicate.error}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-2 pt-2">
             <Button
               variant="outline"
@@ -426,7 +515,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
             disabled={!file || validRows.length === 0 || importMutation.isPending}
             data-testid="button-import"
           >
-            {importMutation.isPending ? "Importing..." : `Import ${validRows.length} Customers`}
+            {importMutation.isPending ? "Importing..." : `Import ${validRows.length} ${module.charAt(0).toUpperCase() + module.slice(1)}`}
           </Button>
         </DialogFooter>
       </DialogContent>
