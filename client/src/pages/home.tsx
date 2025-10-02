@@ -262,23 +262,24 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-[#E2E8F0]">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-[#2563EB]">
-                DebtTracker Pro
+      <header className="bg-white border-b border-gray-200">
+        <div className="w-full px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Debtors Management
               </h1>
+              <p className="text-sm text-gray-500 mt-1">Track and manage customer debts</p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-3">
               <Button
                 onClick={() => setIsAddDialogOpen(true)}
-                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white"
+                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-5"
                 data-testid="button-add-customer"
               >
-                <Plus className="mr-2 h-4 w-4" />
+                <Plus className="mr-2 h-5 w-5" />
                 Add Customer
               </Button>
               <Button
@@ -295,24 +296,24 @@ export default function Home() {
                   });
                 }}
                 variant="outline"
-                className="border-[#059669] text-[#059669] hover:bg-[#059669] hover:text-white"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 px-5 py-5"
                 data-testid="button-download-template"
               >
                 <FileDown className="mr-2 h-4 w-4" />
-                Download Template
+                Template
               </Button>
               <Button
                 onClick={() => setIsImportDialogOpen(true)}
-                className="bg-[#059669] hover:bg-[#047857] text-white"
+                className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-5 py-5"
                 data-testid="button-import-excel"
               >
                 <FileUp className="mr-2 h-4 w-4" />
-                Import Excel
+                Import
               </Button>
               <Button
                 onClick={() => exportMutation.mutate()}
-                variant="secondary"
-                className="bg-[#1E293B] hover:bg-[#0F172A] text-white"
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 px-5 py-5"
                 data-testid="button-export-excel"
               >
                 <FileDown className="mr-2 h-4 w-4" />
@@ -323,7 +324,7 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-6 lg:px-8 py-8">
         {/* Dashboard Cards */}
         <DashboardCards customers={customersByAssignedUser} />
 
