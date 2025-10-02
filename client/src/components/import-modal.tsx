@@ -25,9 +25,23 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  const getImportEndpoint = () => {
+    if (module === 'invoices') {
+      return `/api/invoices/import`;
+    }
+    return `/api/masters/${module}/import`;
+  };
+
+  const getQueryKey = () => {
+    if (module === 'invoices') {
+      return `/api/invoices`;
+    }
+    return `/api/masters/${module}`;
+  };
+
   const importMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await fetch(`/api/masters/${module}/import`, {
+      const response = await fetch(getImportEndpoint(), {
         method: "POST",
         body: formData,
       });
@@ -35,7 +49,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
       return response.json();
     },
     onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/masters/${module}`] });
+      queryClient.invalidateQueries({ queryKey: [getQueryKey()] });
       toast({
         title: "Import Completed",
         description: `Successfully imported ${data.success} ${module}. ${data.errors > 0 ? `${data.errors} rows had errors.` : ''}`,
@@ -52,15 +66,22 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     },
   });
 
+  const getTemplateEndpoint = () => {
+    if (module === 'invoices') {
+      return `/api/invoices/template`;
+    }
+    return `/api/masters/${module}/template`;
+  };
+
   const downloadTemplateMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/masters/${module}/template`);
+      const response = await fetch(getTemplateEndpoint());
       if (!response.ok) throw new Error("Failed to download template");
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `master_${module}_template.xlsx`;
+      a.download = module === 'invoices' ? `${module}_template.xlsx` : `master_${module}_template.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
