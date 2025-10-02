@@ -13,7 +13,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 interface ImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  module?: 'customers' | 'items';
+  module?: 'customers' | 'items' | 'invoices';
 }
 
 export function ImportModal({ open, onOpenChange, module = 'customers' }: ImportModalProps) {
