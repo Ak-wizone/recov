@@ -19,10 +19,21 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, FileDown, FileUp, Receipt as ReceiptIcon, DollarSign, Calendar, Clock, CalendarDays, CalendarRange, TrendingUp } from "lucide-react";
-import { isToday, isYesterday, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isWithinInterval, addWeeks } from "date-fns";
+import { isToday, isYesterday, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isWithinInterval, addWeeks, getYear, getMonth, setYear, setMonth as setMonthFn } from "date-fns";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type CardFilter = "today" | "yesterday" | "week1" | "week2" | "week3" | "week4" | "week5" | "total" | null;
 
 export default function Receipts() {
   const { toast } = useToast();
+  const now = new Date();
+  
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -30,6 +41,11 @@ export default function Receipts() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
+  
+  // Year/Month selection and card filter state
+  const [selectedYear, setSelectedYear] = useState(getYear(now));
+  const [selectedMonth, setSelectedMonth] = useState(getMonth(now)); // 0-11
+  const [activeFilter, setActiveFilter] = useState<CardFilter>(null);
 
   const { data: receipts = [], isLoading } = useQuery<Receipt[]>({
     queryKey: ["/api/receipts"],
@@ -149,30 +165,45 @@ export default function Receipts() {
     },
   });
 
-  // Calculate receipt statistics
-  const now = new Date();
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
+  // Calculate receipt statistics based on selected year/month
+  const selectedDate = setMonthFn(setYear(new Date(), selectedYear), selectedMonth);
+  const monthStart = startOfMonth(selectedDate);
+  const monthEnd = endOfMonth(selectedDate);
 
-  // Today's receipts
-  const todayReceipts = receipts.filter(r => isToday(new Date(r.date)));
+  // Filter receipts for selected month/year
+  const monthReceipts = receipts.filter(r => {
+    const receiptDate = new Date(r.date);
+    return isWithinInterval(receiptDate, { start: monthStart, end: monthEnd });
+  });
+
+  // Today's receipts (only if in selected month)
+  const todayReceipts = monthReceipts.filter(r => {
+    const receiptDate = new Date(r.date);
+    return isToday(receiptDate) && 
+           getYear(receiptDate) === selectedYear && 
+           getMonth(receiptDate) === selectedMonth;
+  });
   const todayCount = todayReceipts.length;
   const todayAmount = todayReceipts.reduce((sum, r) => sum + parseFloat(r.amount), 0);
 
-  // Yesterday's receipts
-  const yesterdayReceipts = receipts.filter(r => isYesterday(new Date(r.date)));
+  // Yesterday's receipts (only if in selected month)
+  const yesterdayReceipts = monthReceipts.filter(r => {
+    const receiptDate = new Date(r.date);
+    return isYesterday(receiptDate) && 
+           getYear(receiptDate) === selectedYear && 
+           getMonth(receiptDate) === selectedMonth;
+  });
   const yesterdayCount = yesterdayReceipts.length;
   const yesterdayAmount = yesterdayReceipts.reduce((sum, r) => sum + parseFloat(r.amount), 0);
 
-  // Calculate weeks of current month
+  // Calculate weeks of selected month
   const getWeekReceipts = (weekNumber: number) => {
     const weekStart = addWeeks(startOfWeek(monthStart, { weekStartsOn: 1 }), weekNumber - 1);
     const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
     
-    const weekReceipts = receipts.filter(r => {
+    const weekReceipts = monthReceipts.filter(r => {
       const receiptDate = new Date(r.date);
-      return isWithinInterval(receiptDate, { start: weekStart, end: weekEnd }) &&
-             isWithinInterval(receiptDate, { start: monthStart, end: monthEnd });
+      return isWithinInterval(receiptDate, { start: weekStart, end: weekEnd });
     });
     
     return {
@@ -187,9 +218,62 @@ export default function Receipts() {
   const week4 = getWeekReceipts(4);
   const week5 = getWeekReceipts(5);
 
-  // Total receipts
-  const totalCount = receipts.length;
-  const totalAmount = receipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount), 0);
+  // Total receipts for selected month
+  const totalCount = monthReceipts.length;
+  const totalAmount = monthReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount), 0);
+
+  // Filter receipts for table based on active card filter
+  const getFilteredReceipts = () => {
+    if (!activeFilter) return monthReceipts;
+    
+    switch (activeFilter) {
+      case "today":
+        return todayReceipts;
+      case "yesterday":
+        return yesterdayReceipts;
+      case "week1":
+        return monthReceipts.filter(r => {
+          const weekStart = addWeeks(startOfWeek(monthStart, { weekStartsOn: 1 }), 0);
+          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+          const receiptDate = new Date(r.date);
+          return isWithinInterval(receiptDate, { start: weekStart, end: weekEnd });
+        });
+      case "week2":
+        return monthReceipts.filter(r => {
+          const weekStart = addWeeks(startOfWeek(monthStart, { weekStartsOn: 1 }), 1);
+          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+          const receiptDate = new Date(r.date);
+          return isWithinInterval(receiptDate, { start: weekStart, end: weekEnd });
+        });
+      case "week3":
+        return monthReceipts.filter(r => {
+          const weekStart = addWeeks(startOfWeek(monthStart, { weekStartsOn: 1 }), 2);
+          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+          const receiptDate = new Date(r.date);
+          return isWithinInterval(receiptDate, { start: weekStart, end: weekEnd });
+        });
+      case "week4":
+        return monthReceipts.filter(r => {
+          const weekStart = addWeeks(startOfWeek(monthStart, { weekStartsOn: 1 }), 3);
+          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+          const receiptDate = new Date(r.date);
+          return isWithinInterval(receiptDate, { start: weekStart, end: weekEnd });
+        });
+      case "week5":
+        return monthReceipts.filter(r => {
+          const weekStart = addWeeks(startOfWeek(monthStart, { weekStartsOn: 1 }), 4);
+          const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+          const receiptDate = new Date(r.date);
+          return isWithinInterval(receiptDate, { start: weekStart, end: weekEnd });
+        });
+      case "total":
+        return monthReceipts;
+      default:
+        return monthReceipts;
+    }
+  };
+
+  const filteredReceipts = getFilteredReceipts();
 
   const handleEdit = (receipt: Receipt) => {
     setSelectedReceipt(receipt);
@@ -225,10 +309,59 @@ export default function Receipts() {
         </Button>
       </div>
 
+      {/* Year/Month Selector */}
+      <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg border">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-gray-500" />
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by:</span>
+        </div>
+        <Select 
+          value={selectedYear.toString()} 
+          onValueChange={(value) => setSelectedYear(parseInt(value))}
+        >
+          <SelectTrigger className="w-32" data-testid="select-year">
+            <SelectValue placeholder="Year" />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 5 }, (_, i) => getYear(now) - 2 + i).map(year => (
+              <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select 
+          value={selectedMonth.toString()} 
+          onValueChange={(value) => setSelectedMonth(parseInt(value))}
+        >
+          <SelectTrigger className="w-40" data-testid="select-month">
+            <SelectValue placeholder="Month" />
+          </SelectTrigger>
+          <SelectContent>
+            {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => (
+              <SelectItem key={index} value={index.toString()}>{month}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {activeFilter && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setActiveFilter(null)}
+            className="gap-2"
+            data-testid="button-clear-filter"
+          >
+            Clear Filter
+          </Button>
+        )}
+      </div>
+
       {/* Dashboard Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Today Card */}
-        <Card className="bg-pastel-blue border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3">
+        <Card 
+          className={`bg-pastel-blue border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3 ${activeFilter === 'today' ? 'ring-4 ring-pastel-blue-icon ring-opacity-50 scale-105' : ''}`}
+          onClick={() => setActiveFilter(activeFilter === 'today' ? null : 'today')}
+          data-testid="card-today"
+        >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
               <div className="bg-pastel-blue-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
@@ -248,7 +381,12 @@ export default function Receipts() {
         </Card>
 
         {/* Yesterday Card */}
-        <Card className="bg-pastel-green border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '100ms' }}>
+        <Card 
+          className={`bg-pastel-green border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3 ${activeFilter === 'yesterday' ? 'ring-4 ring-pastel-green-icon ring-opacity-50 scale-105' : ''}`}
+          style={{ animationDelay: '100ms' }}
+          onClick={() => setActiveFilter(activeFilter === 'yesterday' ? null : 'yesterday')}
+          data-testid="card-yesterday"
+        >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
               <div className="bg-pastel-green-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
@@ -268,7 +406,12 @@ export default function Receipts() {
         </Card>
 
         {/* Week 1 Card */}
-        <Card className="bg-pastel-orange border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '200ms' }}>
+        <Card 
+          className={`bg-pastel-orange border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3 ${activeFilter === 'week1' ? 'ring-4 ring-pastel-orange-icon ring-opacity-50 scale-105' : ''}`}
+          style={{ animationDelay: '200ms' }}
+          onClick={() => setActiveFilter(activeFilter === 'week1' ? null : 'week1')}
+          data-testid="card-week1"
+        >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
               <div className="bg-pastel-orange-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
@@ -288,7 +431,12 @@ export default function Receipts() {
         </Card>
 
         {/* Week 2 Card */}
-        <Card className="bg-pastel-teal border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '300ms' }}>
+        <Card 
+          className={`bg-pastel-teal border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3 ${activeFilter === 'week2' ? 'ring-4 ring-pastel-teal-icon ring-opacity-50 scale-105' : ''}`}
+          style={{ animationDelay: '300ms' }}
+          onClick={() => setActiveFilter(activeFilter === 'week2' ? null : 'week2')}
+          data-testid="card-week2"
+        >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
               <div className="bg-pastel-teal-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
@@ -308,7 +456,12 @@ export default function Receipts() {
         </Card>
 
         {/* Week 3 Card */}
-        <Card className="bg-pastel-purple border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '400ms' }}>
+        <Card 
+          className={`bg-pastel-purple border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3 ${activeFilter === 'week3' ? 'ring-4 ring-pastel-purple-icon ring-opacity-50 scale-105' : ''}`}
+          style={{ animationDelay: '400ms' }}
+          onClick={() => setActiveFilter(activeFilter === 'week3' ? null : 'week3')}
+          data-testid="card-week3"
+        >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
               <div className="bg-pastel-purple-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
@@ -328,7 +481,12 @@ export default function Receipts() {
         </Card>
 
         {/* Week 4 Card */}
-        <Card className="bg-pastel-blue border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '500ms' }}>
+        <Card 
+          className={`bg-pastel-blue border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3 ${activeFilter === 'week4' ? 'ring-4 ring-pastel-blue-icon ring-opacity-50 scale-105' : ''}`}
+          style={{ animationDelay: '500ms' }}
+          onClick={() => setActiveFilter(activeFilter === 'week4' ? null : 'week4')}
+          data-testid="card-week4"
+        >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
               <div className="bg-pastel-blue-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
@@ -348,7 +506,12 @@ export default function Receipts() {
         </Card>
 
         {/* Week 5 Card */}
-        <Card className="bg-pastel-green border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '600ms' }}>
+        <Card 
+          className={`bg-pastel-green border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3 ${activeFilter === 'week5' ? 'ring-4 ring-pastel-green-icon ring-opacity-50 scale-105' : ''}`}
+          style={{ animationDelay: '600ms' }}
+          onClick={() => setActiveFilter(activeFilter === 'week5' ? null : 'week5')}
+          data-testid="card-week5"
+        >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
               <div className="bg-pastel-green-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
@@ -368,7 +531,12 @@ export default function Receipts() {
         </Card>
 
         {/* Total Card */}
-        <Card className="bg-pastel-indigo border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3" style={{ animationDelay: '700ms' }}>
+        <Card 
+          className={`bg-pastel-indigo border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3 ${activeFilter === 'total' ? 'ring-4 ring-pastel-indigo-icon ring-opacity-50 scale-105' : ''}`}
+          style={{ animationDelay: '700ms' }}
+          onClick={() => setActiveFilter(activeFilter === 'total' ? null : 'total')}
+          data-testid="card-total"
+        >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
               <div className="bg-pastel-indigo-icon p-3 rounded-xl text-white shadow-md flex-shrink-0">
@@ -424,7 +592,7 @@ export default function Receipts() {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         <ReceiptTable
-          receipts={receipts}
+          receipts={filteredReceipts}
           isLoading={isLoading}
           onEdit={handleEdit}
           onDelete={handleDelete}
