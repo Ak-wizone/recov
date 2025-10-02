@@ -474,13 +474,19 @@ export function MasterCustomerFormDialog({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Company Type</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter company type"
-                              {...field}
-                              data-testid="input-companyType"
-                            />
-                          </FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-companyType">
+                                <SelectValue placeholder="Select company type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Proprietorship">Proprietorship</SelectItem>
+                              <SelectItem value="Partnership">Partnership</SelectItem>
+                              <SelectItem value="Private Limited">Private Limited</SelectItem>
+                              <SelectItem value="Limited">Limited</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -495,7 +501,7 @@ export function MasterCustomerFormDialog({
                   Primary Contact Details
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-cyan p-4 rounded-lg">
                     <FormField
                       control={form.control}
                       name="primaryContactName"
@@ -561,7 +567,7 @@ export function MasterCustomerFormDialog({
                   Secondary Contact Details
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-lavender p-4 rounded-lg">
                     <FormField
                       control={form.control}
                       name="secondaryContactName"
@@ -627,7 +633,7 @@ export function MasterCustomerFormDialog({
                   Payment & Credit Terms
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-purple p-4 rounded-lg">
                     <FormField
                       control={form.control}
                       name="paymentTermsDays"
@@ -675,20 +681,24 @@ export function MasterCustomerFormDialog({
                   Interest Configuration
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-orange p-4 rounded-lg">
                     <FormField
                       control={form.control}
                       name="interestApplicableFrom"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Interest Applicable From</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter interest applicable from"
-                              {...field}
-                              data-testid="input-interestApplicableFrom"
-                            />
-                          </FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-interestApplicableFrom">
+                                <SelectValue placeholder="Select interest start" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="From due date">From due date</SelectItem>
+                              <SelectItem value="From day one">From day one</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -723,7 +733,7 @@ export function MasterCustomerFormDialog({
                   Sales Person
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-teal p-4 rounded-lg">
                     <FormField
                       control={form.control}
                       name="salesPerson"
