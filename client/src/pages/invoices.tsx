@@ -417,7 +417,7 @@ export default function Invoices() {
       </div>
 
       {/* Invoice Table */}
-      <div className="flex-1 overflow-hidden border rounded-lg">
+      <div className="flex-1 overflow-auto border rounded-lg">
         <InvoiceTable
           invoices={filteredInvoices}
           isLoading={isLoading}
