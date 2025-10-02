@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type CompanyProfile, type InsertCompanyProfile, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, companyProfile } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -61,6 +61,10 @@ export interface IStorage {
   updateReceipt(id: string, receipt: Partial<InsertReceipt>): Promise<Receipt | undefined>;
   deleteReceipt(id: string): Promise<boolean>;
   deleteReceipts(ids: string[]): Promise<number>;
+  
+  // Company Profile operations
+  getCompanyProfile(): Promise<CompanyProfile | undefined>;
+  updateCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -494,6 +498,30 @@ export class DatabaseStorage implements IStorage {
       if (deleted) count++;
     }
     return count;
+  }
+
+  async getCompanyProfile(): Promise<CompanyProfile | undefined> {
+    const [profile] = await db.select().from(companyProfile).limit(1);
+    return profile || undefined;
+  }
+
+  async updateCompanyProfile(insertProfile: InsertCompanyProfile): Promise<CompanyProfile> {
+    const existing = await this.getCompanyProfile();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(companyProfile)
+        .set({ ...insertProfile, updatedAt: new Date() })
+        .where(eq(companyProfile.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(companyProfile)
+        .values(insertProfile)
+        .returning();
+      return created;
+    }
   }
 }
 
