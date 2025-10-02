@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, customers, payments, followUps } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, customers, payments, followUps, masterCustomers } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -27,6 +27,14 @@ export interface IStorage {
   // Bulk operations
   createCustomers(customers: InsertCustomer[]): Promise<Customer[]>;
   deleteCustomers(ids: string[]): Promise<number>;
+  
+  // Master Customer operations
+  getMasterCustomers(): Promise<MasterCustomer[]>;
+  getMasterCustomer(id: string): Promise<MasterCustomer | undefined>;
+  createMasterCustomer(customer: InsertMasterCustomer): Promise<MasterCustomer>;
+  updateMasterCustomer(id: string, customer: Partial<InsertMasterCustomer>): Promise<MasterCustomer | undefined>;
+  deleteMasterCustomer(id: string): Promise<boolean>;
+  deleteMasterCustomers(ids: string[]): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -241,6 +249,61 @@ export class DatabaseStorage implements IStorage {
     let count = 0;
     for (const id of ids) {
       const deleted = await this.deleteCustomer(id);
+      if (deleted) count++;
+    }
+    return count;
+  }
+
+  async getMasterCustomers(): Promise<MasterCustomer[]> {
+    return await db.select().from(masterCustomers);
+  }
+
+  async getMasterCustomer(id: string): Promise<MasterCustomer | undefined> {
+    const [customer] = await db.select().from(masterCustomers).where(eq(masterCustomers.id, id));
+    return customer || undefined;
+  }
+
+  async createMasterCustomer(insertCustomer: InsertMasterCustomer): Promise<MasterCustomer> {
+    const dataToInsert: any = {
+      ...insertCustomer,
+      incorporationDate: insertCustomer.incorporationDate ? new Date(insertCustomer.incorporationDate) : null,
+    };
+    
+    const [customer] = await db
+      .insert(masterCustomers)
+      .values(dataToInsert)
+      .returning();
+    return customer;
+  }
+
+  async updateMasterCustomer(id: string, updates: Partial<InsertMasterCustomer>): Promise<MasterCustomer | undefined> {
+    const dataToUpdate: any = { ...updates };
+    if (dataToUpdate.incorporationDate) {
+      dataToUpdate.incorporationDate = new Date(dataToUpdate.incorporationDate);
+    }
+    
+    const [customer] = await db
+      .update(masterCustomers)
+      .set(dataToUpdate)
+      .where(eq(masterCustomers.id, id))
+      .returning();
+    return customer || undefined;
+  }
+
+  async deleteMasterCustomer(id: string): Promise<boolean> {
+    const result = await db
+      .delete(masterCustomers)
+      .where(eq(masterCustomers.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async deleteMasterCustomers(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    
+    let count = 0;
+    for (const id of ids) {
+      const deleted = await this.deleteMasterCustomer(id);
       if (deleted) count++;
     }
     return count;
