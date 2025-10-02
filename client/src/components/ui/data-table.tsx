@@ -12,6 +12,7 @@ import {
   useReactTable,
   PaginationState,
   RowSelectionState,
+  ColumnFiltersState,
 } from "@tanstack/react-table";
 import {
   ArrowUpDown,
@@ -93,6 +94,7 @@ export function DataTable<TData, TValue>({
   const [columnOrder, setColumnOrder] = useState<ColumnOrderState>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: defaultPageSize,
@@ -164,13 +166,14 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: enablePagination ? getPaginationRowModel() : undefined,
     getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
-    getFilteredRowModel: enableGlobalFilter ? getFilteredRowModel() : undefined,
+    getFilteredRowModel: getFilteredRowModel(),
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
     onPaginationChange: setPagination,
     onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
     state: {
       sorting,
       columnVisibility,
@@ -178,6 +181,7 @@ export function DataTable<TData, TValue>({
       columnOrder,
       pagination,
       globalFilter,
+      columnFilters,
     },
     enableRowSelection,
   });
@@ -352,7 +356,7 @@ export function DataTable<TData, TValue>({
             <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
+                  <TableRow key={headerGroup.id} className="bg-[#F1F5F9] border-b-2 border-gray-300">
                     {headerGroup.headers.map((header) => {
                     const canSort = header.column.getCanSort();
                     const sortDirection = header.column.getIsSorted();
@@ -362,7 +366,7 @@ export function DataTable<TData, TValue>({
                         key={header.id}
                         className={cn(
                           canSort && "cursor-pointer select-none",
-                          "whitespace-nowrap"
+                          "whitespace-nowrap font-semibold py-4"
                         )}
                         onClick={
                           canSort
@@ -399,6 +403,30 @@ export function DataTable<TData, TValue>({
                       </TableHead>
                     );
                   })}
+                  </TableRow>
+                ))}
+                {/* Column Filter Row */}
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={`filter-${headerGroup.id}`} className="bg-white border-b">
+                    {headerGroup.headers.map((header) => {
+                      const canFilter = header.column.getCanFilter();
+                      const columnFilterValue = header.column.getFilterValue();
+
+                      return (
+                        <TableHead key={`filter-${header.id}`} className="py-3">
+                          {canFilter && header.column.id !== "select" ? (
+                            <Input
+                              type="text"
+                              placeholder={`Search ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header.toLowerCase() : ''}...`}
+                              value={(columnFilterValue ?? "") as string}
+                              onChange={(e) => header.column.setFilterValue(e.target.value)}
+                              className="h-10"
+                              data-testid={`input-filter-${header.id}`}
+                            />
+                          ) : null}
+                        </TableHead>
+                      );
+                    })}
                   </TableRow>
                 ))}
               </TableHeader>
