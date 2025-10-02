@@ -898,48 +898,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const worksheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(worksheet);
 
-      let successCount = 0;
-      let errorCount = 0;
-      let duplicateCount = 0;
-      const duplicateInvoices: string[] = [];
+      const results = [];
+      const errors = [];
+      const duplicates = [];
 
-      for (const row of data) {
-        try {
-          const invoiceData = {
-            invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
-            customerName: String((row as any)["Customer Name"] || "").trim(),
-            invoiceDate: String((row as any)["Invoice Date"] || "").trim(),
-            invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
-            netProfit: String((row as any)["Net Profit"] || "0").trim(),
-            status: String((row as any)["Status"] || "Unpaid").trim() as "Paid" | "Unpaid" | "Partial",
-            assignedUser: String((row as any)["Assigned User"] || "").trim() || undefined,
-            remarks: String((row as any)["Remarks"] || "").trim() || undefined,
-          };
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const invoiceData = {
+          invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
+          customerName: String((row as any)["Customer Name"] || "").trim(),
+          invoiceDate: String((row as any)["Invoice Date"] || "").trim(),
+          invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
+          netProfit: String((row as any)["Net Profit"] || "0").trim(),
+          status: String((row as any)["Status"] || "Unpaid").trim() as "Paid" | "Unpaid" | "Partial",
+          assignedUser: String((row as any)["Assigned User"] || "").trim() || undefined,
+          remarks: String((row as any)["Remarks"] || "").trim() || undefined,
+        };
 
-          const result = insertInvoiceSchema.safeParse(invoiceData);
-          if (result.success) {
-            // Check if invoice number already exists
-            const existingInvoice = await storage.getInvoiceByNumber(result.data.invoiceNumber);
-            if (existingInvoice) {
-              duplicateCount++;
-              duplicateInvoices.push(result.data.invoiceNumber);
-            } else {
-              await storage.createInvoice(result.data);
-              successCount++;
-            }
+        const result = insertInvoiceSchema.safeParse(invoiceData);
+        if (result.success) {
+          // Check if invoice number already exists
+          const existingInvoice = await storage.getInvoiceByNumber(result.data.invoiceNumber);
+          if (existingInvoice) {
+            duplicates.push({ 
+              row: i + 2, 
+              invoiceNumber: result.data.invoiceNumber,
+              error: `Duplicate invoice number: ${result.data.invoiceNumber}` 
+            });
           } else {
-            errorCount++;
+            const invoice = await storage.createInvoice(result.data);
+            results.push(invoice);
           }
-        } catch (error) {
-          errorCount++;
+        } else {
+          errors.push({ row: i + 2, error: fromZodError(result.error).message });
         }
       }
 
       res.json({ 
-        success: successCount, 
-        errors: errorCount,
-        duplicates: duplicateCount,
-        duplicateInvoices: duplicateInvoices
+        success: results.length, 
+        errors: errors.length,
+        duplicates: duplicates.length,
+        invoices: results,
+        errorDetails: errors,
+        duplicateDetails: duplicates
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
