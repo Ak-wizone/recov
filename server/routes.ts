@@ -1100,46 +1100,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const worksheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(worksheet);
 
-      let successCount = 0;
-      let errorCount = 0;
-      let duplicateCount = 0;
-      const duplicateVouchers: string[] = [];
+      const results = [];
+      const errors = [];
+      const duplicates = [];
 
-      for (const row of data) {
-        try {
-          const receiptData = {
-            voucherNumber: String((row as any)["Voucher Number"] || "").trim(),
-            invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
-            customerName: String((row as any)["Customer Name"] || "").trim(),
-            date: String((row as any)["Date"] || "").trim(),
-            amount: String((row as any)["Amount"] || "0").trim(),
-            remarks: String((row as any)["Remarks"] || "").trim() || undefined,
-          };
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const receiptData = {
+          voucherNumber: String((row as any)["Voucher Number"] || "").trim(),
+          invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
+          customerName: String((row as any)["Customer Name"] || "").trim(),
+          date: String((row as any)["Date"] || "").trim(),
+          amount: String((row as any)["Amount"] || "0").trim(),
+          remarks: String((row as any)["Remarks"] || "").trim() || undefined,
+        };
 
-          const result = insertReceiptSchema.safeParse(receiptData);
-          if (result.success) {
-            // Check if voucher number already exists
-            const existingReceipt = await storage.getReceiptByVoucherNumber(result.data.voucherNumber);
-            if (existingReceipt) {
-              duplicateCount++;
-              duplicateVouchers.push(result.data.voucherNumber);
-            } else {
-              await storage.createReceipt(result.data);
-              successCount++;
-            }
+        const result = insertReceiptSchema.safeParse(receiptData);
+        if (result.success) {
+          // Check if voucher number already exists
+          const existingReceipt = await storage.getReceiptByVoucherNumber(result.data.voucherNumber);
+          if (existingReceipt) {
+            duplicates.push({ 
+              row: i + 2, 
+              voucherNumber: result.data.voucherNumber,
+              error: `Duplicate voucher number: ${result.data.voucherNumber}` 
+            });
           } else {
-            errorCount++;
+            const receipt = await storage.createReceipt(result.data);
+            results.push(receipt);
           }
-        } catch (error) {
-          errorCount++;
+        } else {
+          errors.push({ row: i + 2, error: fromZodError(result.error).message });
         }
       }
 
       res.json({ 
-        success: successCount, 
-        errors: errorCount,
-        duplicates: duplicateCount,
-        duplicateVouchers: duplicateVouchers
+        success: results.length, 
+        errors: errors.length,
+        duplicates: duplicates.length,
+        receipts: results,
+        errorDetails: errors,
+        duplicateDetails: duplicates
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
