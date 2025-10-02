@@ -50,9 +50,14 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: [getQueryKey()] });
+      
+      const successMessage = `Successfully imported ${data.success} ${module}.`;
+      const duplicateMessage = data.duplicates > 0 ? ` ${data.duplicates} duplicate(s) skipped.` : '';
+      const errorMessage = data.errors > 0 ? ` ${data.errors} row(s) had errors.` : '';
+      
       toast({
         title: "Import Completed",
-        description: `Successfully imported ${data.success} ${module}. ${data.errors > 0 ? `${data.errors} rows had errors.` : ''}`,
+        description: successMessage + duplicateMessage + errorMessage,
       });
       resetModal();
       onOpenChange(false);
