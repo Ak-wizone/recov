@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -1012,6 +1012,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found" });
       }
       res.json(invoice);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ RECEIPT ROUTES ============
+
+  // Get all receipts
+  app.get("/api/receipts", async (req, res) => {
+    try {
+      const receipts = await storage.getReceipts();
+      res.json(receipts);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Download receipt template (MUST BE BEFORE /:id)
+  app.get("/api/receipts/template", async (req, res) => {
+    try {
+      const headers = ["Voucher Number", "Invoice Number", "Customer Name", "Date", "Amount", "Remarks"];
+      const sampleData = [
+        {
+          "Voucher Number": "RCPT001",
+          "Invoice Number": "INV001",
+          "Customer Name": "ABC Company",
+          "Date": "2024-01-15",
+          "Amount": "50000",
+          "Remarks": "Payment received"
+        }
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(sampleData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Receipts Template");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=receipts_template.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Export receipts to Excel (MUST BE BEFORE /:id)
+  app.get("/api/receipts/export", async (req, res) => {
+    try {
+      const receipts = await storage.getReceipts();
+      
+      const data = receipts.map((receipt) => ({
+        "Voucher Number": receipt.voucherNumber,
+        "Invoice Number": receipt.invoiceNumber,
+        "Customer Name": receipt.customerName,
+        "Date": receipt.date.toISOString().split('T')[0],
+        "Amount": receipt.amount,
+        "Remarks": receipt.remarks || "",
+        "Created At": receipt.createdAt.toISOString(),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Receipts");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=receipts_export.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Import receipts from Excel (MUST BE BEFORE /:id)
+  app.post("/api/receipts/import", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      let successCount = 0;
+      let errorCount = 0;
+      let duplicateCount = 0;
+      const duplicateVouchers: string[] = [];
+
+      for (const row of data) {
+        try {
+          const receiptData = {
+            voucherNumber: String((row as any)["Voucher Number"] || "").trim(),
+            invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
+            customerName: String((row as any)["Customer Name"] || "").trim(),
+            date: String((row as any)["Date"] || "").trim(),
+            amount: String((row as any)["Amount"] || "0").trim(),
+            remarks: String((row as any)["Remarks"] || "").trim() || undefined,
+          };
+
+          const result = insertReceiptSchema.safeParse(receiptData);
+          if (result.success) {
+            // Check if voucher number already exists
+            const existingReceipt = await storage.getReceiptByVoucherNumber(result.data.voucherNumber);
+            if (existingReceipt) {
+              duplicateCount++;
+              duplicateVouchers.push(result.data.voucherNumber);
+            } else {
+              await storage.createReceipt(result.data);
+              successCount++;
+            }
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          errorCount++;
+        }
+      }
+
+      res.json({ 
+        success: successCount, 
+        errors: errorCount,
+        duplicates: duplicateCount,
+        duplicateVouchers: duplicateVouchers
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk delete receipts (MUST BE BEFORE /:id)
+  app.post("/api/receipts/bulk-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) {
+        return res.status(400).json({ message: "ids must be an array" });
+      }
+      const deleted = await storage.deleteReceipts(ids);
+      res.json({ deleted });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create receipt
+  app.post("/api/receipts", async (req, res) => {
+    try {
+      const result = insertReceiptSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const receipt = await storage.createReceipt(result.data);
+      res.json(receipt);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update receipt
+  app.put("/api/receipts/:id", async (req, res) => {
+    try {
+      const result = insertReceiptSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const receipt = await storage.updateReceipt(req.params.id, result.data);
+      if (!receipt) {
+        return res.status(404).json({ message: "Receipt not found" });
+      }
+      res.json(receipt);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete receipt
+  app.delete("/api/receipts/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteReceipt(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Receipt not found" });
+      }
+      res.json({ message: "Receipt deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single receipt (MUST BE AFTER specific routes)
+  app.get("/api/receipts/:id", async (req, res) => {
+    try {
+      const receipt = await storage.getReceipt(req.params.id);
+      if (!receipt) {
+        return res.status(404).json({ message: "Receipt not found" });
+      }
+      res.json(receipt);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
