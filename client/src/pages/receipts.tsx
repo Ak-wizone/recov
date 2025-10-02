@@ -18,7 +18,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, FileDown, FileUp, Receipt as ReceiptIcon, DollarSign } from "lucide-react";
+import { Plus, FileDown, FileUp, Receipt as ReceiptIcon, DollarSign, Calendar, Clock, CalendarDays, CalendarRange, TrendingUp } from "lucide-react";
+import { isToday, isYesterday, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isWithinInterval, addWeeks } from "date-fns";
 
 export default function Receipts() {
   const { toast } = useToast();
@@ -148,6 +149,45 @@ export default function Receipts() {
     },
   });
 
+  // Calculate receipt statistics
+  const now = new Date();
+  const monthStart = startOfMonth(now);
+  const monthEnd = endOfMonth(now);
+
+  // Today's receipts
+  const todayReceipts = receipts.filter(r => isToday(new Date(r.date)));
+  const todayCount = todayReceipts.length;
+  const todayAmount = todayReceipts.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+
+  // Yesterday's receipts
+  const yesterdayReceipts = receipts.filter(r => isYesterday(new Date(r.date)));
+  const yesterdayCount = yesterdayReceipts.length;
+  const yesterdayAmount = yesterdayReceipts.reduce((sum, r) => sum + parseFloat(r.amount), 0);
+
+  // Calculate weeks of current month
+  const getWeekReceipts = (weekNumber: number) => {
+    const weekStart = addWeeks(startOfWeek(monthStart, { weekStartsOn: 1 }), weekNumber - 1);
+    const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+    
+    const weekReceipts = receipts.filter(r => {
+      const receiptDate = new Date(r.date);
+      return isWithinInterval(receiptDate, { start: weekStart, end: weekEnd }) &&
+             isWithinInterval(receiptDate, { start: monthStart, end: monthEnd });
+    });
+    
+    return {
+      count: weekReceipts.length,
+      amount: weekReceipts.reduce((sum, r) => sum + parseFloat(r.amount), 0)
+    };
+  };
+
+  const week1 = getWeekReceipts(1);
+  const week2 = getWeekReceipts(2);
+  const week3 = getWeekReceipts(3);
+  const week4 = getWeekReceipts(4);
+  const week5 = getWeekReceipts(5);
+
+  // Total receipts
   const totalCount = receipts.length;
   const totalAmount = receipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount), 0);
 
