@@ -194,3 +194,65 @@ export const insertMasterCustomerSchema = createInsertSchema(masterCustomers).pi
 
 export type InsertMasterCustomer = z.infer<typeof insertMasterCustomerSchema>;
 export type MasterCustomer = typeof masterCustomers.$inferSelect;
+
+// Master Items table (Products & Services)
+export const masterItems = pgTable("master_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  // Type toggle
+  itemType: text("item_type").notNull(), // 'product' or 'service'
+  // Common fields
+  name: text("name").notNull(),
+  description: text("description"),
+  unit: text("unit").notNull(), // PCS, KG, BOX, Hour, Visit, Job, Month, Year, etc.
+  tax: text("tax").notNull(), // 5%, 12%, 18%, 28%
+  sku: text("sku").notNull(),
+  saleUnitPrice: decimal("sale_unit_price", { precision: 15, scale: 2 }).notNull(),
+  buyUnitPrice: decimal("buy_unit_price", { precision: 15, scale: 2 }),
+  // Product-only fields
+  openingQuantity: decimal("opening_quantity", { precision: 15, scale: 2 }),
+  hsn: text("hsn"),
+  // Service-only fields
+  sac: text("sac"),
+  // Status
+  isActive: text("is_active").notNull().default("Active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMasterItemSchema = createInsertSchema(masterItems).pick({
+  itemType: true,
+  name: true,
+  description: true,
+  unit: true,
+  tax: true,
+  sku: true,
+  saleUnitPrice: true,
+  buyUnitPrice: true,
+  openingQuantity: true,
+  hsn: true,
+  sac: true,
+  isActive: true,
+}).extend({
+  itemType: z.enum(["product", "service"], {
+    errorMap: () => ({ message: "Item type must be product or service" }),
+  }),
+  name: z.string().min(1, "Item name is required"),
+  description: z.string().max(1000, "Description must be 1000 characters or less").optional(),
+  unit: z.string().min(1, "Unit is required"),
+  tax: z.string().min(1, "Tax rate is required"),
+  sku: z.string().min(1, "SKU is required"),
+  saleUnitPrice: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+    message: "Sale price must be a valid positive number",
+  }),
+  buyUnitPrice: z.string().refine((val) => val === "" || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0), {
+    message: "Buy price must be a valid positive number",
+  }).optional(),
+  openingQuantity: z.string().refine((val) => val === "" || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0), {
+    message: "Opening quantity must be a valid positive number",
+  }).optional(),
+  hsn: z.string().optional(),
+  sac: z.string().optional(),
+  isActive: z.enum(["Active", "Inactive"]).default("Active"),
+});
+
+export type InsertMasterItem = z.infer<typeof insertMasterItemSchema>;
+export type MasterItem = typeof masterItems.$inferSelect;
