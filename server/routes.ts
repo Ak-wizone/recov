@@ -904,10 +904,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
+        
+        // Parse date - Excel exports dates as serial numbers or formatted strings
+        let dateValue = (row as any)["Invoice Date"];
+        let parsedDate = "";
+        
+        if (typeof dateValue === 'number') {
+          // Excel serial date number (days since 1/1/1900)
+          const excelEpoch = new Date(1900, 0, 1);
+          const date = new Date(excelEpoch.getTime() + (dateValue - 2) * 24 * 60 * 60 * 1000);
+          parsedDate = date.toISOString().split('T')[0];
+        } else if (dateValue) {
+          // Try to parse as string
+          parsedDate = String(dateValue).trim();
+        }
+        
         const invoiceData = {
           invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
           customerName: String((row as any)["Customer Name"] || "").trim(),
-          invoiceDate: String((row as any)["Invoice Date"] || "").trim(),
+          invoiceDate: parsedDate,
           invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
           netProfit: String((row as any)["Net Profit"] || "0").trim(),
           status: String((row as any)["Status"] || "Unpaid").trim() as "Paid" | "Unpaid" | "Partial",
@@ -1106,11 +1121,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
+        
+        // Parse date - Excel exports dates as serial numbers or formatted strings
+        let dateValue = (row as any)["Date"];
+        let parsedDate = "";
+        
+        if (typeof dateValue === 'number') {
+          // Excel serial date number (days since 1/1/1900)
+          const excelEpoch = new Date(1900, 0, 1);
+          const date = new Date(excelEpoch.getTime() + (dateValue - 2) * 24 * 60 * 60 * 1000);
+          parsedDate = date.toISOString().split('T')[0];
+        } else if (dateValue) {
+          // Try to parse as string
+          parsedDate = String(dateValue).trim();
+        }
+        
         const receiptData = {
           voucherNumber: String((row as any)["Voucher Number"] || "").trim(),
           invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
           customerName: String((row as any)["Customer Name"] || "").trim(),
-          date: String((row as any)["Date"] || "").trim(),
+          date: parsedDate,
           amount: String((row as any)["Amount"] || "0").trim(),
           remarks: String((row as any)["Remarks"] || "").trim() || undefined,
         };
