@@ -25,7 +25,7 @@ export default function MasterItems() {
   });
 
   const deleteItemMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/masters/items/${id}`, "DELETE"),
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/masters/items/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/masters/items"] });
       toast({

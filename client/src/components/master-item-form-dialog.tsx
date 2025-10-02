@@ -53,7 +53,7 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
 
   const createMutation = useMutation({
     mutationFn: (data: InsertMasterItem) => 
-      apiRequest("/api/masters/items", "POST", data),
+      apiRequest("POST", "/api/masters/items", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/masters/items"] });
       toast({
@@ -74,7 +74,7 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
 
   const updateMutation = useMutation({
     mutationFn: (data: InsertMasterItem) =>
-      apiRequest(`/api/masters/items/${item?.id}`, "PUT", data),
+      apiRequest("PUT", `/api/masters/items/${item?.id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/masters/items"] });
       toast({
