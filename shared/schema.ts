@@ -256,3 +256,48 @@ export const insertMasterItemSchema = createInsertSchema(masterItems).pick({
 
 export type InsertMasterItem = z.infer<typeof insertMasterItemSchema>;
 export type MasterItem = typeof masterItems.$inferSelect;
+
+// Invoices table
+export const invoices = pgTable("invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNumber: text("invoice_number").notNull(),
+  customerName: text("customer_name").notNull(),
+  invoiceDate: timestamp("invoice_date").notNull(),
+  invoiceAmount: decimal("invoice_amount", { precision: 15, scale: 2 }).notNull(),
+  netProfit: decimal("net_profit", { precision: 15, scale: 2 }).notNull(),
+  status: text("status").notNull().default("Unpaid"), // Paid, Unpaid, Partial
+  assignedUser: text("assigned_user"),
+  remarks: text("remarks"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertInvoiceSchema = createInsertSchema(invoices).pick({
+  invoiceNumber: true,
+  customerName: true,
+  invoiceDate: true,
+  invoiceAmount: true,
+  netProfit: true,
+  status: true,
+  assignedUser: true,
+  remarks: true,
+}).extend({
+  invoiceNumber: z.string().min(1, "Invoice number is required"),
+  customerName: z.string().min(1, "Customer name is required"),
+  invoiceDate: z.string().min(1, "Invoice date is required"),
+  invoiceAmount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+    message: "Invoice amount must be a valid positive number",
+  }),
+  netProfit: z.string().refine((val) => !isNaN(parseFloat(val)), {
+    message: "Net profit must be a valid number",
+  }),
+  status: z.enum(["Paid", "Unpaid", "Partial"], {
+    errorMap: () => ({ message: "Status must be Paid, Unpaid, or Partial" }),
+  }).default("Unpaid"),
+  assignedUser: z.enum(["Manpreet Bedi", "Bilal Ahamad", "Anjali Dhiman", "Princi Soni"], {
+    errorMap: () => ({ message: "Invalid assigned user" }),
+  }).optional(),
+  remarks: z.string().optional(),
+});
+
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
