@@ -23,50 +23,59 @@ export function DashboardCards({ customers }: DashboardCardsProps) {
   });
 
   const categoryIcons = {
-    Alpha: <AlertTriangle className="h-6 w-6" />,
-    Beta: <Clock className="h-6 w-6" />,
-    Gamma: <Info className="h-6 w-6" />,
-    Delta: <CheckCircle className="h-6 w-6" />,
+    Alpha: <AlertTriangle className="h-5 w-5" />,
+    Beta: <Clock className="h-5 w-5" />,
+    Gamma: <Info className="h-5 w-5" />,
+    Delta: <CheckCircle className="h-5 w-5" />,
   };
 
   const categoryColors = {
-    Alpha: "from-emerald-500 to-teal-600",
-    Beta: "from-blue-500 to-indigo-600",
-    Gamma: "from-amber-500 to-orange-600",
-    Delta: "from-rose-500 to-pink-600",
-  };
-
-  const categoryBgColors = {
-    Alpha: "bg-gradient-to-br from-emerald-50 to-teal-50",
-    Beta: "bg-gradient-to-br from-blue-50 to-indigo-50",
-    Gamma: "bg-gradient-to-br from-amber-50 to-orange-50",
-    Delta: "bg-gradient-to-br from-rose-50 to-pink-50",
+    Alpha: {
+      bg: "bg-pastel-blue",
+      icon: "bg-pastel-blue-icon",
+      text: "text-pastel-blue-icon",
+    },
+    Beta: {
+      bg: "bg-pastel-green",
+      icon: "bg-pastel-green-icon",
+      text: "text-pastel-green-icon",
+    },
+    Gamma: {
+      bg: "bg-pastel-orange",
+      icon: "bg-pastel-orange-icon",
+      text: "text-pastel-orange-icon",
+    },
+    Delta: {
+      bg: "bg-pastel-teal",
+      icon: "bg-pastel-teal-icon",
+      text: "text-pastel-teal-icon",
+    },
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
       {categoryStats.map(({ category, count, total }, index) => (
         <Card 
           key={category} 
-          className={`border-2 border-transparent hover:border-current transition-all duration-300 transform hover:-translate-y-2 hover:shadow-2xl ${categoryBgColors[category]} animate-in fade-in slide-in-from-bottom-4 cursor-pointer`}
+          className={`${categoryColors[category].bg} border-0 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg cursor-pointer animate-in fade-in slide-in-from-bottom-3`}
           style={{ animationDelay: `${index * 100}ms` }}
           data-testid={`card-category-${category.toLowerCase()}`}
         >
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
-                  {category} Category
-                </p>
-                <p className={`text-3xl font-bold bg-gradient-to-r ${categoryColors[category]} bg-clip-text text-transparent animate-pulse`} data-testid={`text-amount-${category.toLowerCase()}`}>
-                  ₹{total.toFixed(2)}
-                </p>
-                <p className="text-sm text-gray-600 mt-2 font-medium" data-testid={`text-count-${category.toLowerCase()}`}>
-                  {count} {count === 1 ? 'client' : 'clients'}
-                </p>
-              </div>
-              <div className={`bg-gradient-to-br ${categoryColors[category]} p-4 rounded-2xl text-white shadow-lg transform transition-transform duration-300 hover:rotate-12 hover:scale-110`}>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className={`${categoryColors[category].icon} p-3 rounded-xl text-white shadow-md flex-shrink-0`}>
                 {categoryIcons[category]}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                  {category}
+                </p>
+                <p className={`text-2xl font-bold ${categoryColors[category].text}`} data-testid={`text-amount-${category.toLowerCase()}`}>
+                  ₹{total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-600 mt-1" data-testid={`text-count-${category.toLowerCase()}`}>
+                  {count}
+                </p>
               </div>
             </div>
           </CardContent>

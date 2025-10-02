@@ -133,12 +133,12 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="w-72 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 h-screen flex flex-col shadow-2xl" data-testid="sidebar">
-      <div className="p-8 border-b border-slate-700/50">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent animate-pulse" data-testid="text-app-title">
+    <div className="w-72 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-700 h-screen flex flex-col shadow-xl" data-testid="sidebar">
+      <div className="p-8 border-b border-slate-500/30">
+        <h1 className="text-2xl font-bold text-white" data-testid="text-app-title">
           Business Manager
         </h1>
-        <p className="text-slate-400 text-sm mt-2">Complete Business Solution</p>
+        <p className="text-slate-300 text-sm mt-1.5">Complete Business Solution</p>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
@@ -149,22 +149,19 @@ export default function Sidebar() {
                 <button
                   onClick={() => toggleExpanded(item.name)}
                   className={cn(
-                    "w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-semibold",
-                    "transition-all duration-300 transform hover:scale-105",
-                    "hover:bg-gradient-to-r hover:from-blue-600 hover:to-cyan-600 hover:shadow-lg hover:shadow-blue-500/50",
-                    "text-slate-300 hover:text-white",
-                    expandedItems.has(item.name) && "bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/50"
+                    "w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium",
+                    "transition-all duration-200",
+                    "text-slate-200 hover:text-white hover:bg-slate-500/40",
+                    expandedItems.has(item.name) && "bg-slate-500/50 text-white"
                   )}
                   data-testid={`button-toggle-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="transition-transform duration-300 group-hover:rotate-12">
-                      {item.icon}
-                    </div>
-                    <span className="tracking-wide">{item.name}</span>
+                    {item.icon}
+                    <span>{item.name}</span>
                   </div>
                   <div className={cn(
-                    "transition-transform duration-300",
+                    "transition-transform duration-200",
                     expandedItems.has(item.name) && "rotate-180"
                   )}>
                     <ChevronDown className="h-4 w-4" />
@@ -174,23 +171,21 @@ export default function Sidebar() {
                   "overflow-hidden transition-all duration-500 ease-in-out",
                   expandedItems.has(item.name) ? "max-h-96 opacity-100 mt-2" : "max-h-0 opacity-0"
                 )}>
-                  <div className="ml-6 space-y-1.5 border-l-2 border-blue-500/30 pl-4">
+                  <div className="ml-6 space-y-1 border-l-2 border-slate-500/30 pl-4">
                     {item.subItems.map((subItem) => (
                       <Link
                         key={subItem.name}
                         href={subItem.path}
                         className={cn(
                           "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium",
-                          "transition-all duration-300 transform hover:translate-x-1",
+                          "transition-all duration-200",
                           isActive(subItem.path)
-                            ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/50 scale-105"
-                            : "text-slate-400 hover:text-white hover:bg-slate-700/50"
+                            ? "bg-blue-600 text-white"
+                            : "text-slate-300 hover:text-white hover:bg-slate-500/40"
                         )}
                         data-testid={`link-${subItem.name.toLowerCase().replace(/\s+/g, "-")}`}
                       >
-                        <div className="transition-transform duration-300 hover:scale-110">
-                          {subItem.icon}
-                        </div>
+                        {subItem.icon}
                         <span>{subItem.name}</span>
                       </Link>
                     ))}
@@ -201,28 +196,26 @@ export default function Sidebar() {
               <Link
                 href={item.path}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold",
-                  "transition-all duration-300 transform hover:scale-105",
+                  "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium",
+                  "transition-all duration-200",
                   isActive(item.path)
-                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xl shadow-emerald-500/50"
-                    : "text-slate-300 hover:text-white hover:bg-gradient-to-r hover:from-blue-600 hover:to-cyan-600 hover:shadow-lg hover:shadow-blue-500/50"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-200 hover:text-white hover:bg-slate-500/40"
                 )}
                 data-testid={`link-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
               >
-                <div className="transition-transform duration-300 group-hover:rotate-12">
-                  {item.icon}
-                </div>
-                <span className="tracking-wide">{item.name}</span>
+                {item.icon}
+                <span>{item.name}</span>
               </Link>
             )}
           </div>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-slate-700/50">
-        <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-xl p-4 border border-purple-500/30">
-          <p className="text-xs text-slate-300 font-medium">Version 2.0</p>
-          <p className="text-xs text-slate-500 mt-1">All systems operational</p>
+      <div className="p-4 border-t border-slate-500/30">
+        <div className="bg-slate-500/30 rounded-lg p-3">
+          <p className="text-xs text-slate-200 font-medium">Version 2.0</p>
+          <p className="text-xs text-slate-400 mt-0.5">All systems operational</p>
         </div>
       </div>
     </div>
