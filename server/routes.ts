@@ -900,6 +900,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let successCount = 0;
       let errorCount = 0;
+      let duplicateCount = 0;
+      const duplicateInvoices: string[] = [];
 
       for (const row of data) {
         try {
@@ -916,8 +918,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const result = insertInvoiceSchema.safeParse(invoiceData);
           if (result.success) {
-            await storage.createInvoice(result.data);
-            successCount++;
+            // Check if invoice number already exists
+            const existingInvoice = await storage.getInvoiceByNumber(result.data.invoiceNumber);
+            if (existingInvoice) {
+              duplicateCount++;
+              duplicateInvoices.push(result.data.invoiceNumber);
+            } else {
+              await storage.createInvoice(result.data);
+              successCount++;
+            }
           } else {
             errorCount++;
           }
@@ -926,7 +935,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      res.json({ success: successCount, errors: errorCount });
+      res.json({ 
+        success: successCount, 
+        errors: errorCount,
+        duplicates: duplicateCount,
+        duplicateInvoices: duplicateInvoices
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
