@@ -73,90 +73,101 @@ export default function MasterCustomers() {
   });
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-[#E2E8F0]">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <h1 className="text-2xl font-bold text-[#2563EB]" data-testid="text-page-title">
-              Master Customers
-            </h1>
+      <header className="bg-white border-b border-gray-200">
+        <div className="w-full px-6 lg:px-8">
+          <div className="flex justify-between items-center h-20">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900" data-testid="text-page-title">
+                Master Customers
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">Manage your customer database</p>
+            </div>
             <Button
               onClick={() => {
                 setSelectedCustomer(undefined);
                 setIsFormOpen(true);
               }}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-5 rounded-lg"
               data-testid="button-add-customer"
             >
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="mr-2 h-5 w-5" />
               Add Customer
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-6 lg:px-8 py-8">
         {/* Category Cards */}
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">Filter by Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-5">Filter by Category</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
             <Card
-              className={`cursor-pointer transition-all border-2 ${
-                categoryFilter === "Alpha" ? "border-red-500 bg-red-50" : "border-[#E2E8F0] hover:border-red-300"
+              className={`cursor-pointer transition-all duration-200 ${
+                categoryFilter === "Alpha" 
+                  ? "border-2 border-red-500 bg-red-50 shadow-lg scale-105" 
+                  : "border border-gray-200 bg-white hover:border-red-400 hover:shadow-md hover:-translate-y-0.5"
               }`}
               onClick={() => setCategoryFilter(categoryFilter === "Alpha" ? null : "Alpha")}
               data-testid="card-category-alpha"
             >
-              <CardContent className="p-5">
+              <CardContent className="p-6">
                 <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-sm font-bold text-gray-800 mb-2">Alpha</p>
-                  <p className="text-3xl font-bold text-red-600">{alphaCount}</p>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">Alpha</p>
+                  <p className="text-4xl font-bold text-red-600">{alphaCount}</p>
                 </div>
               </CardContent>
             </Card>
 
             <Card
-              className={`cursor-pointer transition-all border-2 ${
-                categoryFilter === "Beta" ? "border-orange-500 bg-orange-50" : "border-[#E2E8F0] hover:border-orange-300"
+              className={`cursor-pointer transition-all duration-200 ${
+                categoryFilter === "Beta" 
+                  ? "border-2 border-orange-500 bg-orange-50 shadow-lg scale-105" 
+                  : "border border-gray-200 bg-white hover:border-orange-400 hover:shadow-md hover:-translate-y-0.5"
               }`}
               onClick={() => setCategoryFilter(categoryFilter === "Beta" ? null : "Beta")}
               data-testid="card-category-beta"
             >
-              <CardContent className="p-5">
+              <CardContent className="p-6">
                 <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-sm font-bold text-gray-800 mb-2">Beta</p>
-                  <p className="text-3xl font-bold text-orange-600">{betaCount}</p>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">Beta</p>
+                  <p className="text-4xl font-bold text-orange-600">{betaCount}</p>
                 </div>
               </CardContent>
             </Card>
 
             <Card
-              className={`cursor-pointer transition-all border-2 ${
-                categoryFilter === "Gamma" ? "border-blue-500 bg-blue-50" : "border-[#E2E8F0] hover:border-blue-300"
+              className={`cursor-pointer transition-all duration-200 ${
+                categoryFilter === "Gamma" 
+                  ? "border-2 border-blue-500 bg-blue-50 shadow-lg scale-105" 
+                  : "border border-gray-200 bg-white hover:border-blue-400 hover:shadow-md hover:-translate-y-0.5"
               }`}
               onClick={() => setCategoryFilter(categoryFilter === "Gamma" ? null : "Gamma")}
               data-testid="card-category-gamma"
             >
-              <CardContent className="p-5">
+              <CardContent className="p-6">
                 <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-sm font-bold text-gray-800 mb-2">Gamma</p>
-                  <p className="text-3xl font-bold text-blue-600">{gammaCount}</p>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">Gamma</p>
+                  <p className="text-4xl font-bold text-blue-600">{gammaCount}</p>
                 </div>
               </CardContent>
             </Card>
 
             <Card
-              className={`cursor-pointer transition-all border-2 ${
-                categoryFilter === "Delta" ? "border-green-500 bg-green-50" : "border-[#E2E8F0] hover:border-green-300"
+              className={`cursor-pointer transition-all duration-200 ${
+                categoryFilter === "Delta" 
+                  ? "border-2 border-green-500 bg-green-50 shadow-lg scale-105" 
+                  : "border border-gray-200 bg-white hover:border-green-400 hover:shadow-md hover:-translate-y-0.5"
               }`}
               onClick={() => setCategoryFilter(categoryFilter === "Delta" ? null : "Delta")}
               data-testid="card-category-delta"
             >
-              <CardContent className="p-5">
+              <CardContent className="p-6">
                 <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-sm font-bold text-gray-800 mb-2">Delta</p>
-                  <p className="text-3xl font-bold text-green-600">{deltaCount}</p>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">Delta</p>
+                  <p className="text-4xl font-bold text-green-600">{deltaCount}</p>
                 </div>
               </CardContent>
             </Card>
@@ -164,35 +175,39 @@ export default function MasterCustomers() {
         </div>
 
         {/* Status Cards */}
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">Filter by Status</h2>
-          <div className="grid grid-cols-2 gap-4 max-w-lg">
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-5">Filter by Status</h2>
+          <div className="grid grid-cols-2 gap-5 max-w-2xl">
             <Card
-              className={`cursor-pointer transition-all border-2 ${
-                statusFilter === "Active" ? "border-green-500 bg-green-50" : "border-[#E2E8F0] hover:border-green-300"
+              className={`cursor-pointer transition-all duration-200 ${
+                statusFilter === "Active" 
+                  ? "border-2 border-green-500 bg-green-50 shadow-lg scale-105" 
+                  : "border border-gray-200 bg-white hover:border-green-400 hover:shadow-md hover:-translate-y-0.5"
               }`}
               onClick={() => setStatusFilter(statusFilter === "Active" ? null : "Active")}
               data-testid="card-status-active"
             >
-              <CardContent className="p-5">
+              <CardContent className="p-6">
                 <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-sm font-bold text-gray-800 mb-2">Active Clients</p>
-                  <p className="text-3xl font-bold text-green-600">{activeCount}</p>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">Active Clients</p>
+                  <p className="text-4xl font-bold text-green-600">{activeCount}</p>
                 </div>
               </CardContent>
             </Card>
 
             <Card
-              className={`cursor-pointer transition-all border-2 ${
-                statusFilter === "Inactive" ? "border-gray-500 bg-gray-50" : "border-[#E2E8F0] hover:border-gray-300"
+              className={`cursor-pointer transition-all duration-200 ${
+                statusFilter === "Inactive" 
+                  ? "border-2 border-gray-500 bg-gray-50 shadow-lg scale-105" 
+                  : "border border-gray-200 bg-white hover:border-gray-400 hover:shadow-md hover:-translate-y-0.5"
               }`}
               onClick={() => setStatusFilter(statusFilter === "Inactive" ? null : "Inactive")}
               data-testid="card-status-inactive"
             >
-              <CardContent className="p-5">
+              <CardContent className="p-6">
                 <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-sm font-bold text-gray-800 mb-2">Inactive Clients</p>
-                  <p className="text-3xl font-bold text-gray-600">{inactiveCount}</p>
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">Inactive Clients</p>
+                  <p className="text-4xl font-bold text-gray-600">{inactiveCount}</p>
                 </div>
               </CardContent>
             </Card>
@@ -200,7 +215,7 @@ export default function MasterCustomers() {
         </div>
 
         {/* Customers Table */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <MasterCustomersTable
             customers={filteredCustomers}
             isLoading={isLoading}
