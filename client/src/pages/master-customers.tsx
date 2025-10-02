@@ -1,16 +1,49 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { MasterCustomer } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { MasterCustomerFormDialog } from "@/components/master-customer-form-dialog";
+import { MasterCustomersTable } from "@/components/master-customers-table";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 export default function MasterCustomers() {
+  const { toast } = useToast();
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<MasterCustomer | undefined>(undefined);
 
   const { data: customers = [], isLoading } = useQuery<MasterCustomer[]>({
     queryKey: ["/api/masters/customers"],
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/masters/customers/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete customer");
+      }
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
+      toast({
+        title: "Success",
+        description: "Customer deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Calculate counts for each category
@@ -49,6 +82,10 @@ export default function MasterCustomers() {
               Master Customers
             </h1>
             <Button
+              onClick={() => {
+                setSelectedCustomer(undefined);
+                setIsFormOpen(true);
+              }}
               className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white"
               data-testid="button-add-customer"
             >
@@ -162,21 +199,30 @@ export default function MasterCustomers() {
           </div>
         </div>
 
-        {/* Customers Table Placeholder */}
+        {/* Customers Table */}
         <div className="bg-white rounded-lg shadow">
-          <div className="p-6">
-            {isLoading ? (
-              <div className="text-center py-8 text-gray-500">Loading customers...</div>
-            ) : filteredCustomers.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">No customers found</div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                Table with {filteredCustomers.length} customer(s) will be displayed here
-              </div>
-            )}
-          </div>
+          <MasterCustomersTable
+            customers={filteredCustomers}
+            isLoading={isLoading}
+            onEdit={(customer) => {
+              setSelectedCustomer(customer);
+              setIsFormOpen(true);
+            }}
+            onDelete={(customer) => {
+              if (window.confirm(`Are you sure you want to delete ${customer.clientName}?`)) {
+                deleteMutation.mutate(customer.id);
+              }
+            }}
+          />
         </div>
       </div>
+
+      {/* Customer Form Dialog */}
+      <MasterCustomerFormDialog
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        customer={selectedCustomer}
+      />
     </div>
   );
 }
