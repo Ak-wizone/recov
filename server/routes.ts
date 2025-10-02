@@ -434,6 +434,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download sample import template for master customers
+  app.get("/api/masters/customers/template", async (_req, res) => {
+    try {
+      const sampleData = [
+        {
+          "Client Name": "ABC Corporation Pvt Ltd",
+          "Category": "Alpha",
+          "Billing Address": "123 Business Park, MG Road",
+          "City": "Mumbai",
+          "State": "Maharashtra",
+          "GST Number": "27AABCU9603R1ZM",
+          "PAN Number": "AABCU9603R",
+          "Payment Terms (Days)": "30",
+        },
+        {
+          "Client Name": "XYZ Industries Limited",
+          "Category": "Beta",
+          "Billing Address": "456 Industrial Estate, Sector 5",
+          "City": "Bangalore",
+          "State": "Karnataka",
+          "GST Number": "29AAFCD5862R1Z5",
+          "PAN Number": "AAFCD5862R",
+          "Payment Terms (Days)": "45",
+        },
+        {
+          "Client Name": "Tech Solutions India",
+          "Category": "Gamma",
+          "Billing Address": "789 IT Park, Phase 2",
+          "City": "Pune",
+          "State": "Maharashtra",
+          "GST Number": "27AACCT1234E1Z1",
+          "PAN Number": "AACCT1234E",
+          "Payment Terms (Days)": "60",
+        },
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(sampleData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Sample Data");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=master_customers_template.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Import master customers from Excel
+  app.post("/api/masters/customers/import", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      const customers = data.map((row: any) => ({
+        clientName: String(row["Client Name"] || row.clientName || row.ClientName || "").trim(),
+        category: String(row["Category"] || row.category || "").trim(),
+        billingAddress: String(row["Billing Address"] || row.billingAddress || row.BillingAddress || "").trim() || undefined,
+        city: String(row["City"] || row.city || "").trim() || undefined,
+        state: String(row["State"] || row.state || "").trim() || undefined,
+        gstNumber: String(row["GST Number"] || row.gstNumber || row.GSTNumber || row.GST || "").trim() || undefined,
+        panNumber: String(row["PAN Number"] || row.panNumber || row.PANNumber || row.PAN || "").trim() || undefined,
+        paymentTermsDays: String(row["Payment Terms (Days)"] || row["Payment Terms"] || row.paymentTermsDays || row.PaymentTerms || "").trim(),
+      }));
+
+      const results = [];
+      const errors = [];
+
+      for (let i = 0; i < customers.length; i++) {
+        const result = insertMasterCustomerSchema.safeParse(customers[i]);
+        if (result.success) {
+          const customer = await storage.createMasterCustomer(result.data);
+          results.push(customer);
+        } else {
+          errors.push({ row: i + 2, error: fromZodError(result.error).message });
+        }
+      }
+
+      res.json({ 
+        success: results.length, 
+        errors: errors.length,
+        customers: results,
+        errorDetails: errors
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Export all master customers to Excel
+  app.get("/api/masters/customers/export", async (_req, res) => {
+    try {
+      const customers = await storage.getMasterCustomers();
+      
+      const data = customers.map(customer => ({
+        "Client Name": customer.clientName,
+        "Category": customer.category,
+        "Billing Address": customer.billingAddress || "",
+        "City": customer.city || "",
+        "Pincode": customer.pincode || "",
+        "State": customer.state || "",
+        "Country": customer.country || "",
+        "GST Number": customer.gstNumber || "",
+        "PAN Number": customer.panNumber || "",
+        "MSME Number": customer.msmeNumber || "",
+        "Incorporation Cert Number": customer.incorporationCertNumber || "",
+        "Incorporation Date": customer.incorporationDate ? new Date(customer.incorporationDate).toLocaleDateString() : "",
+        "Company Type": customer.companyType || "",
+        "Primary Contact Name": customer.primaryContactName || "",
+        "Primary Mobile": customer.primaryMobile || "",
+        "Primary Email": customer.primaryEmail || "",
+        "Secondary Contact Name": customer.secondaryContactName || "",
+        "Secondary Mobile": customer.secondaryMobile || "",
+        "Secondary Email": customer.secondaryEmail || "",
+        "Payment Terms (Days)": customer.paymentTermsDays,
+        "Credit Limit": customer.creditLimit || "",
+        "Interest Applicable From": customer.interestApplicableFrom || "",
+        "Interest Rate": customer.interestRate || "",
+        "Sales Person": customer.salesPerson || "",
+        "Status": customer.isActive,
+        "Created At": customer.createdAt.toISOString(),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Master Customers");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=master_customers_export.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
