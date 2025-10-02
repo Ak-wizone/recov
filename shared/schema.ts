@@ -301,3 +301,36 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
 
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type Invoice = typeof invoices.$inferSelect;
+
+// Receipts table
+export const receipts = pgTable("receipts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  voucherNumber: text("voucher_number").notNull(),
+  invoiceNumber: text("invoice_number").notNull(),
+  customerName: text("customer_name").notNull(),
+  date: timestamp("date").notNull(),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  remarks: text("remarks"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertReceiptSchema = createInsertSchema(receipts).pick({
+  voucherNumber: true,
+  invoiceNumber: true,
+  customerName: true,
+  date: true,
+  amount: true,
+  remarks: true,
+}).extend({
+  voucherNumber: z.string().min(1, "Voucher number is required"),
+  invoiceNumber: z.string().min(1, "Invoice number is required"),
+  customerName: z.string().min(1, "Customer name is required"),
+  date: z.string().min(1, "Date is required"),
+  amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: "Amount must be a valid positive number",
+  }),
+  remarks: z.string().optional(),
+});
+
+export type InsertReceipt = z.infer<typeof insertReceiptSchema>;
+export type Receipt = typeof receipts.$inferSelect;
