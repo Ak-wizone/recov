@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Customer } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MessageCircle, Mail, DollarSign, Edit, Trash2, History, Calendar, ChevronDown, MoreVertical, ChevronLeft, ChevronRight } from "lucide-react";
+import { MessageCircle, Mail, DollarSign, Edit, Trash2, History, Calendar, ChevronDown, MoreVertical, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +29,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -67,6 +77,39 @@ export function CustomersTable({
   // Pagination states
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
+  
+  // Column chooser states
+  const [isColumnChooserOpen, setIsColumnChooserOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    const stored = localStorage.getItem('debtors-table-columns');
+    return stored ? JSON.parse(stored) : {
+      name: true,
+      amountOwed: true,
+      category: true,
+      assignedUser: true,
+      mobile: true,
+      email: true,
+      lastFollowUp: true,
+      remarks: true,
+      nextFollowUp: true,
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('debtors-table-columns', JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  const columns = [
+    { id: 'name', label: 'Customer Name' },
+    { id: 'amountOwed', label: 'Amount Owed' },
+    { id: 'category', label: 'Category' },
+    { id: 'assignedUser', label: 'Assigned User' },
+    { id: 'mobile', label: 'Mobile' },
+    { id: 'email', label: 'Email' },
+    { id: 'lastFollowUp', label: 'Last Follow Up' },
+    { id: 'remarks', label: 'Remarks' },
+    { id: 'nextFollowUp', label: 'Next Follow Up' },
+  ];
   
   // Column search states
   const [nameSearch, setNameSearch] = useState("");
@@ -627,46 +670,19 @@ export function CustomersTable({
         {/* Pagination Controls */}
         {sortedCustomers.length > 0 && (
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-700">
-                Showing {currentPage * pageSize + 1} to {Math.min((currentPage + 1) * pageSize, sortedCustomers.length)} of {sortedCustomers.length} customers
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={pageSize.toString()} onValueChange={(value) => {
-                setPageSize(Number(value));
-                setCurrentPage(0);
-              }}>
-                <SelectTrigger className="w-[100px]" data-testid="select-page-size">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5 / page</SelectItem>
-                  <SelectItem value="10">10 / page</SelectItem>
-                  <SelectItem value="20">20 / page</SelectItem>
-                  <SelectItem value="50">50 / page</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(0)}
-                  disabled={currentPage === 0}
-                  data-testid="button-first-page"
-                >
-                  First
-                </Button>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => setCurrentPage(currentPage - 1)}
                   disabled={currentPage === 0}
+                  className="h-8 w-8"
                   data-testid="button-prev-page"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="flex items-center px-3 text-sm">
+                <span className="text-sm text-gray-600 min-w-[100px] text-center">
                   Page {currentPage + 1} of {totalPages}
                 </span>
                 <Button
@@ -674,24 +690,97 @@ export function CustomersTable({
                   size="icon"
                   onClick={() => setCurrentPage(currentPage + 1)}
                   disabled={currentPage >= totalPages - 1}
+                  className="h-8 w-8"
                   data-testid="button-next-page"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(totalPages - 1)}
-                  disabled={currentPage >= totalPages - 1}
-                  data-testid="button-last-page"
-                >
-                  Last
-                </Button>
               </div>
+              <Select value={pageSize.toString()} onValueChange={(value) => {
+                setPageSize(Number(value));
+                setCurrentPage(0);
+              }}>
+                <SelectTrigger className="w-[110px] h-8" data-testid="select-page-size">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 rows</SelectItem>
+                  <SelectItem value="20">20 rows</SelectItem>
+                  <SelectItem value="50">50 rows</SelectItem>
+                  <SelectItem value="100">100 rows</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsColumnChooserOpen(true)}
+              className="flex items-center gap-2"
+              data-testid="button-column-chooser"
+            >
+              <Settings className="h-4 w-4" />
+              Columns
+            </Button>
           </div>
         )}
       </CardContent>
+
+      <Dialog open={isColumnChooserOpen} onOpenChange={setIsColumnChooserOpen}>
+        <DialogContent className="sm:max-w-[425px]" data-testid="dialog-column-chooser">
+          <DialogHeader>
+            <DialogTitle>Column Visibility</DialogTitle>
+            <DialogDescription>
+              Show or hide columns in the table
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[300px] py-4">
+            <div className="space-y-3">
+              {columns.map((column) => (
+                <div key={column.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`column-${column.id}`}
+                    checked={visibleColumns[column.id]}
+                    onCheckedChange={(checked) => {
+                      setVisibleColumns({
+                        ...visibleColumns,
+                        [column.id]: checked as boolean,
+                      });
+                    }}
+                    data-testid={`checkbox-column-${column.id}`}
+                  />
+                  <Label
+                    htmlFor={`column-${column.id}`}
+                    className="text-sm font-normal leading-none cursor-pointer"
+                  >
+                    {column.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                const defaultVisibility: Record<string, boolean> = {};
+                columns.forEach(col => {
+                  defaultVisibility[col.id] = true;
+                });
+                setVisibleColumns(defaultVisibility);
+              }}
+              data-testid="button-reset-columns"
+            >
+              Reset to Default
+            </Button>
+            <Button
+              onClick={() => setIsColumnChooserOpen(false)}
+              data-testid="button-apply-columns"
+            >
+              Apply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
