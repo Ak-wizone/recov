@@ -188,15 +188,15 @@ export function MasterCustomersTable({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="space-y-5 p-6">
+      <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+        <div className="flex items-center gap-3">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-2"
+                className="gap-2 border-gray-300 hover:bg-gray-50"
                 data-testid="button-column-visibility"
               >
                 <Eye className="h-4 w-4" />
@@ -300,7 +300,7 @@ export function MasterCustomersTable({
               variant="ghost"
               size="sm"
               onClick={clearAllFilters}
-              className="gap-2 text-gray-600 hover:text-gray-900"
+              className="gap-2 text-red-600 hover:text-red-800 hover:bg-red-50"
               data-testid="button-clear-filters"
             >
               <X className="h-4 w-4" />
@@ -308,16 +308,16 @@ export function MasterCustomersTable({
             </Button>
           )}
         </div>
-        <div className="text-sm text-gray-600" data-testid="text-customer-count">
-          Showing {filteredCustomers.length} of {customers.length} customers
+        <div className="text-sm font-medium text-gray-700 bg-gray-50 px-3 py-1.5 rounded-md" data-testid="text-customer-count">
+          {filteredCustomers.length} of {customers.length} customers
         </div>
       </div>
 
-      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-[#F1F5F9] border-b-2 border-gray-300">
+              <TableRow className="bg-gray-50 border-b border-gray-200">
                 {columnVisibility.clientName && (
                   <TableHead className="py-4 font-semibold text-gray-900 min-w-[200px]">
                     Client Name
@@ -532,15 +532,15 @@ export function MasterCustomersTable({
                 filteredCustomers.map((customer) => (
                   <TableRow
                     key={customer.id}
-                    className="border-b border-gray-200 hover:bg-[#F8FAFC] transition-colors"
+                    className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors duration-150"
                     data-testid={`row-customer-${customer.id}`}
                   >
                     {columnVisibility.clientName && (
                       <TableCell className="py-4">
-                        <div className="font-medium text-[#1E293B]" data-testid={`text-clientName-${customer.id}`}>
+                        <div className="font-semibold text-gray-900" data-testid={`text-clientName-${customer.id}`}>
                           {customer.clientName}
                         </div>
-                        <div className="text-xs text-gray-500">ID: #{customer.id.slice(0, 8)}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">ID: #{customer.id.slice(0, 8)}</div>
                       </TableCell>
                     )}
                     {columnVisibility.category && (
