@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -788,6 +788,216 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Item not found" });
       }
       res.json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ===== INVOICE ROUTES =====
+
+  // Get all invoices
+  app.get("/api/invoices", async (_req, res) => {
+    try {
+      const invoices = await storage.getInvoices();
+      res.json(invoices);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Download sample template for import (MUST BE BEFORE /:id)
+  app.get("/api/invoices/template", async (_req, res) => {
+    try {
+      const sampleData = [
+        {
+          "Invoice Number": "INV-2025-001",
+          "Customer Name": "ABC Corporation Pvt Ltd",
+          "Invoice Date": "2025-01-15",
+          "Invoice Amount": "150000",
+          "Net Profit": "45000",
+          "Status": "Unpaid",
+          "Assigned User": "Manpreet Bedi",
+          "Remarks": "Q1 Services - Payment due in 30 days"
+        },
+        {
+          "Invoice Number": "INV-2025-002",
+          "Customer Name": "XYZ Industries Limited",
+          "Invoice Date": "2025-01-20",
+          "Invoice Amount": "250000",
+          "Net Profit": "75000",
+          "Status": "Paid",
+          "Assigned User": "Bilal Ahamad",
+          "Remarks": "Hardware supply - Paid on delivery"
+        },
+        {
+          "Invoice Number": "INV-2025-003",
+          "Customer Name": "Tech Solutions India",
+          "Invoice Date": "2025-01-25",
+          "Invoice Amount": "180000",
+          "Net Profit": "50000",
+          "Status": "Partial",
+          "Assigned User": "Anjali Dhiman",
+          "Remarks": "Consulting services - Partial payment received"
+        }
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(sampleData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices Template");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=invoices_template.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Export invoices (MUST BE BEFORE /:id)
+  app.get("/api/invoices/export", async (_req, res) => {
+    try {
+      const invoices = await storage.getInvoices();
+      
+      const data = invoices.map(invoice => ({
+        "Invoice Number": invoice.invoiceNumber,
+        "Customer Name": invoice.customerName,
+        "Invoice Date": invoice.invoiceDate.toISOString().split('T')[0],
+        "Invoice Amount": invoice.invoiceAmount,
+        "Net Profit": invoice.netProfit,
+        "Status": invoice.status,
+        "Assigned User": invoice.assignedUser || "",
+        "Remarks": invoice.remarks || "",
+        "Created At": invoice.createdAt.toISOString(),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=invoices_export.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Import invoices from Excel (MUST BE BEFORE /:id)
+  app.post("/api/invoices/import", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const row of data) {
+        try {
+          const invoiceData = {
+            invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
+            customerName: String((row as any)["Customer Name"] || "").trim(),
+            invoiceDate: String((row as any)["Invoice Date"] || "").trim(),
+            invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
+            netProfit: String((row as any)["Net Profit"] || "0").trim(),
+            status: String((row as any)["Status"] || "Unpaid").trim() as "Paid" | "Unpaid" | "Partial",
+            assignedUser: String((row as any)["Assigned User"] || "").trim() || undefined,
+            remarks: String((row as any)["Remarks"] || "").trim() || undefined,
+          };
+
+          const result = insertInvoiceSchema.safeParse(invoiceData);
+          if (result.success) {
+            await storage.createInvoice(result.data);
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          errorCount++;
+        }
+      }
+
+      res.json({ success: successCount, errors: errorCount });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk delete invoices (MUST BE BEFORE /:id)
+  app.post("/api/invoices/bulk-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) {
+        return res.status(400).json({ message: "ids must be an array" });
+      }
+      const deleted = await storage.deleteInvoices(ids);
+      res.json({ deleted });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create invoice
+  app.post("/api/invoices", async (req, res) => {
+    try {
+      const result = insertInvoiceSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const invoice = await storage.createInvoice(result.data);
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update invoice
+  app.put("/api/invoices/:id", async (req, res) => {
+    try {
+      const result = insertInvoiceSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const invoice = await storage.updateInvoice(req.params.id, result.data);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete invoice
+  app.delete("/api/invoices/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteInvoice(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      res.json({ message: "Invoice deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single invoice (MUST BE AFTER specific routes)
+  app.get("/api/invoices/:id", async (req, res) => {
+    try {
+      const invoice = await storage.getInvoice(req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      res.json(invoice);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
