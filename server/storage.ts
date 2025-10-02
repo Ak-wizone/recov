@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, customers, payments, followUps, masterCustomers, masterItems, invoices } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -52,6 +52,15 @@ export interface IStorage {
   updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
   deleteInvoice(id: string): Promise<boolean>;
   deleteInvoices(ids: string[]): Promise<number>;
+  
+  // Receipt operations
+  getReceipts(): Promise<Receipt[]>;
+  getReceipt(id: string): Promise<Receipt | undefined>;
+  getReceiptByVoucherNumber(voucherNumber: string): Promise<Receipt | undefined>;
+  createReceipt(receipt: InsertReceipt): Promise<Receipt>;
+  updateReceipt(id: string, receipt: Partial<InsertReceipt>): Promise<Receipt | undefined>;
+  deleteReceipt(id: string): Promise<boolean>;
+  deleteReceipts(ids: string[]): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -424,6 +433,64 @@ export class DatabaseStorage implements IStorage {
     let count = 0;
     for (const id of ids) {
       const deleted = await this.deleteInvoice(id);
+      if (deleted) count++;
+    }
+    return count;
+  }
+
+  async getReceipts(): Promise<Receipt[]> {
+    return await db.select().from(receipts).orderBy(desc(receipts.createdAt));
+  }
+
+  async getReceipt(id: string): Promise<Receipt | undefined> {
+    const [receipt] = await db.select().from(receipts).where(eq(receipts.id, id));
+    return receipt || undefined;
+  }
+
+  async getReceiptByVoucherNumber(voucherNumber: string): Promise<Receipt | undefined> {
+    const [receipt] = await db.select().from(receipts).where(eq(receipts.voucherNumber, voucherNumber));
+    return receipt || undefined;
+  }
+
+  async createReceipt(insertReceipt: InsertReceipt): Promise<Receipt> {
+    const [receipt] = await db
+      .insert(receipts)
+      .values({
+        ...insertReceipt,
+        date: new Date(insertReceipt.date),
+      })
+      .returning();
+    return receipt;
+  }
+
+  async updateReceipt(id: string, updates: Partial<InsertReceipt>): Promise<Receipt | undefined> {
+    const updateData: any = { ...updates };
+    if (updates.date) {
+      updateData.date = new Date(updates.date);
+    }
+    
+    const [receipt] = await db
+      .update(receipts)
+      .set(updateData)
+      .where(eq(receipts.id, id))
+      .returning();
+    return receipt || undefined;
+  }
+
+  async deleteReceipt(id: string): Promise<boolean> {
+    const result = await db
+      .delete(receipts)
+      .where(eq(receipts.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async deleteReceipts(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    
+    let count = 0;
+    for (const id of ids) {
+      const deleted = await this.deleteReceipt(id);
       if (deleted) count++;
     }
     return count;
