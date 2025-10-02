@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertCompanyProfileSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -1243,6 +1243,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Receipt not found" });
       }
       res.json(receipt);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Company Profile Routes
+  
+  // Upload company logo
+  app.post("/api/company-profile/upload-logo", upload.single("logo"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Store as base64 data URL for simplicity
+      const base64Logo = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      
+      res.json({ logoUrl: base64Logo });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get company profile
+  app.get("/api/company-profile", async (_req, res) => {
+    try {
+      const profile = await storage.getCompanyProfile();
+      res.json(profile || null);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update/Create company profile
+  app.post("/api/company-profile", async (req, res) => {
+    try {
+      const result = insertCompanyProfileSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const profile = await storage.updateCompanyProfile(result.data);
+      res.json(profile);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
