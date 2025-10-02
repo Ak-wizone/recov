@@ -97,3 +97,100 @@ export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
 export type InsertFollowUp = z.infer<typeof insertFollowUpSchema>;
 export type FollowUp = typeof followUps.$inferSelect;
+
+// Master Customers table with detailed company information
+export const masterCustomers = pgTable("master_customers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  // Company & Compliance
+  clientName: text("client_name").notNull(),
+  category: text("category").notNull(), // Alpha, Beta, Gamma, Delta
+  billingAddress: text("billing_address"),
+  city: text("city"),
+  pincode: text("pincode"),
+  state: text("state"),
+  country: text("country"),
+  gstNumber: text("gst_number"),
+  panNumber: text("pan_number"),
+  msmeNumber: text("msme_number"),
+  incorporationCertNumber: text("incorporation_cert_number"),
+  incorporationDate: timestamp("incorporation_date"),
+  companyType: text("company_type"),
+  // Primary Contact
+  primaryContactName: text("primary_contact_name"),
+  primaryMobile: text("primary_mobile"),
+  primaryEmail: text("primary_email"),
+  // Secondary Contact
+  secondaryContactName: text("secondary_contact_name"),
+  secondaryMobile: text("secondary_mobile"),
+  secondaryEmail: text("secondary_email"),
+  // Payment & Credit Terms
+  paymentTermsDays: text("payment_terms_days").notNull(),
+  creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }),
+  // Interest Configuration
+  interestApplicableFrom: text("interest_applicable_from"),
+  interestRate: decimal("interest_rate", { precision: 5, scale: 2 }),
+  // Sales Person
+  salesPerson: text("sales_person"),
+  // Status
+  isActive: text("is_active").notNull().default("Active"), // Active, Inactive
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertMasterCustomerSchema = createInsertSchema(masterCustomers).pick({
+  clientName: true,
+  category: true,
+  billingAddress: true,
+  city: true,
+  pincode: true,
+  state: true,
+  country: true,
+  gstNumber: true,
+  panNumber: true,
+  msmeNumber: true,
+  incorporationCertNumber: true,
+  incorporationDate: true,
+  companyType: true,
+  primaryContactName: true,
+  primaryMobile: true,
+  primaryEmail: true,
+  secondaryContactName: true,
+  secondaryMobile: true,
+  secondaryEmail: true,
+  paymentTermsDays: true,
+  creditLimit: true,
+  interestApplicableFrom: true,
+  interestRate: true,
+  salesPerson: true,
+  isActive: true,
+}).extend({
+  clientName: z.string().min(1, "Client name is required"),
+  category: z.enum(["Alpha", "Beta", "Gamma", "Delta"], {
+    errorMap: () => ({ message: "Category must be Alpha, Beta, Gamma, or Delta" }),
+  }),
+  billingAddress: z.string().optional(),
+  city: z.string().optional(),
+  pincode: z.string().optional(),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  gstNumber: z.string().optional(),
+  panNumber: z.string().optional(),
+  msmeNumber: z.string().optional(),
+  incorporationCertNumber: z.string().optional(),
+  incorporationDate: z.string().optional(),
+  companyType: z.string().optional(),
+  primaryContactName: z.string().optional(),
+  primaryMobile: z.string().optional(),
+  primaryEmail: z.string().email("Invalid primary email").optional().or(z.literal("")),
+  secondaryContactName: z.string().optional(),
+  secondaryMobile: z.string().optional(),
+  secondaryEmail: z.string().email("Invalid secondary email").optional().or(z.literal("")),
+  paymentTermsDays: z.string().min(1, "Payment terms are required"),
+  creditLimit: z.string().optional(),
+  interestApplicableFrom: z.string().optional(),
+  interestRate: z.string().optional(),
+  salesPerson: z.string().optional(),
+  isActive: z.enum(["Active", "Inactive"]).default("Active"),
+});
+
+export type InsertMasterCustomer = z.infer<typeof insertMasterCustomerSchema>;
+export type MasterCustomer = typeof masterCustomers.$inferSelect;
