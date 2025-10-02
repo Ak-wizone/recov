@@ -87,7 +87,7 @@ const navItems: NavItem[] = [
     subItems: [
       {
         name: "Profile",
-        path: "/settings/profile",
+        path: "/company-settings",
         icon: <Building2 className="h-4 w-4" />,
       },
       {

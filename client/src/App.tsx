@@ -9,6 +9,7 @@ import MasterCustomers from "@/pages/master-customers";
 import MasterItems from "@/pages/master-items";
 import Invoices from "@/pages/invoices";
 import Receipts from "@/pages/receipts";
+import CompanySettings from "@/pages/company-settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
         <Route path="/receipts" component={Receipts} />
         <Route path="/masters/customers" component={MasterCustomers} />
         <Route path="/masters/items" component={MasterItems} />
+        <Route path="/company-settings" component={CompanySettings} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
