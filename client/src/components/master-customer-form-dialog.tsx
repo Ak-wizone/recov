@@ -1,0 +1,808 @@
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { insertMasterCustomerSchema, type InsertMasterCustomer, type MasterCustomer } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
+
+interface MasterCustomerFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  customer?: MasterCustomer;
+}
+
+export function MasterCustomerFormDialog({
+  open,
+  onOpenChange,
+  customer,
+}: MasterCustomerFormDialogProps) {
+  const { toast } = useToast();
+  const isEditMode = !!customer;
+  const [date, setDate] = useState<Date | undefined>(undefined);
+
+  const form = useForm<InsertMasterCustomer>({
+    resolver: zodResolver(insertMasterCustomerSchema),
+    defaultValues: {
+      clientName: "",
+      category: "Alpha",
+      billingAddress: "",
+      city: "",
+      pincode: "",
+      state: "",
+      country: "",
+      gstNumber: "",
+      panNumber: "",
+      msmeNumber: "",
+      incorporationCertNumber: "",
+      incorporationDate: "",
+      companyType: "",
+      primaryContactName: "",
+      primaryMobile: "",
+      primaryEmail: "",
+      secondaryContactName: "",
+      secondaryMobile: "",
+      secondaryEmail: "",
+      paymentTermsDays: "",
+      creditLimit: "",
+      interestApplicableFrom: "",
+      interestRate: "",
+      salesPerson: "",
+      isActive: "Active",
+    },
+  });
+
+  useEffect(() => {
+    if (customer && isEditMode) {
+      form.reset({
+        clientName: customer.clientName,
+        category: customer.category as "Alpha" | "Beta" | "Gamma" | "Delta",
+        billingAddress: customer.billingAddress || "",
+        city: customer.city || "",
+        pincode: customer.pincode || "",
+        state: customer.state || "",
+        country: customer.country || "",
+        gstNumber: customer.gstNumber || "",
+        panNumber: customer.panNumber || "",
+        msmeNumber: customer.msmeNumber || "",
+        incorporationCertNumber: customer.incorporationCertNumber || "",
+        incorporationDate: customer.incorporationDate ? format(new Date(customer.incorporationDate), "yyyy-MM-dd") : "",
+        companyType: customer.companyType || "",
+        primaryContactName: customer.primaryContactName || "",
+        primaryMobile: customer.primaryMobile || "",
+        primaryEmail: customer.primaryEmail || "",
+        secondaryContactName: customer.secondaryContactName || "",
+        secondaryMobile: customer.secondaryMobile || "",
+        secondaryEmail: customer.secondaryEmail || "",
+        paymentTermsDays: customer.paymentTermsDays,
+        creditLimit: customer.creditLimit || "",
+        interestApplicableFrom: customer.interestApplicableFrom || "",
+        interestRate: customer.interestRate || "",
+        salesPerson: customer.salesPerson || "",
+        isActive: customer.isActive as "Active" | "Inactive",
+      });
+      if (customer.incorporationDate) {
+        setDate(new Date(customer.incorporationDate));
+      }
+    } else if (!isEditMode) {
+      form.reset({
+        clientName: "",
+        category: "Alpha",
+        billingAddress: "",
+        city: "",
+        pincode: "",
+        state: "",
+        country: "",
+        gstNumber: "",
+        panNumber: "",
+        msmeNumber: "",
+        incorporationCertNumber: "",
+        incorporationDate: "",
+        companyType: "",
+        primaryContactName: "",
+        primaryMobile: "",
+        primaryEmail: "",
+        secondaryContactName: "",
+        secondaryMobile: "",
+        secondaryEmail: "",
+        paymentTermsDays: "",
+        creditLimit: "",
+        interestApplicableFrom: "",
+        interestRate: "",
+        salesPerson: "",
+        isActive: "Active",
+      });
+      setDate(undefined);
+    }
+  }, [customer, isEditMode, form, open]);
+
+  const createMutation = useMutation({
+    mutationFn: (data: InsertMasterCustomer) => apiRequest("POST", "/api/masters/customers", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
+      toast({
+        title: "Success",
+        description: "Master customer added successfully",
+      });
+      onOpenChange(false);
+      form.reset();
+      setDate(undefined);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (data: InsertMasterCustomer) =>
+      apiRequest("PUT", `/api/masters/customers/${customer?.id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
+      toast({
+        title: "Success",
+        description: "Master customer updated successfully",
+      });
+      onOpenChange(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: InsertMasterCustomer) => {
+    if (isEditMode) {
+      updateMutation.mutate(data);
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle data-testid="text-dialog-title">
+            {isEditMode ? "Edit Master Customer" : "Add Master Customer"}
+          </DialogTitle>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <Accordion type="multiple" defaultValue={["company", "primary", "payment"]} className="w-full">
+              {/* Company & Compliance Section */}
+              <AccordionItem value="company" data-testid="accordion-company">
+                <AccordionTrigger className="text-base font-semibold">
+                  Company & Compliance
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <FormField
+                      control={form.control}
+                      name="clientName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Client Name *</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter client name"
+                              {...field}
+                              data-testid="input-clientName"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category *</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-category">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Alpha">Alpha</SelectItem>
+                              <SelectItem value="Beta">Beta</SelectItem>
+                              <SelectItem value="Gamma">Gamma</SelectItem>
+                              <SelectItem value="Delta">Delta</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="billingAddress"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Billing Address</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter billing address"
+                              {...field}
+                              data-testid="input-billingAddress"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter city"
+                              {...field}
+                              data-testid="input-city"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="pincode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Pincode</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter pincode"
+                              {...field}
+                              data-testid="input-pincode"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter state"
+                              {...field}
+                              data-testid="input-state"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter country"
+                              {...field}
+                              data-testid="input-country"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="gstNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>GST Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter GST number"
+                              {...field}
+                              data-testid="input-gstNumber"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="panNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>PAN Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter PAN number"
+                              {...field}
+                              data-testid="input-panNumber"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="msmeNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>MSME Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter MSME number"
+                              {...field}
+                              data-testid="input-msmeNumber"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="incorporationCertNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Incorporation Certificate Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter incorporation certificate number"
+                              {...field}
+                              data-testid="input-incorporationCertNumber"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="incorporationDate"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel>Incorporation Date</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  className={cn(
+                                    "w-full pl-3 text-left font-normal",
+                                    !date && "text-muted-foreground"
+                                  )}
+                                  data-testid="button-incorporationDate"
+                                >
+                                  {date ? format(date, "PPP") : <span>Pick a date</span>}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={date}
+                                onSelect={(selectedDate) => {
+                                  setDate(selectedDate);
+                                  field.onChange(selectedDate ? format(selectedDate, "yyyy-MM-dd") : "");
+                                }}
+                                disabled={(date) =>
+                                  date > new Date() || date < new Date("1900-01-01")
+                                }
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="companyType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Company Type</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter company type"
+                              {...field}
+                              data-testid="input-companyType"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Primary Contact Details Section */}
+              <AccordionItem value="primary" data-testid="accordion-primary">
+                <AccordionTrigger className="text-base font-semibold">
+                  Primary Contact Details
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <FormField
+                      control={form.control}
+                      name="primaryContactName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter primary contact name"
+                              {...field}
+                              data-testid="input-primaryContactName"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="primaryMobile"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mobile Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="tel"
+                              placeholder="Enter primary mobile"
+                              {...field}
+                              data-testid="input-primaryMobile"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="primaryEmail"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Email Address</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="Enter primary email"
+                              {...field}
+                              data-testid="input-primaryEmail"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Secondary Contact Details Section */}
+              <AccordionItem value="secondary" data-testid="accordion-secondary">
+                <AccordionTrigger className="text-base font-semibold">
+                  Secondary Contact Details
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <FormField
+                      control={form.control}
+                      name="secondaryContactName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter secondary contact name"
+                              {...field}
+                              data-testid="input-secondaryContactName"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="secondaryMobile"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Mobile Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="tel"
+                              placeholder="Enter secondary mobile"
+                              {...field}
+                              data-testid="input-secondaryMobile"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="secondaryEmail"
+                      render={({ field }) => (
+                        <FormItem className="md:col-span-2">
+                          <FormLabel>Email Address</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="Enter secondary email"
+                              {...field}
+                              data-testid="input-secondaryEmail"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Payment & Credit Terms Section */}
+              <AccordionItem value="payment" data-testid="accordion-payment">
+                <AccordionTrigger className="text-base font-semibold">
+                  Payment & Credit Terms
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <FormField
+                      control={form.control}
+                      name="paymentTermsDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Payment Terms (Days) *</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter payment terms in days"
+                              {...field}
+                              data-testid="input-paymentTermsDays"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="creditLimit"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Credit Limit</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="Enter credit limit"
+                              {...field}
+                              data-testid="input-creditLimit"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Interest Configuration Section */}
+              <AccordionItem value="interest" data-testid="accordion-interest">
+                <AccordionTrigger className="text-base font-semibold">
+                  Interest Configuration
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <FormField
+                      control={form.control}
+                      name="interestApplicableFrom"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Interest Applicable From</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter interest applicable from"
+                              {...field}
+                              data-testid="input-interestApplicableFrom"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="interestRate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Interest Rate (%)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="Enter interest rate"
+                              {...field}
+                              data-testid="input-interestRate"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Sales Person Section */}
+              <AccordionItem value="sales" data-testid="accordion-sales">
+                <AccordionTrigger className="text-base font-semibold">
+                  Sales Person
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <FormField
+                      control={form.control}
+                      name="salesPerson"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Assigned Sales Person</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-salesPerson">
+                                <SelectValue placeholder="Select sales person" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
+                              <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
+                              <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
+                              <SelectItem value="Princi Soni">Princi Soni</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="isActive"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-base">Status</FormLabel>
+                            <div className="text-sm text-muted-foreground">
+                              {field.value === "Active" ? "Active" : "Inactive"}
+                            </div>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value === "Active"}
+                              onCheckedChange={(checked) => field.onChange(checked ? "Active" : "Inactive")}
+                              data-testid="switch-isActive"
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  onOpenChange(false);
+                  form.reset();
+                  setDate(undefined);
+                }}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-[#2563EB] hover:bg-[#1D4ED8]"
+                disabled={createMutation.isPending || updateMutation.isPending}
+                data-testid="button-submit"
+              >
+                {createMutation.isPending || updateMutation.isPending
+                  ? "Saving..."
+                  : isEditMode
+                  ? "Update Customer"
+                  : "Add Customer"}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
