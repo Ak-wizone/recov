@@ -116,7 +116,7 @@ export function DataTable<TData, TValue>({
     } else if (Object.keys(defaultColumnVisibility).length > 0) {
       setColumnVisibility(defaultColumnVisibility);
     }
-  }, [tableKey, defaultColumnVisibility]);
+  }, [tableKey]);
 
   useEffect(() => {
     const preferences = {
