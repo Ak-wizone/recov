@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, customers, payments, followUps, masterCustomers } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, customers, payments, followUps, masterCustomers, masterItems } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -35,6 +35,14 @@ export interface IStorage {
   updateMasterCustomer(id: string, customer: Partial<InsertMasterCustomer>): Promise<MasterCustomer | undefined>;
   deleteMasterCustomer(id: string): Promise<boolean>;
   deleteMasterCustomers(ids: string[]): Promise<number>;
+  
+  // Master Items operations
+  getMasterItems(): Promise<MasterItem[]>;
+  getMasterItem(id: string): Promise<MasterItem | undefined>;
+  createMasterItem(item: InsertMasterItem): Promise<MasterItem>;
+  updateMasterItem(id: string, item: Partial<InsertMasterItem>): Promise<MasterItem | undefined>;
+  deleteMasterItem(id: string): Promise<boolean>;
+  deleteMasterItems(ids: string[]): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -304,6 +312,51 @@ export class DatabaseStorage implements IStorage {
     let count = 0;
     for (const id of ids) {
       const deleted = await this.deleteMasterCustomer(id);
+      if (deleted) count++;
+    }
+    return count;
+  }
+
+  async getMasterItems(): Promise<MasterItem[]> {
+    return await db.select().from(masterItems);
+  }
+
+  async getMasterItem(id: string): Promise<MasterItem | undefined> {
+    const [item] = await db.select().from(masterItems).where(eq(masterItems.id, id));
+    return item || undefined;
+  }
+
+  async createMasterItem(insertItem: InsertMasterItem): Promise<MasterItem> {
+    const [item] = await db
+      .insert(masterItems)
+      .values(insertItem)
+      .returning();
+    return item;
+  }
+
+  async updateMasterItem(id: string, updates: Partial<InsertMasterItem>): Promise<MasterItem | undefined> {
+    const [item] = await db
+      .update(masterItems)
+      .set(updates)
+      .where(eq(masterItems.id, id))
+      .returning();
+    return item || undefined;
+  }
+
+  async deleteMasterItem(id: string): Promise<boolean> {
+    const result = await db
+      .delete(masterItems)
+      .where(eq(masterItems.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async deleteMasterItems(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    
+    let count = 0;
+    for (const id of ids) {
+      const deleted = await this.deleteMasterItem(id);
       if (deleted) count++;
     }
     return count;
