@@ -31,12 +31,12 @@ const GST_RATES = ["0%", "5%", "12%", "18%", "28%"];
 
 export default function MasterItemFormDialog({ open, onOpenChange, item }: MasterItemFormDialogProps) {
   const { toast } = useToast();
-  const [itemType, setItemType] = useState<"product" | "service">(item?.itemType || "product");
+  const [itemType, setItemType] = useState<"product" | "service">((item?.itemType as "product" | "service") || "product");
 
   const form = useForm<InsertMasterItem>({
     resolver: zodResolver(insertMasterItemSchema),
     defaultValues: {
-      itemType: item?.itemType || "product",
+      itemType: (item?.itemType as "product" | "service") || "product",
       name: item?.name || "",
       description: item?.description || "",
       unit: item?.unit || "",
@@ -47,7 +47,7 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
       openingQuantity: item?.openingQuantity || "",
       hsn: item?.hsn || "",
       sac: item?.sac || "",
-      isActive: item?.isActive || "Active",
+      isActive: (item?.isActive as "Active" | "Inactive") || "Active",
     },
   });
 
@@ -96,18 +96,18 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
     if (open && item) {
       setItemType(item.itemType as "product" | "service");
       form.reset({
-        itemType: item.itemType,
+        itemType: item.itemType as "product" | "service",
         name: item.name,
         description: item.description || "",
         unit: item.unit,
         tax: item.tax,
         sku: item.sku,
-        saleUnitPrice: item.saleUnitPrice,
+        saleUnitPrice: item.saleUnitPrice || "",
         buyUnitPrice: item.buyUnitPrice || "",
         openingQuantity: item.openingQuantity || "",
         hsn: item.hsn || "",
         sac: item.sac || "",
-        isActive: item.isActive,
+        isActive: item.isActive as "Active" | "Inactive",
       });
     } else if (open && !item) {
       setItemType("product");
