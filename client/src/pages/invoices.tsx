@@ -248,6 +248,48 @@ export default function Invoices() {
         </Button>
       </div>
 
+      {/* Month and Year Selection */}
+      <div className="flex gap-3 items-center">
+        <Select
+          value={selectedYear.toString()}
+          onValueChange={(value) => setSelectedYear(parseInt(value))}
+        >
+          <SelectTrigger className="w-[140px]" data-testid="select-year">
+            <SelectValue placeholder="Select Year" />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - i).map((year) => (
+              <SelectItem key={year} value={year.toString()}>
+                {year}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={selectedMonth.toString()}
+          onValueChange={(value) => setSelectedMonth(parseInt(value))}
+        >
+          <SelectTrigger className="w-[160px]" data-testid="select-month">
+            <SelectValue placeholder="Select Month" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">January</SelectItem>
+            <SelectItem value="1">February</SelectItem>
+            <SelectItem value="2">March</SelectItem>
+            <SelectItem value="3">April</SelectItem>
+            <SelectItem value="4">May</SelectItem>
+            <SelectItem value="5">June</SelectItem>
+            <SelectItem value="6">July</SelectItem>
+            <SelectItem value="7">August</SelectItem>
+            <SelectItem value="8">September</SelectItem>
+            <SelectItem value="9">October</SelectItem>
+            <SelectItem value="10">November</SelectItem>
+            <SelectItem value="11">December</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Filter Controls */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 flex gap-3">
