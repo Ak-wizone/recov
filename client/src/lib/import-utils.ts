@@ -31,6 +31,41 @@ export interface ImportRow {
   isActive?: string;
 }
 
+export interface ImportItemRow {
+  itemType?: string;
+  name?: string;
+  description?: string;
+  unit?: string;
+  tax?: string;
+  sku?: string;
+  saleUnitPrice?: string;
+  buyUnitPrice?: string;
+  openingQuantity?: string;
+  hsn?: string;
+  sac?: string;
+  isActive?: string;
+}
+
+export interface ImportInvoiceRow {
+  invoiceNumber?: string;
+  customerName?: string;
+  invoiceDate?: string;
+  invoiceAmount?: string;
+  netProfit?: string;
+  status?: string;
+  assignedUser?: string;
+  remarks?: string;
+}
+
+export interface ImportReceiptRow {
+  voucherNumber?: string;
+  invoiceNumber?: string;
+  customerName?: string;
+  date?: string;
+  amount?: string;
+  remarks?: string;
+}
+
 export interface ValidationError {
   row: number;
   message: string;
@@ -86,6 +121,127 @@ export async function parseImportFile(file: File): Promise<ImportRow[]> {
             if (strValue === 'false' || strValue === 'inactive' || strValue === '0') return "Inactive";
             return "Active";
           })(),
+        }));
+
+        resolve(rows);
+      } catch (error: any) {
+        reject(new Error(`Failed to parse file: ${error.message}`));
+      }
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Failed to read file"));
+    };
+
+    reader.readAsBinaryString(file);
+  });
+}
+
+export async function parseItemsFile(file: File): Promise<ImportItemRow[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        const rows: ImportItemRow[] = jsonData.map((row: any) => ({
+          itemType: String(row["Item Type"] || row.itemType || row.ItemType || "").trim(),
+          name: String(row["Name"] || row.name || row["Item Name"] || row.itemName || "").trim(),
+          description: String(row["Description"] || row.description || "").trim(),
+          unit: String(row["Unit"] || row.unit || "").trim(),
+          tax: String(row["Tax"] || row.tax || row["Tax Rate"] || row.taxRate || "").trim(),
+          sku: String(row["SKU"] || row.sku || row["SKU Code"] || row.skuCode || "").trim(),
+          saleUnitPrice: String(row["Sale Unit Price"] || row.saleUnitPrice || row.SaleUnitPrice || row["Sale Price"] || "").trim(),
+          buyUnitPrice: String(row["Buy Unit Price"] || row.buyUnitPrice || row.BuyUnitPrice || row["Buy Price"] || "").trim(),
+          openingQuantity: String(row["Opening Quantity"] || row.openingQuantity || row.OpeningQuantity || "").trim(),
+          hsn: String(row["HSN"] || row.hsn || row["HSN Code"] || row.hsnCode || "").trim(),
+          sac: String(row["SAC"] || row.sac || row["SAC Code"] || row.sacCode || "").trim(),
+          isActive: (() => {
+            const value = row["Is Active"] || row.isActive || row.status || row.Status;
+            if (value === undefined || value === null) return "Active";
+            if (typeof value === 'boolean') return value ? "Active" : "Inactive";
+            const strValue = String(value).trim().toLowerCase();
+            if (strValue === 'true' || strValue === 'active' || strValue === '1') return "Active";
+            if (strValue === 'false' || strValue === 'inactive' || strValue === '0') return "Inactive";
+            return "Active";
+          })(),
+        }));
+
+        resolve(rows);
+      } catch (error: any) {
+        reject(new Error(`Failed to parse file: ${error.message}`));
+      }
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Failed to read file"));
+    };
+
+    reader.readAsBinaryString(file);
+  });
+}
+
+export async function parseInvoicesFile(file: File): Promise<ImportInvoiceRow[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        const rows: ImportInvoiceRow[] = jsonData.map((row: any) => ({
+          invoiceNumber: String(row["Invoice Number"] || row.invoiceNumber || row.InvoiceNumber || "").trim(),
+          customerName: String(row["Customer Name"] || row.customerName || row.CustomerName || "").trim(),
+          invoiceDate: String(row["Invoice Date"] || row.invoiceDate || row.InvoiceDate || row.Date || "").trim(),
+          invoiceAmount: String(row["Invoice Amount"] || row.invoiceAmount || row.InvoiceAmount || row.Amount || "").trim(),
+          netProfit: String(row["Net Profit"] || row.netProfit || row.NetProfit || "").trim(),
+          status: String(row["Status"] || row.status || "Unpaid").trim(),
+          assignedUser: String(row["Assigned User"] || row.assignedUser || row.AssignedUser || "").trim(),
+          remarks: String(row["Remarks"] || row.remarks || row.Notes || row.notes || "").trim(),
+        }));
+
+        resolve(rows);
+      } catch (error: any) {
+        reject(new Error(`Failed to parse file: ${error.message}`));
+      }
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Failed to read file"));
+    };
+
+    reader.readAsBinaryString(file);
+  });
+}
+
+export async function parseReceiptsFile(file: File): Promise<ImportReceiptRow[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        const rows: ImportReceiptRow[] = jsonData.map((row: any) => ({
+          voucherNumber: String(row["Voucher Number"] || row.voucherNumber || row.VoucherNumber || "").trim(),
+          invoiceNumber: String(row["Invoice Number"] || row.invoiceNumber || row.InvoiceNumber || "").trim(),
+          customerName: String(row["Customer Name"] || row.customerName || row.CustomerName || "").trim(),
+          date: String(row["Date"] || row.date || row["Receipt Date"] || row.receiptDate || "").trim(),
+          amount: String(row["Amount"] || row.amount || "").trim(),
+          remarks: String(row["Remarks"] || row.remarks || row.Notes || row.notes || "").trim(),
         }));
 
         resolve(rows);
@@ -244,6 +400,230 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
   return errors;
 }
 
+export function validateItemRow(row: ImportItemRow, rowNumber: number): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (!row.itemType || row.itemType === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Item Type is required",
+      field: "itemType",
+    });
+  } else {
+    const validTypes = ["product", "service"];
+    if (!validTypes.includes(row.itemType.toLowerCase())) {
+      errors.push({
+        row: rowNumber,
+        message: "Item Type must be 'product' or 'service'",
+        field: "itemType",
+      });
+    }
+  }
+
+  if (!row.name || row.name === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Name is required",
+      field: "name",
+    });
+  }
+
+  if (!row.unit || row.unit === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Unit is required",
+      field: "unit",
+    });
+  }
+
+  if (!row.tax || row.tax === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Tax is required",
+      field: "tax",
+    });
+  }
+
+  if (!row.sku || row.sku === "") {
+    errors.push({
+      row: rowNumber,
+      message: "SKU is required",
+      field: "sku",
+    });
+  }
+
+  if (!row.saleUnitPrice || row.saleUnitPrice === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Sale Unit Price is required",
+      field: "saleUnitPrice",
+    });
+  } else {
+    const price = parseFloat(row.saleUnitPrice);
+    if (isNaN(price) || price < 0) {
+      errors.push({
+        row: rowNumber,
+        message: "Must be a valid non-negative number",
+        field: "saleUnitPrice",
+      });
+    }
+  }
+
+  if (row.buyUnitPrice && row.buyUnitPrice !== "") {
+    const price = parseFloat(row.buyUnitPrice);
+    if (isNaN(price) || price < 0) {
+      errors.push({
+        row: rowNumber,
+        message: "Must be a valid non-negative number",
+        field: "buyUnitPrice",
+      });
+    }
+  }
+
+  if (row.openingQuantity && row.openingQuantity !== "") {
+    const qty = parseFloat(row.openingQuantity);
+    if (isNaN(qty) || qty < 0) {
+      errors.push({
+        row: rowNumber,
+        message: "Must be a valid non-negative number",
+        field: "openingQuantity",
+      });
+    }
+  }
+
+  return errors;
+}
+
+export function validateInvoiceRow(row: ImportInvoiceRow, rowNumber: number): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (!row.invoiceNumber || row.invoiceNumber === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Invoice Number is required",
+      field: "invoiceNumber",
+    });
+  }
+
+  if (!row.customerName || row.customerName === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Customer Name is required",
+      field: "customerName",
+    });
+  }
+
+  if (!row.invoiceDate || row.invoiceDate === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Invoice Date is required",
+      field: "invoiceDate",
+    });
+  }
+
+  if (!row.invoiceAmount || row.invoiceAmount === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Invoice Amount is required",
+      field: "invoiceAmount",
+    });
+  } else {
+    const amount = parseFloat(row.invoiceAmount);
+    if (isNaN(amount) || amount < 0) {
+      errors.push({
+        row: rowNumber,
+        message: "Must be a valid non-negative number",
+        field: "invoiceAmount",
+      });
+    }
+  }
+
+  if (!row.netProfit || row.netProfit === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Net Profit is required",
+      field: "netProfit",
+    });
+  } else {
+    const profit = parseFloat(row.netProfit);
+    if (isNaN(profit)) {
+      errors.push({
+        row: rowNumber,
+        message: "Must be a valid number",
+        field: "netProfit",
+      });
+    }
+  }
+
+  if (row.status && row.status !== "") {
+    const validStatuses = ["Paid", "Unpaid", "Partial"];
+    if (!validStatuses.includes(row.status)) {
+      errors.push({
+        row: rowNumber,
+        message: "Status must be 'Paid', 'Unpaid', or 'Partial'",
+        field: "status",
+      });
+    }
+  }
+
+  return errors;
+}
+
+export function validateReceiptRow(row: ImportReceiptRow, rowNumber: number): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (!row.voucherNumber || row.voucherNumber === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Voucher Number is required",
+      field: "voucherNumber",
+    });
+  }
+
+  if (!row.invoiceNumber || row.invoiceNumber === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Invoice Number is required",
+      field: "invoiceNumber",
+    });
+  }
+
+  if (!row.customerName || row.customerName === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Customer Name is required",
+      field: "customerName",
+    });
+  }
+
+  if (!row.date || row.date === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Date is required",
+      field: "date",
+    });
+  }
+
+  if (!row.amount || row.amount === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Amount is required",
+      field: "amount",
+    });
+  } else {
+    const amount = parseFloat(row.amount);
+    if (isNaN(amount) || amount <= 0) {
+      errors.push({
+        row: rowNumber,
+        message: "Must be a valid positive number",
+        field: "amount",
+      });
+    }
+  }
+
+  return errors;
+}
+
 export function generateSampleTemplate(): any[] {
   return [
     {
@@ -335,6 +715,117 @@ export function generateSampleTemplate(): any[] {
       "Interest Applicable From": "Immediate",
       "Sales Person": "Anjali Dhiman",
       "Status": "Active",
+    },
+  ];
+}
+
+export function generateItemsTemplate(): any[] {
+  return [
+    {
+      "Item Type": "product",
+      "Name": "Laptop - Dell Inspiron 15",
+      "Description": "15.6 inch laptop with Intel i5 processor, 8GB RAM, 512GB SSD",
+      "Unit": "PCS",
+      "Tax": "18%",
+      "SKU": "LAP-DELL-INS-15",
+      "Sale Unit Price": "45000",
+      "Buy Unit Price": "38000",
+      "Opening Quantity": "10",
+      "HSN": "8471",
+      "SAC": "",
+      "Is Active": "Active",
+    },
+    {
+      "Item Type": "service",
+      "Name": "IT Consulting - Hourly",
+      "Description": "Professional IT consulting services billed hourly",
+      "Unit": "Hour",
+      "Tax": "18%",
+      "SKU": "SRV-IT-CONS-HR",
+      "Sale Unit Price": "1500",
+      "Buy Unit Price": "",
+      "Opening Quantity": "",
+      "HSN": "",
+      "SAC": "998314",
+      "Is Active": "Active",
+    },
+    {
+      "Item Type": "product",
+      "Name": "Wireless Mouse",
+      "Description": "Ergonomic wireless mouse with USB receiver",
+      "Unit": "PCS",
+      "Tax": "12%",
+      "SKU": "ACC-MOUSE-WL",
+      "Sale Unit Price": "650",
+      "Buy Unit Price": "450",
+      "Opening Quantity": "50",
+      "HSN": "8471",
+      "SAC": "",
+      "Is Active": "Active",
+    },
+  ];
+}
+
+export function generateInvoicesTemplate(): any[] {
+  return [
+    {
+      "Invoice Number": "INV-2025-001",
+      "Customer Name": "ABC Corporation Pvt Ltd",
+      "Invoice Date": "2025-01-15",
+      "Invoice Amount": "125000",
+      "Net Profit": "25000",
+      "Status": "Unpaid",
+      "Assigned User": "Manpreet Bedi",
+      "Remarks": "Q1 software licensing fees",
+    },
+    {
+      "Invoice Number": "INV-2025-002",
+      "Customer Name": "XYZ Industries Limited",
+      "Invoice Date": "2025-01-20",
+      "Invoice Amount": "75000",
+      "Net Profit": "15000",
+      "Status": "Paid",
+      "Assigned User": "Bilal Ahamad",
+      "Remarks": "Hardware supplies - January batch",
+    },
+    {
+      "Invoice Number": "INV-2025-003",
+      "Customer Name": "Tech Solutions India",
+      "Invoice Date": "2025-02-01",
+      "Invoice Amount": "200000",
+      "Net Profit": "50000",
+      "Status": "Partial",
+      "Assigned User": "Anjali Dhiman",
+      "Remarks": "Annual maintenance contract - paid 50%",
+    },
+  ];
+}
+
+export function generateReceiptsTemplate(): any[] {
+  return [
+    {
+      "Voucher Number": "RCP-2025-001",
+      "Invoice Number": "INV-2025-002",
+      "Customer Name": "XYZ Industries Limited",
+      "Date": "2025-01-25",
+      "Amount": "75000",
+      "Remarks": "Full payment received via NEFT",
+    },
+    {
+      "Voucher Number": "RCP-2025-002",
+      "Invoice Number": "INV-2025-003",
+      "Customer Name": "Tech Solutions India",
+      "Date": "2025-02-05",
+      "Amount": "100000",
+      "Remarks": "Partial payment - 50% advance",
+    },
+    {
+      "Voucher Number": "RCP-2025-003",
+      "Invoice Number": "INV-2025-001",
+      "Customer Name": "ABC Corporation Pvt Ltd",
+      "Date": "2025-02-10",
+      "Amount": "125000",
+      "Remarks": "Full payment via cheque",
     },
   ];
 }
