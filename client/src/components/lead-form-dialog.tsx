@@ -78,6 +78,7 @@ export function LeadFormDialog({
       industry: "",
       priority: undefined,
       assignedUser: undefined,
+      estimatedDealAmount: "",
       customerId: undefined,
       dateCreated: new Date().toISOString().split("T")[0],
       lastFollowUp: undefined,
@@ -102,6 +103,7 @@ export function LeadFormDialog({
         industry: lead.industry || "",
         priority: lead.priority as any,
         assignedUser: lead.assignedUser as any,
+        estimatedDealAmount: lead.estimatedDealAmount ? lead.estimatedDealAmount.toString() : "",
         customerId: lead.customerId || undefined,
         dateCreated: lead.dateCreated
           ? new Date(lead.dateCreated).toISOString().split("T")[0]
@@ -129,6 +131,7 @@ export function LeadFormDialog({
         industry: "",
         priority: undefined,
         assignedUser: undefined,
+        estimatedDealAmount: "",
         customerId: undefined,
         dateCreated: new Date().toISOString().split("T")[0],
         lastFollowUp: undefined,
@@ -602,54 +605,22 @@ export function LeadFormDialog({
 
                 <FormField
                   control={form.control}
-                  name="dateCreated"
+                  name="estimatedDealAmount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Date Created</FormLabel>
+                      <FormLabel>Estimated Deal Amount</FormLabel>
                       <FormControl>
-                        <Input
-                          type="date"
-                          {...field}
-                          data-testid="input-date-created"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="lastFollowUp"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last Follow Up</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          {...field}
-                          value={field.value || ""}
-                          data-testid="input-last-follow-up"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="nextFollowUp"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Next Follow Up</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="date"
-                          {...field}
-                          value={field.value || ""}
-                          data-testid="input-next-follow-up"
-                        />
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">₹</span>
+                          <Input
+                            type="number"
+                            placeholder="0.00"
+                            {...field}
+                            className="pl-8"
+                            step="0.01"
+                            data-testid="input-estimated-deal-amount"
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -352,6 +352,7 @@ export const leads = pgTable("leads", {
   industry: text("industry"),
   priority: text("priority"), // High, Medium, Low
   assignedUser: text("assigned_user"),
+  estimatedDealAmount: decimal("estimated_deal_amount", { precision: 15, scale: 2 }),
   customerId: varchar("customer_id").references(() => masterCustomers.id),
   dateCreated: timestamp("date_created").defaultNow().notNull(),
   lastFollowUp: timestamp("last_follow_up"),
@@ -374,6 +375,7 @@ export const insertLeadSchema = createInsertSchema(leads).pick({
   industry: true,
   priority: true,
   assignedUser: true,
+  estimatedDealAmount: true,
   customerId: true,
   dateCreated: true,
   lastFollowUp: true,
@@ -400,6 +402,9 @@ export const insertLeadSchema = createInsertSchema(leads).pick({
   }).optional(),
   assignedUser: z.enum(["Manpreet Bedi", "Bilal Ahamad", "Anjali Dhiman", "Princi Soni"], {
     errorMap: () => ({ message: "Invalid assigned user" }),
+  }).optional(),
+  estimatedDealAmount: z.string().refine((val) => val === "" || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0), {
+    message: "Estimated deal amount must be a valid positive number",
   }).optional(),
   customerId: z.string().optional(),
   dateCreated: z.string().optional(),
