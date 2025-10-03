@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -98,6 +98,20 @@ export interface IStorage {
   // Quotation Settings operations
   getQuotationSettings(): Promise<QuotationSettings | undefined>;
   updateQuotationSettings(termsAndConditions: string): Promise<QuotationSettings>;
+  
+  // Proforma Invoice operations
+  getProformaInvoices(): Promise<ProformaInvoice[]>;
+  getProformaInvoice(id: string): Promise<ProformaInvoice | undefined>;
+  createProformaInvoice(invoice: InsertProformaInvoice): Promise<ProformaInvoice>;
+  updateProformaInvoice(id: string, invoice: Partial<InsertProformaInvoice>): Promise<ProformaInvoice | undefined>;
+  deleteProformaInvoice(id: string): Promise<boolean>;
+  deleteProformaInvoices(ids: string[]): Promise<number>;
+  getNextProformaInvoiceNumber(): Promise<string>;
+  
+  // Proforma Invoice Items operations
+  getProformaInvoiceItems(invoiceId: string): Promise<ProformaInvoiceItem[]>;
+  createProformaInvoiceItem(item: InsertProformaInvoiceItem): Promise<ProformaInvoiceItem>;
+  deleteProformaInvoiceItem(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -811,6 +825,96 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  async getProformaInvoices(): Promise<ProformaInvoice[]> {
+    return await db.select().from(proformaInvoices).orderBy(desc(proformaInvoices.createdAt));
+  }
+
+  async getProformaInvoice(id: string): Promise<ProformaInvoice | undefined> {
+    const [invoice] = await db.select().from(proformaInvoices).where(eq(proformaInvoices.id, id));
+    return invoice || undefined;
+  }
+
+  async createProformaInvoice(insertInvoice: InsertProformaInvoice): Promise<ProformaInvoice> {
+    const invoiceData: any = { ...insertInvoice };
+    if (insertInvoice.invoiceDate) {
+      invoiceData.invoiceDate = new Date(insertInvoice.invoiceDate);
+    }
+    if (insertInvoice.dueDate) {
+      invoiceData.dueDate = new Date(insertInvoice.dueDate);
+    }
+    const [invoice] = await db
+      .insert(proformaInvoices)
+      .values(invoiceData)
+      .returning();
+    return invoice;
+  }
+
+  async updateProformaInvoice(id: string, updates: Partial<InsertProformaInvoice>): Promise<ProformaInvoice | undefined> {
+    const updateData: any = { ...updates };
+    if (updates.invoiceDate) {
+      updateData.invoiceDate = new Date(updates.invoiceDate);
+    }
+    if (updates.dueDate) {
+      updateData.dueDate = new Date(updates.dueDate);
+    }
+    const [invoice] = await db
+      .update(proformaInvoices)
+      .set(updateData)
+      .where(eq(proformaInvoices.id, id))
+      .returning();
+    return invoice || undefined;
+  }
+
+  async deleteProformaInvoice(id: string): Promise<boolean> {
+    const result = await db
+      .delete(proformaInvoices)
+      .where(eq(proformaInvoices.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async deleteProformaInvoices(ids: string[]): Promise<number> {
+    const deletePromises = ids.map(id => 
+      db.delete(proformaInvoices).where(eq(proformaInvoices.id, id))
+    );
+    const results = await Promise.all(deletePromises);
+    return results.length;
+  }
+
+  async getNextProformaInvoiceNumber(): Promise<string> {
+    const currentYear = new Date().getFullYear();
+    const allInvoices = await db.select().from(proformaInvoices);
+    const thisYearInvoices = allInvoices.filter(inv => 
+      inv.invoiceNumber.startsWith(`PI-${currentYear}-`)
+    );
+    const nextNumber = thisYearInvoices.length + 1;
+    return `PI-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
+  }
+
+  async getProformaInvoiceItems(invoiceId: string): Promise<ProformaInvoiceItem[]> {
+    return await db
+      .select()
+      .from(proformaInvoiceItems)
+      .where(eq(proformaInvoiceItems.invoiceId, invoiceId))
+      .orderBy(proformaInvoiceItems.displayOrder);
+  }
+
+  async createProformaInvoiceItem(insertItem: InsertProformaInvoiceItem): Promise<ProformaInvoiceItem> {
+    const [item] = await db
+      .insert(proformaInvoiceItems)
+      .values(insertItem as any)
+      .returning();
+    return item;
+  }
+
+  async deleteProformaInvoiceItem(id: string): Promise<boolean> {
+    const result = await db
+      .delete(proformaInvoiceItems)
+      .where(eq(proformaInvoiceItems.id, id))
+      .returning();
+    return result.length > 0;
   }
 }
 
