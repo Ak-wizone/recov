@@ -100,7 +100,10 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
   });
 
   const handlePrint = () => {
-    window.print();
+    // Wait for content to render before printing
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
   const handleEmail = () => {
@@ -137,10 +140,21 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
               left: 0;
               top: 0;
               width: 100%;
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             }
             .no-print {
               display: none !important;
             }
+            @page {
+              margin: 1cm;
+              size: A4;
+            }
+          }
+          
+          .print-content {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
         `}</style>
 
