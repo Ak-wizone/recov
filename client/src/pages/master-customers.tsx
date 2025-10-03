@@ -5,7 +5,7 @@ import { MasterCustomer } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Upload, Download, Pencil, Trash2, Users, CheckCircle2, AlertCircle, Award } from "lucide-react";
+import { Plus, Upload, Download, Pencil, Trash2, Users, CheckCircle2, AlertCircle, Award, CheckCircle, XCircle } from "lucide-react";
 import { MasterCustomerFormDialog } from "@/components/master-customer-form-dialog";
 import { DataTable } from "@/components/ui/data-table";
 import { ImportModal } from "@/components/import-modal";
@@ -527,7 +527,7 @@ export default function MasterCustomers() {
 
       <div className="w-full px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <Card
               className={`cursor-pointer transition-all border-0 ${
                 categoryFilter === "Alpha" 
@@ -615,44 +615,47 @@ export default function MasterCustomers() {
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </div>
 
-        <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '200ms' }}>
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Filter by Status</h2>
-          <div className="grid grid-cols-2 gap-5 max-w-2xl">
             <Card
-              className={`cursor-pointer transition-all duration-300 transform ${
+              className={`cursor-pointer transition-all border-0 ${
                 statusFilter === "Active" 
-                  ? "border-2 border-emerald-500 bg-gradient-to-br from-emerald-50 to-green-100 shadow-2xl scale-105 -translate-y-1" 
-                  : "border border-gray-200 bg-white hover:border-emerald-400 hover:shadow-xl hover:-translate-y-2 hover:scale-105"
-              } animate-in zoom-in duration-500`}
-              style={{ animationDelay: '600ms' }}
+                  ? "bg-purple-100" 
+                  : "bg-purple-50 hover:bg-purple-100"
+              }`}
               onClick={() => setStatusFilter(statusFilter === "Active" ? null : "Active")}
               data-testid="card-status-active"
             >
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">Active Clients</p>
-                  <p className="text-5xl font-extrabold text-emerald-600 animate-pulse">{activeCount}</p>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="bg-purple-500 p-3 rounded-xl flex-shrink-0">
+                    <CheckCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-1">Active</p>
+                    <p className="text-3xl font-bold text-purple-600">{activeCount}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card
-              className={`cursor-pointer transition-all duration-300 transform ${
+              className={`cursor-pointer transition-all border-0 ${
                 statusFilter === "Inactive" 
-                  ? "border-2 border-gray-500 bg-gradient-to-br from-gray-50 to-slate-100 shadow-2xl scale-105 -translate-y-1" 
-                  : "border border-gray-200 bg-white hover:border-gray-400 hover:shadow-xl hover:-translate-y-2 hover:scale-105"
-              } animate-in zoom-in duration-500`}
-              style={{ animationDelay: '700ms' }}
+                  ? "bg-gray-100" 
+                  : "bg-gray-50 hover:bg-gray-100"
+              }`}
               onClick={() => setStatusFilter(statusFilter === "Inactive" ? null : "Inactive")}
               data-testid="card-status-inactive"
             >
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">Inactive Clients</p>
-                  <p className="text-5xl font-extrabold text-gray-600 animate-pulse">{inactiveCount}</p>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="bg-gray-500 p-3 rounded-xl flex-shrink-0">
+                    <XCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Inactive</p>
+                    <p className="text-3xl font-bold text-gray-600">{inactiveCount}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
