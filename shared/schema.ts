@@ -666,3 +666,102 @@ export const insertQuotationSettingsSchema = createInsertSchema(quotationSetting
 
 export type InsertQuotationSettings = z.infer<typeof insertQuotationSettingsSchema>;
 export type QuotationSettings = typeof quotationSettings.$inferSelect;
+
+// Proforma Invoices table
+export const proformaInvoices = pgTable("proforma_invoices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceNumber: text("invoice_number").notNull(),
+  invoiceDate: timestamp("invoice_date").notNull(),
+  dueDate: timestamp("due_date").notNull(),
+  quotationId: varchar("quotation_id").references(() => quotations.id, { onDelete: "restrict" }),
+  leadId: varchar("lead_id").notNull().references(() => leads.id, { onDelete: "restrict" }),
+  leadName: text("lead_name").notNull(),
+  leadEmail: text("lead_email").notNull(),
+  leadMobile: text("lead_mobile").notNull(),
+  subtotal: decimal("subtotal", { precision: 15, scale: 2 }).notNull().default("0"),
+  totalDiscount: decimal("total_discount", { precision: 15, scale: 2 }).notNull().default("0"),
+  totalTax: decimal("total_tax", { precision: 15, scale: 2 }).notNull().default("0"),
+  grandTotal: decimal("grand_total", { precision: 15, scale: 2 }).notNull().default("0"),
+  termsAndConditions: text("terms_and_conditions"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertProformaInvoiceSchema = createInsertSchema(proformaInvoices).pick({
+  invoiceNumber: true,
+  invoiceDate: true,
+  dueDate: true,
+  quotationId: true,
+  leadId: true,
+  leadName: true,
+  leadEmail: true,
+  leadMobile: true,
+  subtotal: true,
+  totalDiscount: true,
+  totalTax: true,
+  grandTotal: true,
+  termsAndConditions: true,
+}).extend({
+  invoiceNumber: z.string().min(1, "Invoice number is required"),
+  invoiceDate: z.string().min(1, "Invoice date is required"),
+  dueDate: z.string().min(1, "Due date is required"),
+  quotationId: z.string().optional(),
+  leadId: z.string().min(1, "Lead is required"),
+  leadName: z.string().min(1, "Lead name is required"),
+  leadEmail: z.string().email("Invalid email address"),
+  leadMobile: z.string().min(1, "Mobile is required"),
+  subtotal: z.string().optional(),
+  totalDiscount: z.string().optional(),
+  totalTax: z.string().optional(),
+  grandTotal: z.string().optional(),
+  termsAndConditions: z.string().optional(),
+});
+
+export type InsertProformaInvoice = z.infer<typeof insertProformaInvoiceSchema>;
+export type ProformaInvoice = typeof proformaInvoices.$inferSelect;
+
+// Proforma Invoice Items table
+export const proformaInvoiceItems = pgTable("proforma_invoice_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  invoiceId: varchar("invoice_id").notNull().references(() => proformaInvoices.id, { onDelete: "cascade" }),
+  itemId: varchar("item_id").references(() => masterItems.id),
+  itemName: text("item_name").notNull(),
+  quantity: decimal("quantity", { precision: 15, scale: 2 }).notNull(),
+  unit: text("unit").notNull(),
+  rate: decimal("rate", { precision: 15, scale: 2 }).notNull(),
+  discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }).notNull().default("0"),
+  taxPercent: decimal("tax_percent", { precision: 5, scale: 2 }).notNull().default("0"),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  displayOrder: text("display_order").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertProformaInvoiceItemSchema = createInsertSchema(proformaInvoiceItems).pick({
+  invoiceId: true,
+  itemId: true,
+  itemName: true,
+  quantity: true,
+  unit: true,
+  rate: true,
+  discountPercent: true,
+  taxPercent: true,
+  amount: true,
+  displayOrder: true,
+}).extend({
+  invoiceId: z.string().min(1, "Invoice ID is required"),
+  itemId: z.string().optional(),
+  itemName: z.string().min(1, "Item name is required"),
+  quantity: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: "Quantity must be a valid positive number",
+  }),
+  unit: z.string().min(1, "Unit is required"),
+  rate: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+    message: "Rate must be a valid number",
+  }),
+  discountPercent: z.string().optional(),
+  taxPercent: z.string().optional(),
+  amount: z.string().optional(),
+  displayOrder: z.string().optional(),
+});
+
+export type InsertProformaInvoiceItem = z.infer<typeof insertProformaInvoiceItemSchema>;
+export type ProformaInvoiceItem = typeof proformaInvoiceItems.$inferSelect;
