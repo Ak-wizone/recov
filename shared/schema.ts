@@ -335,6 +335,81 @@ export const insertReceiptSchema = createInsertSchema(receipts).pick({
 export type InsertReceipt = z.infer<typeof insertReceiptSchema>;
 export type Receipt = typeof receipts.$inferSelect;
 
+// Leads table
+export const leads = pgTable("leads", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: text("company_name").notNull(),
+  contactPerson: text("contact_person").notNull(),
+  mobile: text("mobile").notNull(),
+  email: text("email").notNull(),
+  leadSource: text("lead_source").notNull(), // Existing Client, Instagram, Facebook, Website, Indiamart, Justdial, Reference
+  leadStatus: text("lead_status").notNull().default("New Lead"), // New Lead, In Progress, Pending From Client, Pending From Wizone, Quotation Sent, Converted, Delivered
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  pincode: text("pincode"),
+  remarks: text("remarks"),
+  industry: text("industry"),
+  priority: text("priority"), // High, Medium, Low
+  assignedUser: text("assigned_user"),
+  customerId: varchar("customer_id").references(() => masterCustomers.id),
+  dateCreated: timestamp("date_created").defaultNow().notNull(),
+  lastFollowUp: timestamp("last_follow_up"),
+  nextFollowUp: timestamp("next_follow_up"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertLeadSchema = createInsertSchema(leads).pick({
+  companyName: true,
+  contactPerson: true,
+  mobile: true,
+  email: true,
+  leadSource: true,
+  leadStatus: true,
+  address: true,
+  city: true,
+  state: true,
+  pincode: true,
+  remarks: true,
+  industry: true,
+  priority: true,
+  assignedUser: true,
+  customerId: true,
+  dateCreated: true,
+  lastFollowUp: true,
+  nextFollowUp: true,
+}).extend({
+  companyName: z.string().min(1, "Company name is required"),
+  contactPerson: z.string().min(1, "Contact person is required"),
+  mobile: z.string().min(1, "Mobile number is required"),
+  email: z.string().email("Invalid email address"),
+  leadSource: z.enum(["Existing Client", "Instagram", "Facebook", "Website", "Indiamart", "Justdial", "Reference"], {
+    errorMap: () => ({ message: "Invalid lead source" }),
+  }),
+  leadStatus: z.enum(["New Lead", "In Progress", "Pending From Client", "Pending From Wizone", "Quotation Sent", "Converted", "Delivered"], {
+    errorMap: () => ({ message: "Invalid lead status" }),
+  }).default("New Lead"),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pincode: z.string().optional(),
+  remarks: z.string().optional(),
+  industry: z.string().optional(),
+  priority: z.enum(["High", "Medium", "Low"], {
+    errorMap: () => ({ message: "Priority must be High, Medium, or Low" }),
+  }).optional(),
+  assignedUser: z.enum(["Manpreet Bedi", "Bilal Ahamad", "Anjali Dhiman", "Princi Soni"], {
+    errorMap: () => ({ message: "Invalid assigned user" }),
+  }).optional(),
+  customerId: z.string().optional(),
+  dateCreated: z.string().optional(),
+  lastFollowUp: z.string().optional(),
+  nextFollowUp: z.string().optional(),
+});
+
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+export type Lead = typeof leads.$inferSelect;
+
 // Company Profile table
 export const companyProfile = pgTable("company_profile", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
