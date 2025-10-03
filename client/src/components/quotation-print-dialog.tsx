@@ -1,11 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-import { Quotation } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Quotation, ProformaInvoice } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Printer, Mail, X, Download } from "lucide-react";
+import { Printer, Mail, X, Download, FileText } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import html2pdf from "html2pdf.js";
+import { useState } from "react";
+import { ProformaInvoicePrintDialog } from "./proforma-invoice-print-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface QuotationItem {
   id: string;
@@ -90,6 +93,10 @@ function numberToWords(num: number): string {
 }
 
 export function QuotationPrintDialog({ open, onOpenChange, quotation }: QuotationPrintDialogProps) {
+  const [piDialogOpen, setPiDialogOpen] = useState(false);
+  const [generatedPI, setGeneratedPI] = useState<ProformaInvoice | null>(null);
+  const { toast } = useToast();
+
   const { data: items = [], isLoading: itemsLoading } = useQuery<QuotationItem[]>({
     queryKey: [`/api/quotations/${quotation?.id}/items`],
     enabled: !!quotation?.id && open,
@@ -99,6 +106,38 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
     queryKey: ["/api/company-profile"],
     enabled: open,
   });
+
+  const generatePIMutation = useMutation({
+    mutationFn: async (quotationId: string) => {
+      const response = await fetch(`/api/quotations/${quotationId}/generate-pi`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error("Failed to generate proforma invoice");
+      return response.json() as Promise<ProformaInvoice>;
+    },
+    onSuccess: (data: ProformaInvoice) => {
+      setGeneratedPI(data);
+      setPiDialogOpen(true);
+      toast({
+        title: "Proforma Invoice Generated",
+        description: `PI ${data.invoiceNumber} has been created successfully.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate proforma invoice",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleGeneratePI = () => {
+    if (quotation) {
+      generatePIMutation.mutate(quotation.id);
+    }
+  };
 
   const handlePrint = () => {
     // Wait for content to render before printing
@@ -187,10 +226,21 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
           <h3 className="font-semibold">Print Preview</h3>
           <div className="flex gap-2">
             <Button 
-              onClick={handlePrint} 
+              onClick={handleGeneratePI} 
               size="sm" 
               className="gap-2" 
               style={{ backgroundColor: profile?.brandColor || "#ea580c" }}
+              data-testid="button-generate-pi"
+              disabled={generatePIMutation.isPending}
+            >
+              <FileText className="h-4 w-4" />
+              {generatePIMutation.isPending ? "Generating..." : "Generate PI"}
+            </Button>
+            <Button 
+              onClick={handlePrint} 
+              size="sm" 
+              variant="outline"
+              className="gap-2" 
               data-testid="button-print-modal"
             >
               <Printer className="h-4 w-4" />
@@ -404,6 +454,15 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
           )}
         </div>
       </DialogContent>
+
+      {/* Proforma Invoice Print Dialog */}
+      {generatedPI && (
+        <ProformaInvoicePrintDialog
+          open={piDialogOpen}
+          onOpenChange={setPiDialogOpen}
+          invoice={generatedPI}
+        />
+      )}
     </Dialog>
   );
 }
