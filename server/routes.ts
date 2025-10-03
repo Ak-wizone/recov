@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertCompanyProfileSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -1514,6 +1514,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Lead not found" });
       }
       res.json(lead);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Lead Follow-up Routes
+  
+  // Get follow-ups for a specific lead
+  app.get("/api/leads/:id/followups", async (req, res) => {
+    try {
+      const followUps = await storage.getLeadFollowUpsByLead(req.params.id);
+      res.json(followUps);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create a new lead follow-up
+  app.post("/api/leads/followups", async (req, res) => {
+    try {
+      const result = insertLeadFollowUpSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const followUp = await storage.createLeadFollowUp(result.data);
+      res.json(followUp);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update a lead follow-up
+  app.put("/api/leads/followups/:id", async (req, res) => {
+    try {
+      const result = insertLeadFollowUpSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const followUp = await storage.updateLeadFollowUp(req.params.id, result.data);
+      if (!followUp) {
+        return res.status(404).json({ message: "Follow-up not found" });
+      }
+      res.json(followUp);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete a lead follow-up
+  app.delete("/api/leads/followups/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteLeadFollowUp(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Follow-up not found" });
+      }
+      res.json({ message: "Follow-up deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

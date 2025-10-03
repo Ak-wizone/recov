@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type CompanyProfile, type InsertCompanyProfile, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, companyProfile } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -69,6 +69,13 @@ export interface IStorage {
   updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined>;
   deleteLead(id: string): Promise<boolean>;
   deleteLeads(ids: string[]): Promise<number>;
+  
+  // Lead Follow-up operations
+  getLeadFollowUpsByLead(leadId: string): Promise<LeadFollowUp[]>;
+  getLeadFollowUp(id: string): Promise<LeadFollowUp | undefined>;
+  createLeadFollowUp(followUp: InsertLeadFollowUp): Promise<LeadFollowUp>;
+  updateLeadFollowUp(id: string, followUp: Partial<InsertLeadFollowUp>): Promise<LeadFollowUp | undefined>;
+  deleteLeadFollowUp(id: string): Promise<boolean>;
   
   // Company Profile operations
   getCompanyProfile(): Promise<CompanyProfile | undefined>;
@@ -573,6 +580,60 @@ export class DatabaseStorage implements IStorage {
       if (deleted) count++;
     }
     return count;
+  }
+
+  async getLeadFollowUpsByLead(leadId: string): Promise<LeadFollowUp[]> {
+    return await db
+      .select()
+      .from(leadFollowUps)
+      .where(eq(leadFollowUps.leadId, leadId))
+      .orderBy(desc(leadFollowUps.followUpDateTime));
+  }
+
+  async getLeadFollowUp(id: string): Promise<LeadFollowUp | undefined> {
+    const [followUp] = await db.select().from(leadFollowUps).where(eq(leadFollowUps.id, id));
+    return followUp || undefined;
+  }
+
+  async createLeadFollowUp(insertFollowUp: InsertLeadFollowUp): Promise<LeadFollowUp> {
+    const [followUp] = await db
+      .insert(leadFollowUps)
+      .values({
+        ...insertFollowUp,
+        followUpDateTime: new Date(insertFollowUp.followUpDateTime)
+      })
+      .returning();
+    
+    await db
+      .update(leads)
+      .set({ 
+        nextFollowUp: new Date(insertFollowUp.followUpDateTime),
+        lastFollowUp: new Date()
+      })
+      .where(eq(leads.id, insertFollowUp.leadId));
+    
+    return followUp;
+  }
+
+  async updateLeadFollowUp(id: string, updates: Partial<InsertLeadFollowUp>): Promise<LeadFollowUp | undefined> {
+    const updateData: any = { ...updates };
+    if (updates.followUpDateTime) {
+      updateData.followUpDateTime = new Date(updates.followUpDateTime);
+    }
+    const [followUp] = await db
+      .update(leadFollowUps)
+      .set(updateData)
+      .where(eq(leadFollowUps.id, id))
+      .returning();
+    return followUp || undefined;
+  }
+
+  async deleteLeadFollowUp(id: string): Promise<boolean> {
+    const result = await db
+      .delete(leadFollowUps)
+      .where(eq(leadFollowUps.id, id))
+      .returning();
+    return result.length > 0;
   }
 
   async getCompanyProfile(): Promise<CompanyProfile | undefined> {
