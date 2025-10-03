@@ -3,6 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Quotation } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { QuotationTable } from "@/components/quotation-table";
+import { QuotationFormDialog } from "@/components/quotation-form-dialog";
+import { QuotationSettingsDialog } from "@/components/quotation-settings-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -431,10 +434,36 @@ export default function Quotations() {
 
         <Card className="shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
           <CardContent className="p-6">
-            <p className="text-center text-muted-foreground">Quotation table will be displayed here</p>
+            <QuotationTable
+              quotations={displayedQuotations}
+              isLoading={isLoading}
+              onEdit={(quotation) => {
+                setSelectedQuotation(quotation);
+                setIsAddDialogOpen(true);
+              }}
+              onDelete={(quotation) => {
+                setSelectedQuotation(quotation);
+                setIsDeleteDialogOpen(true);
+              }}
+              onBulkDelete={(ids) => {
+                setBulkDeleteIds(ids);
+                setIsBulkDeleteDialogOpen(true);
+              }}
+            />
           </CardContent>
         </Card>
       </div>
+
+      <QuotationFormDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        quotation={selectedQuotation}
+      />
+
+      <QuotationSettingsDialog
+        open={isSettingsDialogOpen}
+        onOpenChange={setIsSettingsDialogOpen}
+      />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent data-testid="dialog-delete">
