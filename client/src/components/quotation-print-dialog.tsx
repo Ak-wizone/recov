@@ -164,8 +164,8 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
               display: none !important;
             }
             @page {
-              margin: 1cm;
-              size: A4;
+              margin: 15mm;
+              size: A4 portrait;
             }
           }
           
@@ -173,6 +173,10 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+            max-width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            background: white;
           }
         `}</style>
 
@@ -223,51 +227,27 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
                 </div>
               )}
 
-              {/* Header Section */}
-              <div className="flex justify-between items-start mb-6">
+              {/* Header Section - Logo and Quotation Number */}
+              <div className="flex justify-between items-start mb-8">
                 <div className="flex items-start gap-4">
                   {profile.logo && (
-                    <img src={profile.logo} alt="Logo" className="h-16 w-16 object-contain" />
+                    <img src={profile.logo} alt="Logo" className="h-20 w-20 object-contain" />
                   )}
-                  <div>
-                    <h1 className="text-2xl font-bold">{profile.legalName}</h1>
-                  </div>
-                </div>
-                <div className="text-center flex-1">
-                  <h2 className="text-3xl font-bold">QUOTATION</h2>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold">#{quotation.quotationNumber}</p>
+                  <h2 className="text-2xl font-bold">QUOTATION -{quotation.quotationNumber.split('-').pop()}</h2>
                 </div>
               </div>
 
-              {/* Amount Due Bar - Half Page Width */}
-              <div 
-                className="text-white px-6 py-4 mb-6 flex justify-between items-center w-1/2 mx-auto rounded-md shadow-lg" 
-                style={{ backgroundColor: profile.brandColor || "#ea580c" }}
-              >
-                <span className="text-lg font-semibold">Amount Due:</span>
-                <span className="text-2xl font-bold">INR {parseFloat(quotation.grandTotal).toFixed(2)}</span>
-              </div>
-
-              {/* Company and Client Details */}
-              <div className="grid grid-cols-2 gap-8 mb-6">
-                <div>
-                  <p className="font-bold text-lg mb-2">{profile.legalName}</p>
-                  <p className="text-base">{profile.regAddressLine1}</p>
-                  {profile.regAddressLine2 && <p className="text-base">{profile.regAddressLine2}</p>}
-                  <p className="text-base">{profile.regCity}, {profile.regState} {profile.regPincode}, IN</p>
-                  <p className="text-base">+91{profile.primaryContactMobile}</p>
-                  <p className="text-base">{profile.primaryContactEmail}</p>
-                  <p className="text-base font-semibold mt-2">GSTIN: {profile.gstin || '-'}</p>
-                </div>
-                <div className="text-right text-base">
-                  <div className="mb-3">
-                    <p className="mb-2"><span className="inline-block w-32 text-left">Issue Date:</span> {new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                    <p className="mb-2"><span className="inline-block w-32 text-left">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                    <p><span className="inline-block w-32 text-left">Place of Supply:</span> {profile.regState}</p>
-                  </div>
-                </div>
+              {/* Company Information */}
+              <div className="mb-6">
+                <p className="font-bold text-lg mb-2">{profile.legalName}</p>
+                <p className="text-base">{profile.regAddressLine1}</p>
+                {profile.regAddressLine2 && <p className="text-base">{profile.regAddressLine2}</p>}
+                <p className="text-base">{profile.regCity}, {profile.regState} {profile.regPincode}, IN</p>
+                <p className="text-base">+91{profile.primaryContactMobile}</p>
+                <p className="text-base">{profile.primaryContactEmail}</p>
+                <p className="text-base font-semibold mt-2">GSTIN: {profile.gstin || '-'}</p>
               </div>
 
               {/* Quote To Section */}
@@ -276,6 +256,24 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
                 <p className="font-semibold text-base">{quotation.leadName}</p>
                 <p className="text-base">{quotation.leadEmail}</p>
                 <p className="text-base">{quotation.leadMobile}</p>
+              </div>
+
+              {/* Quotation Details - Issue Date, Valid Until, Place of Supply */}
+              <div className="mb-6 text-base">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <p className="font-semibold">Issue Date:</p>
+                    <p>{new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Valid Until:</p>
+                    <p>{new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold">Place of Supply:</p>
+                    <p>{profile.regState}</p>
+                  </div>
+                </div>
               </div>
 
               {/* Items Table */}
