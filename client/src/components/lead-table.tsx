@@ -82,6 +82,7 @@ export function LeadTable({
       email: true,
       leadSource: true,
       leadStatus: true,
+      estimatedDealAmount: true,
       priority: true,
       industry: true,
       city: true,
@@ -103,6 +104,7 @@ export function LeadTable({
     { id: 'email', label: 'Email' },
     { id: 'leadSource', label: 'Lead Source' },
     { id: 'leadStatus', label: 'Status' },
+    { id: 'estimatedDealAmount', label: 'Estimated Deal Amount' },
     { id: 'address', label: 'Address' },
     { id: 'city', label: 'City' },
     { id: 'state', label: 'State' },
@@ -122,6 +124,7 @@ export function LeadTable({
   const [emailSearch, setEmailSearch] = useState("");
   const [leadSourceSearch, setLeadSourceSearch] = useState("");
   const [leadStatusSearch, setLeadStatusSearch] = useState("");
+  const [estimatedDealAmountSearch, setEstimatedDealAmountSearch] = useState("");
   const [addressSearch, setAddressSearch] = useState("");
   const [citySearch, setCitySearch] = useState("");
   const [stateSearch, setStateSearch] = useState("");
@@ -224,6 +227,7 @@ export function LeadTable({
     const matchesEmail = lead.email.toLowerCase().includes(emailSearch.toLowerCase());
     const matchesLeadSource = lead.leadSource.toLowerCase().includes(leadSourceSearch.toLowerCase());
     const matchesLeadStatus = lead.leadStatus.toLowerCase().includes(leadStatusSearch.toLowerCase());
+    const matchesEstimatedDealAmount = (lead.estimatedDealAmount?.toString() || "").includes(estimatedDealAmountSearch);
     const matchesAddress = (lead.address || "").toLowerCase().includes(addressSearch.toLowerCase());
     const matchesCity = (lead.city || "").toLowerCase().includes(citySearch.toLowerCase());
     const matchesState = (lead.state || "").toLowerCase().includes(stateSearch.toLowerCase());
@@ -243,7 +247,7 @@ export function LeadTable({
     const matchesNextFollowUp = nextFollowUpStr.toLowerCase().includes(nextFollowUpSearch.toLowerCase());
 
     return matchesCompany && matchesContactPerson && matchesMobile && matchesEmail && 
-           matchesLeadSource && matchesLeadStatus && matchesAddress && matchesCity && 
+           matchesLeadSource && matchesLeadStatus && matchesEstimatedDealAmount && matchesAddress && matchesCity && 
            matchesState && matchesPincode && matchesRemarks && matchesIndustry && 
            matchesPriority && matchesAssignedUser && matchesLastFollowUp && matchesLastFollowUpRemarks && matchesNextFollowUp;
   });
@@ -385,6 +389,7 @@ export function LeadTable({
                   </TableHead>
                 )}
                 {visibleColumns.leadStatus && <TableHead className="py-4 font-semibold">Status</TableHead>}
+                {visibleColumns.estimatedDealAmount && <TableHead className="py-4 font-semibold">Estimated Deal Amount</TableHead>}
                 {visibleColumns.address && <TableHead className="py-4 font-semibold">Address</TableHead>}
                 {visibleColumns.city && <TableHead className="py-4 font-semibold">City</TableHead>}
                 {visibleColumns.state && <TableHead className="py-4 font-semibold">State</TableHead>}
@@ -469,6 +474,18 @@ export function LeadTable({
                       onChange={(e) => setLeadStatusSearch(e.target.value)}
                       className="h-10 min-w-[140px]"
                       data-testid="input-search-status"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.estimatedDealAmount && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search amount..."
+                      value={estimatedDealAmountSearch}
+                      onChange={(e) => setEstimatedDealAmountSearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-estimated-deal-amount"
                     />
                   </TableHead>
                 )}
@@ -700,6 +717,13 @@ export function LeadTable({
                             </SelectItem>
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                    )}
+                    {visibleColumns.estimatedDealAmount && (
+                      <TableCell className="py-4">
+                        <div className="text-sm font-medium text-[#1E293B]" data-testid={`text-estimated-deal-amount-${lead.id}`}>
+                          {lead.estimatedDealAmount ? `₹${parseFloat(lead.estimatedDealAmount.toString()).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
+                        </div>
                       </TableCell>
                     )}
                     {visibleColumns.address && (
