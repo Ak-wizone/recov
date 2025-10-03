@@ -392,7 +392,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Interest Applicable From": "60",
           "Interest Rate (%)": "18",
           "Sales Person": "John Doe",
-          "Is Active": true,
+          "Is Active": "Active",
         },
         {
           "Client Name": "XYZ Industries Limited",
@@ -419,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Interest Applicable From": "90",
           "Interest Rate (%)": "15",
           "Sales Person": "Jane Smith",
-          "Is Active": true,
+          "Is Active": "Active",
         },
         {
           "Client Name": "Tech Solutions India",
@@ -446,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Interest Applicable From": "",
           "Interest Rate (%)": "12",
           "Sales Person": "",
-          "Is Active": true,
+          "Is Active": "Active",
         },
       ];
 
@@ -549,7 +549,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         interestApplicableFrom: String(row["Interest Applicable From"] || row.interestApplicableFrom || row.InterestApplicableFrom || "").trim() || undefined,
         interestRate: String(row["Interest Rate (%)"] || row["Interest Rate"] || row.interestRate || row.InterestRate || "").trim(),
         salesPerson: String(row["Sales Person"] || row.salesPerson || row.SalesPerson || "").trim() || undefined,
-        isActive: row["Is Active"] !== undefined ? (row["Is Active"] === true || String(row["Is Active"]).toLowerCase() === 'true' || row["Is Active"] === 1) : true,
+        isActive: (() => {
+          const value = row["Is Active"] || row.isActive || row.status || row.Status;
+          if (value === undefined || value === null) return "Active";
+          if (typeof value === 'boolean') return value ? "Active" : "Inactive";
+          const strValue = String(value).trim().toLowerCase();
+          if (strValue === 'true' || strValue === 'active' || strValue === '1') return "Active";
+          if (strValue === 'false' || strValue === 'inactive' || strValue === '0') return "Inactive";
+          return "Active";
+        })(),
       }));
 
       const results = [];

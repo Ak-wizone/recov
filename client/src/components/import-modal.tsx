@@ -311,7 +311,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
           "Interest Applicable From": row.interestApplicableFrom || "",
           "Interest Rate (%)": row.interestRate || "",
           "Sales Person": row.salesPerson || "",
-          "Is Active": row.isActive || "true",
+          "Is Active": row.isActive || "Active",
         })));
         
         const workbook = XLSX.utils.book_new();

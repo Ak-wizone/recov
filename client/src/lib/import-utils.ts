@@ -77,7 +77,15 @@ export async function parseImportFile(file: File): Promise<ImportRow[]> {
           secondaryEmail: String(row["Secondary Email"] || row.secondaryEmail || row.SecondaryEmail || "").trim(),
           interestApplicableFrom: String(row["Interest Applicable From"] || row.interestApplicableFrom || row.InterestApplicableFrom || "").trim(),
           salesPerson: String(row["Sales Person"] || row.salesPerson || row.SalesPerson || "").trim(),
-          isActive: String(row["Status"] || row.status || row.isActive || row.IsActive || "Active").trim(),
+          isActive: (() => {
+            const value = row["Is Active"] || row.isActive || row.status || row.Status;
+            if (value === undefined || value === null) return "Active";
+            if (typeof value === 'boolean') return value ? "Active" : "Inactive";
+            const strValue = String(value).trim().toLowerCase();
+            if (strValue === 'true' || strValue === 'active' || strValue === '1') return "Active";
+            if (strValue === 'false' || strValue === 'inactive' || strValue === '0') return "Inactive";
+            return "Active";
+          })(),
         }));
 
         resolve(rows);
