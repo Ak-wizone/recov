@@ -126,171 +126,193 @@ export default function QuotationPrint() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Action Buttons - Hidden when printing */}
-      <div className="print:hidden bg-white border-b sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-4 py-3 flex justify-end gap-2">
-          <Button onClick={handlePrint} className="gap-2" data-testid="button-print">
-            <Printer className="h-4 w-4" />
-            Print
-          </Button>
-          <Button onClick={handleEmail} variant="outline" className="gap-2" data-testid="button-email">
-            <Mail className="h-4 w-4" />
-            Email
-          </Button>
-          <Button onClick={handleWhatsApp} variant="outline" className="gap-2 text-green-600 hover:text-green-700" data-testid="button-whatsapp">
-            <FaWhatsapp className="h-4 w-4" />
-            WhatsApp
-          </Button>
+    <>
+      <style>{`
+        @media print {
+          @page {
+            size: A4;
+            margin: 15mm 15mm 15mm 15mm;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+          }
+          .print-container {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 0 auto;
+            background: white;
+          }
+        }
+      `}</style>
+      
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+        {/* Action Buttons - Hidden when printing */}
+        <div className="print:hidden bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10 shadow-sm">
+          <div className="container mx-auto px-4 py-3 flex justify-end gap-2">
+            <Button onClick={handlePrint} className="gap-2 bg-blue-500 hover:bg-blue-600" data-testid="button-print">
+              <Printer className="h-4 w-4" />
+              Print
+            </Button>
+            <Button onClick={handleEmail} variant="outline" className="gap-2 border-green-500 text-green-600 hover:bg-green-50" data-testid="button-email">
+              <Mail className="h-4 w-4" />
+              Email
+            </Button>
+            <Button onClick={handleWhatsApp} variant="outline" className="gap-2 border-green-500 text-green-600 hover:bg-green-50" data-testid="button-whatsapp">
+              <FaWhatsapp className="h-4 w-4" />
+              WhatsApp
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Printable Content */}
-      <div className="container mx-auto p-8 max-w-5xl">
-        <div className="bg-white shadow-lg print:shadow-none">
-          {/* Header */}
-          <div className="border-b-2 border-gray-900 pb-4 mb-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-4">
-                {profile.logoUrl && (
-                  <img src={profile.logoUrl} alt="Company Logo" className="h-16 w-16 object-contain" />
+        {/* Printable Content */}
+        <div className="container mx-auto p-8 max-w-5xl">
+          <div className="print-container bg-white shadow-2xl print:shadow-none rounded-lg print:rounded-none">
+            {/* Header */}
+            <div className="border-b-4 border-indigo-400 pb-4 mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 -mx-8 -mt-8 px-8 pt-8 rounded-t-lg print:rounded-none print:mx-0 print:mt-0">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4">
+                  {profile.logoUrl && (
+                    <img src={profile.logoUrl} alt="Company Logo" className="h-16 w-16 object-contain" />
+                  )}
+                  <div>
+                    <h1 className="text-2xl font-bold text-indigo-900">{profile.companyName}</h1>
+                    <p className="text-sm text-indigo-700 mt-1">{profile.address}</p>
+                    <p className="text-sm text-indigo-700">{profile.city}, {profile.state} - {profile.pincode}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quotation Info and Bill To */}
+            <div className="grid grid-cols-2 gap-8 mb-6">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h2 className="text-xl font-bold mb-3 text-blue-900">QUOTATION</h2>
+                <div className="space-y-1 text-sm">
+                  <div className="flex">
+                    <span className="font-semibold w-32 text-blue-800">Quotation No:</span>
+                    <span className="text-gray-700">{quotation.quotationNumber}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-32 text-blue-800">Date:</span>
+                    <span className="text-gray-700">{new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-32 text-blue-800">Valid Until:</span>
+                    <span className="text-gray-700">{new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-right bg-purple-50 p-4 rounded-lg">
+                <h3 className="font-bold mb-3 text-purple-900">BILL TO:</h3>
+                <div className="space-y-1 text-sm">
+                  <p className="font-semibold text-purple-800">{quotation.leadName}</p>
+                  {quotation.leadEmail && <p className="text-gray-700">Attn: {quotation.leadEmail.split('@')[0]}</p>}
+                  {quotation.leadEmail && <p className="text-gray-700">Email: {quotation.leadEmail}</p>}
+                  {quotation.leadMobile && <p className="text-gray-700">Phone: {quotation.leadMobile}</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Items Table */}
+            <div className="mb-6 rounded-lg overflow-hidden border border-indigo-200">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gradient-to-r from-indigo-100 to-purple-100">
+                    <th className="text-left py-3 px-3 text-sm font-semibold text-indigo-900">Sr. No.</th>
+                    <th className="text-left py-3 px-3 text-sm font-semibold text-indigo-900">Description</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-indigo-900">Unit</th>
+                    <th className="text-center py-3 px-3 text-sm font-semibold text-indigo-900">Qty</th>
+                    <th className="text-right py-3 px-3 text-sm font-semibold text-indigo-900">Rate (₹)</th>
+                    <th className="text-right py-3 px-3 text-sm font-semibold text-indigo-900">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, index) => {
+                    const qty = parseFloat(item.quantity || "0");
+                    const rate = parseFloat(item.rate || "0");
+                    const amount = qty * rate;
+                    
+                    return (
+                      <tr key={item.id} className={index % 2 === 0 ? "bg-blue-50/50" : "bg-white"}>
+                        <td className="py-2 px-3 text-sm text-gray-700">{index + 1}</td>
+                        <td className="py-2 px-3 text-sm text-gray-700">{item.itemName}</td>
+                        <td className="py-2 px-3 text-sm text-center text-gray-700">{item.unit}</td>
+                        <td className="py-2 px-3 text-sm text-center text-gray-700">{item.quantity}</td>
+                        <td className="py-2 px-3 text-sm text-right text-gray-700">₹{rate.toFixed(2)}</td>
+                        <td className="py-2 px-3 text-sm text-right font-semibold text-indigo-900">₹{amount.toFixed(2)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Totals */}
+            <div className="flex justify-end mb-6">
+              <div className="w-80 rounded-lg overflow-hidden border-2 border-indigo-300">
+                <div className="flex justify-between px-4 py-2 border-b border-indigo-200 bg-blue-50">
+                  <span className="font-semibold text-blue-900">Subtotal:</span>
+                  <span className="text-gray-700">₹{parseFloat(quotation.subtotal).toFixed(2)}</span>
+                </div>
+                {parseFloat(quotation.totalTax) > 0 && (
+                  <div className="flex justify-between px-4 py-2 border-b border-indigo-200 bg-purple-50">
+                    <span className="font-semibold text-purple-900">Tax (GST):</span>
+                    <span className="text-gray-700">₹{parseFloat(quotation.totalTax).toFixed(2)}</span>
+                  </div>
                 )}
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{profile.companyName}</h1>
-                  <p className="text-sm text-gray-600 mt-1">{profile.address}</p>
-                  <p className="text-sm text-gray-600">{profile.city}, {profile.state} - {profile.pincode}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quotation Info and Bill To */}
-          <div className="grid grid-cols-2 gap-8 mb-6">
-            <div>
-              <h2 className="text-xl font-bold mb-3">QUOTATION</h2>
-              <div className="space-y-1 text-sm">
-                <div className="flex">
-                  <span className="font-semibold w-32">Quotation No:</span>
-                  <span>{quotation.quotationNumber}</span>
-                </div>
-                <div className="flex">
-                  <span className="font-semibold w-32">Date:</span>
-                  <span>{new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                </div>
-                <div className="flex">
-                  <span className="font-semibold w-32">Valid Until:</span>
-                  <span>{new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                <div className="flex justify-between px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold text-lg">
+                  <span>Total Amount:</span>
+                  <span>₹{parseFloat(quotation.grandTotal).toFixed(2)}</span>
                 </div>
               </div>
             </div>
 
-            <div className="text-right">
-              <h3 className="font-bold mb-3">BILL TO:</h3>
-              <div className="space-y-1 text-sm">
-                <p className="font-semibold">{quotation.leadName}</p>
-                {quotation.leadEmail && <p>Attn: {quotation.leadEmail.split('@')[0]}</p>}
-                {quotation.leadEmail && <p>Email: {quotation.leadEmail}</p>}
-                {quotation.leadMobile && <p>Phone: {quotation.leadMobile}</p>}
+            {/* Amount in Words */}
+            <div className="border-2 border-indigo-300 rounded-lg p-4 mb-6 bg-indigo-50">
+              <div className="flex gap-2">
+                <span className="font-semibold text-indigo-900">Amount in Words:</span>
+                <span className="italic text-gray-700">{numberToWords(parseFloat(quotation.grandTotal))}</span>
               </div>
             </div>
-          </div>
 
-          {/* Items Table */}
-          <div className="mb-6">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-y border-gray-900">
-                  <th className="text-left py-2 px-2 text-sm font-semibold">Sr. No.</th>
-                  <th className="text-left py-2 px-2 text-sm font-semibold">Description</th>
-                  <th className="text-center py-2 px-2 text-sm font-semibold">Unit</th>
-                  <th className="text-center py-2 px-2 text-sm font-semibold">Qty</th>
-                  <th className="text-right py-2 px-2 text-sm font-semibold">Rate (₹)</th>
-                  <th className="text-right py-2 px-2 text-sm font-semibold">Amount (₹)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => {
-                  const qty = parseFloat(item.quantity || "0");
-                  const rate = parseFloat(item.rate || "0");
-                  const amount = qty * rate;
-                  
-                  return (
-                    <tr key={item.id} className="border-b border-gray-200">
-                      <td className="py-2 px-2 text-sm">{index + 1}</td>
-                      <td className="py-2 px-2 text-sm">{item.itemName}</td>
-                      <td className="py-2 px-2 text-sm text-center">{item.unit}</td>
-                      <td className="py-2 px-2 text-sm text-center">{item.quantity}</td>
-                      <td className="py-2 px-2 text-sm text-right">₹{rate.toFixed(2)}</td>
-                      <td className="py-2 px-2 text-sm text-right">₹{amount.toFixed(2)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Totals */}
-          <div className="flex justify-end mb-6">
-            <div className="w-80 border border-gray-900">
-              <div className="flex justify-between px-4 py-2 border-b border-gray-300">
-                <span className="font-semibold">Subtotal:</span>
-                <span>₹{parseFloat(quotation.subtotal).toFixed(2)}</span>
+            {/* Terms & Conditions */}
+            {quotation.termsAndConditions && (
+              <div className="border-2 border-purple-300 rounded-lg p-4 mb-6 bg-purple-50">
+                <h3 className="font-bold mb-2 text-purple-900">Terms & Conditions</h3>
+                <div className="text-sm whitespace-pre-wrap text-gray-700">{quotation.termsAndConditions}</div>
               </div>
-              {parseFloat(quotation.totalTax) > 0 && (
-                <div className="flex justify-between px-4 py-2 border-b border-gray-300">
-                  <span className="font-semibold">Tax (GST):</span>
-                  <span>₹{parseFloat(quotation.totalTax).toFixed(2)}</span>
+            )}
+
+            {/* Signatures */}
+            <div className="grid grid-cols-2 gap-8 mt-16 mb-6">
+              <div className="text-center">
+                <div className="border-t-2 border-blue-400 pt-2 inline-block min-w-[200px]">
+                  <p className="font-semibold text-blue-900">Customer Signature</p>
+                  <p className="text-sm text-gray-600">Date: _______</p>
                 </div>
-              )}
-              <div className="flex justify-between px-4 py-2 bg-gray-100 font-bold">
-                <span>Total Amount:</span>
-                <span>₹{parseFloat(quotation.grandTotal).toFixed(2)}</span>
+              </div>
+              <div className="text-center">
+                <div className="border-t-2 border-purple-400 pt-2 inline-block min-w-[200px]">
+                  <p className="font-semibold text-purple-900">Authorized Signatory</p>
+                  <p className="text-sm text-gray-700">{profile.companyName}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Amount in Words */}
-          <div className="border border-gray-900 p-3 mb-6">
-            <div className="flex gap-2">
-              <span className="font-semibold">Amount in Words:</span>
-              <span className="italic">{numberToWords(parseFloat(quotation.grandTotal))}</span>
+            {/* Footer */}
+            <div className="text-center border-t-4 border-indigo-400 pt-4 mt-6 bg-gradient-to-r from-indigo-50 to-purple-50 -mx-8 -mb-8 px-8 pb-8 rounded-b-lg print:rounded-none print:mx-0 print:mb-0">
+              <p className="font-bold text-xl text-indigo-900">Thank you for your business!</p>
+              <p className="text-sm text-indigo-700 mt-2">{profile.companyName}</p>
+              <p className="text-sm text-gray-600">
+                For any queries, please contact us at {profile.email} | {profile.phone}
+              </p>
             </div>
-          </div>
-
-          {/* Terms & Conditions */}
-          {quotation.termsAndConditions && (
-            <div className="border border-gray-900 p-4 mb-6">
-              <h3 className="font-bold mb-2">Terms & Conditions</h3>
-              <div className="text-sm whitespace-pre-wrap">{quotation.termsAndConditions}</div>
-            </div>
-          )}
-
-          {/* Signatures */}
-          <div className="grid grid-cols-2 gap-8 mt-16 mb-6">
-            <div className="text-center">
-              <div className="border-t border-gray-900 pt-2 inline-block min-w-[200px]">
-                <p className="font-semibold">Customer Signature</p>
-                <p className="text-sm text-gray-600">Date: _______</p>
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="border-t border-gray-900 pt-2 inline-block min-w-[200px]">
-                <p className="font-semibold">Authorized Signatory</p>
-                <p className="text-sm">{profile.companyName}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div className="text-center border-t-2 border-gray-900 pt-4 mt-6">
-            <p className="font-bold text-lg">Thank you for your business!</p>
-            <p className="text-sm text-gray-600 mt-2">{profile.companyName}</p>
-            <p className="text-sm text-gray-600">
-              For any queries, please contact us at {profile.email} | {profile.phone}
-            </p>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
