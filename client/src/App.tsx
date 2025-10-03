@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Layout from "@/components/layout";
 import Home from "@/pages/home";
+import Leads from "@/pages/leads";
 import MasterCustomers from "@/pages/master-customers";
 import MasterItems from "@/pages/master-items";
 import Invoices from "@/pages/invoices";
@@ -17,6 +18,7 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/leads" component={Leads} />
         <Route path="/invoices" component={Invoices} />
         <Route path="/receipts" component={Receipts} />
         <Route path="/masters/customers" component={MasterCustomers} />
