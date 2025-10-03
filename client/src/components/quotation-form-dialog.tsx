@@ -68,11 +68,11 @@ export function QuotationFormDialog({ open, onOpenChange, quotation }: Quotation
     queryKey: ["/api/master-items"],
   });
 
-  const { data: settings } = useQuery({
+  const { data: settings } = useQuery<{ termsAndConditions: string }>({
     queryKey: ["/api/quotation-settings"],
   });
 
-  const { data: nextNumber } = useQuery({
+  const { data: nextNumber } = useQuery<{ quotationNumber: string }>({
     queryKey: ["/api/quotations/next-number"],
     enabled: !quotation,
   });
@@ -123,33 +123,80 @@ export function QuotationFormDialog({ open, onOpenChange, quotation }: Quotation
         totalTax: quotation.totalTax,
         grandTotal: quotation.grandTotal,
       });
+      
+      fetch(`/api/quotations/${quotation.id}/items`)
+        .then(res => res.json())
+        .then(items => {
+          setLineItems(items.map((item: any) => ({
+            itemId: item.itemId,
+            itemName: item.itemName,
+            quantity: item.quantity,
+            unit: item.unit,
+            rate: item.rate,
+            discountPercent: item.discountPercent,
+            taxPercent: item.taxPercent,
+            amount: item.amount,
+          })));
+        });
     }
   }, [quotation, form]);
 
   const createMutation = useMutation({
     mutationFn: async (data: z.infer<typeof formSchema>) => {
-      const quotationResponse = await apiRequest("/api/quotations", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/quotations", data);
+      const quotationData = await response.json();
 
-      for (const [index, item] of lineItems.entries()) {
-        await apiRequest(`/api/quotations/${quotationResponse.id}/items`, {
-          method: "POST",
-          body: JSON.stringify({
-            ...item,
-            displayOrder: index.toString(),
-          }),
+      for (let index = 0; index < lineItems.length; index++) {
+        await apiRequest("POST", `/api/quotations/${quotationData.id}/items`, {
+          ...lineItems[index],
+          displayOrder: index.toString(),
         });
       }
 
-      return quotationResponse;
+      return quotationData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
       toast({
         title: "Success",
         description: "Quotation created successfully",
+      });
+      onOpenChange(false);
+      form.reset();
+      setLineItems([]);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof formSchema>) => {
+      if (!quotation) return;
+      
+      const response = await apiRequest("PUT", `/api/quotations/${quotation.id}`, data);
+      const quotationData = await response.json();
+
+      await apiRequest("DELETE", `/api/quotations/${quotation.id}/items`, {});
+
+      for (let index = 0; index < lineItems.length; index++) {
+        await apiRequest("POST", `/api/quotations/${quotation.id}/items`, {
+          ...lineItems[index],
+          displayOrder: index.toString(),
+        });
+      }
+
+      return quotationData;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/quotations"] });
+      toast({
+        title: "Success",
+        description: "Quotation updated successfully",
       });
       onOpenChange(false);
       form.reset();
@@ -269,7 +316,12 @@ export function QuotationFormDialog({ open, onOpenChange, quotation }: Quotation
       });
       return;
     }
-    createMutation.mutate(data);
+    
+    if (quotation) {
+      updateMutation.mutate(data);
+    } else {
+      createMutation.mutate(data);
+    }
   };
 
   return (
@@ -512,8 +564,15 @@ export function QuotationFormDialog({ open, onOpenChange, quotation }: Quotation
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} data-testid="button-cancel">
                 Cancel
               </Button>
-              <Button type="submit" disabled={createMutation.isPending} data-testid="button-submit">
-                {createMutation.isPending ? "Creating..." : "Create Quotation"}
+              <Button 
+                type="submit" 
+                disabled={createMutation.isPending || updateMutation.isPending} 
+                data-testid="button-submit"
+              >
+                {quotation 
+                  ? (updateMutation.isPending ? "Updating..." : "Update Quotation")
+                  : (createMutation.isPending ? "Creating..." : "Create Quotation")
+                }
               </Button>
             </div>
           </form>
