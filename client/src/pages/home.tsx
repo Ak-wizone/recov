@@ -459,6 +459,86 @@ export default function Home() {
           </Card>
         </div>
 
+        {/* Date Filter Mode Selector */}
+        <div className="mb-6 flex items-center justify-center">
+          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 p-4 rounded-lg border-2 border-[#E2E8F0] shadow-sm">
+            <CalendarIcon className="h-5 w-5 text-[#2563EB]" />
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Filter by Date:</span>
+            
+            <Select 
+              value={dateFilterMode} 
+              onValueChange={(value: "month" | "allTime" | "dateRange") => {
+                setDateFilterMode(value);
+              }}
+            >
+              <SelectTrigger className="w-48" data-testid="select-date-filter-mode">
+                <SelectValue placeholder="Select filter mode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Month/Year</SelectItem>
+                <SelectItem value="allTime">All Time</SelectItem>
+                <SelectItem value="dateRange">Date Range</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {dateFilterMode === "month" && (
+              <>
+                <Select 
+                  value={selectedYear.toString()} 
+                  onValueChange={(value) => setSelectedYear(parseInt(value))}
+                >
+                  <SelectTrigger className="w-32" data-testid="select-year">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - 2 + i).map(year => (
+                      <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select 
+                  value={selectedMonth.toString()} 
+                  onValueChange={(value) => setSelectedMonth(parseInt(value))}
+                >
+                  <SelectTrigger className="w-40" data-testid="select-month">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => (
+                      <SelectItem key={index} value={index.toString()}>{month}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+            
+            {dateFilterMode === "dateRange" && (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">From:</span>
+                  <Input
+                    type="date"
+                    value={dateRangeFrom}
+                    onChange={(e) => setDateRangeFrom(e.target.value)}
+                    className="w-40"
+                    data-testid="input-date-from"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">To:</span>
+                  <Input
+                    type="date"
+                    value={dateRangeTo}
+                    onChange={(e) => setDateRangeTo(e.target.value)}
+                    className="w-40"
+                    data-testid="input-date-to"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         {/* Assigned User Filter */}
         <div className="mb-6 flex items-center justify-center gap-4">
           <div className="flex items-center gap-3 bg-white p-4 rounded-lg border-2 border-[#E2E8F0] shadow-sm">
