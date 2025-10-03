@@ -1267,10 +1267,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           "Company Name": "Tech Solutions Pvt Ltd",
           "Contact Person": "Rajesh Kumar",
-          "Mobile": "+919876543210",
+          "Mobile": "9876543210",
           "Email": "rajesh@techsolutions.com",
           "Lead Source": "Website",
           "Lead Status": "New Lead",
+          "Estimated Deal Amount": "150000",
           "Address": "123 Business Park, Sector 18",
           "City": "Noida",
           "State": "Uttar Pradesh",
@@ -1286,10 +1287,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           "Company Name": "Digital Marketing Hub",
           "Contact Person": "Priya Sharma",
-          "Mobile": "+918765432109",
+          "Mobile": "8765432109",
           "Email": "priya@digitalmarketing.com",
           "Lead Source": "Instagram",
           "Lead Status": "In Progress",
+          "Estimated Deal Amount": "75000",
           "Address": "456 Tower B, Cyber City",
           "City": "Gurgaon",
           "State": "Haryana",
@@ -1305,10 +1307,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           "Company Name": "E-commerce Solutions",
           "Contact Person": "Amit Patel",
-          "Mobile": "+917654321098",
+          "Mobile": "7654321098",
           "Email": "amit@ecommerce.com",
           "Lead Source": "Reference",
           "Lead Status": "Quotation Sent",
+          "Estimated Deal Amount": "250000",
           "Address": "789 Business Center, MG Road",
           "City": "Bangalore",
           "State": "Karnataka",
@@ -1349,6 +1352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Email": lead.email,
         "Lead Source": lead.leadSource,
         "Lead Status": lead.leadStatus,
+        "Estimated Deal Amount": lead.estimatedDealAmount || "",
         "Address": lead.address || "",
         "City": lead.city || "",
         "State": lead.state || "",
@@ -1410,6 +1414,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         };
         
+        const estimatedDealAmountValue = (row as any)["Estimated Deal Amount"];
+        const estimatedDealAmount = estimatedDealAmountValue 
+          ? String(estimatedDealAmountValue).trim() 
+          : undefined;
+        
         const leadData = {
           companyName: String((row as any)["Company Name"] || "").trim(),
           contactPerson: String((row as any)["Contact Person"] || "").trim(),
@@ -1417,6 +1426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: String((row as any)["Email"] || "").trim(),
           leadSource: String((row as any)["Lead Source"] || "").trim(),
           leadStatus: String((row as any)["Lead Status"] || "New Lead").trim(),
+          estimatedDealAmount: estimatedDealAmount,
           address: String((row as any)["Address"] || "").trim() || undefined,
           city: String((row as any)["City"] || "").trim() || undefined,
           state: String((row as any)["State"] || "").trim() || undefined,
