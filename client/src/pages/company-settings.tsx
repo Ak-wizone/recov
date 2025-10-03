@@ -54,6 +54,7 @@ export default function CompanySettings() {
       accountName: profile?.accountName || "",
       accountNumber: profile?.accountNumber || "",
       ifscCode: profile?.ifscCode || "",
+      brandColor: profile?.brandColor || "#ea580c",
     },
   });
 
@@ -90,6 +91,7 @@ export default function CompanySettings() {
         accountName: profile.accountName || "",
         accountNumber: profile.accountNumber || "",
         ifscCode: profile.ifscCode || "",
+        brandColor: profile.brandColor || "#ea580c",
       });
       setLogoPreview(profile.logo || "");
     }
@@ -731,6 +733,42 @@ export default function CompanySettings() {
                   )}
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Branding */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Branding</CardTitle>
+              <CardDescription>Customize your brand appearance</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="brandColor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Brand Color</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center gap-3">
+                        <Input 
+                          type="color" 
+                          {...field} 
+                          className="w-20 h-10 cursor-pointer" 
+                          data-testid="input-brand-color"
+                        />
+                        <Input 
+                          {...field} 
+                          placeholder="#ea580c" 
+                          className="flex-1"
+                          data-testid="input-brand-color-hex"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 
