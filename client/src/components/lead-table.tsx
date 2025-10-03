@@ -50,6 +50,7 @@ interface LeadTableProps {
   onDelete: (lead: Lead) => void;
   onWhatsApp: (lead: Lead) => void;
   onEmail: (lead: Lead) => void;
+  onFollowUp?: (lead: Lead) => void;
   onBulkDelete?: (ids: string[]) => void;
 }
 
@@ -60,6 +61,7 @@ export function LeadTable({
   onDelete,
   onWhatsApp,
   onEmail,
+  onFollowUp,
   onBulkDelete,
 }: LeadTableProps) {
   const { toast } = useToast();
@@ -840,6 +842,15 @@ export function LeadTable({
                               <Edit className="mr-2 h-4 w-4 text-yellow-600" />
                               Edit Lead
                             </DropdownMenuItem>
+                            {onFollowUp && (
+                              <DropdownMenuItem
+                                onClick={() => onFollowUp(lead)}
+                                data-testid={`button-followup-${lead.id}`}
+                              >
+                                <Mail className="mr-2 h-4 w-4 text-blue-600" />
+                                Schedule Follow-Up
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => onDelete(lead)}
