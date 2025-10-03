@@ -817,6 +817,7 @@ export default function Leads() {
                 <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
                 <p className="text-sm font-bold text-gray-800 mb-2">Overdue</p>
                 <p className="text-3xl font-bold text-red-600">{overdueCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{overdueAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -833,6 +834,7 @@ export default function Leads() {
                 <Clock className="h-10 w-10 text-orange-500 mb-2" />
                 <p className="text-sm font-bold text-gray-800 mb-2">Due Today</p>
                 <p className="text-3xl font-bold text-orange-600">{dueTodayCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{dueTodayAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -849,6 +851,7 @@ export default function Leads() {
                 <CalendarDays className="h-10 w-10 text-yellow-500 mb-2" />
                 <p className="text-sm font-bold text-gray-800 mb-2">Tomorrow</p>
                 <p className="text-3xl font-bold text-yellow-600">{tomorrowCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{tomorrowAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -865,6 +868,7 @@ export default function Leads() {
                 <CalendarRange className="h-10 w-10 text-blue-500 mb-2" />
                 <p className="text-sm font-bold text-gray-800 mb-2">This Week</p>
                 <p className="text-3xl font-bold text-blue-600">{thisWeekCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{thisWeekAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -881,6 +885,7 @@ export default function Leads() {
                 <CalendarIcon className="h-10 w-10 text-purple-500 mb-2" />
                 <p className="text-sm font-bold text-gray-800 mb-2">This Month</p>
                 <p className="text-3xl font-bold text-purple-600">{thisMonthCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{thisMonthAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
@@ -897,6 +902,7 @@ export default function Leads() {
                 <CheckCircle2 className="h-10 w-10 text-gray-500 mb-2" />
                 <p className="text-sm font-bold text-gray-800 mb-2">No Follow-Up</p>
                 <p className="text-3xl font-bold text-gray-600">{noFollowUpCount}</p>
+                <p className="text-sm font-semibold text-gray-700 mt-2">₹{noFollowUpAmount.toFixed(2)}</p>
               </div>
             </CardContent>
           </Card>
