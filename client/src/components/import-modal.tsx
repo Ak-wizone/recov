@@ -630,7 +630,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                 </div>
               )}
 
-              {previewData.length > 0 && isEditMode && (
+              {previewData.length > 0 && isEditMode && module === 'customers' && (
                 <div className="border rounded-lg overflow-hidden" data-testid="edit-table">
                   <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -824,6 +824,378 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                                 />
                                 {cellErrors.has(`${rowNumber}-billingAddress`) && (
                                   <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-billingAddress`)}</p>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {previewData.length > 0 && isEditMode && module === 'items' && (
+                <div className="border rounded-lg overflow-hidden" data-testid="edit-table">
+                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Edit className="h-4 w-4 text-blue-600" />
+                      <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
+                    </div>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-16">Row</TableHead>
+                          <TableHead>Item Type *</TableHead>
+                          <TableHead>Name *</TableHead>
+                          <TableHead>Unit *</TableHead>
+                          <TableHead>Tax *</TableHead>
+                          <TableHead>SKU *</TableHead>
+                          <TableHead>Sale Unit Price *</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewData.map((row: ImportItemRow, index: number) => {
+                          const rowNumber = index + 2;
+                          const hasError = validationErrors.some(err => err.row === rowNumber);
+                          
+                          return (
+                            <TableRow
+                              key={index}
+                              className={hasError ? "bg-red-50" : ""}
+                              data-testid={`edit-row-${index}`}
+                            >
+                              <TableCell className="font-medium">
+                                {rowNumber}
+                                {hasError && <AlertCircle className="h-3 w-3 text-red-600 inline ml-1" />}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.itemType || ""}
+                                  onChange={(e) => handleCellEdit(index, "itemType", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-itemType`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-itemtype-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-itemType`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-itemType`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.name || ""}
+                                  onChange={(e) => handleCellEdit(index, "name", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-name`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-name-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-name`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-name`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.unit || ""}
+                                  onChange={(e) => handleCellEdit(index, "unit", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-unit`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-unit-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-unit`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-unit`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.tax || ""}
+                                  onChange={(e) => handleCellEdit(index, "tax", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-tax`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-tax-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-tax`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-tax`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.sku || ""}
+                                  onChange={(e) => handleCellEdit(index, "sku", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-sku`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-sku-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-sku`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-sku`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.saleUnitPrice || ""}
+                                  onChange={(e) => handleCellEdit(index, "saleUnitPrice", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-saleUnitPrice`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-saleunitprice-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-saleUnitPrice`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-saleUnitPrice`)}</p>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {previewData.length > 0 && isEditMode && module === 'invoices' && (
+                <div className="border rounded-lg overflow-hidden" data-testid="edit-table">
+                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Edit className="h-4 w-4 text-blue-600" />
+                      <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
+                    </div>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-16">Row</TableHead>
+                          <TableHead>Invoice Number *</TableHead>
+                          <TableHead>Customer Name *</TableHead>
+                          <TableHead>Invoice Date *</TableHead>
+                          <TableHead>Invoice Amount *</TableHead>
+                          <TableHead>Net Profit *</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewData.map((row: ImportInvoiceRow, index: number) => {
+                          const rowNumber = index + 2;
+                          const hasError = validationErrors.some(err => err.row === rowNumber);
+                          
+                          return (
+                            <TableRow
+                              key={index}
+                              className={hasError ? "bg-red-50" : ""}
+                              data-testid={`edit-row-${index}`}
+                            >
+                              <TableCell className="font-medium">
+                                {rowNumber}
+                                {hasError && <AlertCircle className="h-3 w-3 text-red-600 inline ml-1" />}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.invoiceNumber || ""}
+                                  onChange={(e) => handleCellEdit(index, "invoiceNumber", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-invoiceNumber`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-invoicenumber-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-invoiceNumber`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-invoiceNumber`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.customerName || ""}
+                                  onChange={(e) => handleCellEdit(index, "customerName", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-customerName`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-customername-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-customerName`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-customerName`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.invoiceDate || ""}
+                                  onChange={(e) => handleCellEdit(index, "invoiceDate", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-invoiceDate`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-invoicedate-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-invoiceDate`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-invoiceDate`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.invoiceAmount || ""}
+                                  onChange={(e) => handleCellEdit(index, "invoiceAmount", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-invoiceAmount`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-invoiceamount-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-invoiceAmount`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-invoiceAmount`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.netProfit || ""}
+                                  onChange={(e) => handleCellEdit(index, "netProfit", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-netProfit`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-netprofit-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-netProfit`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-netProfit`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.status || ""}
+                                  onChange={(e) => handleCellEdit(index, "status", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-status`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-status-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-status`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-status`)}</p>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
+              {previewData.length > 0 && isEditMode && module === 'receipts' && (
+                <div className="border rounded-lg overflow-hidden" data-testid="edit-table">
+                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Edit className="h-4 w-4 text-blue-600" />
+                      <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
+                    </div>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-16">Row</TableHead>
+                          <TableHead>Voucher Number *</TableHead>
+                          <TableHead>Invoice Number *</TableHead>
+                          <TableHead>Customer Name *</TableHead>
+                          <TableHead>Date *</TableHead>
+                          <TableHead>Amount *</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {previewData.map((row: ImportReceiptRow, index: number) => {
+                          const rowNumber = index + 2;
+                          const hasError = validationErrors.some(err => err.row === rowNumber);
+                          
+                          return (
+                            <TableRow
+                              key={index}
+                              className={hasError ? "bg-red-50" : ""}
+                              data-testid={`edit-row-${index}`}
+                            >
+                              <TableCell className="font-medium">
+                                {rowNumber}
+                                {hasError && <AlertCircle className="h-3 w-3 text-red-600 inline ml-1" />}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.voucherNumber || ""}
+                                  onChange={(e) => handleCellEdit(index, "voucherNumber", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-voucherNumber`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-vouchernumber-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-voucherNumber`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-voucherNumber`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.invoiceNumber || ""}
+                                  onChange={(e) => handleCellEdit(index, "invoiceNumber", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-invoiceNumber`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-invoicenumber-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-invoiceNumber`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-invoiceNumber`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.customerName || ""}
+                                  onChange={(e) => handleCellEdit(index, "customerName", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-customerName`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-customername-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-customerName`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-customerName`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.date || ""}
+                                  onChange={(e) => handleCellEdit(index, "date", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-date`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-date-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-date`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-date`)}</p>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Input
+                                  value={row.amount || ""}
+                                  onChange={(e) => handleCellEdit(index, "amount", e.target.value)}
+                                  className={cn(
+                                    "h-8 text-sm",
+                                    cellErrors.has(`${rowNumber}-amount`) && "border-red-500 focus-visible:ring-red-500"
+                                  )}
+                                  data-testid={`input-amount-${index}`}
+                                />
+                                {cellErrors.has(`${rowNumber}-amount`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-amount`)}</p>
                                 )}
                               </TableCell>
                             </TableRow>
