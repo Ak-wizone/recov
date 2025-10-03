@@ -107,39 +107,66 @@ export function QuotationFormDialog({ open, onOpenChange, quotation }: Quotation
     }
   }, [settings, form]);
 
+  // Reset form when dialog opens
   useEffect(() => {
-    if (quotation) {
-      form.reset({
-        leadId: quotation.leadId,
-        leadName: quotation.leadName,
-        leadEmail: quotation.leadEmail,
-        leadMobile: quotation.leadMobile,
-        quotationNumber: quotation.quotationNumber,
-        quotationDate: new Date(quotation.quotationDate).toISOString().split('T')[0],
-        validUntil: new Date(quotation.validUntil).toISOString().split('T')[0],
-        termsAndConditions: quotation.termsAndConditions || "",
-        subtotal: quotation.subtotal,
-        totalDiscount: quotation.totalDiscount,
-        totalTax: quotation.totalTax,
-        grandTotal: quotation.grandTotal,
-      });
-      
-      fetch(`/api/quotations/${quotation.id}/items`)
-        .then(res => res.json())
-        .then(items => {
-          setLineItems(items.map((item: any) => ({
-            itemId: item.itemId,
-            itemName: item.itemName,
-            quantity: item.quantity,
-            unit: item.unit,
-            rate: item.rate,
-            discountPercent: item.discountPercent,
-            taxPercent: item.taxPercent,
-            amount: item.amount,
-          })));
+    if (open) {
+      if (quotation) {
+        // Edit mode - load quotation data
+        form.reset({
+          leadId: quotation.leadId,
+          leadName: quotation.leadName,
+          leadEmail: quotation.leadEmail,
+          leadMobile: quotation.leadMobile,
+          quotationNumber: quotation.quotationNumber,
+          quotationDate: new Date(quotation.quotationDate).toISOString().split('T')[0],
+          validUntil: new Date(quotation.validUntil).toISOString().split('T')[0],
+          termsAndConditions: quotation.termsAndConditions || "",
+          subtotal: quotation.subtotal,
+          totalDiscount: quotation.totalDiscount,
+          totalTax: quotation.totalTax,
+          grandTotal: quotation.grandTotal,
         });
+        
+        // Load the lead for this quotation
+        const lead = leads.find(l => l.id === quotation.leadId);
+        setSelectedLead(lead || null);
+        
+        // Load quotation items
+        fetch(`/api/quotations/${quotation.id}/items`)
+          .then(res => res.json())
+          .then(items => {
+            setLineItems(items.map((item: any) => ({
+              itemId: item.itemId,
+              itemName: item.itemName,
+              quantity: item.quantity,
+              unit: item.unit,
+              rate: item.rate,
+              discountPercent: item.discountPercent,
+              taxPercent: item.taxPercent,
+              amount: item.amount,
+            })));
+          });
+      } else {
+        // Add mode - reset to defaults
+        form.reset({
+          leadId: "",
+          leadName: "",
+          leadEmail: "",
+          leadMobile: "",
+          quotationNumber: nextNumber?.quotationNumber || "",
+          quotationDate: new Date().toISOString().split('T')[0],
+          validUntil: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          termsAndConditions: settings?.termsAndConditions || "",
+          subtotal: "0",
+          totalDiscount: "0",
+          totalTax: "0",
+          grandTotal: "0",
+        });
+        setSelectedLead(null);
+        setLineItems([]);
+      }
     }
-  }, [quotation, form]);
+  }, [open, quotation, form, nextNumber, settings, leads]);
 
   const createMutation = useMutation({
     mutationFn: async (data: z.infer<typeof formSchema>) => {
