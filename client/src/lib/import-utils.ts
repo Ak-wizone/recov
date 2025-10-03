@@ -34,6 +34,7 @@ export interface ImportRow {
 export interface ValidationError {
   row: number;
   message: string;
+  field?: string;
 }
 
 export async function parseImportFile(file: File): Promise<ImportRow[]> {
@@ -101,6 +102,7 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "Client Name is required",
+      field: "clientName",
     });
   }
 
@@ -108,13 +110,15 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "Category is required",
+      field: "category",
     });
   } else {
     const validCategories = ["Alpha", "Beta", "Gamma", "Delta"];
     if (!validCategories.includes(row.category)) {
       errors.push({
         row: rowNumber,
-        message: `Category must be one of: Alpha, Beta, Gamma, Delta (got: ${row.category})`,
+        message: `Category must be one of: Alpha, Beta, Gamma, Delta`,
+        field: "category",
       });
     }
   }
@@ -123,6 +127,7 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "GST Number is required",
+      field: "gstNumber",
     });
   }
 
@@ -130,11 +135,13 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "Primary Mobile is required",
+      field: "primaryMobile",
     });
   } else if (!/^[0-9]{10}$/.test(row.primaryMobile)) {
     errors.push({
       row: rowNumber,
-      message: `Primary Mobile must be exactly 10 digits (got: ${row.primaryMobile})`,
+      message: `Must be exactly 10 digits`,
+      field: "primaryMobile",
     });
   }
 
@@ -142,11 +149,13 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "Primary Email is required",
+      field: "primaryEmail",
     });
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.primaryEmail)) {
     errors.push({
       row: rowNumber,
-      message: `Invalid Primary Email format (got: ${row.primaryEmail})`,
+      message: `Invalid email format`,
+      field: "primaryEmail",
     });
   }
 
@@ -154,13 +163,15 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "Payment Terms (Days) is required",
+      field: "paymentTermsDays",
     });
   } else {
     const paymentTerms = parseFloat(row.paymentTermsDays);
     if (isNaN(paymentTerms) || paymentTerms < 0) {
       errors.push({
         row: rowNumber,
-        message: `Payment Terms must be a valid non-negative number (got: ${row.paymentTermsDays})`,
+        message: `Must be a valid non-negative number`,
+        field: "paymentTermsDays",
       });
     }
   }
@@ -169,6 +180,7 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "Credit Limit is required",
+      field: "creditLimit",
     });
   }
 
@@ -176,6 +188,7 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "Billing Address is required",
+      field: "billingAddress",
     });
   }
 
@@ -183,6 +196,7 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "Pin Code is required",
+      field: "pincode",
     });
   }
 
@@ -190,6 +204,7 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "City is required",
+      field: "city",
     });
   }
 
@@ -197,6 +212,7 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
     errors.push({
       row: rowNumber,
       message: "Interest Rate is required",
+      field: "interestRate",
     });
   }
 
@@ -204,14 +220,16 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
   if (row.secondaryMobile && row.secondaryMobile !== "" && !/^[0-9]{10}$/.test(row.secondaryMobile)) {
     errors.push({
       row: rowNumber,
-      message: `Secondary Mobile must be exactly 10 digits (got: ${row.secondaryMobile})`,
+      message: `Must be exactly 10 digits`,
+      field: "secondaryMobile",
     });
   }
 
   if (row.secondaryEmail && row.secondaryEmail !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.secondaryEmail)) {
     errors.push({
       row: rowNumber,
-      message: `Invalid Secondary Email format (got: ${row.secondaryEmail})`,
+      message: `Invalid email format`,
+      field: "secondaryEmail",
     });
   }
 

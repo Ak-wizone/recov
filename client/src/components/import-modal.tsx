@@ -1,14 +1,16 @@
 import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Upload, Download, FileSpreadsheet, X, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Upload, Download, FileSpreadsheet, X, AlertCircle, CheckCircle2, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { parseImportFile, validateMasterCustomerRow, type ImportRow, type ValidationError } from "@/lib/import-utils";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { cn } from "@/lib/utils";
 
 interface ImportModalProps {
   open: boolean;
@@ -22,9 +24,11 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
   const [isDragging, setIsDragging] = useState(false);
   const [previewData, setPreviewData] = useState<ImportRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [cellErrors, setCellErrors] = useState<Map<string, string>>(new Map());
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importResults, setImportResults] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const getImportEndpoint = () => {
     if (module === 'invoices') {
@@ -128,9 +132,11 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     setFile(null);
     setPreviewData([]);
     setValidationErrors([]);
+    setCellErrors(new Map());
     setIsProcessing(false);
     setUploadProgress(0);
     setImportResults(null);
+    setIsEditMode(false);
   };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -220,6 +226,55 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
       setFile(null);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleCellEdit = (rowIndex: number, field: keyof ImportRow, value: string) => {
+    const updatedData = [...previewData];
+    updatedData[rowIndex] = { ...updatedData[rowIndex], [field]: value };
+    setPreviewData(updatedData);
+
+    // Re-validate the row if it's customers module
+    if (module === 'customers') {
+      const rowNumber = rowIndex + 2;
+      const rowErrors = validateMasterCustomerRow(updatedData[rowIndex], rowNumber);
+      
+      // Update cell errors map
+      const newCellErrors = new Map(cellErrors);
+      
+      // Remove old errors for this row
+      Array.from(newCellErrors.keys()).forEach(key => {
+        if (key.startsWith(`${rowNumber}-`)) {
+          newCellErrors.delete(key);
+        }
+      });
+      
+      // Add new errors
+      rowErrors.forEach(error => {
+        if (error.field) {
+          newCellErrors.set(`${rowNumber}-${error.field}`, error.message);
+        }
+      });
+      
+      setCellErrors(newCellErrors);
+      
+      // Update validation errors
+      const otherRowErrors = validationErrors.filter(err => err.row !== rowNumber);
+      setValidationErrors([...otherRowErrors, ...rowErrors]);
+    }
+  };
+
+  const enableEditMode = () => {
+    if (module === 'customers' && previewData.length > 0) {
+      // Build cell errors map from validation errors
+      const newCellErrors = new Map<string, string>();
+      validationErrors.forEach(error => {
+        if (error.field) {
+          newCellErrors.set(`${error.row}-${error.field}`, error.message);
+        }
+      });
+      setCellErrors(newCellErrors);
+      setIsEditMode(true);
     }
   };
 
