@@ -3,6 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Lead } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { LeadTable } from "@/components/lead-table";
+import { LeadFormDialog } from "@/components/lead-form-dialog";
+import LeadImportModal from "@/components/lead-import-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -400,7 +403,7 @@ export default function Leads() {
                 ? "bg-blue-100 dark:bg-blue-900/40 shadow-md"
                 : "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100"
             }`}
-            onClick={() => setActiveCardFilter(activeCardFilter === null ? null : null)}
+            onClick={() => setActiveCardFilter(null)}
             data-testid="card-total-leads"
           >
             <CardContent className="p-5">
@@ -603,10 +606,33 @@ export default function Leads() {
           </Card>
         </div>
 
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <p className="text-gray-500 text-center">Lead Table Component - To be implemented</p>
-        </div>
+        <LeadTable
+          leads={filteredLeads}
+          isLoading={isLoading}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onWhatsApp={handleWhatsApp}
+          onEmail={handleEmail}
+          onBulkDelete={handleBulkDelete}
+        />
       </div>
+
+      <LeadFormDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        lead={null}
+      />
+
+      <LeadFormDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        lead={selectedLead}
+      />
+
+      <LeadImportModal
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+      />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
