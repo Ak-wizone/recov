@@ -5,6 +5,7 @@ import { Lead } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { LeadTable } from "@/components/lead-table";
 import { LeadFormDialog } from "@/components/lead-form-dialog";
+import { LeadFollowUpDialog } from "@/components/lead-followup-dialog";
 import LeadImportModal from "@/components/lead-import-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +32,11 @@ import {
   FileText,
   CheckCircle2,
   Package,
+  AlertCircle,
+  Clock,
+  Calendar as CalendarIcon,
+  CalendarDays,
+  CalendarRange,
 } from "lucide-react";
 import {
   Select,
@@ -39,14 +45,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { isToday, isTomorrow, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+
+type FollowUpFilter = "overdue" | "today" | "tomorrow" | "thisWeek" | "thisMonth" | "none" | null;
 
 export default function Leads() {
   const { toast } = useToast();
+  const [followUpFilter, setFollowUpFilter] = useState<FollowUpFilter>(null);
   const [leadStatusFilter, setLeadStatusFilter] = useState<string | null>(null);
   const [assignedUserFilter, setAssignedUserFilter] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
@@ -147,6 +158,53 @@ export default function Leads() {
     },
   });
 
+  const now = new Date();
+  
+  const leadsByAssignedUser = assignedUserFilter 
+    ? leads.filter(l => l.assignedUser === assignedUserFilter)
+    : leads;
+  
+  const overdueLeads = leadsByAssignedUser.filter(l => 
+    l.nextFollowUp && isBefore(new Date(l.nextFollowUp), startOfDay(now))
+  );
+  const overdueCount = overdueLeads.length;
+  
+  const dueTodayLeads = leadsByAssignedUser.filter(l => 
+    l.nextFollowUp && isToday(new Date(l.nextFollowUp))
+  );
+  const dueTodayCount = dueTodayLeads.length;
+  
+  const tomorrowLeads = leadsByAssignedUser.filter(l => 
+    l.nextFollowUp && isTomorrow(new Date(l.nextFollowUp))
+  );
+  const tomorrowCount = tomorrowLeads.length;
+  
+  const thisWeekLeads = leadsByAssignedUser.filter(l => {
+    if (!l.nextFollowUp) return false;
+    const date = new Date(l.nextFollowUp);
+    return isWithinInterval(date, {
+      start: startOfDay(now),
+      end: endOfWeek(now)
+    }) && !isToday(date) && !isTomorrow(date);
+  });
+  const thisWeekCount = thisWeekLeads.length;
+  
+  const thisMonthLeads = leadsByAssignedUser.filter(l => {
+    if (!l.nextFollowUp) return false;
+    const date = new Date(l.nextFollowUp);
+    return isWithinInterval(date, {
+      start: startOfDay(now),
+      end: endOfMonth(now)
+    }) && !isWithinInterval(date, {
+      start: startOfDay(now),
+      end: endOfWeek(now)
+    });
+  });
+  const thisMonthCount = thisMonthLeads.length;
+  
+  const noFollowUpLeads = leadsByAssignedUser.filter(l => !l.nextFollowUp);
+  const noFollowUpCount = noFollowUpLeads.length;
+
   const monthFilteredLeads = leads.filter((lead) => {
     const leadDate = new Date(lead.dateCreated);
     return (
@@ -182,6 +240,41 @@ export default function Leads() {
     const leadDate = new Date(lead.dateCreated);
     const matchesMonth = leadDate.getFullYear() === selectedYear && leadDate.getMonth() === selectedMonth;
 
+    let matchesFollowUpFilter = true;
+    if (followUpFilter) {
+      const followUpDate = lead.nextFollowUp ? new Date(lead.nextFollowUp) : null;
+      
+      switch (followUpFilter) {
+        case "overdue":
+          matchesFollowUpFilter = followUpDate ? isBefore(followUpDate, startOfDay(now)) : false;
+          break;
+        case "today":
+          matchesFollowUpFilter = followUpDate ? isToday(followUpDate) : false;
+          break;
+        case "tomorrow":
+          matchesFollowUpFilter = followUpDate ? isTomorrow(followUpDate) : false;
+          break;
+        case "thisWeek":
+          matchesFollowUpFilter = followUpDate ? isWithinInterval(followUpDate, {
+            start: startOfDay(now),
+            end: endOfWeek(now)
+          }) && !isToday(followUpDate) && !isTomorrow(followUpDate) : false;
+          break;
+        case "thisMonth":
+          matchesFollowUpFilter = followUpDate ? isWithinInterval(followUpDate, {
+            start: startOfDay(now),
+            end: endOfMonth(now)
+          }) && !isWithinInterval(followUpDate, {
+            start: startOfDay(now),
+            end: endOfWeek(now)
+          }) : false;
+          break;
+        case "none":
+          matchesFollowUpFilter = !followUpDate;
+          break;
+      }
+    }
+
     let matchesStatusFilter = true;
     if (leadStatusFilter) {
       matchesStatusFilter = lead.leadStatus === leadStatusFilter;
@@ -197,7 +290,7 @@ export default function Leads() {
       matchesCardFilter = lead.leadStatus === activeCardFilter;
     }
 
-    return matchesMonth && matchesStatusFilter && matchesAssignedUserFilter && matchesCardFilter;
+    return matchesMonth && matchesFollowUpFilter && matchesStatusFilter && matchesAssignedUserFilter && matchesCardFilter;
   });
 
   const handleEdit = (lead: Lead) => {
@@ -230,6 +323,11 @@ export default function Leads() {
     const subject = encodeURIComponent('Follow-up on Your Inquiry');
     const body = encodeURIComponent(`Dear ${lead.contactPerson},\n\nThank you for your interest in our services.\n\nBest regards`);
     window.location.href = `mailto:${lead.email}?subject=${subject}&body=${body}`;
+  };
+
+  const handleFollowUp = (lead: Lead) => {
+    setSelectedLead(lead);
+    setIsFollowUpDialogOpen(true);
   };
 
   const clearFilters = () => {
@@ -606,6 +704,104 @@ export default function Leads() {
           </Card>
         </div>
 
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+          <Card
+            className={`cursor-pointer transition-all border-2 ${
+              followUpFilter === "overdue" ? "border-red-500 bg-red-50" : "border-[#E2E8F0] hover:border-red-300"
+            }`}
+            onClick={() => setFollowUpFilter(followUpFilter === "overdue" ? null : "overdue")}
+            data-testid="card-filter-overdue"
+          >
+            <CardContent className="p-5">
+              <div className="flex flex-col items-center justify-center text-center">
+                <AlertCircle className="h-10 w-10 text-red-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">Overdue</p>
+                <p className="text-3xl font-bold text-red-600">{overdueCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`cursor-pointer transition-all border-2 ${
+              followUpFilter === "today" ? "border-orange-500 bg-orange-50" : "border-[#E2E8F0] hover:border-orange-300"
+            }`}
+            onClick={() => setFollowUpFilter(followUpFilter === "today" ? null : "today")}
+            data-testid="card-filter-today"
+          >
+            <CardContent className="p-5">
+              <div className="flex flex-col items-center justify-center text-center">
+                <Clock className="h-10 w-10 text-orange-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">Due Today</p>
+                <p className="text-3xl font-bold text-orange-600">{dueTodayCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`cursor-pointer transition-all border-2 ${
+              followUpFilter === "tomorrow" ? "border-yellow-500 bg-yellow-50" : "border-[#E2E8F0] hover:border-yellow-300"
+            }`}
+            onClick={() => setFollowUpFilter(followUpFilter === "tomorrow" ? null : "tomorrow")}
+            data-testid="card-filter-tomorrow"
+          >
+            <CardContent className="p-5">
+              <div className="flex flex-col items-center justify-center text-center">
+                <CalendarDays className="h-10 w-10 text-yellow-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">Tomorrow</p>
+                <p className="text-3xl font-bold text-yellow-600">{tomorrowCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`cursor-pointer transition-all border-2 ${
+              followUpFilter === "thisWeek" ? "border-blue-500 bg-blue-50" : "border-[#E2E8F0] hover:border-blue-300"
+            }`}
+            onClick={() => setFollowUpFilter(followUpFilter === "thisWeek" ? null : "thisWeek")}
+            data-testid="card-filter-thisweek"
+          >
+            <CardContent className="p-5">
+              <div className="flex flex-col items-center justify-center text-center">
+                <CalendarRange className="h-10 w-10 text-blue-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">This Week</p>
+                <p className="text-3xl font-bold text-blue-600">{thisWeekCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`cursor-pointer transition-all border-2 ${
+              followUpFilter === "thisMonth" ? "border-purple-500 bg-purple-50" : "border-[#E2E8F0] hover:border-purple-300"
+            }`}
+            onClick={() => setFollowUpFilter(followUpFilter === "thisMonth" ? null : "thisMonth")}
+            data-testid="card-filter-thismonth"
+          >
+            <CardContent className="p-5">
+              <div className="flex flex-col items-center justify-center text-center">
+                <CalendarIcon className="h-10 w-10 text-purple-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">This Month</p>
+                <p className="text-3xl font-bold text-purple-600">{thisMonthCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={`cursor-pointer transition-all border-2 ${
+              followUpFilter === "none" ? "border-gray-500 bg-gray-50" : "border-[#E2E8F0] hover:border-gray-300"
+            }`}
+            onClick={() => setFollowUpFilter(followUpFilter === "none" ? null : "none")}
+            data-testid="card-filter-no-followup"
+          >
+            <CardContent className="p-5">
+              <div className="flex flex-col items-center justify-center text-center">
+                <CheckCircle2 className="h-10 w-10 text-gray-500 mb-2" />
+                <p className="text-sm font-bold text-gray-800 mb-2">No Follow-Up</p>
+                <p className="text-3xl font-bold text-gray-600">{noFollowUpCount}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <LeadTable
           leads={filteredLeads}
           isLoading={isLoading}
@@ -614,6 +810,7 @@ export default function Leads() {
           onWhatsApp={handleWhatsApp}
           onEmail={handleEmail}
           onBulkDelete={handleBulkDelete}
+          onFollowUp={handleFollowUp}
         />
       </div>
 
@@ -632,6 +829,12 @@ export default function Leads() {
       <LeadImportModal
         open={isImportDialogOpen}
         onOpenChange={setIsImportDialogOpen}
+      />
+
+      <LeadFollowUpDialog
+        open={isFollowUpDialogOpen}
+        onOpenChange={setIsFollowUpDialogOpen}
+        lead={selectedLead || undefined}
       />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
