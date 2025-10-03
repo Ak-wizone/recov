@@ -698,6 +698,120 @@ export class DatabaseStorage implements IStorage {
       return created;
     }
   }
+
+  async getQuotations(): Promise<Quotation[]> {
+    return await db.select().from(quotations).orderBy(desc(quotations.createdAt));
+  }
+
+  async getQuotation(id: string): Promise<Quotation | undefined> {
+    const [quotation] = await db.select().from(quotations).where(eq(quotations.id, id));
+    return quotation || undefined;
+  }
+
+  async createQuotation(insertQuotation: InsertQuotation): Promise<Quotation> {
+    const quotationData: any = { ...insertQuotation };
+    if (insertQuotation.quotationDate) {
+      quotationData.quotationDate = new Date(insertQuotation.quotationDate);
+    }
+    if (insertQuotation.validUntil) {
+      quotationData.validUntil = new Date(insertQuotation.validUntil);
+    }
+    const [quotation] = await db
+      .insert(quotations)
+      .values(quotationData)
+      .returning();
+    return quotation;
+  }
+
+  async updateQuotation(id: string, updates: Partial<InsertQuotation>): Promise<Quotation | undefined> {
+    const updateData: any = { ...updates };
+    if (updates.quotationDate) {
+      updateData.quotationDate = new Date(updates.quotationDate);
+    }
+    if (updates.validUntil) {
+      updateData.validUntil = new Date(updates.validUntil);
+    }
+    const [quotation] = await db
+      .update(quotations)
+      .set(updateData)
+      .where(eq(quotations.id, id))
+      .returning();
+    return quotation || undefined;
+  }
+
+  async deleteQuotation(id: string): Promise<boolean> {
+    const result = await db
+      .delete(quotations)
+      .where(eq(quotations.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async deleteQuotations(ids: string[]): Promise<number> {
+    const deletePromises = ids.map(id => 
+      db.delete(quotations).where(eq(quotations.id, id))
+    );
+    const results = await Promise.all(deletePromises);
+    return results.length;
+  }
+
+  async getNextQuotationNumber(): Promise<string> {
+    const currentYear = new Date().getFullYear();
+    const allQuotations = await db.select().from(quotations);
+    const thisYearQuotations = allQuotations.filter(q => 
+      q.quotationNumber.startsWith(`QT-${currentYear}-`)
+    );
+    const nextNumber = thisYearQuotations.length + 1;
+    return `QT-${currentYear}-${String(nextNumber).padStart(4, '0')}`;
+  }
+
+  async getQuotationItems(quotationId: string): Promise<QuotationItem[]> {
+    return await db
+      .select()
+      .from(quotationItems)
+      .where(eq(quotationItems.quotationId, quotationId))
+      .orderBy(quotationItems.displayOrder);
+  }
+
+  async createQuotationItem(insertItem: InsertQuotationItem): Promise<QuotationItem> {
+    const [item] = await db
+      .insert(quotationItems)
+      .values(insertItem)
+      .returning();
+    return item;
+  }
+
+  async deleteQuotationItem(id: string): Promise<boolean> {
+    const result = await db
+      .delete(quotationItems)
+      .where(eq(quotationItems.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async getQuotationSettings(): Promise<QuotationSettings | undefined> {
+    const [settings] = await db.select().from(quotationSettings).limit(1);
+    return settings || undefined;
+  }
+
+  async updateQuotationSettings(termsAndConditions: string): Promise<QuotationSettings> {
+    const existing = await this.getQuotationSettings();
+    
+    if (existing) {
+      const [updated] = await db
+        .update(quotationSettings)
+        .set({ termsAndConditions, updatedAt: new Date() })
+        .where(eq(quotationSettings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(quotationSettings)
+        .values({ termsAndConditions })
+        .returning();
+      return created;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
