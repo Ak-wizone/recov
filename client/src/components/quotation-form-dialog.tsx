@@ -65,7 +65,7 @@ export function QuotationFormDialog({ open, onOpenChange, quotation }: Quotation
   });
 
   const { data: items = [] } = useQuery<MasterItem[]>({
-    queryKey: ["/api/master-items"],
+    queryKey: ["/api/masters/items"],
   });
 
   const { data: settings } = useQuery<{ termsAndConditions: string }>({
