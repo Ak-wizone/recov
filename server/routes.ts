@@ -1435,7 +1435,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const lead = await storage.createLead(result.data);
           results.push(lead);
         } else {
-          errors.push({ row: i + 2, error: fromZodError(result.error).message });
+          // Extract field and message from Zod error
+          const zodError = result.error;
+          const firstError = zodError.errors[0];
+          errors.push({ 
+            rowNumber: i + 2, 
+            field: firstError.path.join('.') || 'unknown',
+            message: firstError.message 
+          });
         }
       }
 
