@@ -163,31 +163,39 @@ export const insertMasterCustomerSchema = createInsertSchema(masterCustomers).pi
   salesPerson: true,
   isActive: true,
 }).extend({
+  // Required fields
   clientName: z.string().min(1, "Client name is required"),
   category: z.enum(["Alpha", "Beta", "Gamma", "Delta"], {
     errorMap: () => ({ message: "Category must be Alpha, Beta, Gamma, or Delta" }),
   }),
-  billingAddress: z.string().optional(),
-  city: z.string().optional(),
-  pincode: z.string().optional(),
+  gstNumber: z.string().min(1, "GST number is required"),
+  primaryMobile: z.string()
+    .min(1, "Primary mobile is required")
+    .regex(/^[0-9]{10}$/, "Mobile number must be exactly 10 digits"),
+  primaryEmail: z.string().min(1, "Primary email is required").email("Invalid primary email"),
+  paymentTermsDays: z.string().min(1, "Payment terms are required"),
+  creditLimit: z.string().min(1, "Credit limit is required"),
+  billingAddress: z.string().min(1, "Billing address is required"),
+  pincode: z.string().min(1, "Pin code is required"),
+  city: z.string().min(1, "City is required"),
+  interestRate: z.string().min(1, "Interest rate is required"),
+  
+  // Optional fields
   state: z.string().optional(),
   country: z.string().optional(),
-  gstNumber: z.string().optional(),
   panNumber: z.string().optional(),
   msmeNumber: z.string().optional(),
   incorporationCertNumber: z.string().optional(),
   incorporationDate: z.string().optional(),
   companyType: z.string().optional(),
   primaryContactName: z.string().optional(),
-  primaryMobile: z.string().optional(),
-  primaryEmail: z.string().email("Invalid primary email").optional().or(z.literal("")),
   secondaryContactName: z.string().optional(),
-  secondaryMobile: z.string().optional(),
+  secondaryMobile: z.string()
+    .regex(/^[0-9]{10}$/, "Secondary mobile must be exactly 10 digits")
+    .optional()
+    .or(z.literal("")),
   secondaryEmail: z.string().email("Invalid secondary email").optional().or(z.literal("")),
-  paymentTermsDays: z.string().min(1, "Payment terms are required"),
-  creditLimit: z.string().optional(),
   interestApplicableFrom: z.string().optional(),
-  interestRate: z.string().optional(),
   salesPerson: z.string().optional(),
   isActive: z.enum(["Active", "Inactive"]).default("Active"),
 });
