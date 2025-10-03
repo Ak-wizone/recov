@@ -616,6 +616,7 @@ export default function Leads() {
                   <p className="text-xl font-bold text-blue-900 dark:text-blue-100">
                     {totalCount}
                   </p>
+                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mt-1">₹{totalAmount.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
@@ -642,6 +643,7 @@ export default function Leads() {
                   <p className="text-xl font-bold text-green-900 dark:text-green-100">
                     {newLeadCount}
                   </p>
+                  <p className="text-xs font-semibold text-green-700 dark:text-green-300 mt-1">₹{newLeadAmount.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
@@ -668,6 +670,7 @@ export default function Leads() {
                   <p className="text-xl font-bold text-purple-900 dark:text-purple-100">
                     {inProgressCount}
                   </p>
+                  <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 mt-1">₹{inProgressAmount.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
@@ -694,6 +697,7 @@ export default function Leads() {
                   <p className="text-xl font-bold text-orange-900 dark:text-orange-100">
                     {pendingClientCount}
                   </p>
+                  <p className="text-xs font-semibold text-orange-700 dark:text-orange-300 mt-1">₹{pendingClientAmount.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
@@ -720,6 +724,7 @@ export default function Leads() {
                   <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">
                     {pendingWizoneCount}
                   </p>
+                  <p className="text-xs font-semibold text-yellow-700 dark:text-yellow-300 mt-1">₹{pendingWizoneAmount.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
@@ -746,6 +751,7 @@ export default function Leads() {
                   <p className="text-xl font-bold text-cyan-900 dark:text-cyan-100">
                     {quotationSentCount}
                   </p>
+                  <p className="text-xs font-semibold text-cyan-700 dark:text-cyan-300 mt-1">₹{quotationSentAmount.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
@@ -772,6 +778,7 @@ export default function Leads() {
                   <p className="text-xl font-bold text-emerald-900 dark:text-emerald-100">
                     {convertedCount}
                   </p>
+                  <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mt-1">₹{convertedAmount.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
@@ -798,6 +805,7 @@ export default function Leads() {
                   <p className="text-xl font-bold text-pink-900 dark:text-pink-100">
                     {deliveredCount}
                   </p>
+                  <p className="text-xs font-semibold text-pink-700 dark:text-pink-300 mt-1">₹{deliveredAmount.toFixed(2)}</p>
                 </div>
               </div>
             </CardContent>
