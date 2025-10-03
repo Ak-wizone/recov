@@ -148,7 +148,13 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
         <div className="no-print sticky top-0 z-10 bg-white border-b px-6 py-3 flex justify-between items-center">
           <h3 className="font-semibold">Print Preview</h3>
           <div className="flex gap-2">
-            <Button onClick={handlePrint} size="sm" className="gap-2 bg-orange-500 hover:bg-orange-600" data-testid="button-print-modal">
+            <Button 
+              onClick={handlePrint} 
+              size="sm" 
+              className="gap-2" 
+              style={{ backgroundColor: profile?.brandColor || "#ea580c" }}
+              data-testid="button-print-modal"
+            >
               <Printer className="h-4 w-4" />
               Print
             </Button>
@@ -200,7 +206,10 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
               </div>
 
               {/* Amount Due Bar */}
-              <div className="bg-orange-500 text-white px-4 py-2 mb-4 flex justify-between items-center">
+              <div 
+                className="text-white px-4 py-2 mb-4 flex justify-between items-center" 
+                style={{ backgroundColor: profile.brandColor || "#ea580c" }}
+              >
                 <span className="font-semibold">Amount Due:</span>
                 <span className="text-xl font-bold">INR {parseFloat(quotation.grandTotal).toFixed(2)}</span>
               </div>
@@ -236,7 +245,7 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
               {/* Items Table */}
               <table className="w-full border-collapse mb-4 text-xs">
                 <thead>
-                  <tr className="bg-orange-500 text-white">
+                  <tr className="text-white" style={{ backgroundColor: profile.brandColor || "#ea580c" }}>
                     <th className="border border-gray-300 px-2 py-2 text-left">S.No</th>
                     <th className="border border-gray-300 px-2 py-2 text-left">Item<br/>Description</th>
                     <th className="border border-gray-300 px-2 py-2 text-center">HSN/SAC</th>
