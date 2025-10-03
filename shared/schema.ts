@@ -381,7 +381,7 @@ export const insertLeadSchema = createInsertSchema(leads).pick({
 }).extend({
   companyName: z.string().min(1, "Company name is required"),
   contactPerson: z.string().min(1, "Contact person is required"),
-  mobile: z.string().min(1, "Mobile number is required"),
+  mobile: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits"),
   email: z.string().email("Invalid email address"),
   leadSource: z.enum(["Existing Client", "Instagram", "Facebook", "Website", "Indiamart", "Justdial", "Reference"], {
     errorMap: () => ({ message: "Invalid lead source" }),

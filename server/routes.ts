@@ -1523,6 +1523,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Partial update lead (for inline editing)
+  app.patch("/api/leads/:id", async (req, res) => {
+    try {
+      const result = insertLeadSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const lead = await storage.updateLead(req.params.id, result.data);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      res.json(lead);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Delete lead
   app.delete("/api/leads/:id", async (req, res) => {
     try {
