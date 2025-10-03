@@ -1827,6 +1827,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete all items for a quotation (bulk delete)
+  app.delete("/api/quotations/:quotationId/items", async (req, res) => {
+    try {
+      const count = await storage.deleteQuotationItems(req.params.quotationId);
+      res.json({ count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Delete quotation item
   app.delete("/api/quotations/:quotationId/items/:itemId", async (req, res) => {
     try {

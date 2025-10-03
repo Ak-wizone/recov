@@ -94,6 +94,7 @@ export interface IStorage {
   getQuotationItems(quotationId: string): Promise<QuotationItem[]>;
   createQuotationItem(item: InsertQuotationItem): Promise<QuotationItem>;
   deleteQuotationItem(id: string): Promise<boolean>;
+  deleteQuotationItems(quotationId: string): Promise<number>;
   
   // Quotation Settings operations
   getQuotationSettings(): Promise<QuotationSettings | undefined>;
@@ -802,6 +803,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(quotationItems.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  async deleteQuotationItems(quotationId: string): Promise<number> {
+    const result = await db
+      .delete(quotationItems)
+      .where(eq(quotationItems.quotationId, quotationId))
+      .returning();
+    return result.length;
   }
 
   async getQuotationSettings(): Promise<QuotationSettings | undefined> {
