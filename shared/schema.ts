@@ -410,6 +410,33 @@ export const insertLeadSchema = createInsertSchema(leads).pick({
 export type InsertLead = z.infer<typeof insertLeadSchema>;
 export type Lead = typeof leads.$inferSelect;
 
+// Lead Follow-ups table
+export const leadFollowUps = pgTable("lead_follow_ups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: varchar("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // Meeting, Call, WhatsApp, Email
+  remarks: text("remarks").notNull(),
+  followUpDateTime: timestamp("follow_up_date_time").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertLeadFollowUpSchema = createInsertSchema(leadFollowUps).pick({
+  leadId: true,
+  type: true,
+  remarks: true,
+  followUpDateTime: true,
+}).extend({
+  leadId: z.string().min(1, "Lead ID is required"),
+  type: z.enum(["Meeting", "Call", "WhatsApp", "Email"], {
+    errorMap: () => ({ message: "Type must be Meeting, Call, WhatsApp, or Email" }),
+  }),
+  remarks: z.string().min(1, "Remarks are required"),
+  followUpDateTime: z.string().min(1, "Follow-up date and time are required"),
+});
+
+export type InsertLeadFollowUp = z.infer<typeof insertLeadFollowUpSchema>;
+export type LeadFollowUp = typeof leadFollowUps.$inferSelect;
+
 // Company Profile table
 export const companyProfile = pgTable("company_profile", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
