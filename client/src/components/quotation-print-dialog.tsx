@@ -22,16 +22,24 @@ interface QuotationItem {
 
 interface CompanyProfile {
   id: string;
-  companyName: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  phone: string;
-  email: string;
-  website: string;
-  gstin: string;
-  logoUrl: string | null;
+  logo: string | null;
+  legalName: string;
+  entityType: string;
+  gstin: string | null;
+  regAddressLine1: string;
+  regAddressLine2: string | null;
+  regCity: string;
+  regState: string;
+  regPincode: string;
+  primaryContactName: string;
+  primaryContactMobile: string;
+  primaryContactEmail: string;
+  bankName: string | null;
+  branchName: string | null;
+  accountName: string | null;
+  accountNumber: string | null;
+  ifscCode: string | null;
+  brandColor: string | null;
 }
 
 interface QuotationPrintDialogProps {
@@ -176,11 +184,11 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
               {/* Header Section */}
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-start gap-3">
-                  {profile.logoUrl && (
-                    <img src={profile.logoUrl} alt="Logo" className="h-12 w-12 object-contain" />
+                  {profile.logo && (
+                    <img src={profile.logo} alt="Logo" className="h-12 w-12 object-contain" />
                   )}
                   <div>
-                    <h1 className="text-xl font-bold">{profile.companyName}</h1>
+                    <h1 className="text-xl font-bold">{profile.legalName}</h1>
                   </div>
                 </div>
                 <div className="text-center flex-1">
@@ -200,18 +208,19 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
               {/* Company and Client Details */}
               <div className="grid grid-cols-2 gap-8 mb-4">
                 <div>
-                  <p className="font-bold text-sm mb-1">{profile.companyName}</p>
-                  <p className="text-xs">{profile.address}</p>
-                  <p className="text-xs">{profile.city}, {profile.state} {profile.pincode}, IN</p>
-                  <p className="text-xs">+91{profile.phone}</p>
-                  <p className="text-xs">{profile.email}</p>
+                  <p className="font-bold text-sm mb-1">{profile.legalName}</p>
+                  <p className="text-xs">{profile.regAddressLine1}</p>
+                  {profile.regAddressLine2 && <p className="text-xs">{profile.regAddressLine2}</p>}
+                  <p className="text-xs">{profile.regCity}, {profile.regState} {profile.regPincode}, IN</p>
+                  <p className="text-xs">+91{profile.primaryContactMobile}</p>
+                  <p className="text-xs">{profile.primaryContactEmail}</p>
                   <p className="text-xs font-semibold mt-1">GSTIN: {profile.gstin || '-'}</p>
                 </div>
                 <div className="text-right text-xs">
                   <div className="mb-3">
                     <p className="mb-1"><span className="inline-block w-24 text-left">Issue Date:</span> {new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                     <p className="mb-1"><span className="inline-block w-24 text-left">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                    <p><span className="inline-block w-24 text-left">Place of Supply:</span> {profile.state}</p>
+                    <p><span className="inline-block w-24 text-left">Place of Supply:</span> {profile.regState}</p>
                   </div>
                 </div>
               </div>
@@ -309,6 +318,24 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
                 <div className="mt-6 border-t-2 border-gray-300 pt-3">
                   <p className="font-bold text-sm mb-2">Terms & Conditions</p>
                   <div className="text-xs whitespace-pre-wrap italic">{quotation.termsAndConditions}</div>
+                </div>
+              )}
+
+              {/* Banking Details Footer */}
+              {(profile.bankName || profile.accountNumber) && (
+                <div className="mt-6 border-t-2 border-gray-300 pt-3">
+                  <p className="font-bold text-sm mb-2">Banking Details</p>
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <p><span className="font-semibold">Bank Name:</span> {profile.bankName || '-'}</p>
+                      <p><span className="font-semibold">Branch:</span> {profile.branchName || '-'}</p>
+                    </div>
+                    <div>
+                      <p><span className="font-semibold">Account Name:</span> {profile.accountName || '-'}</p>
+                      <p><span className="font-semibold">Account Number:</span> {profile.accountNumber || '-'}</p>
+                      <p><span className="font-semibold">IFSC Code:</span> {profile.ifscCode || '-'}</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
