@@ -225,13 +225,14 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="clientName"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
                           <FormLabel>Client Name *</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Enter client name"
                               {...field}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-clientName"
                             />
                           </FormControl>
@@ -267,13 +268,14 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="billingAddress"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Billing Address</FormLabel>
+                          <FormLabel>Billing Address *</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Enter billing address"
                               {...field}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-billingAddress"
                             />
                           </FormControl>
@@ -285,13 +287,14 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="city"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
-                          <FormLabel>City</FormLabel>
+                          <FormLabel>City *</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Enter city"
                               {...field}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-city"
                             />
                           </FormControl>
@@ -303,13 +306,14 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="pincode"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
-                          <FormLabel>Pincode</FormLabel>
+                          <FormLabel>Pin Code *</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Enter pincode"
                               {...field}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-pincode"
                             />
                           </FormControl>
@@ -357,13 +361,14 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="gstNumber"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
-                          <FormLabel>GST Number</FormLabel>
+                          <FormLabel>GST Number *</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Enter GST number"
                               {...field}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-gstNumber"
                             />
                           </FormControl>
@@ -523,14 +528,16 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="primaryMobile"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
-                          <FormLabel>Mobile Number</FormLabel>
+                          <FormLabel>Mobile Number * (10 digits only)</FormLabel>
                           <FormControl>
                             <Input
                               type="tel"
-                              placeholder="Enter primary mobile"
+                              placeholder="Enter 10 digit mobile"
                               {...field}
+                              maxLength={10}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-primaryMobile"
                             />
                           </FormControl>
@@ -542,14 +549,15 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="primaryEmail"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem className="md:col-span-2">
-                          <FormLabel>Email Address</FormLabel>
+                          <FormLabel>Email Address *</FormLabel>
                           <FormControl>
                             <Input
                               type="email"
                               placeholder="Enter primary email"
                               {...field}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-primaryEmail"
                             />
                           </FormControl>
@@ -591,12 +599,13 @@ export function MasterCustomerFormDialog({
                       name="secondaryMobile"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Mobile Number</FormLabel>
+                          <FormLabel>Mobile Number (10 digits only)</FormLabel>
                           <FormControl>
                             <Input
                               type="tel"
-                              placeholder="Enter secondary mobile"
+                              placeholder="Enter 10 digit mobile"
                               {...field}
+                              maxLength={10}
                               data-testid="input-secondaryMobile"
                             />
                           </FormControl>
@@ -637,13 +646,14 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="paymentTermsDays"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
                           <FormLabel>Payment Terms (Days) *</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Enter payment terms in days"
                               {...field}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-paymentTermsDays"
                             />
                           </FormControl>
@@ -655,15 +665,16 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="creditLimit"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
-                          <FormLabel>Credit Limit</FormLabel>
+                          <FormLabel>Credit Limit *</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               step="0.01"
                               placeholder="Enter credit limit"
                               {...field}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-creditLimit"
                             />
                           </FormControl>
@@ -707,15 +718,16 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="interestRate"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
-                          <FormLabel>Interest Rate (%)</FormLabel>
+                          <FormLabel>Interest Rate (%) *</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               step="0.01"
                               placeholder="Enter interest rate"
                               {...field}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-interestRate"
                             />
                           </FormControl>
