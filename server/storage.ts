@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type CompanyProfile, type InsertCompanyProfile, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, companyProfile } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type CompanyProfile, type InsertCompanyProfile, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, companyProfile } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -61,6 +61,14 @@ export interface IStorage {
   updateReceipt(id: string, receipt: Partial<InsertReceipt>): Promise<Receipt | undefined>;
   deleteReceipt(id: string): Promise<boolean>;
   deleteReceipts(ids: string[]): Promise<number>;
+  
+  // Lead operations
+  getLeads(): Promise<Lead[]>;
+  getLead(id: string): Promise<Lead | undefined>;
+  createLead(lead: InsertLead): Promise<Lead>;
+  updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined>;
+  deleteLead(id: string): Promise<boolean>;
+  deleteLeads(ids: string[]): Promise<number>;
   
   // Company Profile operations
   getCompanyProfile(): Promise<CompanyProfile | undefined>;
@@ -495,6 +503,73 @@ export class DatabaseStorage implements IStorage {
     let count = 0;
     for (const id of ids) {
       const deleted = await this.deleteReceipt(id);
+      if (deleted) count++;
+    }
+    return count;
+  }
+
+  async getLeads(): Promise<Lead[]> {
+    return await db.select().from(leads).orderBy(desc(leads.createdAt));
+  }
+
+  async getLead(id: string): Promise<Lead | undefined> {
+    const [lead] = await db.select().from(leads).where(eq(leads.id, id));
+    return lead || undefined;
+  }
+
+  async createLead(insertLead: InsertLead): Promise<Lead> {
+    const dataToInsert: any = { ...insertLead };
+    if (insertLead.dateCreated) {
+      dataToInsert.dateCreated = new Date(insertLead.dateCreated);
+    }
+    if (insertLead.lastFollowUp) {
+      dataToInsert.lastFollowUp = new Date(insertLead.lastFollowUp);
+    }
+    if (insertLead.nextFollowUp) {
+      dataToInsert.nextFollowUp = new Date(insertLead.nextFollowUp);
+    }
+    
+    const [lead] = await db
+      .insert(leads)
+      .values(dataToInsert)
+      .returning();
+    return lead;
+  }
+
+  async updateLead(id: string, updates: Partial<InsertLead>): Promise<Lead | undefined> {
+    const updateData: any = { ...updates };
+    if (updates.dateCreated) {
+      updateData.dateCreated = new Date(updates.dateCreated);
+    }
+    if (updates.lastFollowUp) {
+      updateData.lastFollowUp = new Date(updates.lastFollowUp);
+    }
+    if (updates.nextFollowUp) {
+      updateData.nextFollowUp = new Date(updates.nextFollowUp);
+    }
+    
+    const [lead] = await db
+      .update(leads)
+      .set(updateData)
+      .where(eq(leads.id, id))
+      .returning();
+    return lead || undefined;
+  }
+
+  async deleteLead(id: string): Promise<boolean> {
+    const result = await db
+      .delete(leads)
+      .where(eq(leads.id, id))
+      .returning();
+    return result.length > 0;
+  }
+
+  async deleteLeads(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    
+    let count = 0;
+    for (const id of ids) {
+      const deleted = await this.deleteLead(id);
       if (deleted) count++;
     }
     return count;
