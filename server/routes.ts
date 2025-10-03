@@ -1980,6 +1980,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete proforma invoice
+  app.delete("/api/proforma-invoices/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteProformaInvoice(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Proforma invoice not found" });
+      }
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk delete proforma invoices
+  app.post("/api/proforma-invoices/bulk-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Invalid ids array" });
+      }
+      const count = await storage.deleteProformaInvoices(ids);
+      res.json({ count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Export proforma invoices to Excel
+  app.get("/api/proforma-invoices/export", async (_req, res) => {
+    try {
+      const invoices = await storage.getProformaInvoices();
+      
+      const exportData = invoices.map((inv: any) => ({
+        "PI Number": inv.invoiceNumber,
+        "Invoice Date": new Date(inv.invoiceDate).toLocaleDateString(),
+        "Due Date": new Date(inv.dueDate).toLocaleDateString(),
+        "Customer Name": inv.leadName,
+        "Customer Email": inv.leadEmail,
+        "Customer Mobile": inv.leadMobile,
+        "Subtotal": parseFloat(inv.subtotal || "0").toFixed(2),
+        "Discount": parseFloat(inv.totalDiscount || "0").toFixed(2),
+        "Tax": parseFloat(inv.totalTax || "0").toFixed(2),
+        "Grand Total": parseFloat(inv.grandTotal || "0").toFixed(2),
+        "Created At": new Date(inv.createdAt).toLocaleDateString(),
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Proforma Invoices");
+      
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.setHeader('Content-Disposition', 'attachment; filename=proforma_invoices.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
