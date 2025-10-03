@@ -8,6 +8,7 @@ import Home from "@/pages/home";
 import Leads from "@/pages/leads";
 import Quotations from "@/pages/quotations";
 import QuotationPrint from "@/pages/quotation-print";
+import ProformaInvoices from "@/pages/proforma-invoices";
 import MasterCustomers from "@/pages/master-customers";
 import MasterItems from "@/pages/master-items";
 import Invoices from "@/pages/invoices";
@@ -25,6 +26,7 @@ function Router() {
             <Route path="/" component={Home} />
             <Route path="/leads" component={Leads} />
             <Route path="/quotations" component={Quotations} />
+            <Route path="/proforma-invoices" component={ProformaInvoices} />
             <Route path="/invoices" component={Invoices} />
             <Route path="/receipts" component={Receipts} />
             <Route path="/masters/customers" component={MasterCustomers} />
