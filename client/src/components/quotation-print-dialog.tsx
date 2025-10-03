@@ -164,7 +164,7 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
               display: none !important;
             }
             @page {
-              margin: 15mm;
+              margin: 0.5in;
               size: A4 portrait;
             }
           }
@@ -173,10 +173,12 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-            max-width: 210mm;
-            min-height: 297mm;
+            width: 210mm;
+            height: 297mm;
             margin: 0 auto;
             background: white;
+            padding: 0.5in;
+            box-sizing: border-box;
           }
         `}</style>
 
@@ -213,7 +215,7 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
         </div>
 
         {/* Print Content */}
-        <div className="print-content bg-white p-12">
+        <div className="print-content bg-white">
           {(itemsLoading || profileLoading) ? (
             <Skeleton className="h-96 w-full" />
           ) : profile ? (
@@ -227,91 +229,86 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
                 </div>
               )}
 
-              {/* Professional Header with Brand Color Bar */}
-              <div className="mb-8">
+              {/* Compact Header - Fits within 4 inches */}
+              <div style={{ height: '4in' }} className="flex flex-col">
+                {/* Top Bar with Brand Color */}
                 <div 
-                  className="h-2 w-full mb-6" 
+                  className="h-1 w-full mb-3" 
                   style={{ backgroundColor: profile.brandColor || "#ea580c" }}
                 ></div>
                 
-                <div className="flex justify-between items-center mb-6">
-                  <div className="flex items-center gap-6">
+                {/* Header Row: Logo, Company Name, Quotation Title */}
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-3">
                     {profile.logo && (
-                      <img src={profile.logo} alt="Logo" className="h-24 w-24 object-contain" />
+                      <img src={profile.logo} alt="Logo" className="h-14 w-14 object-contain" />
                     )}
                     <div>
-                      <h1 className="text-3xl font-bold text-gray-800">{profile.legalName}</h1>
-                      <p className="text-sm text-gray-600 mt-1">{profile.entityType}</p>
+                      <h1 className="text-lg font-bold text-gray-800 leading-tight">{profile.legalName}</h1>
+                      <p className="text-xs text-gray-600">{profile.entityType}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <h2 
-                      className="text-3xl font-bold mb-1" 
+                      className="text-xl font-bold" 
                       style={{ color: profile.brandColor || "#ea580c" }}
                     >
                       QUOTATION
                     </h2>
-                    <p className="text-xl font-semibold text-gray-700">#{quotation.quotationNumber.split('-').pop()}</p>
+                    <p className="text-sm font-semibold text-gray-700">#{quotation.quotationNumber.split('-').pop()}</p>
+                  </div>
+                </div>
+
+                {/* Two Column: Company Info & Client Info */}
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  <div className="text-xs">
+                    <p className="font-bold text-gray-700 mb-1">From:</p>
+                    <p className="text-gray-600">{profile.regAddressLine1}{profile.regAddressLine2 ? ', ' + profile.regAddressLine2 : ''}</p>
+                    <p className="text-gray-600">{profile.regCity}, {profile.regState} {profile.regPincode}</p>
+                    <p className="text-gray-600">Ph: +91{profile.primaryContactMobile} | {profile.primaryContactEmail}</p>
+                    <p className="font-semibold text-gray-700 mt-1">GSTIN: {profile.gstin || 'N/A'}</p>
+                  </div>
+                  <div className="text-xs">
+                    <p className="font-bold text-gray-700 mb-1">Bill To:</p>
+                    <p className="font-semibold text-gray-800">{quotation.leadName}</p>
+                    <p className="text-gray-600">{quotation.leadEmail}</p>
+                    <p className="text-gray-600">{quotation.leadMobile}</p>
+                  </div>
+                </div>
+
+                {/* Date Details Row */}
+                <div className="grid grid-cols-3 gap-4 text-xs bg-gray-50 p-2 rounded">
+                  <div>
+                    <span className="font-semibold text-gray-700">Issue: </span>
+                    <span className="text-gray-600">{new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-700">Valid: </span>
+                    <span className="text-gray-600">{new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-700">Place: </span>
+                    <span className="text-gray-600">{profile.regState}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Two Column Layout - Company & Client Info */}
-              <div className="grid grid-cols-2 gap-8 mb-8">
-                {/* From Section */}
-                <div className="border-l-4 pl-4" style={{ borderColor: profile.brandColor || "#ea580c" }}>
-                  <p className="text-xs font-bold text-gray-500 uppercase mb-3">From</p>
-                  <p className="text-sm font-medium text-gray-600">{profile.regAddressLine1}</p>
-                  {profile.regAddressLine2 && <p className="text-sm text-gray-600">{profile.regAddressLine2}</p>}
-                  <p className="text-sm text-gray-600">{profile.regCity}, {profile.regState} {profile.regPincode}</p>
-                  <p className="text-sm text-gray-600 mt-2">Phone: +91{profile.primaryContactMobile}</p>
-                  <p className="text-sm text-gray-600">Email: {profile.primaryContactEmail}</p>
-                  <p className="text-sm font-semibold text-gray-700 mt-3">GSTIN: {profile.gstin || 'N/A'}</p>
-                </div>
-
-                {/* To Section */}
-                <div className="border-l-4 border-gray-300 pl-4">
-                  <p className="text-xs font-bold text-gray-500 uppercase mb-3">Bill To</p>
-                  <p className="text-base font-bold text-gray-800">{quotation.leadName}</p>
-                  <p className="text-sm text-gray-600 mt-2">{quotation.leadEmail}</p>
-                  <p className="text-sm text-gray-600">{quotation.leadMobile}</p>
-                </div>
-              </div>
-
-              {/* Quotation Details Bar */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-8">
-                <div className="grid grid-cols-3 gap-6 text-sm">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Issue Date</p>
-                    <p className="font-semibold text-gray-800">{new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Valid Until</p>
-                    <p className="font-semibold text-gray-800">{new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Place of Supply</p>
-                    <p className="font-semibold text-gray-800">{profile.regState}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Items Table - Modern Design */}
-              <div className="mb-8">
-                <table className="w-full border-collapse">
+              {/* Compact Items Table */}
+              <div className="mb-4">
+                <table className="w-full border-collapse text-xs">
                   <thead>
-                    <tr className="text-white text-sm" style={{ backgroundColor: profile.brandColor || "#ea580c" }}>
-                      <th className="px-4 py-3 text-left font-semibold">S.No</th>
-                      <th className="px-4 py-3 text-left font-semibold">Item Description</th>
-                      <th className="px-4 py-3 text-center font-semibold">HSN/SAC</th>
-                      <th className="px-4 py-3 text-center font-semibold">Qty/UoM</th>
-                      <th className="px-4 py-3 text-right font-semibold">Rate</th>
-                      <th className="px-4 py-3 text-right font-semibold">Taxable</th>
-                      <th className="px-4 py-3 text-right font-semibold">IGST</th>
-                      <th className="px-4 py-3 text-right font-semibold">Amount</th>
+                    <tr className="text-white" style={{ backgroundColor: profile.brandColor || "#ea580c" }}>
+                      <th className="px-2 py-2 text-left">No</th>
+                      <th className="px-2 py-2 text-left">Item</th>
+                      <th className="px-2 py-2 text-center">HSN</th>
+                      <th className="px-2 py-2 text-center">Qty</th>
+                      <th className="px-2 py-2 text-right">Rate</th>
+                      <th className="px-2 py-2 text-right">Taxable</th>
+                      <th className="px-2 py-2 text-right">IGST</th>
+                      <th className="px-2 py-2 text-right">Amount</th>
                     </tr>
                   </thead>
-                  <tbody className="text-sm">
+                  <tbody>
                     {items.map((item, index) => {
                       const qty = parseFloat(item.quantity || "0");
                       const rate = parseFloat(item.rate || "0");
@@ -325,22 +322,15 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
                       const totalAmount = taxableValue + taxAmount;
                       
                       return (
-                        <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
-                          <td className="px-4 py-3 text-gray-600">{index + 1}</td>
-                          <td className="px-4 py-3">
-                            <div className="font-semibold text-gray-800">{item.itemName}</div>
-                          </td>
-                          <td className="px-4 py-3 text-center text-gray-600">-</td>
-                          <td className="px-4 py-3 text-center text-gray-600">
-                            {item.quantity} {item.unit}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-700">₹{rate.toFixed(2)}</td>
-                          <td className="px-4 py-3 text-right text-gray-700">₹{taxableValue.toFixed(2)}</td>
-                          <td className="px-4 py-3 text-right text-gray-700">
-                            ₹{taxAmount.toFixed(2)}
-                            {tax > 0 && <div className="text-xs text-gray-500">@{tax}%</div>}
-                          </td>
-                          <td className="px-4 py-3 text-right font-bold text-gray-900">₹{totalAmount.toFixed(2)}</td>
+                        <tr key={item.id} className="border-b border-gray-200">
+                          <td className="px-2 py-2 text-gray-600">{index + 1}</td>
+                          <td className="px-2 py-2 font-semibold text-gray-800">{item.itemName}</td>
+                          <td className="px-2 py-2 text-center text-gray-600">-</td>
+                          <td className="px-2 py-2 text-center text-gray-600">{item.quantity} {item.unit}</td>
+                          <td className="px-2 py-2 text-right text-gray-700">₹{rate.toFixed(2)}</td>
+                          <td className="px-2 py-2 text-right text-gray-700">₹{taxableValue.toFixed(2)}</td>
+                          <td className="px-2 py-2 text-right text-gray-700">₹{taxAmount.toFixed(2)}<br/><span className="text-[10px]">@{tax}%</span></td>
+                          <td className="px-2 py-2 text-right font-bold">₹{totalAmount.toFixed(2)}</td>
                         </tr>
                       );
                     })}
@@ -348,90 +338,65 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
                 </table>
               </div>
 
-              {/* Summary Grid */}
-              <div className="grid grid-cols-2 gap-8 mb-8">
-                {/* Left Side - Amount in Words */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <p className="text-xs font-bold text-gray-500 uppercase mb-2">Amount in Words</p>
-                  <p className="text-sm font-semibold text-gray-800">{numberToWords(Math.round(parseFloat(quotation.grandTotal)))}</p>
-                </div>
-
-                {/* Right Side - Summary */}
-                <div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between text-gray-600">
-                      <span>Subtotal</span>
+              {/* Compact Summary */}
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="text-xs">
+                    <span className="font-semibold">Amount in Words: </span>
+                    <span className="text-gray-700">{numberToWords(Math.round(parseFloat(quotation.grandTotal)))}</span>
+                  </div>
+                  <div className="text-right text-xs space-y-1">
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-600">Subtotal:</span>
                       <span className="font-semibold">₹{parseFloat(quotation.subtotal).toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>IGST @{items[0] ? items[0].taxPercent : '0'}%</span>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-gray-600">IGST @{items[0] ? items[0].taxPercent : '0'}%:</span>
                       <span className="font-semibold">₹{parseFloat(quotation.totalTax).toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Round Off</span>
-                      <span className="font-semibold">{(parseFloat(quotation.grandTotal) - Math.round(parseFloat(quotation.grandTotal))).toFixed(2)}</span>
-                    </div>
                     <div 
-                      className="flex justify-between text-white text-lg font-bold py-3 px-4 rounded-lg mt-3"
+                      className="flex justify-between gap-4 text-white font-bold py-1 px-2 rounded mt-1"
                       style={{ backgroundColor: profile.brandColor || "#ea580c" }}
                     >
-                      <span>TOTAL</span>
+                      <span>TOTAL:</span>
                       <span>₹{Math.round(parseFloat(quotation.grandTotal)).toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Terms & Conditions - Modern Card */}
-              {quotation.termsAndConditions && (
-                <div className="mb-6 bg-gray-50 rounded-lg p-6 border-l-4" style={{ borderColor: profile.brandColor || "#ea580c" }}>
-                  <p className="text-sm font-bold text-gray-700 uppercase mb-3">Terms & Conditions</p>
-                  <div className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{quotation.termsAndConditions}</div>
+              {/* Bottom Section: Terms & Banking Side by Side */}
+              <div className="grid grid-cols-2 gap-4 mt-auto pt-4 border-t border-gray-300">
+                {/* Terms & Conditions */}
+                <div>
+                  <p className="text-xs font-bold text-gray-700 uppercase mb-2">Terms & Conditions</p>
+                  {quotation.termsAndConditions ? (
+                    <div className="text-[10px] text-gray-600 whitespace-pre-wrap leading-relaxed">{quotation.termsAndConditions}</div>
+                  ) : (
+                    <p className="text-[10px] text-gray-500">No terms specified</p>
+                  )}
                 </div>
-              )}
 
-              {/* Banking Details - Professional Footer */}
-              {(profile.bankName || profile.accountNumber) && (
-                <div className="bg-gray-100 rounded-lg p-6 border-t-4" style={{ borderColor: profile.brandColor || "#ea580c" }}>
-                  <p className="text-sm font-bold text-gray-700 uppercase mb-4">Banking Information</p>
-                  <div className="grid grid-cols-2 gap-6 text-sm">
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Bank Name</p>
-                        <p className="font-semibold text-gray-800">{profile.bankName || '-'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Branch</p>
-                        <p className="font-semibold text-gray-800">{profile.branchName || '-'}</p>
-                      </div>
+                {/* Banking Details */}
+                <div>
+                  <p className="text-xs font-bold text-gray-700 uppercase mb-2">Banking Information</p>
+                  {(profile.bankName || profile.accountNumber) ? (
+                    <div className="text-[10px] space-y-1">
+                      <p><span className="font-semibold">Bank:</span> {profile.bankName || '-'}</p>
+                      <p><span className="font-semibold">Branch:</span> {profile.branchName || '-'}</p>
+                      <p><span className="font-semibold">Account:</span> {profile.accountName || '-'}</p>
+                      <p><span className="font-semibold">A/C No:</span> {profile.accountNumber || '-'}</p>
+                      <p><span className="font-semibold">IFSC:</span> {profile.ifscCode || '-'}</p>
                     </div>
-                    <div className="space-y-2">
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Account Name</p>
-                        <p className="font-semibold text-gray-800">{profile.accountName || '-'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">Account Number</p>
-                        <p className="font-semibold text-gray-800">{profile.accountNumber || '-'}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase">IFSC Code</p>
-                        <p className="font-semibold text-gray-800">{profile.ifscCode || '-'}</p>
-                      </div>
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="text-[10px] text-gray-500">No banking details</p>
+                  )}
                 </div>
-              )}
+              </div>
 
-              {/* Professional Footer Bar */}
-              <div className="mt-8 pt-6 border-t border-gray-300">
-                <p className="text-center text-xs text-gray-500">
-                  This is a computer-generated quotation and does not require a signature.
-                </p>
-                <div 
-                  className="h-1 w-24 mx-auto mt-4" 
-                  style={{ backgroundColor: profile.brandColor || "#ea580c" }}
-                ></div>
+              {/* Footer Note */}
+              <div className="text-center text-[10px] text-gray-500 mt-2">
+                This is a computer-generated quotation and does not require a signature.
               </div>
             </div>
           ) : (
