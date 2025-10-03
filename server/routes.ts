@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -1669,6 +1669,196 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const profile = await storage.updateCompanyProfile(result.data);
       res.json(profile);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ QUOTATION ROUTES ============
+
+  // Get all quotations
+  app.get("/api/quotations", async (_req, res) => {
+    try {
+      const quotations = await storage.getQuotations();
+      res.json(quotations);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get next quotation number (must be before :id route)
+  app.get("/api/quotations/next-number", async (_req, res) => {
+    try {
+      const nextNumber = await storage.getNextQuotationNumber();
+      res.json({ quotationNumber: nextNumber });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Export quotations to Excel
+  app.get("/api/quotations/export", async (_req, res) => {
+    try {
+      const quotations = await storage.getQuotations();
+      
+      const exportData = quotations.map((q: any) => ({
+        "Quotation Number": q.quotationNumber,
+        "Date": new Date(q.quotationDate).toLocaleDateString(),
+        "Valid Until": new Date(q.validUntil).toLocaleDateString(),
+        "Lead Name": q.leadName,
+        "Lead Email": q.leadEmail,
+        "Lead Mobile": q.leadMobile,
+        "Subtotal": parseFloat(q.subtotal || "0").toFixed(2),
+        "Discount": parseFloat(q.totalDiscount || "0").toFixed(2),
+        "Tax": parseFloat(q.totalTax || "0").toFixed(2),
+        "Grand Total": parseFloat(q.grandTotal || "0").toFixed(2),
+        "Created At": new Date(q.createdAt).toLocaleDateString(),
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Quotations");
+      
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.setHeader('Content-Disposition', 'attachment; filename=quotations.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single quotation
+  app.get("/api/quotations/:id", async (req, res) => {
+    try {
+      const quotation = await storage.getQuotation(req.params.id);
+      if (!quotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+      res.json(quotation);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get quotation items
+  app.get("/api/quotations/:id/items", async (req, res) => {
+    try {
+      const items = await storage.getQuotationItems(req.params.id);
+      res.json(items);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create new quotation
+  app.post("/api/quotations", async (req, res) => {
+    try {
+      const result = insertQuotationSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const quotation = await storage.createQuotation(result.data);
+      res.status(201).json(quotation);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create quotation item
+  app.post("/api/quotations/:id/items", async (req, res) => {
+    try {
+      const result = insertQuotationItemSchema.safeParse({
+        ...req.body,
+        quotationId: req.params.id,
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const item = await storage.createQuotationItem(result.data);
+      res.status(201).json(item);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update quotation
+  app.put("/api/quotations/:id", async (req, res) => {
+    try {
+      const result = insertQuotationSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const quotation = await storage.updateQuotation(req.params.id, result.data);
+      if (!quotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+      res.json(quotation);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete quotation
+  app.delete("/api/quotations/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteQuotation(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk delete quotations
+  app.post("/api/quotations/bulk-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!ids || !Array.isArray(ids)) {
+        return res.status(400).json({ message: "Invalid request: ids array required" });
+      }
+      const count = await storage.deleteQuotations(ids);
+      res.json({ count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete quotation item
+  app.delete("/api/quotations/:quotationId/items/:itemId", async (req, res) => {
+    try {
+      const success = await storage.deleteQuotationItem(req.params.itemId);
+      if (!success) {
+        return res.status(404).json({ message: "Item not found" });
+      }
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get quotation settings (Terms & Conditions)
+  app.get("/api/quotation-settings", async (_req, res) => {
+    try {
+      const settings = await storage.getQuotationSettings();
+      res.json(settings || { termsAndConditions: "" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update quotation settings
+  app.post("/api/quotation-settings", async (req, res) => {
+    try {
+      const result = insertQuotationSettingsSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const settings = await storage.updateQuotationSettings(result.data.termsAndConditions);
+      res.json(settings);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

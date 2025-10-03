@@ -776,7 +776,7 @@ export class DatabaseStorage implements IStorage {
   async createQuotationItem(insertItem: InsertQuotationItem): Promise<QuotationItem> {
     const [item] = await db
       .insert(quotationItems)
-      .values(insertItem)
+      .values(insertItem as any)
       .returning();
     return item;
   }
