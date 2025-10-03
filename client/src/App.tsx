@@ -7,6 +7,7 @@ import Layout from "@/components/layout";
 import Home from "@/pages/home";
 import Leads from "@/pages/leads";
 import Quotations from "@/pages/quotations";
+import QuotationPrint from "@/pages/quotation-print";
 import MasterCustomers from "@/pages/master-customers";
 import MasterItems from "@/pages/master-items";
 import Invoices from "@/pages/invoices";
@@ -16,19 +17,24 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/leads" component={Leads} />
-        <Route path="/quotations" component={Quotations} />
-        <Route path="/invoices" component={Invoices} />
-        <Route path="/receipts" component={Receipts} />
-        <Route path="/masters/customers" component={MasterCustomers} />
-        <Route path="/masters/items" component={MasterItems} />
-        <Route path="/company-settings" component={CompanySettings} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
+    <Switch>
+      <Route path="/quotations/:id/print" component={QuotationPrint} />
+      <Route>
+        <Layout>
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/leads" component={Leads} />
+            <Route path="/quotations" component={Quotations} />
+            <Route path="/invoices" component={Invoices} />
+            <Route path="/receipts" component={Receipts} />
+            <Route path="/masters/customers" component={MasterCustomers} />
+            <Route path="/masters/items" component={MasterItems} />
+            <Route path="/company-settings" component={CompanySettings} />
+            <Route component={NotFound} />
+          </Switch>
+        </Layout>
+      </Route>
+    </Switch>
   );
 }
 
