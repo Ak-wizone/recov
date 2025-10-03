@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QuotationTable } from "@/components/quotation-table";
 import { QuotationFormDialog } from "@/components/quotation-form-dialog";
 import { QuotationSettingsDialog } from "@/components/quotation-settings-dialog";
+import { QuotationPrintDialog } from "@/components/quotation-print-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -44,6 +45,8 @@ export default function Quotations() {
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+  const [printQuotation, setPrintQuotation] = useState<Quotation | null>(null);
 
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -450,7 +453,8 @@ export default function Quotations() {
                 setIsBulkDeleteDialogOpen(true);
               }}
               onPrint={(quotation) => {
-                window.open(`/quotations/${quotation.id}/print`, '_blank');
+                setPrintQuotation(quotation);
+                setIsPrintDialogOpen(true);
               }}
               onEmail={(quotation) => {
                 window.location.href = `mailto:${quotation.leadEmail}?subject=Quotation ${quotation.quotationNumber}`;
@@ -473,6 +477,12 @@ export default function Quotations() {
       <QuotationSettingsDialog
         open={isSettingsDialogOpen}
         onOpenChange={setIsSettingsDialogOpen}
+      />
+
+      <QuotationPrintDialog
+        open={isPrintDialogOpen}
+        onOpenChange={setIsPrintDialogOpen}
+        quotation={printQuotation}
       />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
