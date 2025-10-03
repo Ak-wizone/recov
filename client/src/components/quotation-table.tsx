@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash2, ChevronUp, ChevronDown, Settings2, Printer, Mail } from "lucide-react";
+import { Edit, Trash2, ChevronUp, ChevronDown, Settings2, Printer, Mail, Download } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -35,6 +35,7 @@ interface QuotationTableProps {
   onDelete: (quotation: Quotation) => void;
   onBulkDelete?: (ids: string[]) => void;
   onPrint?: (quotation: Quotation) => void;
+  onDownloadPDF?: (quotation: Quotation) => void;
   onEmail?: (quotation: Quotation) => void;
   onWhatsApp?: (quotation: Quotation) => void;
 }
@@ -46,6 +47,7 @@ export function QuotationTable({
   onDelete,
   onBulkDelete,
   onPrint,
+  onDownloadPDF,
   onEmail,
   onWhatsApp,
 }: QuotationTableProps) {
@@ -368,6 +370,17 @@ export function QuotationTable({
                           data-testid={`button-print-${quotation.id}`}
                         >
                           <Printer className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onDownloadPDF && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDownloadPDF(quotation)}
+                          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+                          data-testid={`button-download-pdf-${quotation.id}`}
+                        >
+                          <Download className="h-4 w-4" />
                         </Button>
                       )}
                       {onEmail && (

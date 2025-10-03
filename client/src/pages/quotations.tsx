@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { isToday, isYesterday, isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import html2pdf from "html2pdf.js";
 
 export default function Quotations() {
   const { toast } = useToast();
@@ -455,6 +456,16 @@ export default function Quotations() {
               onPrint={(quotation) => {
                 setPrintQuotation(quotation);
                 setIsPrintDialogOpen(true);
+              }}
+              onDownloadPDF={(quotation) => {
+                setPrintQuotation(quotation);
+                setIsPrintDialogOpen(true);
+                setTimeout(() => {
+                  const downloadBtn = document.querySelector('[data-testid="button-download-pdf-modal"]') as HTMLButtonElement;
+                  if (downloadBtn) {
+                    downloadBtn.click();
+                  }
+                }, 500);
               }}
               onEmail={(quotation) => {
                 window.location.href = `mailto:${quotation.leadEmail}?subject=Quotation ${quotation.quotationNumber}`;
