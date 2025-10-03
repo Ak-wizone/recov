@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -1859,6 +1859,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const settings = await storage.updateQuotationSettings(result.data.termsAndConditions);
       res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ PROFORMA INVOICE ROUTES ============
+
+  // Generate Proforma Invoice from Quotation
+  app.post("/api/quotations/:id/generate-pi", async (req, res) => {
+    try {
+      // Get the quotation
+      const quotation = await storage.getQuotation(req.params.id);
+      if (!quotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+
+      // Get quotation items
+      const quotationItems = await storage.getQuotationItems(req.params.id);
+
+      // Get next PI number
+      const nextNumber = await storage.getNextProformaInvoiceNumber();
+
+      // Calculate due date (30 days from now by default)
+      const invoiceDate = new Date();
+      const dueDate = new Date();
+      dueDate.setDate(dueDate.getDate() + 30);
+
+      // Create proforma invoice
+      const piData = {
+        invoiceNumber: nextNumber,
+        invoiceDate: invoiceDate.toISOString(),
+        dueDate: dueDate.toISOString(),
+        quotationId: quotation.id,
+        leadId: quotation.leadId,
+        leadName: quotation.leadName,
+        leadEmail: quotation.leadEmail,
+        leadMobile: quotation.leadMobile,
+        subtotal: quotation.subtotal,
+        totalDiscount: quotation.totalDiscount,
+        totalTax: quotation.totalTax,
+        grandTotal: quotation.grandTotal,
+        termsAndConditions: quotation.termsAndConditions || "",
+      };
+
+      const result = insertProformaInvoiceSchema.safeParse(piData);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+
+      const proformaInvoice = await storage.createProformaInvoice(result.data);
+
+      // Copy quotation items to proforma invoice items
+      for (const item of quotationItems) {
+        const itemData = {
+          invoiceId: proformaInvoice.id,
+          itemId: item.itemId || undefined,
+          itemName: item.itemName,
+          quantity: item.quantity,
+          unit: item.unit,
+          rate: item.rate,
+          discountPercent: item.discountPercent,
+          taxPercent: item.taxPercent,
+          amount: item.amount,
+          displayOrder: item.displayOrder,
+        };
+
+        const itemResult = insertProformaInvoiceItemSchema.safeParse(itemData);
+        if (itemResult.success) {
+          await storage.createProformaInvoiceItem(itemResult.data);
+        }
+      }
+
+      res.status(201).json(proformaInvoice);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get all proforma invoices
+  app.get("/api/proforma-invoices", async (_req, res) => {
+    try {
+      const invoices = await storage.getProformaInvoices();
+      res.json(invoices);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get next proforma invoice number
+  app.get("/api/proforma-invoices/next-number", async (_req, res) => {
+    try {
+      const nextNumber = await storage.getNextProformaInvoiceNumber();
+      res.json({ invoiceNumber: nextNumber });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single proforma invoice
+  app.get("/api/proforma-invoices/:id", async (req, res) => {
+    try {
+      const invoice = await storage.getProformaInvoice(req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ message: "Proforma invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get proforma invoice items
+  app.get("/api/proforma-invoices/:id/items", async (req, res) => {
+    try {
+      const items = await storage.getProformaInvoiceItems(req.params.id);
+      res.json(items);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
