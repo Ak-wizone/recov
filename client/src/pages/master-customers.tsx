@@ -5,7 +5,7 @@ import { MasterCustomer } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Upload, Download, Pencil, Trash2 } from "lucide-react";
+import { Plus, Upload, Download, Pencil, Trash2, Users, CheckCircle2, AlertCircle, Award } from "lucide-react";
 import { MasterCustomerFormDialog } from "@/components/master-customer-form-dialog";
 import { DataTable } from "@/components/ui/data-table";
 import { ImportModal } from "@/components/import-modal";
@@ -526,77 +526,92 @@ export default function MasterCustomers() {
       </header>
 
       <div className="w-full px-6 lg:px-8 py-8">
-        <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '100ms' }}>
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Filter by Category</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+        <div className="mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
             <Card
-              className={`cursor-pointer transition-all duration-300 transform ${
+              className={`cursor-pointer transition-all border-0 ${
                 categoryFilter === "Alpha" 
-                  ? "border-2 border-red-500 bg-gradient-to-br from-red-50 to-rose-100 shadow-2xl scale-105 -translate-y-1" 
-                  : "border border-gray-200 bg-white hover:border-red-400 hover:shadow-xl hover:-translate-y-2 hover:scale-105"
-              } animate-in zoom-in duration-500`}
-              style={{ animationDelay: '200ms' }}
+                  ? "bg-blue-100" 
+                  : "bg-blue-50 hover:bg-blue-100"
+              }`}
               onClick={() => setCategoryFilter(categoryFilter === "Alpha" ? null : "Alpha")}
               data-testid="card-category-alpha"
             >
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">Alpha</p>
-                  <p className="text-5xl font-extrabold text-red-600 animate-pulse">{alphaCount}</p>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="bg-blue-500 p-3 rounded-xl flex-shrink-0">
+                    <Users className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Alpha</p>
+                    <p className="text-3xl font-bold text-blue-600">{alphaCount}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card
-              className={`cursor-pointer transition-all duration-300 transform ${
+              className={`cursor-pointer transition-all border-0 ${
                 categoryFilter === "Beta" 
-                  ? "border-2 border-orange-500 bg-gradient-to-br from-orange-50 to-amber-100 shadow-2xl scale-105 -translate-y-1" 
-                  : "border border-gray-200 bg-white hover:border-orange-400 hover:shadow-xl hover:-translate-y-2 hover:scale-105"
-              } animate-in zoom-in duration-500`}
-              style={{ animationDelay: '300ms' }}
+                  ? "bg-green-100" 
+                  : "bg-green-50 hover:bg-green-100"
+              }`}
               onClick={() => setCategoryFilter(categoryFilter === "Beta" ? null : "Beta")}
               data-testid="card-category-beta"
             >
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">Beta</p>
-                  <p className="text-5xl font-extrabold text-orange-600 animate-pulse">{betaCount}</p>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="bg-green-500 p-3 rounded-xl flex-shrink-0">
+                    <CheckCircle2 className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Beta</p>
+                    <p className="text-3xl font-bold text-green-600">{betaCount}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card
-              className={`cursor-pointer transition-all duration-300 transform ${
+              className={`cursor-pointer transition-all border-0 ${
                 categoryFilter === "Gamma" 
-                  ? "border-2 border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-100 shadow-2xl scale-105 -translate-y-1" 
-                  : "border border-gray-200 bg-white hover:border-blue-400 hover:shadow-xl hover:-translate-y-2 hover:scale-105"
-              } animate-in zoom-in duration-500`}
-              style={{ animationDelay: '400ms' }}
+                  ? "bg-orange-100" 
+                  : "bg-orange-50 hover:bg-orange-100"
+              }`}
               onClick={() => setCategoryFilter(categoryFilter === "Gamma" ? null : "Gamma")}
               data-testid="card-category-gamma"
             >
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">Gamma</p>
-                  <p className="text-5xl font-extrabold text-blue-600 animate-pulse">{gammaCount}</p>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="bg-orange-500 p-3 rounded-xl flex-shrink-0">
+                    <AlertCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">Gamma</p>
+                    <p className="text-3xl font-bold text-orange-600">{gammaCount}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card
-              className={`cursor-pointer transition-all duration-300 transform ${
+              className={`cursor-pointer transition-all border-0 ${
                 categoryFilter === "Delta" 
-                  ? "border-2 border-green-500 bg-gradient-to-br from-green-50 to-emerald-100 shadow-2xl scale-105 -translate-y-1" 
-                  : "border border-gray-200 bg-white hover:border-green-400 hover:shadow-xl hover:-translate-y-2 hover:scale-105"
-              } animate-in zoom-in duration-500`}
-              style={{ animationDelay: '500ms' }}
+                  ? "bg-cyan-100" 
+                  : "bg-cyan-50 hover:bg-cyan-100"
+              }`}
               onClick={() => setCategoryFilter(categoryFilter === "Delta" ? null : "Delta")}
               data-testid="card-category-delta"
             >
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center justify-center text-center">
-                  <p className="text-xs font-bold text-gray-600 uppercase tracking-wide mb-3">Delta</p>
-                  <p className="text-5xl font-extrabold text-green-600 animate-pulse">{deltaCount}</p>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className="bg-cyan-500 p-3 rounded-xl flex-shrink-0">
+                    <Award className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-cyan-600 uppercase tracking-wide mb-1">Delta</p>
+                    <p className="text-3xl font-bold text-cyan-600">{deltaCount}</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
