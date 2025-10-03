@@ -172,16 +172,19 @@ export default function Leads() {
     l.nextFollowUp && isBefore(new Date(l.nextFollowUp), startOfDay(now))
   );
   const overdueCount = overdueLeads.length;
+  const overdueAmount = overdueLeads.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
   
   const dueTodayLeads = leadsByAssignedUser.filter(l => 
     l.nextFollowUp && isToday(new Date(l.nextFollowUp))
   );
   const dueTodayCount = dueTodayLeads.length;
+  const dueTodayAmount = dueTodayLeads.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
   
   const tomorrowLeads = leadsByAssignedUser.filter(l => 
     l.nextFollowUp && isTomorrow(new Date(l.nextFollowUp))
   );
   const tomorrowCount = tomorrowLeads.length;
+  const tomorrowAmount = tomorrowLeads.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
   
   const thisWeekLeads = leadsByAssignedUser.filter(l => {
     if (!l.nextFollowUp) return false;
@@ -192,6 +195,7 @@ export default function Leads() {
     }) && !isToday(date) && !isTomorrow(date);
   });
   const thisWeekCount = thisWeekLeads.length;
+  const thisWeekAmount = thisWeekLeads.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
   
   const thisMonthLeads = leadsByAssignedUser.filter(l => {
     if (!l.nextFollowUp) return false;
@@ -205,9 +209,11 @@ export default function Leads() {
     });
   });
   const thisMonthCount = thisMonthLeads.length;
+  const thisMonthAmount = thisMonthLeads.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
   
   const noFollowUpLeads = leadsByAssignedUser.filter(l => !l.nextFollowUp);
   const noFollowUpCount = noFollowUpLeads.length;
+  const noFollowUpAmount = noFollowUpLeads.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
 
   const dateFilteredLeads = leads.filter((lead) => {
     const leadDate = new Date(lead.dateCreated);
@@ -237,27 +243,35 @@ export default function Leads() {
   });
 
   const totalCount = dateFilteredLeads.length;
+  const totalAmount = dateFilteredLeads.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
   
   const newLeadItems = dateFilteredLeads.filter(lead => lead.leadStatus === "New Lead");
   const newLeadCount = newLeadItems.length;
+  const newLeadAmount = newLeadItems.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
 
   const inProgressItems = dateFilteredLeads.filter(lead => lead.leadStatus === "In Progress");
   const inProgressCount = inProgressItems.length;
+  const inProgressAmount = inProgressItems.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
 
   const pendingClientItems = dateFilteredLeads.filter(lead => lead.leadStatus === "Pending From Client");
   const pendingClientCount = pendingClientItems.length;
+  const pendingClientAmount = pendingClientItems.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
 
   const pendingWizoneItems = dateFilteredLeads.filter(lead => lead.leadStatus === "Pending From Wizone");
   const pendingWizoneCount = pendingWizoneItems.length;
+  const pendingWizoneAmount = pendingWizoneItems.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
 
   const quotationSentItems = dateFilteredLeads.filter(lead => lead.leadStatus === "Quotation Sent");
   const quotationSentCount = quotationSentItems.length;
+  const quotationSentAmount = quotationSentItems.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
 
   const convertedItems = dateFilteredLeads.filter(lead => lead.leadStatus === "Converted");
   const convertedCount = convertedItems.length;
+  const convertedAmount = convertedItems.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
 
   const deliveredItems = dateFilteredLeads.filter(lead => lead.leadStatus === "Delivered");
   const deliveredCount = deliveredItems.length;
+  const deliveredAmount = deliveredItems.reduce((sum, l) => sum + (parseFloat(l.estimatedDealAmount || '0')), 0);
 
   const filteredLeads = leads.filter((lead) => {
     const leadDate = new Date(lead.dateCreated);
