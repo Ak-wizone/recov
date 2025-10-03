@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Quotation } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Printer, Mail, X } from "lucide-react";
+import { Printer, Mail, X, Download } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import html2pdf from "html2pdf.js";
 
 interface QuotationItem {
   id: string;
@@ -119,6 +120,23 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
     }
   };
 
+  const handleDownloadPDF = () => {
+    if (!quotation) return;
+    
+    const element = document.querySelector('.print-content') as HTMLElement;
+    if (!element) return;
+
+    const opt = {
+      margin: [10, 10, 10, 10] as [number, number, number, number],
+      filename: `Quotation-${quotation.quotationNumber}.pdf`,
+      image: { type: 'jpeg' as const, quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+    };
+
+    html2pdf().set(opt).from(element).save();
+  };
+
   if (!quotation) return null;
 
   const validUntilDate = new Date(quotation.validUntil);
@@ -171,6 +189,10 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
             >
               <Printer className="h-4 w-4" />
               Print
+            </Button>
+            <Button onClick={handleDownloadPDF} size="sm" variant="outline" className="gap-2" data-testid="button-download-pdf-modal">
+              <Download className="h-4 w-4" />
+              Download PDF
             </Button>
             <Button onClick={handleEmail} size="sm" variant="outline" className="gap-2" data-testid="button-email-modal">
               <Mail className="h-4 w-4" />
