@@ -140,3 +140,21 @@ Preferred communication style: Simple, everyday language.
 - **User Feedback**: Toast notifications inform users if a PI already exists or was newly created
 - **API Endpoint**: `POST /api/quotations/:id/generate-pi` checks for existing PI via `getProformaInvoiceByQuotationId()`
 - **Implementation**: Storage interface method added to query PIs by quotation ID
+
+### Enhanced Import System with Inline Editing (October 2025)
+- **Universal Import Feature**: Extended editable import preview to Items, Invoices, and Receipts (in addition to existing Customers)
+- **Module-Specific Validation**: 
+  - Items: Validates itemType (product/service), name, unit, tax, SKU, sale price
+  - Invoices: Validates invoice number, customer name, date, amounts, status
+  - Receipts: Validates voucher number, invoice number, customer, date, amount
+- **Inline Error Correction**: 
+  - Upload → Preview → Fix errors directly in table cells → Import (no re-upload)
+  - Red border highlights invalid fields with specific error messages
+  - Real-time validation as users type in edit mode
+- **Smart Data Parsing**: 
+  - Flexible column name recognition (handles various naming conventions)
+  - Automatic type conversion (boolean to Active/Inactive, number formatting)
+  - Module-specific parsers: `parseItemsFile`, `parseInvoicesFile`, `parseReceiptsFile`
+- **Template Downloads**: Sample Excel templates for each module with example data and proper format
+- **Import Flow**: File → Parse → Validate → Edit Mode (if errors) → Convert to Excel → Import
+- **Implementation**: `client/src/lib/import-utils.ts` contains all validation and parsing functions
