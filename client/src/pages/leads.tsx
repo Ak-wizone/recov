@@ -9,6 +9,7 @@ import { LeadFollowUpDialog } from "@/components/lead-followup-dialog";
 import LeadImportModal from "@/components/lead-import-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +68,9 @@ export default function Leads() {
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [activeCardFilter, setActiveCardFilter] = useState<string | null>(null);
+  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("month");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
@@ -205,40 +209,79 @@ export default function Leads() {
   const noFollowUpLeads = leadsByAssignedUser.filter(l => !l.nextFollowUp);
   const noFollowUpCount = noFollowUpLeads.length;
 
-  const monthFilteredLeads = leads.filter((lead) => {
+  const dateFilteredLeads = leads.filter((lead) => {
     const leadDate = new Date(lead.dateCreated);
-    return (
-      leadDate.getFullYear() === selectedYear &&
-      leadDate.getMonth() === selectedMonth
-    );
+    
+    if (dateFilterMode === "allTime") {
+      return true;
+    } else if (dateFilterMode === "dateRange") {
+      if (fromDate && toDate) {
+        const from = new Date(fromDate);
+        const to = new Date(toDate);
+        return leadDate >= from && leadDate <= to;
+      } else if (fromDate) {
+        const from = new Date(fromDate);
+        return leadDate >= from;
+      } else if (toDate) {
+        const to = new Date(toDate);
+        return leadDate <= to;
+      }
+      return true;
+    } else {
+      // month mode
+      return (
+        leadDate.getFullYear() === selectedYear &&
+        leadDate.getMonth() === selectedMonth
+      );
+    }
   });
 
-  const totalCount = monthFilteredLeads.length;
+  const totalCount = dateFilteredLeads.length;
   
-  const newLeadItems = monthFilteredLeads.filter(lead => lead.leadStatus === "New Lead");
+  const newLeadItems = dateFilteredLeads.filter(lead => lead.leadStatus === "New Lead");
   const newLeadCount = newLeadItems.length;
 
-  const inProgressItems = monthFilteredLeads.filter(lead => lead.leadStatus === "In Progress");
+  const inProgressItems = dateFilteredLeads.filter(lead => lead.leadStatus === "In Progress");
   const inProgressCount = inProgressItems.length;
 
-  const pendingClientItems = monthFilteredLeads.filter(lead => lead.leadStatus === "Pending From Client");
+  const pendingClientItems = dateFilteredLeads.filter(lead => lead.leadStatus === "Pending From Client");
   const pendingClientCount = pendingClientItems.length;
 
-  const pendingWizoneItems = monthFilteredLeads.filter(lead => lead.leadStatus === "Pending From Wizone");
+  const pendingWizoneItems = dateFilteredLeads.filter(lead => lead.leadStatus === "Pending From Wizone");
   const pendingWizoneCount = pendingWizoneItems.length;
 
-  const quotationSentItems = monthFilteredLeads.filter(lead => lead.leadStatus === "Quotation Sent");
+  const quotationSentItems = dateFilteredLeads.filter(lead => lead.leadStatus === "Quotation Sent");
   const quotationSentCount = quotationSentItems.length;
 
-  const convertedItems = monthFilteredLeads.filter(lead => lead.leadStatus === "Converted");
+  const convertedItems = dateFilteredLeads.filter(lead => lead.leadStatus === "Converted");
   const convertedCount = convertedItems.length;
 
-  const deliveredItems = monthFilteredLeads.filter(lead => lead.leadStatus === "Delivered");
+  const deliveredItems = dateFilteredLeads.filter(lead => lead.leadStatus === "Delivered");
   const deliveredCount = deliveredItems.length;
 
   const filteredLeads = leads.filter((lead) => {
     const leadDate = new Date(lead.dateCreated);
-    const matchesMonth = leadDate.getFullYear() === selectedYear && leadDate.getMonth() === selectedMonth;
+    
+    // Apply date filter based on mode
+    let matchesDateFilter = true;
+    if (dateFilterMode === "allTime") {
+      matchesDateFilter = true;
+    } else if (dateFilterMode === "dateRange") {
+      if (fromDate && toDate) {
+        const from = new Date(fromDate);
+        const to = new Date(toDate);
+        matchesDateFilter = leadDate >= from && leadDate <= to;
+      } else if (fromDate) {
+        const from = new Date(fromDate);
+        matchesDateFilter = leadDate >= from;
+      } else if (toDate) {
+        const to = new Date(toDate);
+        matchesDateFilter = leadDate <= to;
+      }
+    } else {
+      // month mode
+      matchesDateFilter = leadDate.getFullYear() === selectedYear && leadDate.getMonth() === selectedMonth;
+    }
 
     let matchesFollowUpFilter = true;
     if (followUpFilter) {
@@ -290,7 +333,7 @@ export default function Leads() {
       matchesCardFilter = lead.leadStatus === activeCardFilter;
     }
 
-    return matchesMonth && matchesFollowUpFilter && matchesStatusFilter && matchesAssignedUserFilter && matchesCardFilter;
+    return matchesDateFilter && matchesFollowUpFilter && matchesStatusFilter && matchesAssignedUserFilter && matchesCardFilter;
   });
 
   const handleEdit = (lead: Lead) => {
@@ -401,45 +444,88 @@ export default function Leads() {
       </header>
 
       <div className="w-full px-6 lg:px-8 py-8">
-        <div className="flex gap-3 items-center mb-6">
+        <div className="flex gap-3 items-center mb-6 flex-wrap">
           <Select
-            value={selectedYear.toString()}
-            onValueChange={(value) => setSelectedYear(parseInt(value))}
+            value={dateFilterMode}
+            onValueChange={(value: "month" | "allTime" | "dateRange") => setDateFilterMode(value)}
           >
-            <SelectTrigger className="w-[140px]" data-testid="select-year">
-              <SelectValue placeholder="Select Year" />
+            <SelectTrigger className="w-[160px]" data-testid="select-date-filter-mode">
+              <SelectValue placeholder="Filter Mode" />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - i).map((year) => (
-                <SelectItem key={year} value={year.toString()}>
-                  {year}
-                </SelectItem>
-              ))}
+              <SelectItem value="month">Month/Year</SelectItem>
+              <SelectItem value="allTime">All Time</SelectItem>
+              <SelectItem value="dateRange">Date Range</SelectItem>
             </SelectContent>
           </Select>
 
-          <Select
-            value={selectedMonth.toString()}
-            onValueChange={(value) => setSelectedMonth(parseInt(value))}
-          >
-            <SelectTrigger className="w-[160px]" data-testid="select-month">
-              <SelectValue placeholder="Select Month" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">January</SelectItem>
-              <SelectItem value="1">February</SelectItem>
-              <SelectItem value="2">March</SelectItem>
-              <SelectItem value="3">April</SelectItem>
-              <SelectItem value="4">May</SelectItem>
-              <SelectItem value="5">June</SelectItem>
-              <SelectItem value="6">July</SelectItem>
-              <SelectItem value="7">August</SelectItem>
-              <SelectItem value="8">September</SelectItem>
-              <SelectItem value="9">October</SelectItem>
-              <SelectItem value="10">November</SelectItem>
-              <SelectItem value="11">December</SelectItem>
-            </SelectContent>
-          </Select>
+          {dateFilterMode === "month" && (
+            <>
+              <Select
+                value={selectedYear.toString()}
+                onValueChange={(value) => setSelectedYear(parseInt(value))}
+              >
+                <SelectTrigger className="w-[140px]" data-testid="select-year">
+                  <SelectValue placeholder="Select Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - i).map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={selectedMonth.toString()}
+                onValueChange={(value) => setSelectedMonth(parseInt(value))}
+              >
+                <SelectTrigger className="w-[160px]" data-testid="select-month">
+                  <SelectValue placeholder="Select Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">January</SelectItem>
+                  <SelectItem value="1">February</SelectItem>
+                  <SelectItem value="2">March</SelectItem>
+                  <SelectItem value="3">April</SelectItem>
+                  <SelectItem value="4">May</SelectItem>
+                  <SelectItem value="5">June</SelectItem>
+                  <SelectItem value="6">July</SelectItem>
+                  <SelectItem value="7">August</SelectItem>
+                  <SelectItem value="8">September</SelectItem>
+                  <SelectItem value="9">October</SelectItem>
+                  <SelectItem value="10">November</SelectItem>
+                  <SelectItem value="11">December</SelectItem>
+                </SelectContent>
+              </Select>
+            </>
+          )}
+
+          {dateFilterMode === "dateRange" && (
+            <>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">From:</label>
+                <Input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="w-[160px]"
+                  data-testid="input-from-date"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700">To:</label>
+                <Input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="w-[160px]"
+                  data-testid="input-to-date"
+                />
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
