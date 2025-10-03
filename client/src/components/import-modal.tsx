@@ -7,7 +7,21 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Upload, Download, FileSpreadsheet, X, AlertCircle, CheckCircle2, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { parseImportFile, validateMasterCustomerRow, type ImportRow, type ValidationError } from "@/lib/import-utils";
+import { 
+  parseImportFile, 
+  parseItemsFile,
+  parseInvoicesFile,
+  parseReceiptsFile,
+  validateMasterCustomerRow,
+  validateItemRow,
+  validateInvoiceRow,
+  validateReceiptRow,
+  type ImportRow,
+  type ImportItemRow,
+  type ImportInvoiceRow,
+  type ImportReceiptRow,
+  type ValidationError
+} from "@/lib/import-utils";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -22,7 +36,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
   const { toast } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [previewData, setPreviewData] = useState<ImportRow[]>([]);
+  const [previewData, setPreviewData] = useState<any[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [cellErrors, setCellErrors] = useState<Map<string, string>>(new Map());
   const [isProcessing, setIsProcessing] = useState(false);
@@ -194,15 +208,42 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     setUploadProgress(30);
 
     try {
-      const rows = await parseImportFile(selectedFile);
+      let rows: any[] = [];
+      
+      // Use appropriate parser based on module type
+      if (module === 'customers') {
+        rows = await parseImportFile(selectedFile);
+      } else if (module === 'items') {
+        rows = await parseItemsFile(selectedFile);
+      } else if (module === 'invoices') {
+        rows = await parseInvoicesFile(selectedFile);
+      } else if (module === 'receipts') {
+        rows = await parseReceiptsFile(selectedFile);
+      }
+      
       setUploadProgress(60);
 
       const errors: ValidationError[] = [];
       
-      // Only validate for customers module, items validation is done on backend
+      // Validate based on module type
       if (module === 'customers') {
         rows.forEach((row: ImportRow, index: number) => {
           const rowErrors = validateMasterCustomerRow(row, index + 2);
+          errors.push(...rowErrors);
+        });
+      } else if (module === 'items') {
+        rows.forEach((row: ImportItemRow, index: number) => {
+          const rowErrors = validateItemRow(row, index + 2);
+          errors.push(...rowErrors);
+        });
+      } else if (module === 'invoices') {
+        rows.forEach((row: ImportInvoiceRow, index: number) => {
+          const rowErrors = validateInvoiceRow(row, index + 2);
+          errors.push(...rowErrors);
+        });
+      } else if (module === 'receipts') {
+        rows.forEach((row: ImportReceiptRow, index: number) => {
+          const rowErrors = validateReceiptRow(row, index + 2);
           errors.push(...rowErrors);
         });
       }
@@ -213,9 +254,9 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
 
       toast({
         title: "File Processed",
-        description: module === 'customers' 
-          ? `Found ${rows.length} rows. ${errors.length > 0 ? `${errors.length} validation errors detected.` : 'All rows are valid.'}`
-          : `Found ${rows.length} rows ready to import.`,
+        description: errors.length > 0 
+          ? `Found ${rows.length} rows. ${errors.length} validation errors detected.`
+          : `Found ${rows.length} rows. All rows are valid.`,
       });
     } catch (error: any) {
       toast({
@@ -229,43 +270,51 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     }
   };
 
-  const handleCellEdit = (rowIndex: number, field: keyof ImportRow, value: string) => {
+  const handleCellEdit = (rowIndex: number, field: string, value: string) => {
     const updatedData = [...previewData];
     updatedData[rowIndex] = { ...updatedData[rowIndex], [field]: value };
     setPreviewData(updatedData);
 
-    // Re-validate the row if it's customers module
+    // Re-validate the row based on module type
+    const rowNumber = rowIndex + 2;
+    let rowErrors: ValidationError[] = [];
+    
     if (module === 'customers') {
-      const rowNumber = rowIndex + 2;
-      const rowErrors = validateMasterCustomerRow(updatedData[rowIndex], rowNumber);
-      
-      // Update cell errors map
-      const newCellErrors = new Map(cellErrors);
-      
-      // Remove old errors for this row
-      Array.from(newCellErrors.keys()).forEach(key => {
-        if (key.startsWith(`${rowNumber}-`)) {
-          newCellErrors.delete(key);
-        }
-      });
-      
-      // Add new errors
-      rowErrors.forEach(error => {
-        if (error.field) {
-          newCellErrors.set(`${rowNumber}-${error.field}`, error.message);
-        }
-      });
-      
-      setCellErrors(newCellErrors);
-      
-      // Update validation errors
-      const otherRowErrors = validationErrors.filter(err => err.row !== rowNumber);
-      setValidationErrors([...otherRowErrors, ...rowErrors]);
+      rowErrors = validateMasterCustomerRow(updatedData[rowIndex], rowNumber);
+    } else if (module === 'items') {
+      rowErrors = validateItemRow(updatedData[rowIndex], rowNumber);
+    } else if (module === 'invoices') {
+      rowErrors = validateInvoiceRow(updatedData[rowIndex], rowNumber);
+    } else if (module === 'receipts') {
+      rowErrors = validateReceiptRow(updatedData[rowIndex], rowNumber);
     }
+    
+    // Update cell errors map
+    const newCellErrors = new Map(cellErrors);
+    
+    // Remove old errors for this row
+    Array.from(newCellErrors.keys()).forEach(key => {
+      if (key.startsWith(`${rowNumber}-`)) {
+        newCellErrors.delete(key);
+      }
+    });
+    
+    // Add new errors
+    rowErrors.forEach(error => {
+      if (error.field) {
+        newCellErrors.set(`${rowNumber}-${error.field}`, error.message);
+      }
+    });
+    
+    setCellErrors(newCellErrors);
+    
+    // Update validation errors
+    const otherRowErrors = validationErrors.filter(err => err.row !== rowNumber);
+    setValidationErrors([...otherRowErrors, ...rowErrors]);
   };
 
   const enableEditMode = () => {
-    if (module === 'customers' && previewData.length > 0) {
+    if (previewData.length > 0) {
       // Build cell errors map from validation errors
       const newCellErrors = new Map<string, string>();
       validationErrors.forEach(error => {
@@ -282,40 +331,83 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     if (!file) return;
 
     // If in edit mode, convert edited data back to Excel and import
-    if (isEditMode && module === 'customers') {
+    if (isEditMode) {
       try {
-        // Convert edited data to Excel format
         const XLSX = await import('xlsx');
-        const worksheet = XLSX.utils.json_to_sheet(previewData.map(row => ({
-          "Client Name": row.clientName || "",
-          "Category": row.category || "",
-          "Billing Address": row.billingAddress || "",
-          "City": row.city || "",
-          "Pin Code": row.pincode || "",
-          "State": row.state || "",
-          "Country": row.country || "",
-          "GST Number": row.gstNumber || "",
-          "PAN Number": row.panNumber || "",
-          "MSME Number": row.msmeNumber || "",
-          "Incorporation Cert Number": row.incorporationCertNumber || "",
-          "Incorporation Date": row.incorporationDate || "",
-          "Company Type": row.companyType || "",
-          "Primary Contact Name": row.primaryContactName || "",
-          "Primary Mobile": row.primaryMobile || "",
-          "Primary Email": row.primaryEmail || "",
-          "Secondary Contact Name": row.secondaryContactName || "",
-          "Secondary Mobile": row.secondaryMobile || "",
-          "Secondary Email": row.secondaryEmail || "",
-          "Payment Terms (Days)": row.paymentTermsDays || "",
-          "Credit Limit": row.creditLimit || "",
-          "Interest Applicable From": row.interestApplicableFrom || "",
-          "Interest Rate (%)": row.interestRate || "",
-          "Sales Person": row.salesPerson || "",
-          "Is Active": row.isActive || "Active",
-        })));
+        let worksheet: any;
+        let sheetName = "";
+        
+        if (module === 'customers') {
+          worksheet = XLSX.utils.json_to_sheet(previewData.map(row => ({
+            "Client Name": row.clientName || "",
+            "Category": row.category || "",
+            "Billing Address": row.billingAddress || "",
+            "City": row.city || "",
+            "Pin Code": row.pincode || "",
+            "State": row.state || "",
+            "Country": row.country || "",
+            "GST Number": row.gstNumber || "",
+            "PAN Number": row.panNumber || "",
+            "MSME Number": row.msmeNumber || "",
+            "Incorporation Cert Number": row.incorporationCertNumber || "",
+            "Incorporation Date": row.incorporationDate || "",
+            "Company Type": row.companyType || "",
+            "Primary Contact Name": row.primaryContactName || "",
+            "Primary Mobile": row.primaryMobile || "",
+            "Primary Email": row.primaryEmail || "",
+            "Secondary Contact Name": row.secondaryContactName || "",
+            "Secondary Mobile": row.secondaryMobile || "",
+            "Secondary Email": row.secondaryEmail || "",
+            "Payment Terms (Days)": row.paymentTermsDays || "",
+            "Credit Limit": row.creditLimit || "",
+            "Interest Applicable From": row.interestApplicableFrom || "",
+            "Interest Rate (%)": row.interestRate || "",
+            "Sales Person": row.salesPerson || "",
+            "Is Active": row.isActive || "Active",
+          })));
+          sheetName = "Customers";
+        } else if (module === 'items') {
+          worksheet = XLSX.utils.json_to_sheet(previewData.map(row => ({
+            "Item Type": row.itemType || "",
+            "Name": row.name || "",
+            "Description": row.description || "",
+            "Unit": row.unit || "",
+            "Tax": row.tax || "",
+            "SKU": row.sku || "",
+            "Sale Unit Price": row.saleUnitPrice || "",
+            "Buy Unit Price": row.buyUnitPrice || "",
+            "Opening Quantity": row.openingQuantity || "",
+            "HSN": row.hsn || "",
+            "SAC": row.sac || "",
+            "Is Active": row.isActive || "Active",
+          })));
+          sheetName = "Items";
+        } else if (module === 'invoices') {
+          worksheet = XLSX.utils.json_to_sheet(previewData.map(row => ({
+            "Invoice Number": row.invoiceNumber || "",
+            "Customer Name": row.customerName || "",
+            "Invoice Date": row.invoiceDate || "",
+            "Invoice Amount": row.invoiceAmount || "",
+            "Net Profit": row.netProfit || "",
+            "Status": row.status || "Unpaid",
+            "Assigned User": row.assignedUser || "",
+            "Remarks": row.remarks || "",
+          })));
+          sheetName = "Invoices";
+        } else if (module === 'receipts') {
+          worksheet = XLSX.utils.json_to_sheet(previewData.map(row => ({
+            "Voucher Number": row.voucherNumber || "",
+            "Invoice Number": row.invoiceNumber || "",
+            "Customer Name": row.customerName || "",
+            "Date": row.date || "",
+            "Amount": row.amount || "",
+            "Remarks": row.remarks || "",
+          })));
+          sheetName = "Receipts";
+        }
         
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Customers");
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
         
         // Convert to blob and create new file
         const excelBuffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
