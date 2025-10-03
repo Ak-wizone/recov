@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertCompanyProfileSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertCompanyProfileSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -1243,6 +1243,277 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Receipt not found" });
       }
       res.json(receipt);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ LEAD ROUTES ============
+
+  // Get all leads
+  app.get("/api/leads", async (req, res) => {
+    try {
+      const leads = await storage.getLeads();
+      res.json(leads);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Download lead template (MUST BE BEFORE /:id)
+  app.get("/api/leads/template", async (req, res) => {
+    try {
+      const sampleData = [
+        {
+          "Company Name": "Tech Solutions Pvt Ltd",
+          "Contact Person": "Rajesh Kumar",
+          "Mobile": "+919876543210",
+          "Email": "rajesh@techsolutions.com",
+          "Lead Source": "Website",
+          "Lead Status": "New Lead",
+          "Address": "123 Business Park, Sector 18",
+          "City": "Noida",
+          "State": "Uttar Pradesh",
+          "Pincode": "201301",
+          "Remarks": "Interested in web development services",
+          "Industry": "IT Services",
+          "Priority": "High",
+          "Assigned User": "Manpreet Bedi",
+          "Date Created": "2024-01-15",
+          "Last Follow Up": "2024-01-20",
+          "Next Follow Up": "2024-01-25"
+        },
+        {
+          "Company Name": "Digital Marketing Hub",
+          "Contact Person": "Priya Sharma",
+          "Mobile": "+918765432109",
+          "Email": "priya@digitalmarketing.com",
+          "Lead Source": "Instagram",
+          "Lead Status": "In Progress",
+          "Address": "456 Tower B, Cyber City",
+          "City": "Gurgaon",
+          "State": "Haryana",
+          "Pincode": "122002",
+          "Remarks": "Needs social media management",
+          "Industry": "Marketing",
+          "Priority": "Medium",
+          "Assigned User": "Bilal Ahamad",
+          "Date Created": "2024-01-10",
+          "Last Follow Up": "2024-01-18",
+          "Next Follow Up": "2024-01-22"
+        },
+        {
+          "Company Name": "E-commerce Solutions",
+          "Contact Person": "Amit Patel",
+          "Mobile": "+917654321098",
+          "Email": "amit@ecommerce.com",
+          "Lead Source": "Reference",
+          "Lead Status": "Quotation Sent",
+          "Address": "789 Business Center, MG Road",
+          "City": "Bangalore",
+          "State": "Karnataka",
+          "Pincode": "560001",
+          "Remarks": "Looking for complete e-commerce platform",
+          "Industry": "Retail",
+          "Priority": "High",
+          "Assigned User": "Anjali Dhiman",
+          "Date Created": "2024-01-05",
+          "Last Follow Up": "2024-01-19",
+          "Next Follow Up": "2024-01-26"
+        }
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(sampleData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Leads Template");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=leads_template.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Export leads to Excel (MUST BE BEFORE /:id)
+  app.get("/api/leads/export", async (req, res) => {
+    try {
+      const leads = await storage.getLeads();
+      
+      const data = leads.map((lead) => ({
+        "Company Name": lead.companyName,
+        "Contact Person": lead.contactPerson,
+        "Mobile": lead.mobile,
+        "Email": lead.email,
+        "Lead Source": lead.leadSource,
+        "Lead Status": lead.leadStatus,
+        "Address": lead.address || "",
+        "City": lead.city || "",
+        "State": lead.state || "",
+        "Pincode": lead.pincode || "",
+        "Remarks": lead.remarks || "",
+        "Industry": lead.industry || "",
+        "Priority": lead.priority || "",
+        "Assigned User": lead.assignedUser || "",
+        "Date Created": lead.dateCreated ? lead.dateCreated.toISOString().split('T')[0] : "",
+        "Last Follow Up": lead.lastFollowUp ? lead.lastFollowUp.toISOString().split('T')[0] : "",
+        "Next Follow Up": lead.nextFollowUp ? lead.nextFollowUp.toISOString().split('T')[0] : "",
+        "Created At": lead.createdAt.toISOString(),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=leads_export.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Import leads from Excel (MUST BE BEFORE /:id)
+  app.post("/api/leads/import", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      const results = [];
+      const errors = [];
+
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        
+        // Parse dates - Excel exports dates as serial numbers or formatted strings
+        const parseDateField = (dateValue: any): string | undefined => {
+          if (!dateValue) return undefined;
+          
+          if (typeof dateValue === 'number') {
+            // Excel serial date number (days since 1/1/1900)
+            const excelEpoch = new Date(1900, 0, 1);
+            const date = new Date(excelEpoch.getTime() + (dateValue - 2) * 24 * 60 * 60 * 1000);
+            return date.toISOString().split('T')[0];
+          } else {
+            // Try to parse as string
+            return String(dateValue).trim();
+          }
+        };
+        
+        const leadData = {
+          companyName: String((row as any)["Company Name"] || "").trim(),
+          contactPerson: String((row as any)["Contact Person"] || "").trim(),
+          mobile: String((row as any)["Mobile"] || "").trim(),
+          email: String((row as any)["Email"] || "").trim(),
+          leadSource: String((row as any)["Lead Source"] || "").trim(),
+          leadStatus: String((row as any)["Lead Status"] || "New Lead").trim(),
+          address: String((row as any)["Address"] || "").trim() || undefined,
+          city: String((row as any)["City"] || "").trim() || undefined,
+          state: String((row as any)["State"] || "").trim() || undefined,
+          pincode: String((row as any)["Pincode"] || "").trim() || undefined,
+          remarks: String((row as any)["Remarks"] || "").trim() || undefined,
+          industry: String((row as any)["Industry"] || "").trim() || undefined,
+          priority: String((row as any)["Priority"] || "").trim() || undefined,
+          assignedUser: String((row as any)["Assigned User"] || "").trim() || undefined,
+          dateCreated: parseDateField((row as any)["Date Created"]),
+          lastFollowUp: parseDateField((row as any)["Last Follow Up"]),
+          nextFollowUp: parseDateField((row as any)["Next Follow Up"]),
+        };
+
+        const result = insertLeadSchema.safeParse(leadData);
+        if (result.success) {
+          const lead = await storage.createLead(result.data);
+          results.push(lead);
+        } else {
+          errors.push({ row: i + 2, error: fromZodError(result.error).message });
+        }
+      }
+
+      res.json({ 
+        imported: results.length,
+        errors: errors
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk delete leads (MUST BE BEFORE /:id)
+  app.post("/api/leads/bulk-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) {
+        return res.status(400).json({ message: "ids must be an array" });
+      }
+      const deleted = await storage.deleteLeads(ids);
+      res.json({ deleted });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create lead
+  app.post("/api/leads", async (req, res) => {
+    try {
+      const result = insertLeadSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const lead = await storage.createLead(result.data);
+      res.json(lead);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update lead
+  app.put("/api/leads/:id", async (req, res) => {
+    try {
+      const result = insertLeadSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: fromZodError(result.error).message });
+      }
+      const lead = await storage.updateLead(req.params.id, result.data);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      res.json(lead);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete lead
+  app.delete("/api/leads/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteLead(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      res.json({ message: "Lead deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single lead (MUST BE AFTER specific routes)
+  app.get("/api/leads/:id", async (req, res) => {
+    try {
+      const lead = await storage.getLead(req.params.id);
+      if (!lead) {
+        return res.status(404).json({ message: "Lead not found" });
+      }
+      res.json(lead);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
