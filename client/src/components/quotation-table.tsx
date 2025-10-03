@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash2, ChevronUp, ChevronDown, Settings2 } from "lucide-react";
+import { Edit, Trash2, ChevronUp, ChevronDown, Settings2, Printer, Mail } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
@@ -33,6 +34,9 @@ interface QuotationTableProps {
   onEdit: (quotation: Quotation) => void;
   onDelete: (quotation: Quotation) => void;
   onBulkDelete?: (ids: string[]) => void;
+  onPrint?: (quotation: Quotation) => void;
+  onEmail?: (quotation: Quotation) => void;
+  onWhatsApp?: (quotation: Quotation) => void;
 }
 
 export function QuotationTable({
@@ -41,6 +45,9 @@ export function QuotationTable({
   onEdit,
   onDelete,
   onBulkDelete,
+  onPrint,
+  onEmail,
+  onWhatsApp,
 }: QuotationTableProps) {
   const [sortField, setSortField] = useState<keyof Quotation | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -351,7 +358,40 @@ export function QuotationTable({
                     </TableCell>
                   )}
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
+                      {onPrint && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onPrint(quotation)}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          data-testid={`button-print-${quotation.id}`}
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onEmail && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onEmail(quotation)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          data-testid={`button-email-${quotation.id}`}
+                        >
+                          <Mail className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onWhatsApp && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onWhatsApp(quotation)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          data-testid={`button-whatsapp-${quotation.id}`}
+                        >
+                          <FaWhatsapp className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"

@@ -449,6 +449,16 @@ export default function Quotations() {
                 setBulkDeleteIds(ids);
                 setIsBulkDeleteDialogOpen(true);
               }}
+              onPrint={(quotation) => {
+                window.open(`/quotations/${quotation.id}/print`, '_blank');
+              }}
+              onEmail={(quotation) => {
+                window.location.href = `mailto:${quotation.leadEmail}?subject=Quotation ${quotation.quotationNumber}`;
+              }}
+              onWhatsApp={(quotation) => {
+                const message = `Hi, please find your quotation ${quotation.quotationNumber} for ₹${quotation.grandTotal}`;
+                window.open(`https://wa.me/${quotation.leadMobile.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+              }}
             />
           </CardContent>
         </Card>
