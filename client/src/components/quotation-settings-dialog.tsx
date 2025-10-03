@@ -53,10 +53,7 @@ export function QuotationSettingsDialog({ open, onOpenChange }: QuotationSetting
 
   const updateMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertQuotationSettingsSchema>) => {
-      return await apiRequest("/api/quotation-settings", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return await apiRequest("POST", "/api/quotation-settings", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/quotation-settings"] });
