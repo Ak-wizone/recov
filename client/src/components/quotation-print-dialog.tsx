@@ -213,7 +213,7 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
         </div>
 
         {/* Print Content */}
-        <div className="print-content bg-white p-8">
+        <div className="print-content bg-white p-12">
           {(itemsLoading || profileLoading) ? (
             <Skeleton className="h-96 w-full" />
           ) : profile ? (
@@ -227,160 +227,212 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
                 </div>
               )}
 
-              {/* Header Section - Logo and Quotation Number */}
-              <div className="flex justify-between items-start mb-8">
-                <div className="flex items-start gap-4">
-                  {profile.logo && (
-                    <img src={profile.logo} alt="Logo" className="h-20 w-20 object-contain" />
-                  )}
+              {/* Professional Header with Brand Color Bar */}
+              <div className="mb-8">
+                <div 
+                  className="h-2 w-full mb-6" 
+                  style={{ backgroundColor: profile.brandColor || "#ea580c" }}
+                ></div>
+                
+                <div className="flex justify-between items-center mb-6">
+                  <div className="flex items-center gap-6">
+                    {profile.logo && (
+                      <img src={profile.logo} alt="Logo" className="h-24 w-24 object-contain" />
+                    )}
+                    <div>
+                      <h1 className="text-3xl font-bold text-gray-800">{profile.legalName}</h1>
+                      <p className="text-sm text-gray-600 mt-1">{profile.entityType}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <h2 
+                      className="text-3xl font-bold mb-1" 
+                      style={{ color: profile.brandColor || "#ea580c" }}
+                    >
+                      QUOTATION
+                    </h2>
+                    <p className="text-xl font-semibold text-gray-700">#{quotation.quotationNumber.split('-').pop()}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <h2 className="text-2xl font-bold">QUOTATION -{quotation.quotationNumber.split('-').pop()}</h2>
+              </div>
+
+              {/* Two Column Layout - Company & Client Info */}
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                {/* From Section */}
+                <div className="border-l-4 pl-4" style={{ borderColor: profile.brandColor || "#ea580c" }}>
+                  <p className="text-xs font-bold text-gray-500 uppercase mb-3">From</p>
+                  <p className="text-sm font-medium text-gray-600">{profile.regAddressLine1}</p>
+                  {profile.regAddressLine2 && <p className="text-sm text-gray-600">{profile.regAddressLine2}</p>}
+                  <p className="text-sm text-gray-600">{profile.regCity}, {profile.regState} {profile.regPincode}</p>
+                  <p className="text-sm text-gray-600 mt-2">Phone: +91{profile.primaryContactMobile}</p>
+                  <p className="text-sm text-gray-600">Email: {profile.primaryContactEmail}</p>
+                  <p className="text-sm font-semibold text-gray-700 mt-3">GSTIN: {profile.gstin || 'N/A'}</p>
+                </div>
+
+                {/* To Section */}
+                <div className="border-l-4 border-gray-300 pl-4">
+                  <p className="text-xs font-bold text-gray-500 uppercase mb-3">Bill To</p>
+                  <p className="text-base font-bold text-gray-800">{quotation.leadName}</p>
+                  <p className="text-sm text-gray-600 mt-2">{quotation.leadEmail}</p>
+                  <p className="text-sm text-gray-600">{quotation.leadMobile}</p>
                 </div>
               </div>
 
-              {/* Company Information */}
-              <div className="mb-6">
-                <p className="font-bold text-lg mb-2">{profile.legalName}</p>
-                <p className="text-base">{profile.regAddressLine1}</p>
-                {profile.regAddressLine2 && <p className="text-base">{profile.regAddressLine2}</p>}
-                <p className="text-base">{profile.regCity}, {profile.regState} {profile.regPincode}, IN</p>
-                <p className="text-base">+91{profile.primaryContactMobile}</p>
-                <p className="text-base">{profile.primaryContactEmail}</p>
-                <p className="text-base font-semibold mt-2">GSTIN: {profile.gstin || '-'}</p>
-              </div>
-
-              {/* Quote To Section */}
-              <div className="mb-6">
-                <p className="font-bold text-base mb-2">Quote To</p>
-                <p className="font-semibold text-base">{quotation.leadName}</p>
-                <p className="text-base">{quotation.leadEmail}</p>
-                <p className="text-base">{quotation.leadMobile}</p>
-              </div>
-
-              {/* Quotation Details - Issue Date, Valid Until, Place of Supply */}
-              <div className="mb-6 text-base">
-                <div className="grid grid-cols-3 gap-4">
+              {/* Quotation Details Bar */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-8">
+                <div className="grid grid-cols-3 gap-6 text-sm">
                   <div>
-                    <p className="font-semibold">Issue Date:</p>
-                    <p>{new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Issue Date</p>
+                    <p className="font-semibold text-gray-800">{new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                   </div>
                   <div>
-                    <p className="font-semibold">Valid Until:</p>
-                    <p>{new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Valid Until</p>
+                    <p className="font-semibold text-gray-800">{new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
                   </div>
                   <div>
-                    <p className="font-semibold">Place of Supply:</p>
-                    <p>{profile.regState}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Place of Supply</p>
+                    <p className="font-semibold text-gray-800">{profile.regState}</p>
                   </div>
                 </div>
               </div>
 
-              {/* Items Table */}
-              <table className="w-full border-collapse mb-6 text-sm">
-                <thead>
-                  <tr className="text-white" style={{ backgroundColor: profile.brandColor || "#ea580c" }}>
-                    <th className="border border-gray-300 px-3 py-3 text-left">S.No</th>
-                    <th className="border border-gray-300 px-3 py-3 text-left">Item<br/>Description</th>
-                    <th className="border border-gray-300 px-3 py-3 text-center">HSN/SAC</th>
-                    <th className="border border-gray-300 px-3 py-3 text-center">Qty<br/>UoM</th>
-                    <th className="border border-gray-300 px-3 py-3 text-right">Price<br/>(INR)</th>
-                    <th className="border border-gray-300 px-3 py-3 text-right">Taxable Value<br/>(INR)</th>
-                    <th className="border border-gray-300 px-3 py-3 text-right">IGST<br/>(INR)</th>
-                    <th className="border border-gray-300 px-3 py-3 text-right">Amount<br/>(INR)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, index) => {
-                    const qty = parseFloat(item.quantity || "0");
-                    const rate = parseFloat(item.rate || "0");
-                    const discount = parseFloat(item.discountPercent || "0");
-                    const tax = parseFloat(item.taxPercent || "0");
-                    
-                    const subtotal = qty * rate;
-                    const discountAmount = (subtotal * discount) / 100;
-                    const taxableValue = subtotal - discountAmount;
-                    const taxAmount = (taxableValue * tax) / 100;
-                    const totalAmount = taxableValue + taxAmount;
-                    
-                    return (
-                      <tr key={item.id}>
-                        <td className="border border-gray-300 px-3 py-3">{index + 1}</td>
-                        <td className="border border-gray-300 px-3 py-3">
-                          <div className="font-semibold">{item.itemName}</div>
-                        </td>
-                        <td className="border border-gray-300 px-3 py-3 text-center">-</td>
-                        <td className="border border-gray-300 px-3 py-3 text-center">{item.quantity}<br/>{item.unit}</td>
-                        <td className="border border-gray-300 px-3 py-3 text-right">{rate.toFixed(2)}</td>
-                        <td className="border border-gray-300 px-3 py-3 text-right">{taxableValue.toFixed(2)}</td>
-                        <td className="border border-gray-300 px-3 py-3 text-right">
-                          {taxAmount.toFixed(2)}
-                          {tax > 0 && <div className="text-xs">{tax}%</div>}
-                        </td>
-                        <td className="border border-gray-300 px-3 py-3 text-right font-semibold">{totalAmount.toFixed(2)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              {/* Items Table - Modern Design */}
+              <div className="mb-8">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="text-white text-sm" style={{ backgroundColor: profile.brandColor || "#ea580c" }}>
+                      <th className="px-4 py-3 text-left font-semibold">S.No</th>
+                      <th className="px-4 py-3 text-left font-semibold">Item Description</th>
+                      <th className="px-4 py-3 text-center font-semibold">HSN/SAC</th>
+                      <th className="px-4 py-3 text-center font-semibold">Qty/UoM</th>
+                      <th className="px-4 py-3 text-right font-semibold">Rate</th>
+                      <th className="px-4 py-3 text-right font-semibold">Taxable</th>
+                      <th className="px-4 py-3 text-right font-semibold">IGST</th>
+                      <th className="px-4 py-3 text-right font-semibold">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm">
+                    {items.map((item, index) => {
+                      const qty = parseFloat(item.quantity || "0");
+                      const rate = parseFloat(item.rate || "0");
+                      const discount = parseFloat(item.discountPercent || "0");
+                      const tax = parseFloat(item.taxPercent || "0");
+                      
+                      const subtotal = qty * rate;
+                      const discountAmount = (subtotal * discount) / 100;
+                      const taxableValue = subtotal - discountAmount;
+                      const taxAmount = (taxableValue * tax) / 100;
+                      const totalAmount = taxableValue + taxAmount;
+                      
+                      return (
+                        <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
+                          <td className="px-4 py-3 text-gray-600">{index + 1}</td>
+                          <td className="px-4 py-3">
+                            <div className="font-semibold text-gray-800">{item.itemName}</div>
+                          </td>
+                          <td className="px-4 py-3 text-center text-gray-600">-</td>
+                          <td className="px-4 py-3 text-center text-gray-600">
+                            {item.quantity} {item.unit}
+                          </td>
+                          <td className="px-4 py-3 text-right text-gray-700">₹{rate.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-right text-gray-700">₹{taxableValue.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-right text-gray-700">
+                            ₹{taxAmount.toFixed(2)}
+                            {tax > 0 && <div className="text-xs text-gray-500">@{tax}%</div>}
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-gray-900">₹{totalAmount.toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
 
-              {/* Totals Section */}
-              <div className="flex justify-end mb-6">
-                <div className="w-96">
-                  <div className="flex justify-between text-base mb-2">
-                    <span>Total @{items[0] ? items[0].taxPercent : '0'}%</span>
-                    <span>{parseFloat(quotation.subtotal).toFixed(2)}</span>
-                    <span>{parseFloat(quotation.totalTax).toFixed(2)}</span>
-                    <span className="font-semibold">{parseFloat(quotation.grandTotal).toFixed(2)}</span>
+              {/* Summary Grid */}
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                {/* Left Side - Amount in Words */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs font-bold text-gray-500 uppercase mb-2">Amount in Words</p>
+                  <p className="text-sm font-semibold text-gray-800">{numberToWords(Math.round(parseFloat(quotation.grandTotal)))}</p>
+                </div>
+
+                {/* Right Side - Summary */}
+                <div>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between text-gray-600">
+                      <span>Subtotal</span>
+                      <span className="font-semibold">₹{parseFloat(quotation.subtotal).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>IGST @{items[0] ? items[0].taxPercent : '0'}%</span>
+                      <span className="font-semibold">₹{parseFloat(quotation.totalTax).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-600">
+                      <span>Round Off</span>
+                      <span className="font-semibold">{(parseFloat(quotation.grandTotal) - Math.round(parseFloat(quotation.grandTotal))).toFixed(2)}</span>
+                    </div>
+                    <div 
+                      className="flex justify-between text-white text-lg font-bold py-3 px-4 rounded-lg mt-3"
+                      style={{ backgroundColor: profile.brandColor || "#ea580c" }}
+                    >
+                      <span>TOTAL</span>
+                      <span>₹{Math.round(parseFloat(quotation.grandTotal)).toLocaleString('en-IN')}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Summary Section */}
-              <div className="border-t-2 border-gray-300 pt-4 text-base">
-                <div className="flex justify-between mb-2">
-                  <span className="font-semibold">Total Taxable Value</span>
-                  <span className="font-semibold">INR {parseFloat(quotation.subtotal).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span className="font-semibold">Rounded Off</span>
-                  <span className="font-semibold">(-) INR {(parseFloat(quotation.grandTotal) - Math.round(parseFloat(quotation.grandTotal))).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span className="font-semibold">Total Value (in figure)</span>
-                  <span className="font-semibold">INR {Math.round(parseFloat(quotation.grandTotal))}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-semibold">Total Value (in words)</span>
-                  <span className="font-semibold">{numberToWords(Math.round(parseFloat(quotation.grandTotal)))}</span>
-                </div>
-              </div>
-
-              {/* Terms & Conditions */}
+              {/* Terms & Conditions - Modern Card */}
               {quotation.termsAndConditions && (
-                <div className="mt-6 border-t-2 border-gray-300 pt-4">
-                  <p className="font-bold text-base mb-3">Terms & Conditions</p>
-                  <div className="text-sm whitespace-pre-wrap italic">{quotation.termsAndConditions}</div>
+                <div className="mb-6 bg-gray-50 rounded-lg p-6 border-l-4" style={{ borderColor: profile.brandColor || "#ea580c" }}>
+                  <p className="text-sm font-bold text-gray-700 uppercase mb-3">Terms & Conditions</p>
+                  <div className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{quotation.termsAndConditions}</div>
                 </div>
               )}
 
-              {/* Banking Details Footer */}
+              {/* Banking Details - Professional Footer */}
               {(profile.bankName || profile.accountNumber) && (
-                <div className="mt-6 border-t-2 border-gray-300 pt-4">
-                  <p className="font-bold text-base mb-3">Banking Details</p>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p><span className="font-semibold">Bank Name:</span> {profile.bankName || '-'}</p>
-                      <p><span className="font-semibold">Branch:</span> {profile.branchName || '-'}</p>
+                <div className="bg-gray-100 rounded-lg p-6 border-t-4" style={{ borderColor: profile.brandColor || "#ea580c" }}>
+                  <p className="text-sm font-bold text-gray-700 uppercase mb-4">Banking Information</p>
+                  <div className="grid grid-cols-2 gap-6 text-sm">
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Bank Name</p>
+                        <p className="font-semibold text-gray-800">{profile.bankName || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Branch</p>
+                        <p className="font-semibold text-gray-800">{profile.branchName || '-'}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p><span className="font-semibold">Account Name:</span> {profile.accountName || '-'}</p>
-                      <p><span className="font-semibold">Account Number:</span> {profile.accountNumber || '-'}</p>
-                      <p><span className="font-semibold">IFSC Code:</span> {profile.ifscCode || '-'}</p>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Account Name</p>
+                        <p className="font-semibold text-gray-800">{profile.accountName || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">Account Number</p>
+                        <p className="font-semibold text-gray-800">{profile.accountNumber || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase">IFSC Code</p>
+                        <p className="font-semibold text-gray-800">{profile.ifscCode || '-'}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
+
+              {/* Professional Footer Bar */}
+              <div className="mt-8 pt-6 border-t border-gray-300">
+                <p className="text-center text-xs text-gray-500">
+                  This is a computer-generated quotation and does not require a signature.
+                </p>
+                <div 
+                  className="h-1 w-24 mx-auto mt-4" 
+                  style={{ backgroundColor: profile.brandColor || "#ea580c" }}
+                ></div>
+              </div>
             </div>
           ) : (
             <p className="text-center text-red-600">Unable to load company profile</p>
