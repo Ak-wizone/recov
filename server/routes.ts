@@ -1432,8 +1432,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const result = insertLeadSchema.safeParse(leadData);
         if (result.success) {
-          const lead = await storage.createLead(result.data);
-          results.push(lead);
+          // Check for duplicate mobile or email
+          const existingLeads = await storage.getLeads();
+          const duplicateMobile = existingLeads.find(
+            (existing) => existing.mobile === result.data.mobile
+          );
+          const duplicateEmail = existingLeads.find(
+            (existing) => existing.email.toLowerCase() === result.data.email.toLowerCase()
+          );
+
+          if (duplicateMobile) {
+            errors.push({
+              rowNumber: i + 2,
+              field: 'mobile',
+              message: `Duplicate entry: Mobile number ${result.data.mobile} already exists for ${duplicateMobile.companyName}`
+            });
+          } else if (duplicateEmail) {
+            errors.push({
+              rowNumber: i + 2,
+              field: 'email',
+              message: `Duplicate entry: Email ${result.data.email} already exists for ${duplicateEmail.companyName}`
+            });
+          } else {
+            const lead = await storage.createLead(result.data);
+            results.push(lead);
+          }
         } else {
           // Extract field and message from Zod error
           const zodError = result.error;
