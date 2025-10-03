@@ -113,16 +113,34 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
-      if (!response.ok) throw new Error("Failed to generate proforma invoice");
-      return response.json() as Promise<ProformaInvoice>;
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        // If there's an existing PI, return it instead of throwing
+        if (response.status === 400 && data.existingInvoice) {
+          return { ...data.existingInvoice, isExisting: true };
+        }
+        throw new Error(data.message || "Failed to generate proforma invoice");
+      }
+      
+      return data;
     },
-    onSuccess: (data: ProformaInvoice) => {
+    onSuccess: (data: any) => {
       setGeneratedPI(data);
       setPiDialogOpen(true);
-      toast({
-        title: "Proforma Invoice Generated",
-        description: `PI ${data.invoiceNumber} has been created successfully.`,
-      });
+      
+      if (data.isExisting) {
+        toast({
+          title: "Proforma Invoice Already Exists",
+          description: `Opening existing PI ${data.invoiceNumber}`,
+        });
+      } else {
+        toast({
+          title: "Proforma Invoice Generated",
+          description: `PI ${data.invoiceNumber} has been created successfully.`,
+        });
+      }
     },
     onError: (error: any) => {
       toast({

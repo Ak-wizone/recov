@@ -102,6 +102,7 @@ export interface IStorage {
   // Proforma Invoice operations
   getProformaInvoices(): Promise<ProformaInvoice[]>;
   getProformaInvoice(id: string): Promise<ProformaInvoice | undefined>;
+  getProformaInvoiceByQuotationId(quotationId: string): Promise<ProformaInvoice | undefined>;
   createProformaInvoice(invoice: InsertProformaInvoice): Promise<ProformaInvoice>;
   updateProformaInvoice(id: string, invoice: Partial<InsertProformaInvoice>): Promise<ProformaInvoice | undefined>;
   deleteProformaInvoice(id: string): Promise<boolean>;
@@ -833,6 +834,11 @@ export class DatabaseStorage implements IStorage {
 
   async getProformaInvoice(id: string): Promise<ProformaInvoice | undefined> {
     const [invoice] = await db.select().from(proformaInvoices).where(eq(proformaInvoices.id, id));
+    return invoice || undefined;
+  }
+
+  async getProformaInvoiceByQuotationId(quotationId: string): Promise<ProformaInvoice | undefined> {
+    const [invoice] = await db.select().from(proformaInvoices).where(eq(proformaInvoices.quotationId, quotationId));
     return invoice || undefined;
   }
 

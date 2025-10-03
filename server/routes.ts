@@ -1875,6 +1875,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Quotation not found" });
       }
 
+      // Check if a PI already exists for this quotation
+      const existingPI = await storage.getProformaInvoiceByQuotationId(req.params.id);
+      if (existingPI) {
+        return res.status(400).json({ 
+          message: "A Proforma Invoice already exists for this quotation",
+          existingInvoice: existingPI
+        });
+      }
+
       // Get quotation items
       const quotationItems = await storage.getQuotationItems(req.params.id);
 

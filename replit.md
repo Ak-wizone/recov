@@ -1,6 +1,6 @@
 # Overview
 
-This is a customer debt management application built with a full-stack TypeScript architecture. The application allows users to track customers who owe money, categorize them by urgency (Alpha, Beta, Gamma, Delta), record payments, and manage customer data through imports/exports. The system provides a dashboard view with category-based analytics and supports bulk operations via Excel file uploads.
+This is a comprehensive business management application built with a full-stack TypeScript architecture. The application includes modules for managing leads, quotations, proforma invoices, invoices, receipts, and customer debts. It provides dashboard views with analytics, supports bulk operations via Excel file uploads, and includes professional print formats for business documents.
 
 # User Preferences
 
@@ -26,13 +26,16 @@ Preferred communication style: Simple, everyday language.
 
 **Form Handling**: React Hook Form with Zod validation via @hookform/resolvers
 
-**Key Features**:
-- Customer CRUD operations with form dialogs
-- Payment recording and history tracking
-- Excel import/export functionality using XLSX library
-- Category-based dashboard with real-time statistics
-- Search and filter capabilities
-- WhatsApp and Email integration for customer communication
+**Key Modules**:
+- **Leads Management**: Track potential customers with follow-ups and status tracking
+- **Quotations**: Create and manage quotations with professional print format
+- **Proforma Invoices**: Generate PIs from quotations (one PI per quotation enforced)
+- **Invoices & Receipts**: Full billing and payment tracking
+- **Customer Management**: CRUD operations with form dialogs
+- **Masters**: Centralized customer and item databases
+- **Dashboard Analytics**: Real-time statistics with date filtering
+- **Print & Export**: Professional A4 print formats and Excel exports
+- **Communication**: WhatsApp and Email integration
 
 ## Backend Architecture
 
@@ -118,3 +121,22 @@ Preferred communication style: Simple, everyday language.
 - Separate build processes for client (Vite) and server (esbuild)
 
 **Note on Database**: The application is configured to use PostgreSQL through Drizzle ORM, but currently implements an in-memory storage system. The IStorage interface pattern makes it straightforward to swap the MemStorage implementation with a database-backed storage class.
+
+## Recent Changes
+
+### Proforma Invoice Module (October 2025)
+- **Complete PI Management System**: Added dedicated proforma invoice module with full CRUD operations
+- **Grid Features**: TanStack Table with pagination, column chooser, filters, sorting, and row selection
+- **Dashboard Cards**: Total PIs, This Week, Today, Yesterday, This Month statistics
+- **Date Filtering**: Month/Year, All Time, and Date Range filters
+- **Print & Export**: Professional A4 print format matching quotation style, Excel export
+- **Actions**: View/Print, Download PDF, Email, WhatsApp, Delete per row
+- **Navigation**: Added to sidebar under "Proforma Invoices"
+
+### Duplicate Prevention (October 2025)
+- **One PI per Quotation**: Backend validation prevents creating duplicate proforma invoices for the same quotation
+- **Database Constraint**: `quotationId` foreign key in `proforma_invoices` table links to quotations
+- **Smart Handling**: When attempting to generate a duplicate PI, the system opens the existing PI instead
+- **User Feedback**: Toast notifications inform users if a PI already exists or was newly created
+- **API Endpoint**: `POST /api/quotations/:id/generate-pi` checks for existing PI via `getProformaInvoiceByQuotationId()`
+- **Implementation**: Storage interface method added to query PIs by quotation ID
