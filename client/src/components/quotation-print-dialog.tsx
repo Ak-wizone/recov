@@ -104,7 +104,7 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
     // Wait for content to render before printing
     setTimeout(() => {
       window.print();
-    }, 100);
+    }, 500);
   };
 
   const handleEmail = () => {
@@ -224,72 +224,72 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
               )}
 
               {/* Header Section */}
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-start gap-3">
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex items-start gap-4">
                   {profile.logo && (
-                    <img src={profile.logo} alt="Logo" className="h-12 w-12 object-contain" />
+                    <img src={profile.logo} alt="Logo" className="h-16 w-16 object-contain" />
                   )}
                   <div>
-                    <h1 className="text-xl font-bold">{profile.legalName}</h1>
+                    <h1 className="text-2xl font-bold">{profile.legalName}</h1>
                   </div>
                 </div>
                 <div className="text-center flex-1">
-                  <h2 className="text-2xl font-bold">QUOTATION</h2>
+                  <h2 className="text-3xl font-bold">QUOTATION</h2>
                 </div>
                 <div className="text-right">
-                  <p className="text-xl font-bold">#{quotation.quotationNumber}</p>
+                  <p className="text-2xl font-bold">#{quotation.quotationNumber}</p>
                 </div>
               </div>
 
-              {/* Amount Due Bar */}
+              {/* Amount Due Bar - Half Page Width */}
               <div 
-                className="text-white px-4 py-2 mb-4 flex justify-between items-center" 
+                className="text-white px-6 py-4 mb-6 flex justify-between items-center w-1/2 mx-auto rounded-md shadow-lg" 
                 style={{ backgroundColor: profile.brandColor || "#ea580c" }}
               >
-                <span className="font-semibold">Amount Due:</span>
-                <span className="text-xl font-bold">INR {parseFloat(quotation.grandTotal).toFixed(2)}</span>
+                <span className="text-lg font-semibold">Amount Due:</span>
+                <span className="text-2xl font-bold">INR {parseFloat(quotation.grandTotal).toFixed(2)}</span>
               </div>
 
               {/* Company and Client Details */}
-              <div className="grid grid-cols-2 gap-8 mb-4">
+              <div className="grid grid-cols-2 gap-8 mb-6">
                 <div>
-                  <p className="font-bold text-sm mb-1">{profile.legalName}</p>
-                  <p className="text-xs">{profile.regAddressLine1}</p>
-                  {profile.regAddressLine2 && <p className="text-xs">{profile.regAddressLine2}</p>}
-                  <p className="text-xs">{profile.regCity}, {profile.regState} {profile.regPincode}, IN</p>
-                  <p className="text-xs">+91{profile.primaryContactMobile}</p>
-                  <p className="text-xs">{profile.primaryContactEmail}</p>
-                  <p className="text-xs font-semibold mt-1">GSTIN: {profile.gstin || '-'}</p>
+                  <p className="font-bold text-lg mb-2">{profile.legalName}</p>
+                  <p className="text-base">{profile.regAddressLine1}</p>
+                  {profile.regAddressLine2 && <p className="text-base">{profile.regAddressLine2}</p>}
+                  <p className="text-base">{profile.regCity}, {profile.regState} {profile.regPincode}, IN</p>
+                  <p className="text-base">+91{profile.primaryContactMobile}</p>
+                  <p className="text-base">{profile.primaryContactEmail}</p>
+                  <p className="text-base font-semibold mt-2">GSTIN: {profile.gstin || '-'}</p>
                 </div>
-                <div className="text-right text-xs">
+                <div className="text-right text-base">
                   <div className="mb-3">
-                    <p className="mb-1"><span className="inline-block w-24 text-left">Issue Date:</span> {new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                    <p className="mb-1"><span className="inline-block w-24 text-left">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                    <p><span className="inline-block w-24 text-left">Place of Supply:</span> {profile.regState}</p>
+                    <p className="mb-2"><span className="inline-block w-32 text-left">Issue Date:</span> {new Date(quotation.quotationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    <p className="mb-2"><span className="inline-block w-32 text-left">Valid Until:</span> {new Date(quotation.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    <p><span className="inline-block w-32 text-left">Place of Supply:</span> {profile.regState}</p>
                   </div>
                 </div>
               </div>
 
               {/* Quote To Section */}
-              <div className="mb-4">
-                <p className="font-bold text-sm mb-1">Quote To</p>
-                <p className="font-semibold text-sm">{quotation.leadName}</p>
-                <p className="text-xs">{quotation.leadEmail}</p>
-                <p className="text-xs">{quotation.leadMobile}</p>
+              <div className="mb-6">
+                <p className="font-bold text-base mb-2">Quote To</p>
+                <p className="font-semibold text-base">{quotation.leadName}</p>
+                <p className="text-base">{quotation.leadEmail}</p>
+                <p className="text-base">{quotation.leadMobile}</p>
               </div>
 
               {/* Items Table */}
-              <table className="w-full border-collapse mb-4 text-xs">
+              <table className="w-full border-collapse mb-6 text-sm">
                 <thead>
                   <tr className="text-white" style={{ backgroundColor: profile.brandColor || "#ea580c" }}>
-                    <th className="border border-gray-300 px-2 py-2 text-left">S.No</th>
-                    <th className="border border-gray-300 px-2 py-2 text-left">Item<br/>Description</th>
-                    <th className="border border-gray-300 px-2 py-2 text-center">HSN/SAC</th>
-                    <th className="border border-gray-300 px-2 py-2 text-center">Qty<br/>UoM</th>
-                    <th className="border border-gray-300 px-2 py-2 text-right">Price<br/>(INR)</th>
-                    <th className="border border-gray-300 px-2 py-2 text-right">Taxable Value<br/>(INR)</th>
-                    <th className="border border-gray-300 px-2 py-2 text-right">IGST<br/>(INR)</th>
-                    <th className="border border-gray-300 px-2 py-2 text-right">Amount<br/>(INR)</th>
+                    <th className="border border-gray-300 px-3 py-3 text-left">S.No</th>
+                    <th className="border border-gray-300 px-3 py-3 text-left">Item<br/>Description</th>
+                    <th className="border border-gray-300 px-3 py-3 text-center">HSN/SAC</th>
+                    <th className="border border-gray-300 px-3 py-3 text-center">Qty<br/>UoM</th>
+                    <th className="border border-gray-300 px-3 py-3 text-right">Price<br/>(INR)</th>
+                    <th className="border border-gray-300 px-3 py-3 text-right">Taxable Value<br/>(INR)</th>
+                    <th className="border border-gray-300 px-3 py-3 text-right">IGST<br/>(INR)</th>
+                    <th className="border border-gray-300 px-3 py-3 text-right">Amount<br/>(INR)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -307,19 +307,19 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
                     
                     return (
                       <tr key={item.id}>
-                        <td className="border border-gray-300 px-2 py-2">{index + 1}</td>
-                        <td className="border border-gray-300 px-2 py-2">
+                        <td className="border border-gray-300 px-3 py-3">{index + 1}</td>
+                        <td className="border border-gray-300 px-3 py-3">
                           <div className="font-semibold">{item.itemName}</div>
                         </td>
-                        <td className="border border-gray-300 px-2 py-2 text-center">-</td>
-                        <td className="border border-gray-300 px-2 py-2 text-center">{item.quantity}<br/>{item.unit}</td>
-                        <td className="border border-gray-300 px-2 py-2 text-right">{rate.toFixed(2)}</td>
-                        <td className="border border-gray-300 px-2 py-2 text-right">{taxableValue.toFixed(2)}</td>
-                        <td className="border border-gray-300 px-2 py-2 text-right">
+                        <td className="border border-gray-300 px-3 py-3 text-center">-</td>
+                        <td className="border border-gray-300 px-3 py-3 text-center">{item.quantity}<br/>{item.unit}</td>
+                        <td className="border border-gray-300 px-3 py-3 text-right">{rate.toFixed(2)}</td>
+                        <td className="border border-gray-300 px-3 py-3 text-right">{taxableValue.toFixed(2)}</td>
+                        <td className="border border-gray-300 px-3 py-3 text-right">
                           {taxAmount.toFixed(2)}
-                          {tax > 0 && <div className="text-[10px]">{tax}%</div>}
+                          {tax > 0 && <div className="text-xs">{tax}%</div>}
                         </td>
-                        <td className="border border-gray-300 px-2 py-2 text-right font-semibold">{totalAmount.toFixed(2)}</td>
+                        <td className="border border-gray-300 px-3 py-3 text-right font-semibold">{totalAmount.toFixed(2)}</td>
                       </tr>
                     );
                   })}
@@ -327,9 +327,9 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
               </table>
 
               {/* Totals Section */}
-              <div className="flex justify-end mb-4">
+              <div className="flex justify-end mb-6">
                 <div className="w-96">
-                  <div className="flex justify-between text-sm mb-1">
+                  <div className="flex justify-between text-base mb-2">
                     <span>Total @{items[0] ? items[0].taxPercent : '0'}%</span>
                     <span>{parseFloat(quotation.subtotal).toFixed(2)}</span>
                     <span>{parseFloat(quotation.totalTax).toFixed(2)}</span>
@@ -339,16 +339,16 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
               </div>
 
               {/* Summary Section */}
-              <div className="border-t-2 border-gray-300 pt-3 text-sm">
-                <div className="flex justify-between mb-1">
+              <div className="border-t-2 border-gray-300 pt-4 text-base">
+                <div className="flex justify-between mb-2">
                   <span className="font-semibold">Total Taxable Value</span>
                   <span className="font-semibold">INR {parseFloat(quotation.subtotal).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between mb-1">
+                <div className="flex justify-between mb-2">
                   <span className="font-semibold">Rounded Off</span>
                   <span className="font-semibold">(-) INR {(parseFloat(quotation.grandTotal) - Math.round(parseFloat(quotation.grandTotal))).toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between mb-1">
+                <div className="flex justify-between mb-2">
                   <span className="font-semibold">Total Value (in figure)</span>
                   <span className="font-semibold">INR {Math.round(parseFloat(quotation.grandTotal))}</span>
                 </div>
@@ -360,17 +360,17 @@ export function QuotationPrintDialog({ open, onOpenChange, quotation }: Quotatio
 
               {/* Terms & Conditions */}
               {quotation.termsAndConditions && (
-                <div className="mt-6 border-t-2 border-gray-300 pt-3">
-                  <p className="font-bold text-sm mb-2">Terms & Conditions</p>
-                  <div className="text-xs whitespace-pre-wrap italic">{quotation.termsAndConditions}</div>
+                <div className="mt-6 border-t-2 border-gray-300 pt-4">
+                  <p className="font-bold text-base mb-3">Terms & Conditions</p>
+                  <div className="text-sm whitespace-pre-wrap italic">{quotation.termsAndConditions}</div>
                 </div>
               )}
 
               {/* Banking Details Footer */}
               {(profile.bankName || profile.accountNumber) && (
-                <div className="mt-6 border-t-2 border-gray-300 pt-3">
-                  <p className="font-bold text-sm mb-2">Banking Details</p>
-                  <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="mt-6 border-t-2 border-gray-300 pt-4">
+                  <p className="font-bold text-base mb-3">Banking Details</p>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p><span className="font-semibold">Bank Name:</span> {profile.bankName || '-'}</p>
                       <p><span className="font-semibold">Branch:</span> {profile.branchName || '-'}</p>
