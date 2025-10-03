@@ -8,6 +8,7 @@ import ReceiptFormDialog from "@/components/receipt-form-dialog";
 import { ImportModal } from "@/components/import-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,6 +47,11 @@ export default function Receipts() {
   const [selectedYear, setSelectedYear] = useState(getYear(now));
   const [selectedMonth, setSelectedMonth] = useState(getMonth(now)); // 0-11
   const [activeFilter, setActiveFilter] = useState<CardFilter>(null);
+  
+  // Date filter mode state
+  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("month");
+  const [dateRangeFrom, setDateRangeFrom] = useState("");
+  const [dateRangeTo, setDateRangeTo] = useState("");
 
   const { data: receipts = [], isLoading } = useQuery<Receipt[]>({
     queryKey: ["/api/receipts"],
@@ -165,15 +171,28 @@ export default function Receipts() {
     },
   });
 
-  // Calculate receipt statistics based on selected year/month
+  // Calculate receipt statistics based on selected year/month or filter mode
   const selectedDate = setMonthFn(setYear(new Date(), selectedYear), selectedMonth);
   const monthStart = startOfMonth(selectedDate);
   const monthEnd = endOfMonth(selectedDate);
 
-  // Filter receipts for selected month/year
+  // Filter receipts based on date filter mode
   const monthReceipts = receipts.filter(r => {
     const receiptDate = new Date(r.date);
-    return isWithinInterval(receiptDate, { start: monthStart, end: monthEnd });
+    
+    if (dateFilterMode === "allTime") {
+      return true;
+    } else if (dateFilterMode === "dateRange") {
+      if (!dateRangeFrom && !dateRangeTo) return true;
+      
+      const fromDate = dateRangeFrom ? new Date(dateRangeFrom) : new Date(0);
+      const toDate = dateRangeTo ? new Date(dateRangeTo) : new Date();
+      toDate.setHours(23, 59, 59, 999);
+      
+      return isWithinInterval(receiptDate, { start: fromDate, end: toDate });
+    } else {
+      return isWithinInterval(receiptDate, { start: monthStart, end: monthEnd });
+    }
   });
 
   // Today's receipts (only if in selected month)
@@ -309,38 +328,88 @@ export default function Receipts() {
         </Button>
       </div>
 
-      {/* Year/Month Selector */}
+      {/* Date Filter Mode Selector */}
       <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg border">
         <div className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-gray-500" />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by:</span>
         </div>
+        
+        {/* Date Filter Mode Selector */}
         <Select 
-          value={selectedYear.toString()} 
-          onValueChange={(value) => setSelectedYear(parseInt(value))}
+          value={dateFilterMode} 
+          onValueChange={(value: "month" | "allTime" | "dateRange") => {
+            setDateFilterMode(value);
+            setActiveFilter(null);
+          }}
         >
-          <SelectTrigger className="w-32" data-testid="select-year">
-            <SelectValue placeholder="Year" />
+          <SelectTrigger className="w-48" data-testid="select-date-filter-mode">
+            <SelectValue placeholder="Select filter mode" />
           </SelectTrigger>
           <SelectContent>
-            {Array.from({ length: 5 }, (_, i) => getYear(now) - 2 + i).map(year => (
-              <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-            ))}
+            <SelectItem value="month">Month/Year</SelectItem>
+            <SelectItem value="allTime">All Time</SelectItem>
+            <SelectItem value="dateRange">Date Range</SelectItem>
           </SelectContent>
         </Select>
-        <Select 
-          value={selectedMonth.toString()} 
-          onValueChange={(value) => setSelectedMonth(parseInt(value))}
-        >
-          <SelectTrigger className="w-40" data-testid="select-month">
-            <SelectValue placeholder="Month" />
-          </SelectTrigger>
-          <SelectContent>
-            {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => (
-              <SelectItem key={index} value={index.toString()}>{month}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        
+        {/* Month/Year Selectors - Show only when dateFilterMode is "month" */}
+        {dateFilterMode === "month" && (
+          <>
+            <Select 
+              value={selectedYear.toString()} 
+              onValueChange={(value) => setSelectedYear(parseInt(value))}
+            >
+              <SelectTrigger className="w-32" data-testid="select-year">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 5 }, (_, i) => getYear(now) - 2 + i).map(year => (
+                  <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select 
+              value={selectedMonth.toString()} 
+              onValueChange={(value) => setSelectedMonth(parseInt(value))}
+            >
+              <SelectTrigger className="w-40" data-testid="select-month">
+                <SelectValue placeholder="Month" />
+              </SelectTrigger>
+              <SelectContent>
+                {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => (
+                  <SelectItem key={index} value={index.toString()}>{month}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
+        
+        {/* Date Range Inputs - Show only when dateFilterMode is "dateRange" */}
+        {dateFilterMode === "dateRange" && (
+          <>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">From:</span>
+              <Input
+                type="date"
+                value={dateRangeFrom}
+                onChange={(e) => setDateRangeFrom(e.target.value)}
+                className="w-40"
+                data-testid="input-date-from"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">To:</span>
+              <Input
+                type="date"
+                value={dateRangeTo}
+                onChange={(e) => setDateRangeTo(e.target.value)}
+                className="w-40"
+                data-testid="input-date-to"
+              />
+            </div>
+          </>
+        )}
         {activeFilter && (
           <Button 
             variant="outline" 
