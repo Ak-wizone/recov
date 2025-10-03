@@ -483,6 +483,8 @@ export const companyProfile = pgTable("company_profile", {
   accountName: text("account_name"),
   accountNumber: text("account_number"),
   ifscCode: text("ifsc_code"),
+  // Branding
+  brandColor: text("brand_color").default("#ea580c"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -516,6 +518,7 @@ export const insertCompanyProfileSchema = createInsertSchema(companyProfile).pic
   accountName: true,
   accountNumber: true,
   ifscCode: true,
+  brandColor: true,
 }).extend({
   logo: z.string().optional(),
   legalName: z.string().min(1, "Legal name is required"),
@@ -546,6 +549,7 @@ export const insertCompanyProfileSchema = createInsertSchema(companyProfile).pic
   accountName: z.string().optional(),
   accountNumber: z.string().optional(),
   ifscCode: z.string().optional(),
+  brandColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Brand color must be a valid hex color").optional(),
 });
 
 export type InsertCompanyProfile = z.infer<typeof insertCompanyProfileSchema>;
