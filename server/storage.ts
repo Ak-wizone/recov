@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -80,6 +80,24 @@ export interface IStorage {
   // Company Profile operations
   getCompanyProfile(): Promise<CompanyProfile | undefined>;
   updateCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile>;
+  
+  // Quotation operations
+  getQuotations(): Promise<Quotation[]>;
+  getQuotation(id: string): Promise<Quotation | undefined>;
+  createQuotation(quotation: InsertQuotation): Promise<Quotation>;
+  updateQuotation(id: string, quotation: Partial<InsertQuotation>): Promise<Quotation | undefined>;
+  deleteQuotation(id: string): Promise<boolean>;
+  deleteQuotations(ids: string[]): Promise<number>;
+  getNextQuotationNumber(): Promise<string>;
+  
+  // Quotation Items operations
+  getQuotationItems(quotationId: string): Promise<QuotationItem[]>;
+  createQuotationItem(item: InsertQuotationItem): Promise<QuotationItem>;
+  deleteQuotationItem(id: string): Promise<boolean>;
+  
+  // Quotation Settings operations
+  getQuotationSettings(): Promise<QuotationSettings | undefined>;
+  updateQuotationSettings(termsAndConditions: string): Promise<QuotationSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
