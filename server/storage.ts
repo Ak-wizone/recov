@@ -516,7 +516,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLeads(): Promise<Lead[]> {
-    return await db.select().from(leads).orderBy(desc(leads.createdAt));
+    const allLeads = await db.select().from(leads).orderBy(desc(leads.createdAt));
+    
+    // Fetch latest follow-up for each lead
+    const leadsWithFollowUps = await Promise.all(
+      allLeads.map(async (lead) => {
+        const followUps = await db
+          .select()
+          .from(leadFollowUps)
+          .where(eq(leadFollowUps.leadId, lead.id))
+          .orderBy(desc(leadFollowUps.followUpDateTime))
+          .limit(1);
+        
+        const latestFollowUp = followUps[0];
+        return {
+          ...lead,
+          lastFollowUpType: latestFollowUp?.type || null,
+          lastFollowUpRemarks: latestFollowUp?.remarks || null,
+        };
+      })
+    );
+    
+    return leadsWithFollowUps;
   }
 
   async getLead(id: string): Promise<Lead | undefined> {

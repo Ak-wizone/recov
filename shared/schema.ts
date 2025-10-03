@@ -408,7 +408,10 @@ export const insertLeadSchema = createInsertSchema(leads).pick({
 });
 
 export type InsertLead = z.infer<typeof insertLeadSchema>;
-export type Lead = typeof leads.$inferSelect;
+export type Lead = typeof leads.$inferSelect & {
+  lastFollowUpType?: string | null;
+  lastFollowUpRemarks?: string | null;
+};
 
 // Lead Follow-ups table
 export const leadFollowUps = pgTable("lead_follow_ups", {

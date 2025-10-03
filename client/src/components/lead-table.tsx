@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MessageCircle, Mail, Edit, Trash2, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { MessageCircle, Mail, Edit, Trash2, MoreVertical, ChevronDown, ChevronLeft, ChevronRight, Settings, Phone, Calendar } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,6 +86,8 @@ export function LeadTable({
       industry: true,
       city: true,
       assignedUser: true,
+      lastFollowUp: true,
+      lastFollowUpRemarks: true,
       nextFollowUp: true,
     };
   });
@@ -110,6 +112,7 @@ export function LeadTable({
     { id: 'priority', label: 'Priority' },
     { id: 'assignedUser', label: 'Assigned User' },
     { id: 'lastFollowUp', label: 'Last Follow Up' },
+    { id: 'lastFollowUpRemarks', label: 'Last Follow-Up Remarks' },
     { id: 'nextFollowUp', label: 'Next Follow Up' },
   ];
   
@@ -128,6 +131,7 @@ export function LeadTable({
   const [prioritySearch, setPrioritySearch] = useState("");
   const [assignedUserSearch, setAssignedUserSearch] = useState("");
   const [lastFollowUpSearch, setLastFollowUpSearch] = useState("");
+  const [lastFollowUpRemarksSearch, setLastFollowUpRemarksSearch] = useState("");
   const [nextFollowUpSearch, setNextFollowUpSearch] = useState("");
 
   const handleSort = (field: keyof Lead) => {
@@ -232,6 +236,7 @@ export function LeadTable({
       ? format(new Date(lead.lastFollowUp), "MMM dd, yyyy HH:mm")
       : "";
     const matchesLastFollowUp = lastFollowUpStr.toLowerCase().includes(lastFollowUpSearch.toLowerCase());
+    const matchesLastFollowUpRemarks = (lead.lastFollowUpRemarks || "").toLowerCase().includes(lastFollowUpRemarksSearch.toLowerCase());
     const nextFollowUpStr = lead.nextFollowUp 
       ? format(new Date(lead.nextFollowUp), "MMM dd, yyyy HH:mm")
       : "";
@@ -240,7 +245,7 @@ export function LeadTable({
     return matchesCompany && matchesContactPerson && matchesMobile && matchesEmail && 
            matchesLeadSource && matchesLeadStatus && matchesAddress && matchesCity && 
            matchesState && matchesPincode && matchesRemarks && matchesIndustry && 
-           matchesPriority && matchesAssignedUser && matchesLastFollowUp && matchesNextFollowUp;
+           matchesPriority && matchesAssignedUser && matchesLastFollowUp && matchesLastFollowUpRemarks && matchesNextFollowUp;
   });
 
   const sortedLeads = [...filteredLeads].sort((a, b) => {
@@ -389,6 +394,7 @@ export function LeadTable({
                 {visibleColumns.priority && <TableHead className="py-4 font-semibold">Priority</TableHead>}
                 {visibleColumns.assignedUser && <TableHead className="py-4 font-semibold">Assigned User</TableHead>}
                 {visibleColumns.lastFollowUp && <TableHead className="py-4 font-semibold">Last Follow Up</TableHead>}
+                {visibleColumns.lastFollowUpRemarks && <TableHead className="py-4 font-semibold">Last Follow-Up Remarks</TableHead>}
                 {visibleColumns.nextFollowUp && <TableHead className="py-4 font-semibold">Next Follow Up</TableHead>}
                 <TableHead className="py-4 font-semibold">Actions</TableHead>
               </TableRow>
@@ -571,6 +577,18 @@ export function LeadTable({
                       onChange={(e) => setLastFollowUpSearch(e.target.value)}
                       className="h-10 min-w-[140px]"
                       data-testid="input-search-last-followup"
+                    />
+                  </TableHead>
+                )}
+                {visibleColumns.lastFollowUpRemarks && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search remarks..."
+                      value={lastFollowUpRemarksSearch}
+                      onChange={(e) => setLastFollowUpRemarksSearch(e.target.value)}
+                      className="h-10 min-w-[140px]"
+                      data-testid="input-search-last-followup-remarks"
                     />
                   </TableHead>
                 )}
@@ -780,13 +798,29 @@ export function LeadTable({
                     {visibleColumns.lastFollowUp && (
                       <TableCell className="py-4">
                         <div data-testid={`text-last-followup-${lead.id}`}>
-                          {lead.lastFollowUp ? (
-                            <div className="text-xs text-gray-500">
-                              {format(new Date(lead.lastFollowUp), "MMM dd, yyyy HH:mm")}
+                          {lead.lastFollowUp && lead.lastFollowUpType ? (
+                            <div className="flex items-center gap-2">
+                              {lead.lastFollowUpType === "Call" && <Phone className="h-4 w-4 text-blue-500" />}
+                              {lead.lastFollowUpType === "WhatsApp" && <MessageCircle className="h-4 w-4 text-[#25D366]" />}
+                              {lead.lastFollowUpType === "Email" && <Mail className="h-4 w-4 text-gray-500" />}
+                              {lead.lastFollowUpType === "Meeting" && <Calendar className="h-4 w-4 text-purple-500" />}
+                              <div className="text-xs text-gray-600">
+                                <div className="font-medium">{lead.lastFollowUpType}</div>
+                                <div className="text-gray-400">
+                                  {format(new Date(lead.lastFollowUp), "MMM dd, yyyy HH:mm")}
+                                </div>
+                              </div>
                             </div>
                           ) : (
                             <span className="text-sm text-gray-400">—</span>
                           )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.lastFollowUpRemarks && (
+                      <TableCell className="py-4">
+                        <div className="text-xs text-gray-600 max-w-[200px] truncate" data-testid={`text-last-followup-remarks-${lead.id}`}>
+                          {lead.lastFollowUpRemarks || <span className="text-gray-400">—</span>}
                         </div>
                       </TableCell>
                     )}
