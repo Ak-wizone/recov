@@ -8,6 +8,7 @@ import InvoiceFormDialog from "@/components/invoice-form-dialog";
 import { ImportModal } from "@/components/import-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +44,11 @@ export default function Invoices() {
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [activeCardFilter, setActiveCardFilter] = useState<string | null>(null);
+  
+  // Date filter mode state
+  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("month");
+  const [dateRangeFrom, setDateRangeFrom] = useState("");
+  const [dateRangeTo, setDateRangeTo] = useState("");
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
@@ -162,13 +168,26 @@ export default function Invoices() {
     },
   });
 
-  // Filter invoices by selected month and year
+  // Filter invoices based on date filter mode
   const monthFilteredInvoices = invoices.filter((invoice) => {
     const invoiceDate = new Date(invoice.invoiceDate);
-    return (
-      invoiceDate.getFullYear() === selectedYear &&
-      invoiceDate.getMonth() === selectedMonth
-    );
+    
+    if (dateFilterMode === "allTime") {
+      return true;
+    } else if (dateFilterMode === "dateRange") {
+      if (!dateRangeFrom && !dateRangeTo) return true;
+      
+      const fromDate = dateRangeFrom ? new Date(dateRangeFrom) : new Date(0);
+      const toDate = dateRangeTo ? new Date(dateRangeTo) : new Date();
+      toDate.setHours(23, 59, 59, 999);
+      
+      return invoiceDate >= fromDate && invoiceDate <= toDate;
+    } else {
+      return (
+        invoiceDate.getFullYear() === selectedYear &&
+        invoiceDate.getMonth() === selectedMonth
+      );
+    }
   });
 
   // Calculate statistics for cards based on month-filtered data
@@ -191,10 +210,25 @@ export default function Invoices() {
   const totalAmount = monthFilteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
   const totalProfit = monthFilteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
 
-  // Filter table data by month/year, status filter, assigned user, and active card
+  // Filter table data by date filter mode, status filter, assigned user, and active card
   const filteredInvoices = invoices.filter((invoice) => {
     const invoiceDate = new Date(invoice.invoiceDate);
-    const matchesMonth = invoiceDate.getFullYear() === selectedYear && invoiceDate.getMonth() === selectedMonth;
+    
+    let matchesMonth = true;
+    if (dateFilterMode === "allTime") {
+      matchesMonth = true;
+    } else if (dateFilterMode === "dateRange") {
+      if (!dateRangeFrom && !dateRangeTo) {
+        matchesMonth = true;
+      } else {
+        const fromDate = dateRangeFrom ? new Date(dateRangeFrom) : new Date(0);
+        const toDate = dateRangeTo ? new Date(dateRangeTo) : new Date();
+        toDate.setHours(23, 59, 59, 999);
+        matchesMonth = invoiceDate >= fromDate && invoiceDate <= toDate;
+      }
+    } else {
+      matchesMonth = invoiceDate.getFullYear() === selectedYear && invoiceDate.getMonth() === selectedMonth;
+    }
     
     let matchesStatusFilter = true;
     if (statusFilter) {
@@ -248,46 +282,94 @@ export default function Invoices() {
         </Button>
       </div>
 
-      {/* Month and Year Selection */}
+      {/* Date Filter Mode Selector */}
       <div className="flex gap-3 items-center">
-        <Select
-          value={selectedYear.toString()}
-          onValueChange={(value) => setSelectedYear(parseInt(value))}
+        <Select 
+          value={dateFilterMode} 
+          onValueChange={(value: "month" | "allTime" | "dateRange") => {
+            setDateFilterMode(value);
+            setActiveCardFilter(null);
+          }}
         >
-          <SelectTrigger className="w-[140px]" data-testid="select-year">
-            <SelectValue placeholder="Select Year" />
+          <SelectTrigger className="w-[160px]" data-testid="select-date-filter-mode">
+            <SelectValue placeholder="Select filter mode" />
           </SelectTrigger>
           <SelectContent>
-            {Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - i).map((year) => (
-              <SelectItem key={year} value={year.toString()}>
-                {year}
-              </SelectItem>
-            ))}
+            <SelectItem value="month">Month/Year</SelectItem>
+            <SelectItem value="allTime">All Time</SelectItem>
+            <SelectItem value="dateRange">Date Range</SelectItem>
           </SelectContent>
         </Select>
+        
+        {/* Month/Year Selectors - Show only when dateFilterMode is "month" */}
+        {dateFilterMode === "month" && (
+          <>
+            <Select
+              value={selectedYear.toString()}
+              onValueChange={(value) => setSelectedYear(parseInt(value))}
+            >
+              <SelectTrigger className="w-[140px]" data-testid="select-year">
+                <SelectValue placeholder="Select Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - i).map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        <Select
-          value={selectedMonth.toString()}
-          onValueChange={(value) => setSelectedMonth(parseInt(value))}
-        >
-          <SelectTrigger className="w-[160px]" data-testid="select-month">
-            <SelectValue placeholder="Select Month" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">January</SelectItem>
-            <SelectItem value="1">February</SelectItem>
-            <SelectItem value="2">March</SelectItem>
-            <SelectItem value="3">April</SelectItem>
-            <SelectItem value="4">May</SelectItem>
-            <SelectItem value="5">June</SelectItem>
-            <SelectItem value="6">July</SelectItem>
-            <SelectItem value="7">August</SelectItem>
-            <SelectItem value="8">September</SelectItem>
-            <SelectItem value="9">October</SelectItem>
-            <SelectItem value="10">November</SelectItem>
-            <SelectItem value="11">December</SelectItem>
-          </SelectContent>
-        </Select>
+            <Select
+              value={selectedMonth.toString()}
+              onValueChange={(value) => setSelectedMonth(parseInt(value))}
+            >
+              <SelectTrigger className="w-[160px]" data-testid="select-month">
+                <SelectValue placeholder="Select Month" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">January</SelectItem>
+                <SelectItem value="1">February</SelectItem>
+                <SelectItem value="2">March</SelectItem>
+                    <SelectItem value="3">April</SelectItem>
+                <SelectItem value="4">May</SelectItem>
+                <SelectItem value="5">June</SelectItem>
+                <SelectItem value="6">July</SelectItem>
+                <SelectItem value="7">August</SelectItem>
+                <SelectItem value="8">September</SelectItem>
+                <SelectItem value="9">October</SelectItem>
+                <SelectItem value="10">November</SelectItem>
+                <SelectItem value="11">December</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        )}
+        
+        {/* Date Range Inputs - Show only when dateFilterMode is "dateRange" */}
+        {dateFilterMode === "dateRange" && (
+          <>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">From:</span>
+              <Input
+                type="date"
+                value={dateRangeFrom}
+                onChange={(e) => setDateRangeFrom(e.target.value)}
+                className="w-40"
+                data-testid="input-date-from"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-400">To:</span>
+              <Input
+                type="date"
+                value={dateRangeTo}
+                onChange={(e) => setDateRangeTo(e.target.value)}
+                className="w-40"
+                data-testid="input-date-to"
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Filter Controls */}
