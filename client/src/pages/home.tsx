@@ -13,6 +13,7 @@ import { DeleteDialog } from "@/components/delete-dialog";
 import { ExcelImportDialog } from "@/components/excel-import-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +41,14 @@ export default function Home() {
   const [followUpFilter, setFollowUpFilter] = useState<FollowUpFilter>(null);
   const [assignedUserFilter, setAssignedUserFilter] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  
+  // Date filter mode state
+  const currentDate = new Date();
+  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("month");
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
+  const [dateRangeFrom, setDateRangeFrom] = useState("");
+  const [dateRangeTo, setDateRangeTo] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -113,7 +122,7 @@ export default function Home() {
   });
 
   // Calculate follow-up filter counts and amounts
-  const now = new Date();
+  const now = currentDate;
   
   // First apply assigned user filter to base customers list
   const customersByAssignedUser = assignedUserFilter 
@@ -168,6 +177,23 @@ export default function Home() {
   const noFollowUpAmount = noFollowUpCustomers.reduce((sum, c) => sum + parseFloat(c.amountOwed), 0);
 
   const filteredCustomers = customers.filter((customer) => {
+    // Date filter based on createdAt
+    let matchesDateFilter = true;
+    const createdAt = new Date(customer.createdAt);
+    
+    if (dateFilterMode === "allTime") {
+      matchesDateFilter = true;
+    } else if (dateFilterMode === "dateRange") {
+      if (dateRangeFrom || dateRangeTo) {
+        const fromDate = dateRangeFrom ? new Date(dateRangeFrom) : new Date(0);
+        const toDate = dateRangeTo ? new Date(dateRangeTo) : new Date();
+        toDate.setHours(23, 59, 59, 999);
+        matchesDateFilter = createdAt >= fromDate && createdAt <= toDate;
+      }
+    } else {
+      matchesDateFilter = createdAt.getFullYear() === selectedYear && createdAt.getMonth() === selectedMonth;
+    }
+    
     let matchesFollowUpFilter = true;
     if (followUpFilter) {
       const followUpDate = customer.nextFollowUpDate ? new Date(customer.nextFollowUpDate) : null;
@@ -208,7 +234,7 @@ export default function Home() {
       matchesAssignedUserFilter = customer.assignedUser === assignedUserFilter;
     }
     
-    return matchesFollowUpFilter && matchesAssignedUserFilter;
+    return matchesDateFilter && matchesFollowUpFilter && matchesAssignedUserFilter;
   });
 
   const handleEdit = (customer: Customer) => {
