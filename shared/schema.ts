@@ -550,3 +550,115 @@ export const insertCompanyProfileSchema = createInsertSchema(companyProfile).pic
 
 export type InsertCompanyProfile = z.infer<typeof insertCompanyProfileSchema>;
 export type CompanyProfile = typeof companyProfile.$inferSelect;
+
+// Quotations table
+export const quotations = pgTable("quotations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  quotationNumber: text("quotation_number").notNull(),
+  quotationDate: timestamp("quotation_date").notNull(),
+  validUntil: timestamp("valid_until").notNull(),
+  leadId: varchar("lead_id").notNull().references(() => leads.id, { onDelete: "restrict" }),
+  leadName: text("lead_name").notNull(),
+  leadEmail: text("lead_email").notNull(),
+  leadMobile: text("lead_mobile").notNull(),
+  subtotal: decimal("subtotal", { precision: 15, scale: 2 }).notNull().default("0"),
+  totalDiscount: decimal("total_discount", { precision: 15, scale: 2 }).notNull().default("0"),
+  totalTax: decimal("total_tax", { precision: 15, scale: 2 }).notNull().default("0"),
+  grandTotal: decimal("grand_total", { precision: 15, scale: 2 }).notNull().default("0"),
+  termsAndConditions: text("terms_and_conditions"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertQuotationSchema = createInsertSchema(quotations).pick({
+  quotationNumber: true,
+  quotationDate: true,
+  validUntil: true,
+  leadId: true,
+  leadName: true,
+  leadEmail: true,
+  leadMobile: true,
+  subtotal: true,
+  totalDiscount: true,
+  totalTax: true,
+  grandTotal: true,
+  termsAndConditions: true,
+}).extend({
+  quotationNumber: z.string().min(1, "Quotation number is required"),
+  quotationDate: z.string().min(1, "Quotation date is required"),
+  validUntil: z.string().min(1, "Valid until date is required"),
+  leadId: z.string().min(1, "Lead is required"),
+  leadName: z.string().min(1, "Lead name is required"),
+  leadEmail: z.string().email("Invalid email address"),
+  leadMobile: z.string().min(1, "Mobile is required"),
+  subtotal: z.string().optional(),
+  totalDiscount: z.string().optional(),
+  totalTax: z.string().optional(),
+  grandTotal: z.string().optional(),
+  termsAndConditions: z.string().optional(),
+});
+
+export type InsertQuotation = z.infer<typeof insertQuotationSchema>;
+export type Quotation = typeof quotations.$inferSelect;
+
+// Quotation Items table
+export const quotationItems = pgTable("quotation_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  quotationId: varchar("quotation_id").notNull().references(() => quotations.id, { onDelete: "cascade" }),
+  itemId: varchar("item_id").references(() => masterItems.id),
+  itemName: text("item_name").notNull(),
+  quantity: decimal("quantity", { precision: 15, scale: 2 }).notNull(),
+  unit: text("unit").notNull(),
+  rate: decimal("rate", { precision: 15, scale: 2 }).notNull(),
+  discountPercent: decimal("discount_percent", { precision: 5, scale: 2 }).notNull().default("0"),
+  taxPercent: decimal("tax_percent", { precision: 5, scale: 2 }).notNull().default("0"),
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  displayOrder: text("display_order").notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertQuotationItemSchema = createInsertSchema(quotationItems).pick({
+  quotationId: true,
+  itemId: true,
+  itemName: true,
+  quantity: true,
+  unit: true,
+  rate: true,
+  discountPercent: true,
+  taxPercent: true,
+  amount: true,
+  displayOrder: true,
+}).extend({
+  quotationId: z.string().min(1, "Quotation ID is required"),
+  itemId: z.string().optional(),
+  itemName: z.string().min(1, "Item name is required"),
+  quantity: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: "Quantity must be a valid positive number",
+  }),
+  unit: z.string().min(1, "Unit is required"),
+  rate: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+    message: "Rate must be a valid number",
+  }),
+  discountPercent: z.string().optional(),
+  taxPercent: z.string().optional(),
+  amount: z.string().optional(),
+  displayOrder: z.string().optional(),
+});
+
+export type InsertQuotationItem = z.infer<typeof insertQuotationItemSchema>;
+export type QuotationItem = typeof quotationItems.$inferSelect;
+
+// Quotation Settings table (for Terms & Conditions)
+export const quotationSettings = pgTable("quotation_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  termsAndConditions: text("terms_and_conditions").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertQuotationSettingsSchema = createInsertSchema(quotationSettings).pick({
+  termsAndConditions: true,
+}).extend({
+  termsAndConditions: z.string().min(1, "Terms and conditions are required"),
+});
+
+export type InsertQuotationSettings = z.infer<typeof insertQuotationSettingsSchema>;
+export type QuotationSettings = typeof quotationSettings.$inferSelect;
