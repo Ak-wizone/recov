@@ -64,6 +64,7 @@ const userFormSchema = z.object({
   mobile: z.string().regex(/^\d{10}$/, "Mobile must be exactly 10 digits").optional().or(z.literal("")),
   roleId: z.string().optional(),
   status: z.enum(["Active", "Inactive"]),
+  password: z.string().optional(),
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
@@ -95,6 +96,7 @@ function Users() {
       mobile: "",
       roleId: "",
       status: "Active",
+      password: "",
     },
   });
 
@@ -223,7 +225,7 @@ function Users() {
   });
 
   const handleAdd = () => {
-    form.reset({ name: "", email: "", mobile: "", roleId: "", status: "Active" });
+    form.reset({ name: "", email: "", mobile: "", roleId: "", status: "Active", password: "" });
     setIsAddDialogOpen(true);
   };
 
@@ -235,6 +237,7 @@ function Users() {
       mobile: user.mobile || "",
       roleId: user.roleId || "",
       status: user.status as "Active" | "Inactive",
+      password: "",
     });
     setIsEditDialogOpen(true);
   };
@@ -406,8 +409,22 @@ function Users() {
 
   const onSubmit = (data: UserFormValues) => {
     if (isEditDialogOpen && selectedUser) {
-      updateMutation.mutate({ id: selectedUser.id, data });
+      // For edit, only include password if it's provided
+      const updateData = { ...data };
+      if (!updateData.password || updateData.password.trim() === "") {
+        delete updateData.password;
+      }
+      updateMutation.mutate({ id: selectedUser.id, data: updateData });
     } else {
+      // For create, password is required
+      if (!data.password || data.password.trim() === "") {
+        toast({
+          title: "Error",
+          description: "Password is required when creating a new user",
+          variant: "destructive",
+        });
+        return;
+      }
       createMutation.mutate(data);
     }
   };
@@ -605,6 +622,20 @@ function Users() {
               <Input id="mobile" {...form.register("mobile")} placeholder="10 digit mobile number" data-testid="input-mobile" />
               {form.formState.errors.mobile && (
                 <p className="text-sm text-red-500">{form.formState.errors.mobile.message}</p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="password">Password {!isEditDialogOpen && "*"}</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                {...form.register("password")} 
+                placeholder={isEditDialogOpen ? "Leave blank to keep current password" : "Enter password"} 
+                data-testid="input-password" 
+              />
+              {form.formState.errors.password && (
+                <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>
               )}
             </div>
 
