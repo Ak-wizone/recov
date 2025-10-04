@@ -1432,6 +1432,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const worksheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(worksheet);
 
+      const customers = await storage.getMasterCustomers();
+      
+      const customersByName = new Map();
+      customers.forEach(c => {
+        customersByName.set(c.clientName.toLowerCase().trim(), c);
+      });
+
       const results = [];
       const errors = [];
       const duplicates = [];
@@ -1453,9 +1460,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedDate = String(dateValue).trim();
         }
         
+        const customerName = String((row as any)["Customer Name"] || "").trim();
+        const customer = customersByName.get(customerName.toLowerCase().trim());
+        
+        if (!customer) {
+          errors.push({ 
+            row: i + 2, 
+            error: "Customer not found in master customers. Please add customer first." 
+          });
+          continue;
+        }
+        
         const invoiceData = {
           invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
-          customerName: String((row as any)["Customer Name"] || "").trim(),
+          customerId: customer.id,
+          customerName: customer.clientName,
           invoiceDate: parsedDate,
           invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
           netProfit: String((row as any)["Net Profit"] || "0").trim(),
