@@ -238,10 +238,10 @@ export function CustomersTable({
   );
 
   const categoryColors = {
-    Alpha: "bg-green-100 text-green-800",
-    Beta: "bg-blue-100 text-blue-800",
-    Gamma: "bg-yellow-100 text-yellow-800",
-    Delta: "bg-red-100 text-red-800",
+    Alpha: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+    Beta: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+    Gamma: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+    Delta: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
   };
 
   const followUpTypeColors = {

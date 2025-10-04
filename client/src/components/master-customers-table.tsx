@@ -164,10 +164,10 @@ export function MasterCustomersTable({
   });
 
   const categoryColors = {
-    Alpha: "bg-red-100 text-red-800 border-red-300",
-    Beta: "bg-orange-100 text-orange-800 border-orange-300",
-    Gamma: "bg-blue-100 text-blue-800 border-blue-300",
-    Delta: "bg-green-100 text-green-800 border-green-300",
+    Alpha: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-300",
+    Beta: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-300",
+    Gamma: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 border-yellow-300",
+    Delta: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 border-red-300",
   };
 
   const statusColors = {
