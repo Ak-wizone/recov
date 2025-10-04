@@ -96,6 +96,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard statistics
+  app.get("/api/dashboard/stats", async (_req, res) => {
+    try {
+      const [
+        leads,
+        quotations,
+        proformaInvoices,
+        invoices,
+        receipts,
+        customers,
+        masterCustomers,
+        masterItems,
+        users,
+        roles
+      ] = await Promise.all([
+        storage.getLeads(),
+        storage.getQuotations(),
+        storage.getProformaInvoices(),
+        storage.getInvoices(),
+        storage.getReceipts(),
+        storage.getCustomers(),
+        storage.getMasterCustomers(),
+        storage.getMasterItems(),
+        storage.getUsers(),
+        storage.getRoles()
+      ]);
+
+      // Calculate totals
+      const totalInvoiceAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.grandTotal), 0);
+      const totalReceiptAmount = receipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+      const totalDebtorAmount = customers.reduce((sum, cust) => sum + parseFloat(cust.amountOwed), 0);
+      const totalQuotationAmount = quotations.reduce((sum, quot) => sum + parseFloat(quot.grandTotal), 0);
+
+      // Get today's data
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const todayLeads = leads.filter(l => {
+        const createdAt = new Date(l.createdAt);
+        return createdAt >= today && createdAt < tomorrow;
+      }).length;
+
+      const todayQuotations = quotations.filter(q => {
+        const createdAt = new Date(q.createdAt);
+        return createdAt >= today && createdAt < tomorrow;
+      }).length;
+
+      const todayInvoices = invoices.filter(i => {
+        const createdAt = new Date(i.createdAt);
+        return createdAt >= today && createdAt < tomorrow;
+      }).length;
+
+      const todayReceipts = receipts.filter(r => {
+        const createdAt = new Date(r.createdAt);
+        return createdAt >= today && createdAt < tomorrow;
+      }).length;
+
+      // Recent activity (last 5 items)
+      const recentLeads = leads.slice(0, 5);
+      const recentQuotations = quotations.slice(0, 5);
+      const recentInvoices = invoices.slice(0, 5);
+
+      res.json({
+        totals: {
+          leads: leads.length,
+          quotations: quotations.length,
+          proformaInvoices: proformaInvoices.length,
+          invoices: invoices.length,
+          receipts: receipts.length,
+          customers: masterCustomers.length,
+          items: masterItems.length,
+          users: users.length,
+          roles: roles.length,
+        },
+        amounts: {
+          totalInvoices: totalInvoiceAmount,
+          totalReceipts: totalReceiptAmount,
+          totalDebtors: totalDebtorAmount,
+          totalQuotations: totalQuotationAmount,
+          outstandingBalance: totalInvoiceAmount - totalReceiptAmount,
+        },
+        today: {
+          leads: todayLeads,
+          quotations: todayQuotations,
+          invoices: todayInvoices,
+          receipts: todayReceipts,
+        },
+        recent: {
+          leads: recentLeads,
+          quotations: recentQuotations,
+          invoices: recentInvoices,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get all customers
   app.get("/api/customers", async (_req, res) => {
     try {
