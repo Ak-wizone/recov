@@ -159,7 +159,7 @@ export default function MasterCustomers() {
     () => [
       {
         accessorKey: "clientName",
-        header: "Client Name",
+        header: "CLIENT NAME",
         cell: ({ row }) => (
           <div>
             <div className="font-semibold text-gray-900" data-testid={`text-clientName-${row.original.id}`}>
@@ -173,7 +173,7 @@ export default function MasterCustomers() {
       },
       {
         accessorKey: "category",
-        header: "Category",
+        header: "CATEGORY",
         cell: ({ row }) => (
           <Select
             value={row.original.category}
@@ -203,48 +203,18 @@ export default function MasterCustomers() {
         enableHiding: false,
       },
       {
-        accessorKey: "city",
-        header: "City",
+        accessorKey: "primaryContactName",
+        header: "PRIMARY CONTACT",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-city-${row.original.id}`}>
-            {row.original.city || "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "state",
-        header: "State",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-state-${row.original.id}`}>
-            {row.original.state || "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "gstNumber",
-        header: "GST Number",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-gstNumber-${row.original.id}`}>
-            {row.original.gstNumber || "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "panNumber",
-        header: "PAN Number",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-panNumber-${row.original.id}`}>
-            {row.original.panNumber || "—"}
+          <span className="text-gray-700" data-testid={`text-primaryContactName-${row.original.id}`}>
+            {row.original.primaryContactName || "—"}
           </span>
         ),
         enableSorting: true,
       },
       {
         accessorKey: "primaryMobile",
-        header: "Primary Mobile",
+        header: "PRIMARY MOBILE",
         cell: ({ row }) => (
           <span className="text-gray-700" data-testid={`text-primaryMobile-${row.original.id}`}>
             {row.original.primaryMobile || "—"}
@@ -254,7 +224,7 @@ export default function MasterCustomers() {
       },
       {
         accessorKey: "primaryEmail",
-        header: "Primary Email",
+        header: "PRIMARY EMAIL",
         cell: ({ row }) => (
           <span className="text-gray-700" data-testid={`text-primaryEmail-${row.original.id}`}>
             {row.original.primaryEmail || "—"}
@@ -263,108 +233,8 @@ export default function MasterCustomers() {
         enableSorting: true,
       },
       {
-        accessorKey: "paymentTermsDays",
-        header: "Payment Terms (Days)",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-paymentTerms-${row.original.id}`}>
-            {row.original.paymentTermsDays}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "creditLimit",
-        header: "Credit Limit",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-creditLimit-${row.original.id}`}>
-            {formatCurrency(row.original.creditLimit)}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "billingAddress",
-        header: "Billing Address",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-billingAddress-${row.original.id}`}>
-            {row.original.billingAddress || "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "pincode",
-        header: "Pincode",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-pincode-${row.original.id}`}>
-            {row.original.pincode || "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "country",
-        header: "Country",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-country-${row.original.id}`}>
-            {row.original.country || "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "msmeNumber",
-        header: "MSME Number",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-msmeNumber-${row.original.id}`}>
-            {row.original.msmeNumber || "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "incorporationCertNumber",
-        header: "Incorporation Certificate Number",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-incorporationCertNumber-${row.original.id}`}>
-            {row.original.incorporationCertNumber || "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "incorporationDate",
-        header: "Incorporation Date",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-incorporationDate-${row.original.id}`}>
-            {row.original.incorporationDate ? new Date(row.original.incorporationDate).toLocaleDateString('en-IN') : "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "companyType",
-        header: "Company Type",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-companyType-${row.original.id}`}>
-            {row.original.companyType || "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
-        accessorKey: "primaryContactName",
-        header: "Primary Contact Name",
-        cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-primaryContactName-${row.original.id}`}>
-            {row.original.primaryContactName || "—"}
-          </span>
-        ),
-        enableSorting: true,
-      },
-      {
         accessorKey: "secondaryContactName",
-        header: "Secondary Contact Name",
+        header: "SECONDARY CONTACT",
         cell: ({ row }) => (
           <span className="text-gray-700" data-testid={`text-secondaryContactName-${row.original.id}`}>
             {row.original.secondaryContactName || "—"}
@@ -374,7 +244,7 @@ export default function MasterCustomers() {
       },
       {
         accessorKey: "secondaryMobile",
-        header: "Secondary Mobile",
+        header: "SECONDARY MOBILE",
         cell: ({ row }) => (
           <span className="text-gray-700" data-testid={`text-secondaryMobile-${row.original.id}`}>
             {row.original.secondaryMobile || "—"}
@@ -384,7 +254,7 @@ export default function MasterCustomers() {
       },
       {
         accessorKey: "secondaryEmail",
-        header: "Secondary Email",
+        header: "SECONDARY EMAIL",
         cell: ({ row }) => (
           <span className="text-gray-700" data-testid={`text-secondaryEmail-${row.original.id}`}>
             {row.original.secondaryEmail || "—"}
@@ -393,8 +263,78 @@ export default function MasterCustomers() {
         enableSorting: true,
       },
       {
+        accessorKey: "gstNumber",
+        header: "GSTIN",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-gstNumber-${row.original.id}`}>
+            {row.original.gstNumber || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "billingAddress",
+        header: "BILLING ADDRESS",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-billingAddress-${row.original.id}`}>
+            {row.original.billingAddress || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "city",
+        header: "CITY",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-city-${row.original.id}`}>
+            {row.original.city || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "state",
+        header: "STATE",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-state-${row.original.id}`}>
+            {row.original.state || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "pincode",
+        header: "PINCODE",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-pincode-${row.original.id}`}>
+            {row.original.pincode || "—"}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "paymentTermsDays",
+        header: "PAYMENT TERMS (DAYS)",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-paymentTerms-${row.original.id}`}>
+            {row.original.paymentTermsDays}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
+        accessorKey: "creditLimit",
+        header: "CREDIT LIMIT",
+        cell: ({ row }) => (
+          <span className="text-gray-700" data-testid={`text-creditLimit-${row.original.id}`}>
+            {formatCurrency(row.original.creditLimit)}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
         accessorKey: "interestApplicableFrom",
-        header: "Interest Applicable From",
+        header: "INTEREST APPLICABLE FROM",
         cell: ({ row }) => (
           <Select
             value={row.original.interestApplicableFrom || ""}
@@ -424,7 +364,7 @@ export default function MasterCustomers() {
       },
       {
         accessorKey: "interestRate",
-        header: "Interest Rate (%)",
+        header: "INTEREST RATE",
         cell: ({ row }) => (
           <span className="text-gray-700 font-medium" data-testid={`text-interestrate-${row.original.id}`}>
             {row.original.interestRate ? `${row.original.interestRate}%` : "0%"}
@@ -434,7 +374,7 @@ export default function MasterCustomers() {
       },
       {
         accessorKey: "salesPerson",
-        header: "Sales Person",
+        header: "SALES PERSON",
         cell: ({ row }) => (
           <span className="text-gray-700" data-testid={`text-salesPerson-${row.original.id}`}>
             {row.original.salesPerson || "—"}
@@ -444,7 +384,7 @@ export default function MasterCustomers() {
       },
       {
         accessorKey: "isActive",
-        header: "Status",
+        header: "STATUS",
         cell: ({ row }) => (
           <Select
             value={row.original.isActive}

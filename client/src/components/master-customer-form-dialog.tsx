@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
 import { insertMasterCustomerSchema, type InsertMasterCustomer, type MasterCustomer } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -36,12 +34,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
@@ -58,7 +50,6 @@ export function MasterCustomerFormDialog({
 }: MasterCustomerFormDialogProps) {
   const { toast } = useToast();
   const isEditMode = !!customer;
-  const [date, setDate] = useState<Date | undefined>(undefined);
 
   const form = useForm<InsertMasterCustomer>({
     resolver: zodResolver(insertMasterCustomerSchema),
@@ -69,13 +60,7 @@ export function MasterCustomerFormDialog({
       city: "",
       pincode: "",
       state: "",
-      country: "",
       gstNumber: "",
-      panNumber: "",
-      msmeNumber: "",
-      incorporationCertNumber: "",
-      incorporationDate: "",
-      companyType: "",
       primaryContactName: "",
       primaryMobile: "",
       primaryEmail: "",
@@ -84,7 +69,6 @@ export function MasterCustomerFormDialog({
       secondaryEmail: "",
       paymentTermsDays: "",
       creditLimit: "",
-      openingBalance: "",
       interestApplicableFrom: "",
       interestRate: "",
       salesPerson: "",
@@ -101,13 +85,7 @@ export function MasterCustomerFormDialog({
         city: customer.city || "",
         pincode: customer.pincode || "",
         state: customer.state || "",
-        country: customer.country || "",
         gstNumber: customer.gstNumber || "",
-        panNumber: customer.panNumber || "",
-        msmeNumber: customer.msmeNumber || "",
-        incorporationCertNumber: customer.incorporationCertNumber || "",
-        incorporationDate: customer.incorporationDate ? format(new Date(customer.incorporationDate), "yyyy-MM-dd") : "",
-        companyType: customer.companyType || "",
         primaryContactName: customer.primaryContactName || "",
         primaryMobile: customer.primaryMobile || "",
         primaryEmail: customer.primaryEmail || "",
@@ -116,15 +94,11 @@ export function MasterCustomerFormDialog({
         secondaryEmail: customer.secondaryEmail || "",
         paymentTermsDays: customer.paymentTermsDays,
         creditLimit: customer.creditLimit || "",
-        openingBalance: customer.openingBalance || "",
         interestApplicableFrom: customer.interestApplicableFrom || "",
         interestRate: customer.interestRate || "",
         salesPerson: customer.salesPerson || "",
         isActive: customer.isActive as "Active" | "Inactive",
       });
-      if (customer.incorporationDate) {
-        setDate(new Date(customer.incorporationDate));
-      }
     } else if (!isEditMode) {
       form.reset({
         clientName: "",
@@ -133,13 +107,7 @@ export function MasterCustomerFormDialog({
         city: "",
         pincode: "",
         state: "",
-        country: "",
         gstNumber: "",
-        panNumber: "",
-        msmeNumber: "",
-        incorporationCertNumber: "",
-        incorporationDate: "",
-        companyType: "",
         primaryContactName: "",
         primaryMobile: "",
         primaryEmail: "",
@@ -148,13 +116,11 @@ export function MasterCustomerFormDialog({
         secondaryEmail: "",
         paymentTermsDays: "",
         creditLimit: "",
-        openingBalance: "",
         interestApplicableFrom: "",
         interestRate: "",
         salesPerson: "",
         isActive: "Active",
       });
-      setDate(undefined);
     }
   }, [customer, isEditMode, form, open]);
 
@@ -168,7 +134,6 @@ export function MasterCustomerFormDialog({
       });
       onOpenChange(false);
       form.reset();
-      setDate(undefined);
     },
     onError: (error: Error) => {
       toast({
@@ -345,28 +310,10 @@ export function MasterCustomerFormDialog({
 
                     <FormField
                       control={form.control}
-                      name="country"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Country</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter country"
-                              {...field}
-                              data-testid="input-country"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
                       name="gstNumber"
                       render={({ field, fieldState }) => (
                         <FormItem>
-                          <FormLabel>GST Number *</FormLabel>
+                          <FormLabel>GSTIN *</FormLabel>
                           <FormControl>
                             <Input
                               placeholder="Enter GST number"
@@ -375,126 +322,6 @@ export function MasterCustomerFormDialog({
                               data-testid="input-gstNumber"
                             />
                           </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="panNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>PAN Number</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter PAN number"
-                              {...field}
-                              data-testid="input-panNumber"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="msmeNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>MSME Number</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter MSME number"
-                              {...field}
-                              data-testid="input-msmeNumber"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="incorporationCertNumber"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Incorporation Certificate Number</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Enter incorporation certificate number"
-                              {...field}
-                              data-testid="input-incorporationCertNumber"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="incorporationDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Incorporation Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !date && "text-muted-foreground"
-                                  )}
-                                  data-testid="button-incorporationDate"
-                                >
-                                  {date ? format(date, "PPP") : <span>Pick a date</span>}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={date}
-                                onSelect={(selectedDate) => {
-                                  setDate(selectedDate);
-                                  field.onChange(selectedDate ? format(selectedDate, "yyyy-MM-dd") : "");
-                                }}
-                                disabled={(date) =>
-                                  date > new Date() || date < new Date("1900-01-01")
-                                }
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="companyType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Company Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-companyType">
-                                <SelectValue placeholder="Select company type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Proprietorship">Proprietorship</SelectItem>
-                              <SelectItem value="Partnership">Partnership</SelectItem>
-                              <SelectItem value="Private Limited">Private Limited</SelectItem>
-                              <SelectItem value="Limited">Limited</SelectItem>
-                            </SelectContent>
-                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -685,27 +512,6 @@ export function MasterCustomerFormDialog({
                         </FormItem>
                       )}
                     />
-
-                    <FormField
-                      control={form.control}
-                      name="openingBalance"
-                      render={({ field, fieldState }) => (
-                        <FormItem>
-                          <FormLabel>Opening Balance</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="Enter opening balance"
-                              {...field}
-                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
-                              data-testid="input-openingBalance"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                   </div>
                 </AccordionContent>
               </AccordionItem>
@@ -827,7 +633,6 @@ export function MasterCustomerFormDialog({
                 onClick={() => {
                   onOpenChange(false);
                   form.reset();
-                  setDate(undefined);
                 }}
                 data-testid="button-cancel"
               >
