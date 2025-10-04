@@ -132,8 +132,8 @@ export default function Debtors() {
         {/* Date Filter */}
         <Card>
           <CardContent className="pt-4 pb-4">
-            <div className="flex flex-wrap gap-4 items-center">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap gap-4 items-center justify-between">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button
                   variant={dateFilterMode === "month" ? "default" : "outline"}
                   size="sm"
@@ -161,64 +161,71 @@ export default function Debtors() {
                   <CalendarRange className="h-4 w-4 mr-2" />
                   Date Range
                 </Button>
+
+                {dateFilterMode === "month" && (
+                  <>
+                    <Select
+                      value={selectedMonth.toString()}
+                      onValueChange={(value) => setSelectedMonth(parseInt(value))}
+                    >
+                      <SelectTrigger className="w-40" data-testid="select-month">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {months.map((month, index) => (
+                          <SelectItem key={index} value={index.toString()}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select
+                      value={selectedYear.toString()}
+                      onValueChange={(value) => setSelectedYear(parseInt(value))}
+                    >
+                      <SelectTrigger className="w-32" data-testid="select-year">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {years.map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+
+                {dateFilterMode === "dateRange" && (
+                  <>
+                    <Input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      placeholder="From Date"
+                      className="w-40"
+                      data-testid="input-from-date"
+                    />
+                    <Input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      placeholder="To Date"
+                      className="w-40"
+                      data-testid="input-to-date"
+                    />
+                  </>
+                )}
               </div>
-
-              {dateFilterMode === "month" && (
-                <>
-                  <Select
-                    value={selectedMonth.toString()}
-                    onValueChange={(value) => setSelectedMonth(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-40" data-testid="select-month">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {months.map((month, index) => (
-                        <SelectItem key={index} value={index.toString()}>
-                          {month}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={selectedYear.toString()}
-                    onValueChange={(value) => setSelectedYear(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-32" data-testid="select-year">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {years.map((year) => (
-                        <SelectItem key={year} value={year.toString()}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
-
-              {dateFilterMode === "dateRange" && (
-                <>
-                  <Input
-                    type="date"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    placeholder="From Date"
-                    className="w-40"
-                    data-testid="input-from-date"
-                  />
-                  <Input
-                    type="date"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    placeholder="To Date"
-                    className="w-40"
-                    data-testid="input-to-date"
-                  />
-                </>
-              )}
+              
+              <div className="bg-gradient-to-r from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 px-4 py-2 rounded-lg border border-red-200 dark:border-red-800">
+                <div className="text-xs text-red-600 dark:text-red-400 font-medium mb-1">Total Outstanding</div>
+                <div className="text-xl font-bold text-red-600 dark:text-red-400" data-testid="text-total-outstanding">
+                  {formatCurrency(totalBalanceFiltered)}
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
