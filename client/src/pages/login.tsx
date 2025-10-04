@@ -38,11 +38,7 @@ export default function Login() {
       return response;
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Logged in successfully",
-      });
-      setLocation("/");
+      window.location.href = "/";
     },
     onError: (error: Error) => {
       toast({
