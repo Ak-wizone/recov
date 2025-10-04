@@ -827,17 +827,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bulk update interest rate for all customers
   app.post("/api/masters/customers/bulk-update-interest", async (req, res) => {
     try {
-      const { interestRate } = req.body;
+      const { interestRate, interestApplicableFrom } = req.body;
       if (interestRate === undefined || interestRate === null) {
         return res.status(400).json({ message: "Interest rate is required" });
       }
       const customers = await storage.getMasterCustomers();
+      const updateData: any = { interestRate: interestRate.toString() };
+      if (interestApplicableFrom !== undefined && interestApplicableFrom !== null && interestApplicableFrom !== "") {
+        updateData.interestApplicableFrom = interestApplicableFrom.toString();
+      }
       const updates = await Promise.all(
         customers.map(customer => 
-          storage.updateMasterCustomer(customer.id, { interestRate: interestRate.toString() })
+          storage.updateMasterCustomer(customer.id, updateData)
         )
       );
-      res.json({ updated: updates.length, message: "Interest rate updated for all customers" });
+      const message = interestApplicableFrom 
+        ? "Interest rate and interest applicable from updated for all customers"
+        : "Interest rate updated for all customers";
+      res.json({ updated: updates.length, message });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
