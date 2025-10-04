@@ -1324,46 +1324,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ============ DEBTORS ROUTES (AUTO-CALCULATED) ============
-
-  // Get debtors summary (auto-calculated from invoices and receipts)
-  app.get("/api/debtors", async (_req, res) => {
-    try {
-      const debtors = await storage.getDebtorsSummary();
-      res.json(debtors);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Export debtors to Excel
-  app.get("/api/debtors/export", async (_req, res) => {
-    try {
-      const debtors = await storage.getDebtorsSummary();
-      const excelData = debtors.map(debtor => ({
-        "Customer Name": debtor.customerName,
-        "Total Invoices (₹)": debtor.totalInvoices,
-        "Total Receipts (₹)": debtor.totalReceipts,
-        "Outstanding Balance (₹)": debtor.outstandingBalance,
-      }));
-
-      const worksheet = XLSX.utils.json_to_sheet(excelData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Debtors");
-
-      const excelBuffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader(
-        "Content-Type",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-      );
-      res.setHeader("Content-Disposition", "attachment; filename=debtors.xlsx");
-      res.send(excelBuffer);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
   // ============ LEAD ROUTES ============
 
   // Get all leads

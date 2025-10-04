@@ -114,9 +114,6 @@ export interface IStorage {
   getProformaInvoiceItems(invoiceId: string): Promise<ProformaInvoiceItem[]>;
   createProformaInvoiceItem(item: InsertProformaInvoiceItem): Promise<ProformaInvoiceItem>;
   deleteProformaInvoiceItem(id: string): Promise<boolean>;
-  
-  // Debtors operations (auto-calculated)
-  getDebtorsSummary(): Promise<import("@shared/schema").DebtorSummary[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -933,44 +930,6 @@ export class DatabaseStorage implements IStorage {
       .where(eq(proformaInvoiceItems.id, id))
       .returning();
     return result.length > 0;
-  }
-
-  async getDebtorsSummary(): Promise<import("@shared/schema").DebtorSummary[]> {
-    // Get all invoices and receipts
-    const allInvoices = await db.select().from(invoices);
-    const allReceipts = await db.select().from(receipts);
-
-    // Group by customer name and calculate totals
-    const customerTotals = new Map<string, { invoices: number; receipts: number }>();
-
-    // Sum invoices by customer
-    allInvoices.forEach(invoice => {
-      const current = customerTotals.get(invoice.customerName) || { invoices: 0, receipts: 0 };
-      current.invoices += parseFloat(invoice.invoiceAmount);
-      customerTotals.set(invoice.customerName, current);
-    });
-
-    // Sum receipts by customer
-    allReceipts.forEach(receipt => {
-      const current = customerTotals.get(receipt.customerName) || { invoices: 0, receipts: 0 };
-      current.receipts += parseFloat(receipt.amount);
-      customerTotals.set(receipt.customerName, current);
-    });
-
-    // Convert to DebtorSummary array
-    const debtors: import("@shared/schema").DebtorSummary[] = [];
-    customerTotals.forEach((totals, customerName) => {
-      const outstandingBalance = totals.invoices - totals.receipts;
-      debtors.push({
-        customerName,
-        totalInvoices: totals.invoices.toFixed(2),
-        totalReceipts: totals.receipts.toFixed(2),
-        outstandingBalance: outstandingBalance.toFixed(2),
-      });
-    });
-
-    // Sort by outstanding balance descending
-    return debtors.sort((a, b) => parseFloat(b.outstandingBalance) - parseFloat(a.outstandingBalance));
   }
 }
 

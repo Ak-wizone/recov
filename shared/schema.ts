@@ -776,11 +776,3 @@ export const insertProformaInvoiceItemSchema = createInsertSchema(proformaInvoic
 
 export type InsertProformaInvoiceItem = z.infer<typeof insertProformaInvoiceItemSchema>;
 export type ProformaInvoiceItem = typeof proformaInvoiceItems.$inferSelect;
-
-// Debtors summary type (auto-calculated from invoices and receipts)
-export type DebtorSummary = {
-  customerName: string;
-  totalInvoices: string;
-  totalReceipts: string;
-  outstandingBalance: string;
-};
