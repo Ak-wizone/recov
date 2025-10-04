@@ -757,12 +757,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const results = [];
       const errors = [];
+      
+      // Get existing customers to check for duplicates
+      const existingCustomers = await storage.getMasterCustomers();
+      const existingNames = new Set(
+        existingCustomers.map(c => c.clientName.toLowerCase().trim())
+      );
 
       for (let i = 0; i < customers.length; i++) {
         const result = insertMasterCustomerSchema.safeParse(customers[i]);
         if (result.success) {
-          const customer = await storage.createMasterCustomer(result.data);
-          results.push(customer);
+          // Check for duplicate name
+          const normalizedName = result.data.clientName.toLowerCase().trim();
+          if (existingNames.has(normalizedName)) {
+            errors.push({ 
+              row: i + 2, 
+              error: `Duplicate customer name: "${result.data.clientName}" already exists in database`
+            });
+          } else {
+            const customer = await storage.createMasterCustomer(result.data);
+            results.push(customer);
+            // Add to existing names to prevent duplicates within the import batch
+            existingNames.add(normalizedName);
+          }
         } else {
           errors.push({ row: i + 2, error: fromZodError(result.error).message });
         }
