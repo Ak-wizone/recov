@@ -447,7 +447,7 @@ export default function MasterItems() {
           onDeleteSelected={handleDeleteSelected}
           enableRowSelection={true}
           enableBulkActions={true}
-          enableGlobalFilter={true}
+          enableGlobalFilter={false}
           enableColumnVisibility={true}
         />
       </div>
