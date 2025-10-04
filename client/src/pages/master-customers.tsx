@@ -5,12 +5,13 @@ import { MasterCustomer } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Upload, Download, Pencil, Trash2, Users, CheckCircle2, AlertCircle, Award, CheckCircle, XCircle } from "lucide-react";
 import { MasterCustomerFormDialog } from "@/components/master-customer-form-dialog";
 import { DataTable } from "@/components/ui/data-table";
 import { ImportModal } from "@/components/import-modal";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import * as XLSX from "xlsx";
 
 export default function MasterCustomers() {
@@ -45,6 +46,28 @@ export default function MasterCustomers() {
     onError: (error: Error) => {
       toast({
         title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateFieldMutation = useMutation({
+    mutationFn: async ({ id, field, value }: { id: string; field: string; value: string }) => {
+      const response = await fetch(`/api/masters/customers/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      if (!response.ok) throw new Error("Failed to update customer");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -119,12 +142,29 @@ export default function MasterCustomers() {
         accessorKey: "category",
         header: "Category",
         cell: ({ row }) => (
-          <Badge
-            className={categoryColors[row.original.category as keyof typeof categoryColors]}
-            data-testid={`badge-category-${row.original.id}`}
+          <Select
+            value={row.original.category}
+            onValueChange={(value) => {
+              updateFieldMutation.mutate({
+                id: row.original.id,
+                field: "category",
+                value: value,
+              });
+            }}
           >
-            {row.original.category}
-          </Badge>
+            <SelectTrigger
+              className={`h-8 w-32 ${categoryColors[row.original.category as keyof typeof categoryColors]}`}
+              data-testid={`select-category-${row.original.id}`}
+            >
+              <SelectValue>{row.original.category}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Alpha">Alpha</SelectItem>
+              <SelectItem value="Beta">Beta</SelectItem>
+              <SelectItem value="Gamma">Gamma</SelectItem>
+              <SelectItem value="Delta">Delta</SelectItem>
+            </SelectContent>
+          </Select>
         ),
         enableSorting: true,
         enableHiding: false,
@@ -333,9 +373,35 @@ export default function MasterCustomers() {
         accessorKey: "interestRate",
         header: "Interest Rate (%)",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-interestRate-${row.original.id}`}>
-            {row.original.interestRate ? `${row.original.interestRate}%` : "—"}
-          </span>
+          <Select
+            value={row.original.interestRate || "0"}
+            onValueChange={(value) => {
+              updateFieldMutation.mutate({
+                id: row.original.id,
+                field: "interestRate",
+                value: value,
+              });
+            }}
+          >
+            <SelectTrigger
+              className="h-8 w-28"
+              data-testid={`select-interestrate-${row.original.id}`}
+            >
+              <SelectValue>{row.original.interestRate ? `${row.original.interestRate}%` : "0%"}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">0%</SelectItem>
+              <SelectItem value="6">6%</SelectItem>
+              <SelectItem value="9">9%</SelectItem>
+              <SelectItem value="12">12%</SelectItem>
+              <SelectItem value="15">15%</SelectItem>
+              <SelectItem value="18">18%</SelectItem>
+              <SelectItem value="21">21%</SelectItem>
+              <SelectItem value="24">24%</SelectItem>
+              <SelectItem value="30">30%</SelectItem>
+              <SelectItem value="36">36%</SelectItem>
+            </SelectContent>
+          </Select>
         ),
         enableSorting: true,
       },
@@ -353,12 +419,27 @@ export default function MasterCustomers() {
         accessorKey: "isActive",
         header: "Status",
         cell: ({ row }) => (
-          <Badge
-            className={statusColors[row.original.isActive as keyof typeof statusColors]}
-            data-testid={`badge-status-${row.original.id}`}
+          <Select
+            value={row.original.isActive}
+            onValueChange={(value) => {
+              updateFieldMutation.mutate({
+                id: row.original.id,
+                field: "isActive",
+                value: value,
+              });
+            }}
           >
-            {row.original.isActive}
-          </Badge>
+            <SelectTrigger
+              className={`h-8 w-32 ${statusColors[row.original.isActive as keyof typeof statusColors]}`}
+              data-testid={`select-status-${row.original.id}`}
+            >
+              <SelectValue>{row.original.isActive}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
         ),
         enableSorting: true,
       },
