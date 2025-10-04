@@ -327,6 +327,7 @@ export default function Home() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.totals.debtors}</div>
+                  <p className="text-xs text-muted-foreground mt-1">₹{stats.amounts.totalDebtors.toFixed(2)} pending</p>
                 </CardContent>
               </Card>
             </Link>
