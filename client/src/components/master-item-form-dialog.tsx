@@ -21,10 +21,9 @@ interface MasterItemFormDialogProps {
   item?: MasterItem;
 }
 
-const UNITS = [
-  "PCS", "KG", "BOX", "Hour", "Visit", "Job", "Month", "Year",
-  "Gram", "Liter", "Meter", "Sq Meter", "Sq Feet", "Feet",
-  "Day", "Week", "Quarter", "Ton", "Quintal", "Bundle", "Roll"
+const DEFAULT_UNITS = [
+  "NOS", "KGS", "MTR", "SQM", "LTR", "ML", "CTN", "BTL", "BAG", "BOX", 
+  "ROL", "SET", "PRS", "DOZ", "QTL", "TNE", "CBM", "CFT", "HRS", "DAY", "TRIP"
 ];
 
 const GST_RATES = ["0%", "5%", "12%", "18%", "28%"];
@@ -32,6 +31,14 @@ const GST_RATES = ["0%", "5%", "12%", "18%", "28%"];
 export default function MasterItemFormDialog({ open, onOpenChange, item }: MasterItemFormDialogProps) {
   const { toast } = useToast();
   const [itemType, setItemType] = useState<"product" | "service">((item?.itemType as "product" | "service") || "product");
+  const [customUnits, setCustomUnits] = useState<string[]>(() => {
+    const saved = localStorage.getItem('customUnits');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isAddUnitOpen, setIsAddUnitOpen] = useState(false);
+  const [newUnit, setNewUnit] = useState("");
+  
+  const allUnits = [...DEFAULT_UNITS, ...customUnits].sort();
 
   const form = useForm<InsertMasterItem>({
     resolver: zodResolver(insertMasterItemSchema),
@@ -236,16 +243,28 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Unit *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select 
+                        onValueChange={(value) => {
+                          if (value === "ADD_CUSTOM") {
+                            setIsAddUnitOpen(true);
+                          } else {
+                            field.onChange(value);
+                          }
+                        }} 
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger data-testid="select-unit">
                             <SelectValue placeholder="Select unit" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {UNITS.map((unit) => (
+                          {allUnits.map((unit: string) => (
                             <SelectItem key={unit} value={unit}>{unit}</SelectItem>
                           ))}
+                          <SelectItem value="ADD_CUSTOM" className="text-blue-600 font-semibold">
+                            + Add Custom UOM
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
