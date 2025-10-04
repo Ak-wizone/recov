@@ -6,7 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Upload, Download, Pencil, Trash2, Users, CheckCircle2, AlertCircle, Award, CheckCircle, XCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Plus, Upload, Download, Pencil, Trash2, Users, CheckCircle2, AlertCircle, Award, CheckCircle, XCircle, Percent } from "lucide-react";
 import { MasterCustomerFormDialog } from "@/components/master-customer-form-dialog";
 import { DataTable } from "@/components/ui/data-table";
 import { ImportModal } from "@/components/import-modal";
@@ -20,6 +23,8 @@ export default function MasterCustomers() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isBulkInterestOpen, setIsBulkInterestOpen] = useState(false);
+  const [bulkInterestRate, setBulkInterestRate] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<MasterCustomer | undefined>(undefined);
 
   const { data: customers = [], isLoading } = useQuery<MasterCustomer[]>({
@@ -64,6 +69,34 @@ export default function MasterCustomers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkUpdateInterestMutation = useMutation({
+    mutationFn: async (interestRate: string) => {
+      const response = await fetch("/api/masters/customers/bulk-update-interest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interestRate }),
+      });
+      if (!response.ok) throw new Error("Failed to update interest rate");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
+      toast({
+        title: "Success",
+        description: `Interest rate updated for ${data.updated} customers`,
+      });
+      setIsBulkInterestOpen(false);
+      setBulkInterestRate("");
     },
     onError: (error: Error) => {
       toast({
@@ -585,6 +618,15 @@ export default function MasterCustomers() {
                 {exportMutation.isPending ? "Exporting..." : "Export"}
               </Button>
               <Button
+                onClick={() => setIsBulkInterestOpen(true)}
+                variant="outline"
+                className="shadow-md hover:shadow-lg transition-all duration-200 bg-orange-50 hover:bg-orange-100 border-orange-200"
+                data-testid="button-bulk-interest"
+              >
+                <Percent className="mr-2 h-4 w-4" />
+                Set Interest Rate
+              </Button>
+              <Button
                 onClick={() => {
                   setSelectedCustomer(undefined);
                   setIsFormOpen(true);
@@ -767,6 +809,50 @@ export default function MasterCustomers() {
         open={isImportOpen}
         onOpenChange={setIsImportOpen}
       />
+
+      <Dialog open={isBulkInterestOpen} onOpenChange={setIsBulkInterestOpen}>
+        <DialogContent data-testid="dialog-bulk-interest">
+          <DialogHeader>
+            <DialogTitle>Set Interest Rate for All Customers</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-interest-rate">Interest Rate (%)</Label>
+              <Input
+                id="bulk-interest-rate"
+                type="number"
+                step="0.01"
+                placeholder="Enter interest rate"
+                value={bulkInterestRate}
+                onChange={(e) => setBulkInterestRate(e.target.value)}
+                data-testid="input-bulk-interest-rate"
+              />
+              <p className="text-sm text-gray-500">
+                This will update the interest rate for all customers in the database.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsBulkInterestOpen(false);
+                setBulkInterestRate("");
+              }}
+              data-testid="button-cancel-bulk-interest"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => bulkUpdateInterestMutation.mutate(bulkInterestRate)}
+              disabled={!bulkInterestRate || bulkUpdateInterestMutation.isPending}
+              data-testid="button-confirm-bulk-interest"
+            >
+              {bulkUpdateInterestMutation.isPending ? "Updating..." : "Update All"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

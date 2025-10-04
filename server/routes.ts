@@ -793,6 +793,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk update interest rate for all customers
+  app.post("/api/masters/customers/bulk-update-interest", async (req, res) => {
+    try {
+      const { interestRate } = req.body;
+      if (interestRate === undefined || interestRate === null) {
+        return res.status(400).json({ message: "Interest rate is required" });
+      }
+      const customers = await storage.getMasterCustomers();
+      const updates = await Promise.all(
+        customers.map(customer => 
+          storage.updateMasterCustomer(customer.id, { interestRate: interestRate.toString() })
+        )
+      );
+      res.json({ updated: updates.length, message: "Interest rate updated for all customers" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Create master customer
   app.post("/api/masters/customers", async (req, res) => {
     try {
