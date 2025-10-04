@@ -182,12 +182,12 @@ export default function Debtors() {
           {/* Alpha Card */}
           <Card
             className={`cursor-pointer transition-all hover:shadow-lg ${
-              categoryFilter === "Alpha" ? "ring-2 ring-red-500" : ""
+              categoryFilter === "Alpha" ? "ring-2 ring-green-500" : ""
             }`}
             onClick={() => setCategoryFilter(categoryFilter === "Alpha" ? null : "Alpha")}
             data-testid="card-category-alpha"
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-t-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-t-lg">
               <CardTitle className="text-sm font-medium">ALPHA</CardTitle>
               <Users className="h-4 w-4" />
             </CardHeader>
@@ -198,7 +198,7 @@ export default function Debtors() {
               <p className="text-xs text-muted-foreground mt-1">
                 Outstanding
               </p>
-              <div className="text-xl font-semibold text-red-600 dark:text-red-400 mt-2" data-testid="text-alpha-balance">
+              <div className="text-xl font-semibold text-green-600 dark:text-green-400 mt-2" data-testid="text-alpha-balance">
                 {formatCurrency(categoryWise.Alpha.totalBalance)}
               </div>
             </CardContent>
@@ -232,12 +232,12 @@ export default function Debtors() {
           {/* Gamma Card */}
           <Card
             className={`cursor-pointer transition-all hover:shadow-lg ${
-              categoryFilter === "Gamma" ? "ring-2 ring-green-500" : ""
+              categoryFilter === "Gamma" ? "ring-2 ring-yellow-500" : ""
             }`}
             onClick={() => setCategoryFilter(categoryFilter === "Gamma" ? null : "Gamma")}
             data-testid="card-category-gamma"
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-t-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-t-lg">
               <CardTitle className="text-sm font-medium">GAMMA</CardTitle>
               <Users className="h-4 w-4" />
             </CardHeader>
@@ -248,7 +248,7 @@ export default function Debtors() {
               <p className="text-xs text-muted-foreground mt-1">
                 Outstanding
               </p>
-              <div className="text-xl font-semibold text-green-600 dark:text-green-400 mt-2" data-testid="text-gamma-balance">
+              <div className="text-xl font-semibold text-yellow-600 dark:text-yellow-400 mt-2" data-testid="text-gamma-balance">
                 {formatCurrency(categoryWise.Gamma.totalBalance)}
               </div>
             </CardContent>
@@ -257,12 +257,12 @@ export default function Debtors() {
           {/* Delta Card */}
           <Card
             className={`cursor-pointer transition-all hover:shadow-lg ${
-              categoryFilter === "Delta" ? "ring-2 ring-yellow-500" : ""
+              categoryFilter === "Delta" ? "ring-2 ring-red-500" : ""
             }`}
             onClick={() => setCategoryFilter(categoryFilter === "Delta" ? null : "Delta")}
             data-testid="card-category-delta"
           >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-t-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-t-lg">
               <CardTitle className="text-sm font-medium">DELTA</CardTitle>
               <Users className="h-4 w-4" />
             </CardHeader>
@@ -273,7 +273,7 @@ export default function Debtors() {
               <p className="text-xs text-muted-foreground mt-1">
                 Outstanding
               </p>
-              <div className="text-xl font-semibold text-yellow-600 dark:text-yellow-400 mt-2" data-testid="text-delta-balance">
+              <div className="text-xl font-semibold text-red-600 dark:text-red-400 mt-2" data-testid="text-delta-balance">
                 {formatCurrency(categoryWise.Delta.totalBalance)}
               </div>
             </CardContent>

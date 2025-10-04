@@ -80,10 +80,10 @@ export function DebtorsTable({ data, onOpenFollowUp }: DebtorsTableProps) {
       cell: ({ row }) => {
         const category = row.getValue("category") as string;
         const colors: Record<string, string> = {
-          Alpha: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+          Alpha: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
           Beta: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-          Gamma: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-          Delta: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+          Gamma: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+          Delta: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
         };
         return (
           <span
