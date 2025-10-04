@@ -21,6 +21,7 @@ interface CreditManagementData {
 
 export default function CreditManagement() {
   const { toast } = useToast();
+  const [utilizationFilter, setUtilizationFilter] = useState<string | null>(null);
 
   const { data: creditData = [], isLoading } = useQuery<CreditManagementData[]>({
     queryKey: ["/api/credit-management"],
@@ -172,6 +173,29 @@ export default function CreditManagement() {
     });
   };
 
+  // Filter data based on utilization range
+  const filteredCreditData = creditData.filter((item) => {
+    if (!utilizationFilter) return true;
+    
+    const percentage = item.utilizationPercentage;
+    switch (utilizationFilter) {
+      case "not-utilized":
+        return percentage === 0;
+      case "over-utilized":
+        return percentage > 100;
+      case "1-25":
+        return percentage >= 1 && percentage <= 25;
+      case "26-50":
+        return percentage >= 26 && percentage <= 50;
+      case "51-75":
+        return percentage >= 51 && percentage <= 75;
+      case "76-100":
+        return percentage >= 76 && percentage <= 100;
+      default:
+        return true;
+    }
+  });
+
   // Calculate dashboard statistics
   const totalClients = creditData.length;
   const notUtilized = creditData.filter((c) => c.utilizationPercentage === 0).length;
@@ -226,7 +250,15 @@ export default function CreditManagement() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gray-50 border-0" data-testid="card-not-utilized">
+            <Card 
+              className={`cursor-pointer transition-all border-0 ${
+                utilizationFilter === "not-utilized" 
+                  ? "bg-gray-100" 
+                  : "bg-gray-50 hover:bg-gray-100"
+              }`}
+              onClick={() => setUtilizationFilter(utilizationFilter === "not-utilized" ? null : "not-utilized")}
+              data-testid="card-not-utilized"
+            >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
                   <div className="bg-gray-500 p-3 rounded-xl flex-shrink-0">
@@ -241,7 +273,15 @@ export default function CreditManagement() {
               </CardContent>
             </Card>
 
-            <Card className="bg-red-50 border-0" data-testid="card-over-utilized">
+            <Card 
+              className={`cursor-pointer transition-all border-0 ${
+                utilizationFilter === "over-utilized" 
+                  ? "bg-red-100" 
+                  : "bg-red-50 hover:bg-red-100"
+              }`}
+              onClick={() => setUtilizationFilter(utilizationFilter === "over-utilized" ? null : "over-utilized")}
+              data-testid="card-over-utilized"
+            >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
                   <div className="bg-red-500 p-3 rounded-xl flex-shrink-0">
@@ -258,7 +298,15 @@ export default function CreditManagement() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-green-50 border-0" data-testid="card-1-25-utilized">
+            <Card 
+              className={`cursor-pointer transition-all border-0 ${
+                utilizationFilter === "1-25" 
+                  ? "bg-green-100" 
+                  : "bg-green-50 hover:bg-green-100"
+              }`}
+              onClick={() => setUtilizationFilter(utilizationFilter === "1-25" ? null : "1-25")}
+              data-testid="card-1-25-utilized"
+            >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
                   <div className="bg-green-500 p-3 rounded-xl flex-shrink-0">
@@ -273,7 +321,15 @@ export default function CreditManagement() {
               </CardContent>
             </Card>
 
-            <Card className="bg-yellow-50 border-0" data-testid="card-26-50-utilized">
+            <Card 
+              className={`cursor-pointer transition-all border-0 ${
+                utilizationFilter === "26-50" 
+                  ? "bg-yellow-100" 
+                  : "bg-yellow-50 hover:bg-yellow-100"
+              }`}
+              onClick={() => setUtilizationFilter(utilizationFilter === "26-50" ? null : "26-50")}
+              data-testid="card-26-50-utilized"
+            >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
                   <div className="bg-yellow-500 p-3 rounded-xl flex-shrink-0">
@@ -288,7 +344,15 @@ export default function CreditManagement() {
               </CardContent>
             </Card>
 
-            <Card className="bg-orange-50 border-0" data-testid="card-51-75-utilized">
+            <Card 
+              className={`cursor-pointer transition-all border-0 ${
+                utilizationFilter === "51-75" 
+                  ? "bg-orange-100" 
+                  : "bg-orange-50 hover:bg-orange-100"
+              }`}
+              onClick={() => setUtilizationFilter(utilizationFilter === "51-75" ? null : "51-75")}
+              data-testid="card-51-75-utilized"
+            >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
                   <div className="bg-orange-500 p-3 rounded-xl flex-shrink-0">
@@ -303,7 +367,15 @@ export default function CreditManagement() {
               </CardContent>
             </Card>
 
-            <Card className="bg-purple-50 border-0" data-testid="card-76-100-utilized">
+            <Card 
+              className={`cursor-pointer transition-all border-0 ${
+                utilizationFilter === "76-100" 
+                  ? "bg-purple-100" 
+                  : "bg-purple-50 hover:bg-purple-100"
+              }`}
+              onClick={() => setUtilizationFilter(utilizationFilter === "76-100" ? null : "76-100")}
+              data-testid="card-76-100-utilized"
+            >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
                   <div className="bg-purple-500 p-3 rounded-xl flex-shrink-0">
@@ -323,7 +395,7 @@ export default function CreditManagement() {
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '300ms' }}>
           <DataTable
             columns={columns}
-            data={creditData}
+            data={filteredCreditData}
             tableKey="credit-management"
             isLoading={isLoading}
             onExportSelected={handleExportSelected}
