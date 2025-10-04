@@ -35,6 +35,7 @@ export default function Debtors() {
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [followUpFilter, setFollowUpFilter] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
 
@@ -55,10 +56,45 @@ export default function Debtors() {
 
   const allDebtors = debtorsData?.allDebtors || [];
 
-  // Apply category filter
-  const filteredDebtors = categoryFilter
-    ? allDebtors.filter((d: any) => d.category === categoryFilter)
-    : allDebtors;
+  // Apply category and follow-up filters
+  const filteredDebtors = allDebtors.filter((d: any) => {
+    if (categoryFilter && d.category !== categoryFilter) return false;
+    
+    if (followUpFilter) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(endOfWeek.getDate() + (7 - today.getDay()));
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+      const nextFollowUp = d.nextFollowUp ? new Date(d.nextFollowUp) : null;
+      const nextFollowUpDay = nextFollowUp ? new Date(nextFollowUp.getFullYear(), nextFollowUp.getMonth(), nextFollowUp.getDate()) : null;
+
+      switch (followUpFilter) {
+        case "overdue":
+          return nextFollowUpDay && nextFollowUpDay < today;
+        case "dueToday":
+          return nextFollowUpDay && nextFollowUpDay.getTime() === today.getTime();
+        case "dueTomorrow":
+          return nextFollowUpDay && nextFollowUpDay.getTime() === tomorrow.getTime();
+        case "dueThisWeek":
+          return nextFollowUpDay && nextFollowUpDay > today && nextFollowUpDay <= endOfWeek;
+        case "dueThisMonth":
+          return nextFollowUpDay && nextFollowUpDay > endOfWeek && nextFollowUpDay <= endOfMonth;
+        case "noFollowUp":
+          return !d.nextFollowUp;
+        default:
+          return true;
+      }
+    }
+    
+    return true;
+  });
+
+  // Calculate total balance for filtered debtors
+  const totalBalanceFiltered = filteredDebtors.reduce((sum: number, d: any) => sum + d.balance, 0);
 
   const handleOpenFollowUp = (debtor: any) => {
     setSelectedCustomer(debtor);
@@ -280,10 +316,25 @@ export default function Debtors() {
 
         {/* Follow-up Status Cards */}
         <div>
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Follow-up Status</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Follow-up Status</h2>
+            {followUpFilter && (
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Total Outstanding: <span className="font-semibold text-red-600 dark:text-red-400">{formatCurrency(totalBalanceFiltered)}</span>
+              </div>
+            )}
+          </div>
           <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6">
             {/* Overdue Card */}
-            <Card className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800" data-testid="card-followup-overdue">
+            <Card 
+              className={`cursor-pointer transition-all ${
+                followUpFilter === "overdue" 
+                  ? "bg-red-100 dark:bg-red-900 border-red-300 dark:border-red-700 ring-2 ring-red-500" 
+                  : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900"
+              }`}
+              onClick={() => setFollowUpFilter(followUpFilter === "overdue" ? null : "overdue")}
+              data-testid="card-followup-overdue"
+            >
               <CardContent className="pt-3 pb-3 px-3">
                 <div className="flex flex-col items-center text-center space-y-1">
                   <div className="p-2 bg-red-500 rounded-full">
@@ -298,7 +349,15 @@ export default function Debtors() {
             </Card>
 
             {/* Due Today Card */}
-            <Card className="bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800" data-testid="card-followup-today">
+            <Card 
+              className={`cursor-pointer transition-all ${
+                followUpFilter === "dueToday" 
+                  ? "bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700 ring-2 ring-orange-500" 
+                  : "bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900"
+              }`}
+              onClick={() => setFollowUpFilter(followUpFilter === "dueToday" ? null : "dueToday")}
+              data-testid="card-followup-today"
+            >
               <CardContent className="pt-3 pb-3 px-3">
                 <div className="flex flex-col items-center text-center space-y-1">
                   <div className="p-2 bg-orange-500 rounded-full">
@@ -313,7 +372,15 @@ export default function Debtors() {
             </Card>
 
             {/* Tomorrow Card */}
-            <Card className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800" data-testid="card-followup-tomorrow">
+            <Card 
+              className={`cursor-pointer transition-all ${
+                followUpFilter === "dueTomorrow" 
+                  ? "bg-yellow-100 dark:bg-yellow-900 border-yellow-300 dark:border-yellow-700 ring-2 ring-yellow-500" 
+                  : "bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900"
+              }`}
+              onClick={() => setFollowUpFilter(followUpFilter === "dueTomorrow" ? null : "dueTomorrow")}
+              data-testid="card-followup-tomorrow"
+            >
               <CardContent className="pt-3 pb-3 px-3">
                 <div className="flex flex-col items-center text-center space-y-1">
                   <div className="p-2 bg-yellow-500 rounded-full">
@@ -328,7 +395,15 @@ export default function Debtors() {
             </Card>
 
             {/* This Week Card */}
-            <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800" data-testid="card-followup-week">
+            <Card 
+              className={`cursor-pointer transition-all ${
+                followUpFilter === "dueThisWeek" 
+                  ? "bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 ring-2 ring-blue-500" 
+                  : "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900"
+              }`}
+              onClick={() => setFollowUpFilter(followUpFilter === "dueThisWeek" ? null : "dueThisWeek")}
+              data-testid="card-followup-week"
+            >
               <CardContent className="pt-3 pb-3 px-3">
                 <div className="flex flex-col items-center text-center space-y-1">
                   <div className="p-2 bg-blue-500 rounded-full">
@@ -343,7 +418,15 @@ export default function Debtors() {
             </Card>
 
             {/* This Month Card */}
-            <Card className="bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800" data-testid="card-followup-month">
+            <Card 
+              className={`cursor-pointer transition-all ${
+                followUpFilter === "dueThisMonth" 
+                  ? "bg-purple-100 dark:bg-purple-900 border-purple-300 dark:border-purple-700 ring-2 ring-purple-500" 
+                  : "bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900"
+              }`}
+              onClick={() => setFollowUpFilter(followUpFilter === "dueThisMonth" ? null : "dueThisMonth")}
+              data-testid="card-followup-month"
+            >
               <CardContent className="pt-3 pb-3 px-3">
                 <div className="flex flex-col items-center text-center space-y-1">
                   <div className="p-2 bg-purple-500 rounded-full">
@@ -358,7 +441,15 @@ export default function Debtors() {
             </Card>
 
             {/* No Follow-Up Card */}
-            <Card className="bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800" data-testid="card-followup-none">
+            <Card 
+              className={`cursor-pointer transition-all ${
+                followUpFilter === "noFollowUp" 
+                  ? "bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 ring-2 ring-gray-500" 
+                  : "bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-900"
+              }`}
+              onClick={() => setFollowUpFilter(followUpFilter === "noFollowUp" ? null : "noFollowUp")}
+              data-testid="card-followup-none"
+            >
               <CardContent className="pt-3 pb-3 px-3">
                 <div className="flex flex-col items-center text-center space-y-1">
                   <div className="p-2 bg-gray-500 rounded-full">
@@ -378,17 +469,37 @@ export default function Debtors() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl">
-                {categoryFilter ? `${categoryFilter} Debtors` : "All Debtors"}
-              </CardTitle>
-              {categoryFilter && (
+              <div>
+                <CardTitle className="text-2xl">
+                  {categoryFilter ? `${categoryFilter} Debtors` : "All Debtors"}
+                  {followUpFilter && (
+                    <span className="text-base font-normal text-gray-600 dark:text-gray-400 ml-2">
+                      - {followUpFilter === "overdue" ? "Overdue" : 
+                         followUpFilter === "dueToday" ? "Due Today" :
+                         followUpFilter === "dueTomorrow" ? "Tomorrow" :
+                         followUpFilter === "dueThisWeek" ? "This Week" :
+                         followUpFilter === "dueThisMonth" ? "This Month" :
+                         "No Follow-Up"}
+                    </span>
+                  )}
+                </CardTitle>
+                {followUpFilter && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Total Outstanding: <span className="font-semibold text-red-600 dark:text-red-400">{formatCurrency(totalBalanceFiltered)}</span>
+                  </p>
+                )}
+              </div>
+              {(categoryFilter || followUpFilter) && (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCategoryFilter(null)}
+                  onClick={() => {
+                    setCategoryFilter(null);
+                    setFollowUpFilter(null);
+                  }}
                   data-testid="button-clear-filter"
                 >
-                  Clear Filter
+                  Clear Filters
                 </Button>
               )}
             </div>

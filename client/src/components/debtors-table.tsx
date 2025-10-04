@@ -44,6 +44,8 @@ interface DebtorData {
   receiptCount: number;
   lastInvoiceDate: Date | null;
   lastPaymentDate: Date | null;
+  lastFollowUp: Date | null;
+  nextFollowUp: Date | null;
 }
 
 interface DebtorsTableProps {
@@ -189,6 +191,30 @@ export function DebtorsTable({ data, onOpenFollowUp }: DebtorsTableProps) {
         const date = row.getValue("lastPaymentDate") as Date | null;
         return (
           <div data-testid={`text-last-payment-${row.original.customerId}`}>
+            {date ? format(new Date(date), "dd MMM yyyy") : "-"}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "lastFollowUp",
+      header: "Last Follow Up",
+      cell: ({ row }) => {
+        const date = row.getValue("lastFollowUp") as Date | null;
+        return (
+          <div data-testid={`text-last-followup-${row.original.customerId}`}>
+            {date ? format(new Date(date), "dd MMM yyyy") : "-"}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "nextFollowUp",
+      header: "Next Follow Up",
+      cell: ({ row }) => {
+        const date = row.getValue("nextFollowUp") as Date | null;
+        return (
+          <div data-testid={`text-next-followup-${row.original.customerId}`}>
             {date ? format(new Date(date), "dd MMM yyyy") : "-"}
           </div>
         );

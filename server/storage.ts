@@ -966,6 +966,7 @@ export class DatabaseStorage implements IStorage {
     const customers = await db.select().from(masterCustomers);
     const allInvoices = await db.select().from(invoices);
     const allReceipts = await db.select().from(receipts);
+    const allFollowUps = await db.select().from(debtorsFollowUps);
 
     const debtorsByCategory = {
       Alpha: { count: 0, totalBalance: 0, debtors: [] as any[] },
@@ -988,6 +989,18 @@ export class DatabaseStorage implements IStorage {
         const lastInvoice = customerInvoices.sort((a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime())[0];
         const lastReceipt = customerReceipts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
 
+        const customerFollowUps = allFollowUps.filter(f => f.customerId === customer.id);
+        
+        const completedFollowUps = customerFollowUps
+          .filter(f => f.status === "Completed")
+          .sort((a, b) => new Date(b.followUpDateTime).getTime() - new Date(a.followUpDateTime).getTime());
+        const lastFollowUp = completedFollowUps.length > 0 ? completedFollowUps[0].followUpDateTime : null;
+
+        const pendingFollowUps = customerFollowUps
+          .filter(f => f.status === "Pending")
+          .sort((a, b) => new Date(a.followUpDateTime).getTime() - new Date(b.followUpDateTime).getTime());
+        const nextFollowUp = pendingFollowUps.length > 0 ? pendingFollowUps[0].followUpDateTime : null;
+
         const debtor = {
           customerId: customer.id,
           name: customer.clientName,
@@ -1002,6 +1015,8 @@ export class DatabaseStorage implements IStorage {
           receiptCount: customerReceipts.length,
           lastInvoiceDate: lastInvoice?.invoiceDate || null,
           lastPaymentDate: lastReceipt?.date || null,
+          lastFollowUp,
+          nextFollowUp,
         };
 
         allDebtors.push(debtor);
