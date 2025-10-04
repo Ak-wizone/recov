@@ -1,6 +1,6 @@
 # Overview
 
-This is a comprehensive business management application built with a full-stack TypeScript architecture. The application includes modules for managing leads, quotations, proforma invoices, invoices, receipts, and customer debts. It provides dashboard views with analytics, supports bulk operations via Excel file uploads, and includes professional print formats for business documents.
+This is a comprehensive business management application built with a full-stack TypeScript architecture. It provides modules for managing leads, quotations, proforma invoices, invoices, receipts, and customer debts. The application features dashboard analytics, supports bulk operations via Excel uploads with inline editing, and generates professional print formats for all business documents. Key capabilities include robust user and role-based access control, a secure authentication system, and duplicate detection for master data imports. The project aims to streamline business operations, provide critical insights, and enhance productivity.
 
 # User Preferences
 
@@ -10,225 +10,45 @@ Preferred communication style: Simple, everyday language.
 
 ## Frontend Architecture
 
-**Framework**: React with TypeScript using Vite as the build tool
-
-**UI Component Library**: shadcn/ui (built on Radix UI primitives) with Tailwind CSS for styling
-- Component system follows the "New York" style variant
-- Custom theming with CSS variables for colors and design tokens
-- Responsive design with mobile-first approach
-
-**State Management**: 
-- TanStack Query (React Query) for server state management and data fetching
-- Local React state for UI interactions
-- Custom query client with automatic refetching disabled (staleTime: Infinity)
-
-**Routing**: Wouter for lightweight client-side routing
-
-**Form Handling**: React Hook Form with Zod validation via @hookform/resolvers
-
-**Key Modules**:
-- **Leads Management**: Track potential customers with follow-ups and status tracking
-- **Quotations**: Create and manage quotations with professional print format
-- **Proforma Invoices**: Generate PIs from quotations (one PI per quotation enforced)
-- **Invoices & Receipts**: Full billing and payment tracking
-- **Customer Management**: CRUD operations with form dialogs
-- **Masters**: Centralized customer and item databases
-- **Dashboard Analytics**: Real-time statistics with date filtering
-- **Print & Export**: Professional A4 print formats and Excel exports
-- **Communication**: WhatsApp and Email integration
+**Framework**: React with TypeScript using Vite.
+**UI Component Library**: shadcn/ui (Radix UI) with Tailwind CSS, responsive design, custom theming.
+**State Management**: TanStack Query for server state, local React state for UI.
+**Routing**: Wouter for client-side routing.
+**Form Handling**: React Hook Form with Zod validation.
+**Key Modules**: Comprehensive CRUD and management for Leads, Quotations, Proforma Invoices, Invoices, Receipts, Customers, Items, and Debtors. Includes Dashboard Analytics, Print/Export, and Communication features (WhatsApp, Email).
+**Data Visualization**: Recharts library for dashboard charts.
 
 ## Backend Architecture
 
-**Framework**: Express.js with TypeScript
-
-**Development Setup**: 
-- Vite middleware for HMR in development
-- Custom logging middleware for API request tracking
-- Static file serving in production
-
-**Data Storage**:
-- In-memory storage implementation (MemStorage class)
-- Interface-based storage pattern (IStorage) allows easy swap to database
-- Storage operations include customers, payments, and bulk imports
-
-**API Structure**:
-- RESTful endpoints under `/api` prefix
-- Customer management: GET/POST/PUT/DELETE `/api/customers`
-- Payment tracking: GET `/api/customers/:id/payments`, POST `/api/payments`
-- Bulk operations: POST `/api/customers/import`, GET `/api/customers/export`
-- Validation using Zod schemas with friendly error messages
-
-**File Upload**: Multer middleware with memory storage for Excel file processing
+**Framework**: Express.js with TypeScript.
+**Development Setup**: Vite middleware for HMR, custom logging.
+**Data Storage**: Interface-based storage (IStorage) with a current in-memory implementation (MemStorage), designed for easy swap to a database.
+**API Structure**: RESTful endpoints (`/api/*`) with Zod schema validation. Supports customer management, payment tracking, bulk imports/exports, and specialized endpoints for dashboard stats, PI generation, user/role management, and authentication.
+**File Upload**: Multer for Excel file processing.
 
 ## Data Schema
 
-**Database ORM**: Drizzle ORM configured for PostgreSQL
-- Schema definitions in `shared/schema.ts`
-- Zod validation schemas generated from Drizzle tables
-
+**Database ORM**: Drizzle ORM configured for PostgreSQL.
 **Core Entities**:
+1.  **Customers Table**: UUID, contact info (name, email, mobile), amount owed, category (Alpha/Beta/Gamma/Delta), timestamps.
+2.  **Payments Table**: UUID, FK to customers, amount, method, receipt, notes, date.
+3.  **Roles Table**: UUID, name, description, permissions (text array), createdAt.
+4.  **Users Table**: UUID, name, email, mobile, roleId (FK), status, hashed password, createdAt.
+**Validation**: Zod schemas ensure data integrity (e.g., required fields, valid formats, positive decimals, predefined categories).
 
-1. **Customers Table**:
-   - UUID primary key (auto-generated)
-   - Name, email, mobile (contact info)
-   - Amount owed (decimal with precision)
-   - Category (Alpha/Beta/Gamma/Delta for priority)
-   - Created timestamp
+## System Design Choices & Features
 
-2. **Payments Table**:
-   - UUID primary key (auto-generated)
-   - Foreign key to customers (cascade delete)
-   - Amount (decimal with precision)
-   - Payment method, receipt number, notes
-   - Payment date timestamp
+*   **Analytics Dashboard**: Replaces debtors management as the home page, offering real-time statistics, financial overviews, module statistics, and recent activity feeds.
+*   **Proforma Invoice Module**: Full CRUD operations for PIs, including grid features (pagination, filters, sorting), dashboard cards, date filtering, and print/export. Enforces one PI per quotation.
+*   **Enhanced Import System**: Universal editable import preview for Customers, Items, Invoices, Receipts. Features inline error correction, smart data parsing, and template downloads. Includes duplicate detection for customer imports with visual indicators and normalization.
+*   **User Management & RBAC**: Comprehensive system for managing users and roles. Granular, module-specific permissions (View, Create, Edit, Delete, Export, Import, Print) across 13 modules.
+*   **Authentication System**: Secure login with email/password, bcrypt hashing, session-based authentication, and protected routes.
+*   **Customer Inline Editing**: Quick-edit dropdowns for Category, Interest Rate, and Status directly within the customer grid.
 
-**Validation Rules**:
-- Customer names required, non-empty
-- Amount must be valid positive decimal
-- Category restricted to four predefined values
-- Email must be valid format
-- Mobile number required
+# External Dependencies
 
-## External Dependencies
-
-**Database**: 
-- PostgreSQL via Neon serverless driver (@neondatabase/serverless)
-- Connection via DATABASE_URL environment variable
-- Drizzle Kit for migrations (output to `./migrations`)
-
-**Session Management**:
-- connect-pg-simple for PostgreSQL-backed sessions (configured but implementation details not visible in routes)
-
-**File Processing**:
-- XLSX library for Excel import/export operations
-- Multer for multipart/form-data file uploads
-
-**Development Tools**:
-- Replit-specific plugins for enhanced development experience
-- Runtime error overlay for better debugging
-- Cartographer and dev banner in development mode
-
-**Frontend Libraries**:
-- date-fns for date formatting and manipulation
-- lucide-react for icons
-- class-variance-authority and clsx for conditional styling
-- wouter for lightweight routing
-
-**Build Configuration**:
-- TypeScript with strict mode enabled
-- Path aliases: `@/` for client, `@shared/` for shared code
-- ESM module system throughout
-- Separate build processes for client (Vite) and server (esbuild)
-
-**Note on Database**: The application is configured to use PostgreSQL through Drizzle ORM, but currently implements an in-memory storage system. The IStorage interface pattern makes it straightforward to swap the MemStorage implementation with a database-backed storage class.
-
-## Recent Changes
-
-### Analytics Dashboard (October 2025)
-- **Home Page Redesign**: Replaced debtors management on home page with comprehensive analytics dashboard
-- **Dashboard Statistics API** (`GET /api/dashboard/stats`): Single endpoint aggregates data from all modules
-  - Totals: Counts for leads, quotations, proforma invoices, invoices, receipts, customers, items, users, roles
-  - Amounts: Total invoices, receipts, debtors, quotations, and outstanding balance calculation
-  - Today's Activity: New leads, quotations, invoices, receipts added today
-  - Recent Activity: Last 5 items from leads, quotations, and invoices
-- **Dashboard UI Components**:
-  - **Today's Activity Cards**: Real-time counts for today's new leads, quotations, invoices, receipts
-  - **Financial Overview**: Gradient cards showing total amounts with color coding (invoices, receipts, outstanding, debtors, quotations)
-  - **Module Statistics**: Clickable cards linking to each module (10 modules total)
-  - **Charts & Visualizations**: 
-    - Pie chart for module distribution using Recharts
-    - Bar chart for financial overview comparing amounts
-  - **Recent Activity Feed**: Last 5 items from leads, quotations, and invoices with quick links
-- **Navigation**: Home route (/) now shows dashboard instead of debtors page
-- **Technology**: Recharts library for data visualization (pie and bar charts)
-
-### Proforma Invoice Module (October 2025)
-- **Complete PI Management System**: Added dedicated proforma invoice module with full CRUD operations
-- **Grid Features**: TanStack Table with pagination, column chooser, filters, sorting, and row selection
-- **Dashboard Cards**: Total PIs, This Week, Today, Yesterday, This Month statistics
-- **Date Filtering**: Month/Year, All Time, and Date Range filters
-- **Print & Export**: Professional A4 print format matching quotation style, Excel export
-- **Actions**: View/Print, Download PDF, Email, WhatsApp, Delete per row
-- **Navigation**: Added to sidebar under "Proforma Invoices"
-
-### Duplicate Prevention (October 2025)
-- **One PI per Quotation**: Backend validation prevents creating duplicate proforma invoices for the same quotation
-- **Database Constraint**: `quotationId` foreign key in `proforma_invoices` table links to quotations
-- **Smart Handling**: When attempting to generate a duplicate PI, the system opens the existing PI instead
-- **User Feedback**: Toast notifications inform users if a PI already exists or was newly created
-- **API Endpoint**: `POST /api/quotations/:id/generate-pi` checks for existing PI via `getProformaInvoiceByQuotationId()`
-- **Implementation**: Storage interface method added to query PIs by quotation ID
-
-### Enhanced Import System with Inline Editing (October 2025)
-- **Universal Import Feature**: Extended editable import preview to Items, Invoices, and Receipts (in addition to existing Customers)
-- **Module-Specific Validation**: 
-  - Items: Validates itemType (product/service), name, unit, tax, SKU, sale price
-  - Invoices: Validates invoice number, customer name, date, amounts, status
-  - Receipts: Validates voucher number, invoice number, customer, date, amount
-- **Inline Error Correction**: 
-  - Upload → Preview → Fix errors directly in table cells → Import (no re-upload)
-  - Red border highlights invalid fields with specific error messages
-  - Real-time validation as users type in edit mode
-- **Smart Data Parsing**: 
-  - Flexible column name recognition (handles various naming conventions)
-  - Automatic type conversion (boolean to Active/Inactive, number formatting)
-  - Module-specific parsers: `parseItemsFile`, `parseInvoicesFile`, `parseReceiptsFile`
-- **Template Downloads**: Sample Excel templates for each module with example data and proper format
-- **Import Flow**: File → Parse → Validate → Edit Mode (if errors) → Convert to Excel → Import
-- **Implementation**: `client/src/lib/import-utils.ts` contains all validation and parsing functions
-
-### User Management & Role-Based Access Control (October 2025)
-- **Complete RBAC System**: Full user and role management with comprehensive permission control
-- **Database Tables**:
-  - `roles` table: id (UUID), name (unique), description, permissions (text array), createdAt
-  - `users` table: id (UUID), name, email (unique), mobile, roleId (FK), status (Active/Inactive), password (hashed with bcrypt), createdAt
-- **Roles Management Page** (`/settings/roles`):
-  - Dashboard cards: Total Roles, Total Permissions
-  - TanStack Table with columns: Role Name, Description, Permissions Count, Actions
-  - **Granular Permissions System**: Each module has specific operation-level access control
-    - View, Create, Edit, Delete, Export, Import, Print permissions per module
-    - 13 modules: Dashboard, Leads, Quotations, Proforma Invoices, Invoices, Receipts, Debtors, Masters (Customers & Items), Company Settings, User Management, Roles Management, Reports
-    - Permission format: "Module - Operation" (e.g., "Leads - Create", "Invoices - Export")
-  - Form dialog with organized module-wise permission checkboxes (scrollable layout)
-  - Full CRUD: Create, Read, Update, Delete, Bulk Delete
-  - Excel import/export with template download
-  - Professional A4 PDF print format
-- **Users Management Page** (`/settings/users`):
-  - Dashboard cards: Total Users, Active Users, Inactive Users
-  - TanStack Table with columns: Name, Email, Mobile, Role, Status, Actions
-  - Form dialog with role dropdown (populated from roles API) and Active/Inactive switch
-  - Full CRUD: Create, Read, Update, Delete, Bulk Delete
-  - Excel import/export with template download
-  - Professional A4 PDF print format
-- **Permission Operations**: View, Create, Edit, Delete, Export, Import, Print (module-specific)
-- **API Endpoints**: Complete REST API for both users and roles with validation, import, export, template download
-- **Navigation**: Added under Company Settings → User Management and Roles Management
-- **Data Integration**: Users can be assigned to customers (assignedUser field) for follow-ups and task assignment
-
-### Authentication System (October 2025)
-- **Login Page** (`/login`): Professional login UI with email and password fields
-  - Form validation using Zod schema
-  - Show/hide password toggle
-  - Error handling with toast notifications
-  - Gradient background design with card layout
-- **Authentication Endpoints**:
-  - `POST /api/auth/login`: Email/password authentication with bcrypt verification
-  - `POST /api/auth/logout`: Session destruction
-  - `GET /api/auth/me`: Get current authenticated user
-- **Security Features**:
-  - Password hashing with bcrypt (salt rounds: 10)
-  - Session-based authentication using express-session
-  - Active status check (inactive users cannot login)
-  - Password requirement check
-- **Protected Routes**: All application routes wrapped with ProtectedRoute component
-  - Automatic redirect to /login if not authenticated
-  - Loading state during authentication check
-  - Auth context provides user data and logout function
-- **User Interface**:
-  - Sidebar displays logged-in user name and role
-  - Logout button in sidebar with user profile section
-  - Password field in User Management form (required for new users, optional for updates)
-- **Password Management**:
-  - New users: Password required and hashed before storage
-  - Edit users: Optional password field (only updates if provided)
-  - Passwords never exposed in API responses
+**Database**: PostgreSQL via Neon serverless driver (`@neondatabase/serverless`).
+**Session Management**: `connect-pg-simple` (for PostgreSQL-backed sessions).
+**File Processing**: `XLSX` library for Excel import/export; `Multer` for file uploads.
+**Frontend Libraries**: `date-fns` for date manipulation, `lucide-react` for icons, `class-variance-authority` and `clsx` for styling, `wouter` for routing, `recharts` for data visualization.
+**Authentication**: `bcrypt` for password hashing, `express-session` for session management.
