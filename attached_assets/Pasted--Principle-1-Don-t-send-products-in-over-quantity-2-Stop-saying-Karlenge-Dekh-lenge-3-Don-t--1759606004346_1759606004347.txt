@@ -1,0 +1,75 @@
+
+#
+Principle
+1.
+Don't send products in over quantity
+2.
+Stop saying - Karlenge, Dekh lenge
+3.
+Don't buy products on credit
+4.
+Features of Bad Paying Customer
+5.
+How to deal with new customers
+6.
+Do not let the debt get old
+7.
+How to deal with "C" and "D" category customers
+8.
+Reverse your payment model
+9.
+MSME or UDYAM Registration is mandatory
+10.
+Get your FDs back
+11.
+Do not take loans & sell goods on credit
+12.
+Service charge- INR 500 (The New Marketing Strategy)
+13.
+Start saying “No” to customers
+14.
+Loan leke udhar maal becha
+15.
+Business Loss mein- band kar diya (2 bar)
+16.
+Do Not Slip Over Sales
+17.
+Always Make Loyal Customers
+18.
+Customer Gayab Ho Gaya , Kya Kare
+19.
+Failing to Plan = Plan To Fail
+20.
+Always ask your payments before Time
+21.
+Cheque Bounce is a Good News
+22.
+Two Laws of Payment Recovery
+23.
+9 Habits Of Failed Businessman
+Implementation in a Web App or Digital System
+While the sources focus on behavioral changes and establishing formal business systems, several principles suggest areas where a web application or digital system could support implementation:
+1. Systemizing Processes and Documentation (Principles 1, 2, 5, 20)
+Implementation of principles like Don't send products in over quantity or How to deal with new customers requires strict policy enforcement. A business management web app could enforce these:
+• Formalizing Agreements: A core function should be to ensure that key terms (rate, discount, payment terms) are decided and done in writing before shipping products. This stops reliance on informal assurances like karlenge, dekh lenge (Principle 2).
+• Credit Limit Enforcement (Principle 1): The app could prevent sales staff from creating new orders or dispatching goods if a customer has an outstanding full payment due based on the committed condition.
+• New Customer Management (Principle 5): The system could mandate tracking the first 3 to 5 payments of a new customer and restrict credit limit increases until the customer proves reliability. The app could support "bill to bill" tracking or automated weekly payment requests (e.g., 10% or 25% per week).
+• Proactive Payment Requests (Principle 20): The system should automate the professional communication of due dates, sending a text or email immediately after dispatching goods, stating the specific date the bill will be due, ensuring the customer is prepared for payment before the due time.
+2. Utilizing Government Portals and Legal Tools (Principles 9, 21)
+The critical Principle 9, MSME or UDYAM Registration is mandatory, is directly linked to utilizing a government web platform:
+• MSME Registration Management: A web app could store the mandatory MSME registration number and ensure it is necessarily written on all invoices. This registration is key because it allows the business owner to file cases on the MSME Samadhan portal.
+• MSME Samadhan Integration: This government portal enables Micro and Small Enterprises (MSEMs) to register cases regarding late payments against buyers. The Act mandates that buyers pay compounded interest (three times the RBI rate) if payment is delayed by more than 45 days. A business web app could track overdue invoices eligible for filing under the MSME Act, potentially streamlining the case filing process or providing necessary documentation for the claim.
+• Cheque Bounce Management (Principle 21): Since a cheque bounce is a good news because it makes the customer criminally liable, a web app could help manage the strict timelines: tracking the 30-day window to send a notice after the bounce and the subsequent 30-day window to file a case if payment is not received.
+3. Data Collection for Legal Readiness (Principle 21)
+To strengthen any recovery case, the sources stress the need for documented proof, which a digital system can manage (Principle 21):
+• Mandatory Digital Documentation: The system should ensure collection and retention of documents essential for legal proceedings:
+    1. Signed Invoice Copy.
+    2. Signed Delivery Note.
+    3. Purchase Order (PO) or signed Sales Order (SO).
+    4. An "All is Well" card—digital confirmation (e.g., email/text) from the customer confirming the quality and quantity of goods received.
+4. Customer Categorization and Action Automation (Principles 7, 17)
+The system could categorize customers (Alpha, Beta, Gamma, Delta) to automate policies:
+• Identifying Bad Customers (Principle 4): Customers who are Gamma and Delta are considered "Jaundice and Cancer" for the business. The system can flag customers who exhibit "features of bad paying customers" (e.g., rushing the order, not discussing terms or rates).
+• C & D Customer Strategy (Principle 7): If C and D category clients do not respond to follow-ups, the system could automatically recommend transferring the case to legal, an agency, or the MSME portal, preventing time waste on futile manual follow-up.
+• Loyalty Tracking (Principle 17): To foster loyal customers, a system could track non-charged small services (Principle 12) or extra steps taken, promoting long-term relationship building.
+Overall, the underlying goal for implementation is to create some principles for your business today only so that payments do not get stuck in the future. This requires moving away from casual agreements (Principle 2) and implementing rigid, documented systems (Principle 19).
