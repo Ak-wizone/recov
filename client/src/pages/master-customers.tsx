@@ -137,10 +137,10 @@ export default function MasterCustomers() {
   });
 
   const categoryColors = {
-    Alpha: "bg-red-100 text-red-800 border-red-300",
-    Beta: "bg-orange-100 text-orange-800 border-orange-300",
-    Gamma: "bg-blue-100 text-blue-800 border-blue-300",
-    Delta: "bg-green-100 text-green-800 border-green-300",
+    Alpha: "bg-green-100 text-green-800 border-green-300",
+    Beta: "bg-blue-100 text-blue-800 border-blue-300",
+    Gamma: "bg-yellow-100 text-yellow-800 border-yellow-300",
+    Delta: "bg-red-100 text-red-800 border-red-300",
   };
 
   const statusColors = {
@@ -648,20 +648,20 @@ export default function MasterCustomers() {
             <Card
               className={`cursor-pointer transition-all border-0 ${
                 categoryFilter === "Alpha" 
-                  ? "bg-blue-100" 
-                  : "bg-blue-50 hover:bg-blue-100"
+                  ? "bg-green-100" 
+                  : "bg-green-50 hover:bg-green-100"
               }`}
               onClick={() => setCategoryFilter(categoryFilter === "Alpha" ? null : "Alpha")}
               data-testid="card-category-alpha"
             >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
-                  <div className="bg-blue-500 p-3 rounded-xl flex-shrink-0">
+                  <div className="bg-green-500 p-3 rounded-xl flex-shrink-0">
                     <Users className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Alpha</p>
-                    <p className="text-3xl font-bold text-blue-600">{alphaCount}</p>
+                    <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Alpha</p>
+                    <p className="text-3xl font-bold text-green-600">{alphaCount}</p>
                   </div>
                 </div>
               </CardContent>
@@ -670,20 +670,20 @@ export default function MasterCustomers() {
             <Card
               className={`cursor-pointer transition-all border-0 ${
                 categoryFilter === "Beta" 
-                  ? "bg-green-100" 
-                  : "bg-green-50 hover:bg-green-100"
+                  ? "bg-blue-100" 
+                  : "bg-blue-50 hover:bg-blue-100"
               }`}
               onClick={() => setCategoryFilter(categoryFilter === "Beta" ? null : "Beta")}
               data-testid="card-category-beta"
             >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
-                  <div className="bg-green-500 p-3 rounded-xl flex-shrink-0">
+                  <div className="bg-blue-500 p-3 rounded-xl flex-shrink-0">
                     <CheckCircle2 className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Beta</p>
-                    <p className="text-3xl font-bold text-green-600">{betaCount}</p>
+                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Beta</p>
+                    <p className="text-3xl font-bold text-blue-600">{betaCount}</p>
                   </div>
                 </div>
               </CardContent>
@@ -692,20 +692,20 @@ export default function MasterCustomers() {
             <Card
               className={`cursor-pointer transition-all border-0 ${
                 categoryFilter === "Gamma" 
-                  ? "bg-orange-100" 
-                  : "bg-orange-50 hover:bg-orange-100"
+                  ? "bg-yellow-100" 
+                  : "bg-yellow-50 hover:bg-yellow-100"
               }`}
               onClick={() => setCategoryFilter(categoryFilter === "Gamma" ? null : "Gamma")}
               data-testid="card-category-gamma"
             >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
-                  <div className="bg-orange-500 p-3 rounded-xl flex-shrink-0">
+                  <div className="bg-yellow-500 p-3 rounded-xl flex-shrink-0">
                     <AlertCircle className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">Gamma</p>
-                    <p className="text-3xl font-bold text-orange-600">{gammaCount}</p>
+                    <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-1">Gamma</p>
+                    <p className="text-3xl font-bold text-yellow-600">{gammaCount}</p>
                   </div>
                 </div>
               </CardContent>
@@ -714,20 +714,20 @@ export default function MasterCustomers() {
             <Card
               className={`cursor-pointer transition-all border-0 ${
                 categoryFilter === "Delta" 
-                  ? "bg-cyan-100" 
-                  : "bg-cyan-50 hover:bg-cyan-100"
+                  ? "bg-red-100" 
+                  : "bg-red-50 hover:bg-red-100"
               }`}
               onClick={() => setCategoryFilter(categoryFilter === "Delta" ? null : "Delta")}
               data-testid="card-category-delta"
             >
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
-                  <div className="bg-cyan-500 p-3 rounded-xl flex-shrink-0">
+                  <div className="bg-red-500 p-3 rounded-xl flex-shrink-0">
                     <Award className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-cyan-600 uppercase tracking-wide mb-1">Delta</p>
-                    <p className="text-3xl font-bold text-cyan-600">{deltaCount}</p>
+                    <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">Delta</p>
+                    <p className="text-3xl font-bold text-red-600">{deltaCount}</p>
                   </div>
                 </div>
               </CardContent>
