@@ -730,8 +730,8 @@ export function MasterCustomerFormDialog({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="From due date">From due date</SelectItem>
-                              <SelectItem value="From day one">From day one</SelectItem>
+                              <SelectItem value="Invoice Date">Invoice Date</SelectItem>
+                              <SelectItem value="Due Date">Due Date</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
