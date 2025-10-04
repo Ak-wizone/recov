@@ -2453,6 +2453,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get debtors follow-up statistics
+  app.get("/api/debtors/followup-stats", async (_req, res) => {
+    try {
+      const stats = await storage.getDebtorsFollowUpStats();
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get debtors follow-ups by customer
   app.get("/api/debtors/followups/:customerId", async (req, res) => {
     try {

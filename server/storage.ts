@@ -118,6 +118,7 @@ export interface IStorage {
   
   // Debtors operations
   getDebtorsList(): Promise<any>;
+  getDebtorsFollowUpStats(): Promise<any>;
   
   // Debtors Follow-up operations
   getDebtorsFollowUpsByCustomer(customerId: string): Promise<any[]>;
@@ -1017,6 +1018,57 @@ export class DatabaseStorage implements IStorage {
     return {
       categoryWise: debtorsByCategory,
       allDebtors,
+    };
+  }
+
+  async getDebtorsFollowUpStats(): Promise<any> {
+    const allFollowUps = await db
+      .select()
+      .from(debtorsFollowUps)
+      .where(eq(debtorsFollowUps.status, "Pending"));
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(endOfWeek.getDate() + (7 - today.getDay()));
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    const allCustomers = await db.select().from(masterCustomers);
+    const customersWithFollowUps = new Set(allFollowUps.map(f => f.customerId));
+    const noFollowUp = allCustomers.length - customersWithFollowUps.size;
+
+    let overdue = 0;
+    let dueToday = 0;
+    let dueTomorrow = 0;
+    let dueThisWeek = 0;
+    let dueThisMonth = 0;
+
+    for (const followUp of allFollowUps) {
+      const followUpDate = new Date(followUp.followUpDateTime);
+      const followUpDay = new Date(followUpDate.getFullYear(), followUpDate.getMonth(), followUpDate.getDate());
+      
+      if (followUpDay < today) {
+        overdue++;
+      } else if (followUpDay.getTime() === today.getTime()) {
+        dueToday++;
+      } else if (followUpDay.getTime() === tomorrow.getTime()) {
+        dueTomorrow++;
+      } else if (followUpDay > today && followUpDay <= endOfWeek) {
+        dueThisWeek++;
+      } else if (followUpDay > endOfWeek && followUpDay <= endOfMonth) {
+        dueThisMonth++;
+      }
+    }
+
+    return {
+      overdue,
+      dueToday,
+      dueTomorrow,
+      dueThisWeek,
+      dueThisMonth,
+      noFollowUp,
     };
   }
 
