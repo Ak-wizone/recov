@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, type Receipt } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -553,6 +553,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const customers = await storage.getMasterCustomers();
       res.json(customers);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get simple list of master customers for dropdown (MUST BE BEFORE /:id)
+  app.get("/api/masters/customers/list", async (_req, res) => {
+    try {
+      const customers = await storage.getMasterCustomers();
+      const customerList = customers.map(c => ({
+        id: c.id,
+        clientName: c.clientName
+      }));
+      res.json(customerList);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -1182,8 +1196,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all invoices
   app.get("/api/invoices", async (_req, res) => {
     try {
-      const invoices = await storage.getInvoices();
-      res.json(invoices);
+      const [allInvoices, allReceipts] = await Promise.all([
+        storage.getInvoices(),
+        storage.getReceipts()
+      ]);
+
+      // Group receipts by customer name
+      const receiptsByCustomer = new Map<string, Receipt[]>();
+      for (const receipt of allReceipts) {
+        const customerReceipts = receiptsByCustomer.get(receipt.customerName) || [];
+        customerReceipts.push(receipt);
+        receiptsByCustomer.set(receipt.customerName, customerReceipts);
+      }
+
+      // Group invoices by customer name and sort by invoice number (ascending)
+      const invoicesByCustomer = new Map<string, typeof allInvoices>();
+      for (const invoice of allInvoices) {
+        const customerInvoices = invoicesByCustomer.get(invoice.customerName) || [];
+        customerInvoices.push(invoice);
+        invoicesByCustomer.set(invoice.customerName, customerInvoices);
+      }
+
+      // Sort invoices for each customer by invoice number or date
+      invoicesByCustomer.forEach((invoices) => {
+        invoices.sort((a: any, b: any) => {
+          // Try to compare by invoice number first
+          const numA = parseInt(a.invoiceNumber.replace(/\D/g, '')) || 0;
+          const numB = parseInt(b.invoiceNumber.replace(/\D/g, '')) || 0;
+          if (numA !== numB) return numA - numB;
+          // Fall back to date comparison
+          return new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime();
+        });
+      });
+
+      // Calculate payment status and balance for each invoice
+      const enhancedInvoices = allInvoices.map(invoice => {
+        const customerName = invoice.customerName;
+        const customerReceipts = receiptsByCustomer.get(customerName) || [];
+        const customerInvoices = invoicesByCustomer.get(customerName) || [];
+
+        // Calculate total receipts for this customer
+        const totalReceiptAmount = customerReceipts.reduce((sum, receipt) => 
+          sum + parseFloat(receipt.amount), 0
+        );
+
+        // Apply receipts sequentially to invoices in order
+        let remainingReceipts = totalReceiptAmount;
+        let invoiceBalance = parseFloat(invoice.invoiceAmount);
+        
+        // Find this invoice's position in the sorted customer invoices
+        const invoiceIndex = customerInvoices.findIndex(inv => inv.id === invoice.id);
+        
+        // Apply receipt amounts to invoices before this one
+        for (let i = 0; i < invoiceIndex && remainingReceipts > 0; i++) {
+          const priorInvoiceAmount = parseFloat(customerInvoices[i].invoiceAmount);
+          if (remainingReceipts >= priorInvoiceAmount) {
+            remainingReceipts -= priorInvoiceAmount;
+          } else {
+            remainingReceipts = 0;
+          }
+        }
+
+        // Apply remaining receipt amount to current invoice
+        if (remainingReceipts > 0) {
+          if (remainingReceipts >= invoiceBalance) {
+            invoiceBalance = 0;
+            remainingReceipts -= parseFloat(invoice.invoiceAmount);
+          } else {
+            invoiceBalance -= remainingReceipts;
+            remainingReceipts = 0;
+          }
+        }
+
+        // Determine payment status
+        let paymentStatus: string;
+        if (invoiceBalance === 0) {
+          paymentStatus = "Paid";
+        } else if (invoiceBalance === parseFloat(invoice.invoiceAmount)) {
+          paymentStatus = "Unpaid";
+        } else {
+          paymentStatus = "Partial";
+        }
+
+        return {
+          ...invoice,
+          paymentStatus,
+          balanceAmount: invoiceBalance.toFixed(2)
+        };
+      });
+
+      res.json(enhancedInvoices);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -1363,7 +1465,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create invoice
   app.post("/api/invoices", async (req, res) => {
     try {
-      const result = insertInvoiceSchema.safeParse(req.body);
+      const { customerId, assignedUser, netProfit, ...rest } = req.body;
+
+      // Fetch customer name from masterCustomers
+      if (!customerId) {
+        return res.status(400).json({ message: "Customer ID is required" });
+      }
+
+      const customer = await storage.getMasterCustomer(customerId);
+      if (!customer) {
+        return res.status(400).json({ message: "Customer not found" });
+      }
+
+      // Auto-populate assignedUser from session if not provided
+      const sessionUser = (req.session as any).user;
+      const finalAssignedUser = assignedUser || sessionUser?.name;
+
+      // Handle optional netProfit (can be empty string or undefined)
+      const finalNetProfit = netProfit === "" || netProfit === undefined ? undefined : netProfit;
+
+      const invoiceData = {
+        ...rest,
+        customerId,
+        customerName: customer.clientName,
+        assignedUser: finalAssignedUser,
+        netProfit: finalNetProfit,
+      };
+
+      const result = insertInvoiceSchema.safeParse(invoiceData);
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
@@ -1377,7 +1506,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update invoice
   app.put("/api/invoices/:id", async (req, res) => {
     try {
-      const result = insertInvoiceSchema.partial().safeParse(req.body);
+      const { customerId, assignedUser, netProfit, ...rest } = req.body;
+
+      const invoiceData: any = { ...rest };
+
+      // If customerId is provided, fetch and update customer name
+      if (customerId) {
+        const customer = await storage.getMasterCustomer(customerId);
+        if (!customer) {
+          return res.status(400).json({ message: "Customer not found" });
+        }
+        invoiceData.customerId = customerId;
+        invoiceData.customerName = customer.clientName;
+      }
+
+      // Auto-populate assignedUser from session if not provided
+      if (assignedUser !== undefined) {
+        invoiceData.assignedUser = assignedUser;
+      } else if (!invoiceData.assignedUser) {
+        const sessionUser = (req.session as any).user;
+        invoiceData.assignedUser = sessionUser?.name;
+      }
+
+      // Handle optional netProfit (can be empty string or undefined)
+      if (netProfit !== undefined) {
+        invoiceData.netProfit = netProfit === "" ? undefined : netProfit;
+      }
+
+      const result = insertInvoiceSchema.partial().safeParse(invoiceData);
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
