@@ -17,8 +17,12 @@ import {
   UserCog,
   Shield,
   FileCheck,
+  LogOut,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 
 interface NavItem {
   name: string;
@@ -112,6 +116,7 @@ const navItems: NavItem[] = [
 export default function Sidebar() {
   const [location] = useLocation();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const { user, logout } = useAuth();
 
   const toggleExpanded = (name: string) => {
     setExpandedItems((prev) => {
@@ -212,9 +217,34 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-4 border-t border-slate-500/30">
+      <div className="p-4 border-t border-slate-500/30 space-y-3">
         <div className="bg-slate-500/30 rounded-lg p-3">
-          <p className="text-xs text-slate-200 font-medium">Version 2.0</p>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
+              <User className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate" data-testid="text-user-name">
+                {user?.name || "User"}
+              </p>
+              <p className="text-xs text-slate-400 truncate" data-testid="text-user-role">
+                {user?.roleName || "No Role"}
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={logout}
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-600/50"
+            data-testid="button-logout"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        </div>
+        <div className="bg-slate-500/20 rounded-lg p-2.5">
+          <p className="text-xs text-slate-300 font-medium">Version 2.0</p>
           <p className="text-xs text-slate-400 mt-0.5">All systems operational</p>
         </div>
       </div>

@@ -3,7 +3,9 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, ProtectedRoute } from "@/lib/auth";
 import Layout from "@/components/layout";
+import Login from "@/pages/login";
 import Home from "@/pages/home";
 import Leads from "@/pages/leads";
 import Quotations from "@/pages/quotations";
@@ -22,25 +24,32 @@ import Users from "@/pages/users";
 function Router() {
   return (
     <Switch>
-      <Route path="/quotations/:id/print" component={QuotationPrint} />
+      <Route path="/login" component={Login} />
+      <Route path="/quotations/:id/print">
+        <ProtectedRoute>
+          <QuotationPrint />
+        </ProtectedRoute>
+      </Route>
       <Route>
-        <Layout>
-          <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/leads" component={Leads} />
-            <Route path="/quotations" component={Quotations} />
-            <Route path="/proforma-invoices" component={ProformaInvoices} />
-            <Route path="/invoices" component={Invoices} />
-            <Route path="/receipts" component={Receipts} />
-            <Route path="/debtors" component={Debtors} />
-            <Route path="/masters/customers" component={MasterCustomers} />
-            <Route path="/masters/items" component={MasterItems} />
-            <Route path="/company-settings" component={CompanySettings} />
-            <Route path="/settings/roles" component={Roles} />
-            <Route path="/settings/users" component={Users} />
-            <Route component={NotFound} />
-          </Switch>
-        </Layout>
+        <ProtectedRoute>
+          <Layout>
+            <Switch>
+              <Route path="/" component={Home} />
+              <Route path="/leads" component={Leads} />
+              <Route path="/quotations" component={Quotations} />
+              <Route path="/proforma-invoices" component={ProformaInvoices} />
+              <Route path="/invoices" component={Invoices} />
+              <Route path="/receipts" component={Receipts} />
+              <Route path="/debtors" component={Debtors} />
+              <Route path="/masters/customers" component={MasterCustomers} />
+              <Route path="/masters/items" component={MasterItems} />
+              <Route path="/company-settings" component={CompanySettings} />
+              <Route path="/settings/roles" component={Roles} />
+              <Route path="/settings/users" component={Users} />
+              <Route component={NotFound} />
+            </Switch>
+          </Layout>
+        </ProtectedRoute>
       </Route>
     </Switch>
   );
@@ -49,10 +58,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
