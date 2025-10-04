@@ -363,9 +363,29 @@ export default function MasterCustomers() {
         accessorKey: "interestApplicableFrom",
         header: "Interest Applicable From",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-interestApplicableFrom-${row.original.id}`}>
-            {row.original.interestApplicableFrom || "—"}
-          </span>
+          <Select
+            value={row.original.interestApplicableFrom || ""}
+            onValueChange={(value) => {
+              updateFieldMutation.mutate({
+                id: row.original.id,
+                field: "interestApplicableFrom",
+                value: value,
+              });
+            }}
+          >
+            <SelectTrigger
+              className="h-8 w-36"
+              data-testid={`select-interestApplicableFrom-${row.original.id}`}
+            >
+              <SelectValue placeholder="Select">
+                {row.original.interestApplicableFrom || "—"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Invoice Date">Invoice Date</SelectItem>
+              <SelectItem value="Due Date">Due Date</SelectItem>
+            </SelectContent>
+          </Select>
         ),
         enableSorting: true,
       },
@@ -373,35 +393,9 @@ export default function MasterCustomers() {
         accessorKey: "interestRate",
         header: "Interest Rate (%)",
         cell: ({ row }) => (
-          <Select
-            value={row.original.interestRate || "0"}
-            onValueChange={(value) => {
-              updateFieldMutation.mutate({
-                id: row.original.id,
-                field: "interestRate",
-                value: value,
-              });
-            }}
-          >
-            <SelectTrigger
-              className="h-8 w-28"
-              data-testid={`select-interestrate-${row.original.id}`}
-            >
-              <SelectValue>{row.original.interestRate ? `${row.original.interestRate}%` : "0%"}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">0%</SelectItem>
-              <SelectItem value="6">6%</SelectItem>
-              <SelectItem value="9">9%</SelectItem>
-              <SelectItem value="12">12%</SelectItem>
-              <SelectItem value="15">15%</SelectItem>
-              <SelectItem value="18">18%</SelectItem>
-              <SelectItem value="21">21%</SelectItem>
-              <SelectItem value="24">24%</SelectItem>
-              <SelectItem value="30">30%</SelectItem>
-              <SelectItem value="36">36%</SelectItem>
-            </SelectContent>
-          </Select>
+          <span className="text-gray-700 font-medium" data-testid={`text-interestrate-${row.original.id}`}>
+            {row.original.interestRate ? `${row.original.interestRate}%` : "0%"}
+          </span>
         ),
         enableSorting: true,
       },
