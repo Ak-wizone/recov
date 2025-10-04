@@ -442,7 +442,6 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
       </DialogContent>
     </Dialog>
 
-    {/* Custom UOM Dialog */}
     <Dialog open={isAddUnitOpen} onOpenChange={setIsAddUnitOpen}>
       <DialogContent>
         <DialogHeader>

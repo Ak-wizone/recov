@@ -119,7 +119,6 @@ export default function MasterItems() {
     const matchesStatus = statusFilter === "all" || item.isActive === statusFilter;
     const matchesSearch = globalFilter === "" || 
       item.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
-      item.sku.toLowerCase().includes(globalFilter.toLowerCase()) ||
       item.description?.toLowerCase().includes(globalFilter.toLowerCase());
     
     return matchesType && matchesStatus && matchesSearch;
@@ -160,16 +159,6 @@ export default function MasterItems() {
         ),
         enableSorting: true,
         enableHiding: false,
-      },
-      {
-        accessorKey: "sku",
-        header: "SKU",
-        cell: ({ row }) => (
-          <span className="text-muted-foreground" data-testid={`text-sku-${row.original.id}`}>
-            {row.original.sku}
-          </span>
-        ),
-        enableSorting: true,
       },
       {
         accessorKey: "unit",
@@ -380,7 +369,7 @@ export default function MasterItems() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder="Search items by name, SKU, or description..."
+            placeholder="Search items by name or description..."
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
             className="pl-10"
