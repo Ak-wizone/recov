@@ -124,6 +124,9 @@ export interface IStorage {
   createDebtorsFollowUp(followUp: any): Promise<any>;
   getDebtorsFollowUpsByCategory(category: string): Promise<any[]>;
   
+  // Credit Management operations
+  getCreditManagementData(): Promise<any>;
+  
   // Role operations
   getRoles(): Promise<any[]>;
   getRole(id: string): Promise<any | undefined>;
@@ -1050,6 +1053,39 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(debtorsFollowUps.followUpDateTime));
 
     return allFollowUps.filter(f => customerIds.includes(f.customerId));
+  }
+
+  async getCreditManagementData(): Promise<any> {
+    const customers = await db.select().from(masterCustomers);
+    const allInvoices = await db.select().from(invoices);
+    const allReceipts = await db.select().from(receipts);
+
+    const creditData: any[] = [];
+
+    for (const customer of customers) {
+      const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+      const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+
+      const totalInvoices = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()), 0);
+      const totalReceipts = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount.toString()), 0);
+      const utilizedLimit = totalInvoices - totalReceipts;
+
+      const creditLimit = parseFloat(customer.creditLimit || "0");
+      const availableLimit = creditLimit - utilizedLimit;
+      const utilizationPercentage = creditLimit > 0 ? (utilizedLimit / creditLimit) * 100 : 0;
+
+      creditData.push({
+        customerId: customer.id,
+        customerName: customer.clientName,
+        category: customer.category,
+        creditLimit,
+        utilizedLimit,
+        availableLimit,
+        utilizationPercentage: parseFloat(utilizationPercentage.toFixed(2)),
+      });
+    }
+
+    return creditData;
   }
 
   async getRoles(): Promise<Role[]> {

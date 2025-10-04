@@ -2492,6 +2492,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ CREDIT MANAGEMENT ROUTES ============
+
+  // Get credit management data
+  app.get("/api/credit-management", async (_req, res) => {
+    try {
+      const data = await storage.getCreditManagementData();
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Export credit management data to Excel
+  app.get("/api/credit-management/export", async (_req, res) => {
+    try {
+      const creditData = await storage.getCreditManagementData();
+      
+      const exportData = creditData.map((item: any) => ({
+        "Customer Name": item.customerName,
+        "Category": item.category,
+        "Credit Limit": item.creditLimit.toFixed(2),
+        "Utilized Limit": item.utilizedLimit.toFixed(2),
+        "Available Limit": item.availableLimit.toFixed(2),
+        "Utilization %": item.utilizationPercentage.toFixed(2) + "%",
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Credit Management");
+      
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      
+      res.setHeader('Content-Disposition', 'attachment; filename=credit_management.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // ============ ROLES ROUTES ============
   
   // Get all roles
