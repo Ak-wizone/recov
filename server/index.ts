@@ -6,6 +6,9 @@ import { seedDatabase } from "./seed";
 
 const app = express();
 
+// Trust Replit's proxy for secure cookies
+app.set('trust proxy', 1);
+
 declare module 'http' {
   interface IncomingMessage {
     rawBody: unknown
@@ -28,6 +31,7 @@ app.use(
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
   })
 );
