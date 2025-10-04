@@ -34,7 +34,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     name: "Dashboard",
-    path: "/dashboard",
+    path: "/",
     icon: <LayoutDashboard className="h-5 w-5" />,
   },
   {
