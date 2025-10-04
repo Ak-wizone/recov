@@ -163,7 +163,7 @@ Preferred communication style: Simple, everyday language.
 - **Complete RBAC System**: Full user and role management with comprehensive permission control
 - **Database Tables**:
   - `roles` table: id (UUID), name (unique), description, permissions (text array), createdAt
-  - `users` table: id (UUID), name, email (unique), mobile, roleId (FK), status (Active/Inactive), password (future auth), createdAt
+  - `users` table: id (UUID), name, email (unique), mobile, roleId (FK), status (Active/Inactive), password (hashed with bcrypt), createdAt
 - **Roles Management Page** (`/settings/roles`):
   - Dashboard cards: Total Roles, Total Permissions
   - TanStack Table with columns: Role Name, Description, Permissions Count, Actions
@@ -186,3 +186,31 @@ Preferred communication style: Simple, everyday language.
 - **API Endpoints**: Complete REST API for both users and roles with validation, import, export, template download
 - **Navigation**: Added under Company Settings → User Management and Roles Management
 - **Data Integration**: Users can be assigned to customers (assignedUser field) for follow-ups and task assignment
+
+### Authentication System (October 2025)
+- **Login Page** (`/login`): Professional login UI with email and password fields
+  - Form validation using Zod schema
+  - Show/hide password toggle
+  - Error handling with toast notifications
+  - Gradient background design with card layout
+- **Authentication Endpoints**:
+  - `POST /api/auth/login`: Email/password authentication with bcrypt verification
+  - `POST /api/auth/logout`: Session destruction
+  - `GET /api/auth/me`: Get current authenticated user
+- **Security Features**:
+  - Password hashing with bcrypt (salt rounds: 10)
+  - Session-based authentication using express-session
+  - Active status check (inactive users cannot login)
+  - Password requirement check
+- **Protected Routes**: All application routes wrapped with ProtectedRoute component
+  - Automatic redirect to /login if not authenticated
+  - Loading state during authentication check
+  - Auth context provides user data and logout function
+- **User Interface**:
+  - Sidebar displays logged-in user name and role
+  - Logout button in sidebar with user profile section
+  - Password field in User Management form (required for new users, optional for updates)
+- **Password Management**:
+  - New users: Password required and hashed before storage
+  - Edit users: Optional password field (only updates if provided)
+  - Passwords never exposed in API responses
