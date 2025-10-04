@@ -86,12 +86,10 @@ function normalizeText(text?: string): string {
   return text.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
-// Generate a unique key for deduplication
+// Generate a unique key for deduplication (based on customer name only)
 export function generateCustomerDuplicateKey(row: ImportRow): string {
   const name = normalizeText(row.clientName);
-  const email = normalizeText(row.primaryEmail);
-  const mobile = normalizeText(row.primaryMobile);
-  return `${name}|${email}|${mobile}`;
+  return name;
 }
 
 // Detect duplicates within the import batch
