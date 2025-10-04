@@ -46,7 +46,7 @@ export default function Invoices() {
   const [activeCardFilter, setActiveCardFilter] = useState<string | null>(null);
   
   // Date filter mode state
-  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("month");
+  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("allTime");
   const [dateRangeFrom, setDateRangeFrom] = useState("");
   const [dateRangeTo, setDateRangeTo] = useState("");
 
