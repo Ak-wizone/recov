@@ -13,6 +13,7 @@ import MasterCustomers from "@/pages/master-customers";
 import MasterItems from "@/pages/master-items";
 import Invoices from "@/pages/invoices";
 import Receipts from "@/pages/receipts";
+import Debtors from "@/pages/debtors";
 import CompanySettings from "@/pages/company-settings";
 import NotFound from "@/pages/not-found";
 
@@ -29,6 +30,7 @@ function Router() {
             <Route path="/proforma-invoices" component={ProformaInvoices} />
             <Route path="/invoices" component={Invoices} />
             <Route path="/receipts" component={Receipts} />
+            <Route path="/debtors" component={Debtors} />
             <Route path="/masters/customers" component={MasterCustomers} />
             <Route path="/masters/items" component={MasterItems} />
             <Route path="/company-settings" component={CompanySettings} />

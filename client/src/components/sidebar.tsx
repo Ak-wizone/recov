@@ -60,7 +60,7 @@ const navItems: NavItem[] = [
   },
   {
     name: "Debtors",
-    path: "/",
+    path: "/debtors",
     icon: <UserX className="h-5 w-5" />,
   },
   {
