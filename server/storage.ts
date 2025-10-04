@@ -1,6 +1,7 @@
 import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 export interface IStorage {
   // Customer operations
@@ -134,6 +135,7 @@ export interface IStorage {
   // User operations
   getUsers(): Promise<any[]>;
   getUser(id: string): Promise<any | undefined>;
+  getUserByEmail(email: string): Promise<any | undefined>;
   createUser(data: any): Promise<any>;
   updateUser(id: string, data: any): Promise<any | undefined>;
   deleteUser(id: string): Promise<boolean>;
@@ -1104,8 +1106,23 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    if (!user) return undefined;
+    
+    const [role] = user.roleId ? await db.select().from(roles).where(eq(roles.id, user.roleId)) : [null];
+    return {
+      ...user,
+      roleName: role?.name || null,
+    };
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser as any).returning();
+    const userData = { ...insertUser };
+    if (userData.password) {
+      userData.password = await bcrypt.hash(userData.password, 10);
+    }
+    const [user] = await db.insert(users).values(userData as any).returning();
     const [role] = user.roleId ? await db.select().from(roles).where(eq(roles.id, user.roleId)) : [null];
     return {
       ...user,
@@ -1114,7 +1131,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined> {
-    const [user] = await db.update(users).set(updates as any).where(eq(users.id, id)).returning();
+    const userData = { ...updates };
+    if (userData.password) {
+      userData.password = await bcrypt.hash(userData.password, 10);
+    }
+    const [user] = await db.update(users).set(userData as any).where(eq(users.id, id)).returning();
     if (!user) return undefined;
     
     const [role] = user.roleId ? await db.select().from(roles).where(eq(roles.id, user.roleId)) : [null];
