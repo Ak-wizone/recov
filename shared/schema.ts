@@ -776,3 +776,41 @@ export const insertProformaInvoiceItemSchema = createInsertSchema(proformaInvoic
 
 export type InsertProformaInvoiceItem = z.infer<typeof insertProformaInvoiceItemSchema>;
 export type ProformaInvoiceItem = typeof proformaInvoiceItems.$inferSelect;
+
+// Debtors Follow-ups table
+export const debtorsFollowUps = pgTable("debtors_follow_ups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id").notNull().references(() => masterCustomers.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // Meeting, Call, WhatsApp, Email
+  remarks: text("remarks").notNull(),
+  followUpDateTime: timestamp("follow_up_date_time").notNull(),
+  priority: text("priority").notNull(), // High, Medium, Low
+  status: text("status").notNull().default("Pending"), // Pending, Completed, Cancelled
+  nextFollowUpDate: timestamp("next_follow_up_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDebtorsFollowUpSchema = createInsertSchema(debtorsFollowUps).pick({
+  customerId: true,
+  type: true,
+  remarks: true,
+  followUpDateTime: true,
+  priority: true,
+  status: true,
+  nextFollowUpDate: true,
+}).extend({
+  customerId: z.string().min(1, "Customer ID is required"),
+  type: z.enum(["Meeting", "Call", "WhatsApp", "Email"], {
+    errorMap: () => ({ message: "Type must be Meeting, Call, WhatsApp, or Email" }),
+  }),
+  remarks: z.string().min(1, "Remarks are required"),
+  followUpDateTime: z.string().min(1, "Follow-up date and time are required"),
+  priority: z.enum(["High", "Medium", "Low"], {
+    errorMap: () => ({ message: "Priority must be High, Medium, or Low" }),
+  }),
+  status: z.enum(["Pending", "Completed", "Cancelled"]).default("Pending"),
+  nextFollowUpDate: z.string().optional(),
+});
+
+export type InsertDebtorsFollowUp = z.infer<typeof insertDebtorsFollowUpSchema>;
+export type DebtorsFollowUp = typeof debtorsFollowUps.$inferSelect;
