@@ -16,6 +16,8 @@ import MasterItems from "@/pages/master-items";
 import Invoices from "@/pages/invoices";
 import Receipts from "@/pages/receipts";
 import Debtors from "@/pages/debtors";
+import CreditManagement from "@/pages/credit-management";
+import Ledger from "@/pages/ledger";
 import CompanySettings from "@/pages/company-settings";
 import NotFound from "@/pages/not-found";
 import Roles from "@/pages/roles";
@@ -41,6 +43,8 @@ function Router() {
               <Route path="/invoices" component={Invoices} />
               <Route path="/receipts" component={Receipts} />
               <Route path="/debtors" component={Debtors} />
+              <Route path="/credit-management" component={CreditManagement} />
+              <Route path="/ledger" component={Ledger} />
               <Route path="/masters/customers" component={MasterCustomers} />
               <Route path="/masters/items" component={MasterItems} />
               <Route path="/company-settings" component={CompanySettings} />

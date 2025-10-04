@@ -19,6 +19,8 @@ import {
   FileCheck,
   LogOut,
   User,
+  Wallet,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -63,9 +65,26 @@ const navItems: NavItem[] = [
     icon: <CreditCard className="h-5 w-5" />,
   },
   {
-    name: "Debtors",
-    path: "/debtors",
-    icon: <UserX className="h-5 w-5" />,
+    name: "Payment Tracking",
+    path: "#",
+    icon: <Wallet className="h-5 w-5" />,
+    subItems: [
+      {
+        name: "Debtors",
+        path: "/debtors",
+        icon: <UserX className="h-4 w-4" />,
+      },
+      {
+        name: "Credit Management",
+        path: "/credit-management",
+        icon: <CreditCard className="h-4 w-4" />,
+      },
+      {
+        name: "Ledger",
+        path: "/ledger",
+        icon: <BookOpen className="h-4 w-4" />,
+      },
+    ],
   },
   {
     name: "Masters",
