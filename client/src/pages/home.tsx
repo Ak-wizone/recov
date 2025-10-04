@@ -352,9 +352,9 @@ export default function Home() {
                     data={moduleData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
+                    labelLine={true}
                     label={({ name, value }) => `${name}: ${value}`}
-                    outerRadius={80}
+                    outerRadius={70}
                     fill="#8884d8"
                     dataKey="value"
                   >
