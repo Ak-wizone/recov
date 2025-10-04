@@ -31,24 +31,24 @@ export function DashboardCards({ customers }: DashboardCardsProps) {
 
   const categoryColors = {
     Alpha: {
-      bg: "bg-pastel-blue",
-      icon: "bg-pastel-blue-icon",
-      text: "text-pastel-blue-icon",
+      bg: "bg-green-50 dark:bg-green-950",
+      icon: "bg-green-500",
+      text: "text-green-700 dark:text-green-400",
     },
     Beta: {
-      bg: "bg-pastel-green",
-      icon: "bg-pastel-green-icon",
-      text: "text-pastel-green-icon",
+      bg: "bg-blue-50 dark:bg-blue-950",
+      icon: "bg-blue-500",
+      text: "text-blue-700 dark:text-blue-400",
     },
     Gamma: {
-      bg: "bg-pastel-orange",
-      icon: "bg-pastel-orange-icon",
-      text: "text-pastel-orange-icon",
+      bg: "bg-yellow-50 dark:bg-yellow-950",
+      icon: "bg-yellow-500",
+      text: "text-yellow-700 dark:text-yellow-400",
     },
     Delta: {
-      bg: "bg-pastel-teal",
-      icon: "bg-pastel-teal-icon",
-      text: "text-pastel-teal-icon",
+      bg: "bg-red-50 dark:bg-red-950",
+      icon: "bg-red-500",
+      text: "text-red-700 dark:text-red-400",
     },
   };
 

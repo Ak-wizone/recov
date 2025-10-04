@@ -25,7 +25,7 @@ export default function Debtors() {
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
-  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("month");
+  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("allTime");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
