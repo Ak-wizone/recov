@@ -158,3 +158,27 @@ Preferred communication style: Simple, everyday language.
 - **Template Downloads**: Sample Excel templates for each module with example data and proper format
 - **Import Flow**: File → Parse → Validate → Edit Mode (if errors) → Convert to Excel → Import
 - **Implementation**: `client/src/lib/import-utils.ts` contains all validation and parsing functions
+
+### User Management & Role-Based Access Control (October 2025)
+- **Complete RBAC System**: Full user and role management with comprehensive permission control
+- **Database Tables**:
+  - `roles` table: id (UUID), name (unique), description, permissions (text array), createdAt
+  - `users` table: id (UUID), name, email (unique), mobile, roleId (FK), status (Active/Inactive), password (future auth), createdAt
+- **Roles Management Page** (`/settings/roles`):
+  - Dashboard cards: Total Roles, Total Permissions
+  - TanStack Table with columns: Role Name, Description, Permissions Count, Actions
+  - Form dialog with multi-select checkboxes for 11 permission modules
+  - Full CRUD: Create, Read, Update, Delete, Bulk Delete
+  - Excel import/export with template download
+  - Professional A4 PDF print format
+- **Users Management Page** (`/settings/users`):
+  - Dashboard cards: Total Users, Active Users, Inactive Users
+  - TanStack Table with columns: Name, Email, Mobile, Role, Status, Actions
+  - Form dialog with role dropdown (populated from roles API) and Active/Inactive switch
+  - Full CRUD: Create, Read, Update, Delete, Bulk Delete
+  - Excel import/export with template download
+  - Professional A4 PDF print format
+- **Permission Modules**: Dashboard, Leads, Quotations, Proforma Invoices, Invoices, Receipts, Debtors, Masters, Company Settings, User Management, Reports
+- **API Endpoints**: Complete REST API for both users and roles with validation, import, export, template download
+- **Navigation**: Added under Company Settings → User Management and Roles Management
+- **Data Integration**: Users can be assigned to customers (assignedUser field) for follow-ups and task assignment
