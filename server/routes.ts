@@ -836,6 +836,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
+      
+      // Check for duplicate customer name
+      const existingCustomers = await storage.getMasterCustomers();
+      const normalizedName = result.data.clientName.toLowerCase().trim();
+      const duplicate = existingCustomers.find(
+        c => c.clientName.toLowerCase().trim() === normalizedName
+      );
+      
+      if (duplicate) {
+        return res.status(400).json({ 
+          message: `Customer with name "${result.data.clientName}" already exists` 
+        });
+      }
+      
       const customer = await storage.createMasterCustomer(result.data);
       res.json(customer);
     } catch (error: any) {
@@ -850,6 +864,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
+      
+      // If updating clientName, check for duplicates
+      if (result.data.clientName) {
+        const existingCustomers = await storage.getMasterCustomers();
+        const normalizedName = result.data.clientName.toLowerCase().trim();
+        const duplicate = existingCustomers.find(
+          c => c.id !== req.params.id && c.clientName.toLowerCase().trim() === normalizedName
+        );
+        
+        if (duplicate) {
+          return res.status(400).json({ 
+            message: `Customer with name "${result.data.clientName}" already exists` 
+          });
+        }
+      }
+      
       const customer = await storage.updateMasterCustomer(req.params.id, result.data);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
