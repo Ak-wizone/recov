@@ -124,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
 
       // Calculate totals
-      const totalInvoiceAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.grandTotal), 0);
+      const totalInvoiceAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
       const totalReceiptAmount = receipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
       const totalDebtorAmount = customers.reduce((sum, cust) => sum + parseFloat(cust.amountOwed), 0);
       const totalQuotationAmount = quotations.reduce((sum, quot) => sum + parseFloat(quot.grandTotal), 0);
