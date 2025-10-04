@@ -39,6 +39,7 @@ interface ColumnVisibility {
   primaryEmail: boolean;
   paymentTerms: boolean;
   creditLimit: boolean;
+  openingBalance: boolean;
   salesPerson: boolean;
   status: boolean;
   actions: boolean;
@@ -60,6 +61,7 @@ export function MasterCustomersTable({
     primaryEmail: true,
     paymentTerms: true,
     creditLimit: true,
+    openingBalance: true,
     salesPerson: true,
     status: true,
     actions: true,
@@ -75,6 +77,7 @@ export function MasterCustomersTable({
     primaryEmail: "",
     paymentTerms: "",
     creditLimit: "",
+    openingBalance: "",
     salesPerson: "",
     status: "",
   });
@@ -94,6 +97,7 @@ export function MasterCustomersTable({
       primaryEmail: "",
       paymentTerms: "",
       creditLimit: "",
+      openingBalance: "",
       salesPerson: "",
       status: "",
     });
@@ -133,6 +137,9 @@ export function MasterCustomersTable({
     const matchesCreditLimit = (customer.creditLimit || "")
       .toString()
       .includes(searchValues.creditLimit);
+    const matchesOpeningBalance = (customer.openingBalance || "")
+      .toString()
+      .includes(searchValues.openingBalance);
     const matchesSalesPerson = (customer.salesPerson || "")
       .toLowerCase()
       .includes(searchValues.salesPerson.toLowerCase());
@@ -150,6 +157,7 @@ export function MasterCustomersTable({
       matchesPrimaryEmail &&
       matchesPaymentTerms &&
       matchesCreditLimit &&
+      matchesOpeningBalance &&
       matchesSalesPerson &&
       matchesStatus
     );
@@ -272,6 +280,13 @@ export function MasterCustomersTable({
                 Credit Limit
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
+                checked={columnVisibility.openingBalance}
+                onCheckedChange={() => toggleColumnVisibility("openingBalance")}
+                data-testid="checkbox-column-openingBalance"
+              >
+                Opening Balance
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
                 checked={columnVisibility.salesPerson}
                 onCheckedChange={() => toggleColumnVisibility("salesPerson")}
                 data-testid="checkbox-column-salesPerson"
@@ -361,6 +376,11 @@ export function MasterCustomersTable({
                 {columnVisibility.creditLimit && (
                   <TableHead className="py-4 font-semibold text-gray-900 min-w-[150px]">
                     Credit Limit (₹)
+                  </TableHead>
+                )}
+                {columnVisibility.openingBalance && (
+                  <TableHead className="py-4 font-semibold text-gray-900 min-w-[150px]">
+                    Opening Balance (₹)
                   </TableHead>
                 )}
                 {columnVisibility.salesPerson && (
@@ -488,6 +508,18 @@ export function MasterCustomersTable({
                     />
                   </TableHead>
                 )}
+                {columnVisibility.openingBalance && (
+                  <TableHead className="py-3">
+                    <Input
+                      type="text"
+                      placeholder="Search balance..."
+                      value={searchValues.openingBalance}
+                      onChange={(e) => updateSearch("openingBalance", e.target.value)}
+                      className="h-9"
+                      data-testid="input-search-openingBalance"
+                    />
+                  </TableHead>
+                )}
                 {columnVisibility.salesPerson && (
                   <TableHead className="py-3">
                     <Input
@@ -586,6 +618,11 @@ export function MasterCustomersTable({
                     {columnVisibility.creditLimit && (
                       <TableCell className="py-4 font-medium text-gray-900" data-testid={`text-creditLimit-${customer.id}`}>
                         {formatCurrency(customer.creditLimit)}
+                      </TableCell>
+                    )}
+                    {columnVisibility.openingBalance && (
+                      <TableCell className="py-4 font-medium text-gray-900" data-testid={`text-openingBalance-${customer.id}`}>
+                        {formatCurrency(customer.openingBalance)}
                       </TableCell>
                     )}
                     {columnVisibility.salesPerson && (

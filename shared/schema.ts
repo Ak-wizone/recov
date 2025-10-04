@@ -126,6 +126,7 @@ export const masterCustomers = pgTable("master_customers", {
   // Payment & Credit Terms
   paymentTermsDays: text("payment_terms_days").notNull(),
   creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }),
+  openingBalance: decimal("opening_balance", { precision: 15, scale: 2 }),
   // Interest Configuration
   interestApplicableFrom: text("interest_applicable_from"),
   interestRate: decimal("interest_rate", { precision: 5, scale: 2 }),
@@ -158,6 +159,7 @@ export const insertMasterCustomerSchema = createInsertSchema(masterCustomers).pi
   secondaryEmail: true,
   paymentTermsDays: true,
   creditLimit: true,
+  openingBalance: true,
   interestApplicableFrom: true,
   interestRate: true,
   salesPerson: true,
@@ -175,6 +177,7 @@ export const insertMasterCustomerSchema = createInsertSchema(masterCustomers).pi
   primaryEmail: z.string().min(1, "Primary email is required").email("Invalid primary email"),
   paymentTermsDays: z.string().min(1, "Payment terms are required"),
   creditLimit: z.string().min(1, "Credit limit is required"),
+  openingBalance: z.string().optional().or(z.literal("")),
   billingAddress: z.string().min(1, "Billing address is required"),
   pincode: z.string().min(1, "Pin code is required"),
   city: z.string().min(1, "City is required"),

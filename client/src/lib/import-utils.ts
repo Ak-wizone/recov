@@ -9,6 +9,7 @@ export interface ImportRow {
   primaryEmail?: string;
   paymentTermsDays?: string;
   creditLimit?: string;
+  openingBalance?: string;
   billingAddress?: string;
   pincode?: string;
   city?: string;
@@ -93,6 +94,7 @@ export async function parseImportFile(file: File): Promise<ImportRow[]> {
           primaryEmail: String(row["Primary Email"] || row.primaryEmail || row.PrimaryEmail || row["Email"] || "").trim(),
           paymentTermsDays: String(row["Payment Terms (Days)"] || row["Payment Terms"] || row.paymentTermsDays || row.PaymentTerms || "").trim(),
           creditLimit: String(row["Credit Limit"] || row.creditLimit || row.CreditLimit || "").trim(),
+          openingBalance: String(row["Opening Balance"] || row.openingBalance || row.OpeningBalance || "").trim(),
           billingAddress: String(row["Billing Address"] || row.billingAddress || row.BillingAddress || "").trim(),
           pincode: String(row["Pin Code"] || row["Pincode"] || row.pincode || row.PinCode || "").trim(),
           city: String(row["City"] || row.city || "").trim(),
@@ -635,6 +637,7 @@ export function generateSampleTemplate(): any[] {
       "Primary Email": "contact@abccorp.com",
       "Payment Terms (Days)": "30",
       "Credit Limit": "500000",
+      "Opening Balance": "50000",
       "Billing Address": "123 Business Park, MG Road",
       "Pin Code": "400001",
       "City": "Mumbai",
@@ -665,6 +668,7 @@ export function generateSampleTemplate(): any[] {
       "Primary Email": "info@xyzind.com",
       "Payment Terms (Days)": "45",
       "Credit Limit": "750000",
+      "Opening Balance": "100000",
       "Billing Address": "456 Industrial Estate, Sector 5",
       "Pin Code": "560001",
       "City": "Bangalore",
@@ -695,6 +699,7 @@ export function generateSampleTemplate(): any[] {
       "Primary Email": "sales@techsolutions.in",
       "Payment Terms (Days)": "60",
       "Credit Limit": "1000000",
+      "Opening Balance": "250000",
       "Billing Address": "789 IT Park, Phase 2",
       "Pin Code": "411001",
       "City": "Pune",

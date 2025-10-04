@@ -360,6 +360,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
             "Secondary Email": row.secondaryEmail || "",
             "Payment Terms (Days)": row.paymentTermsDays || "",
             "Credit Limit": row.creditLimit || "",
+            "Opening Balance": row.openingBalance || "",
             "Interest Applicable From": row.interestApplicableFrom || "",
             "Interest Rate (%)": row.interestRate || "",
             "Sales Person": row.salesPerson || "",

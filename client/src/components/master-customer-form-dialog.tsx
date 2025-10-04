@@ -84,6 +84,7 @@ export function MasterCustomerFormDialog({
       secondaryEmail: "",
       paymentTermsDays: "",
       creditLimit: "",
+      openingBalance: "",
       interestApplicableFrom: "",
       interestRate: "",
       salesPerson: "",
@@ -115,6 +116,7 @@ export function MasterCustomerFormDialog({
         secondaryEmail: customer.secondaryEmail || "",
         paymentTermsDays: customer.paymentTermsDays,
         creditLimit: customer.creditLimit || "",
+        openingBalance: customer.openingBalance || "",
         interestApplicableFrom: customer.interestApplicableFrom || "",
         interestRate: customer.interestRate || "",
         salesPerson: customer.salesPerson || "",
@@ -146,6 +148,7 @@ export function MasterCustomerFormDialog({
         secondaryEmail: "",
         paymentTermsDays: "",
         creditLimit: "",
+        openingBalance: "",
         interestApplicableFrom: "",
         interestRate: "",
         salesPerson: "",
@@ -676,6 +679,27 @@ export function MasterCustomerFormDialog({
                               {...field}
                               className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
                               data-testid="input-creditLimit"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="openingBalance"
+                      render={({ field, fieldState }) => (
+                        <FormItem>
+                          <FormLabel>Opening Balance</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="Enter opening balance"
+                              {...field}
+                              className={cn(fieldState.error && "border-red-500 focus-visible:ring-red-500")}
+                              data-testid="input-openingBalance"
                             />
                           </FormControl>
                           <FormMessage />
