@@ -311,6 +311,7 @@ export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 export type Invoice = typeof invoices.$inferSelect & {
   paymentStatus?: string;
   balanceAmount?: string;
+  totalInterest?: string;
 };
 
 // Receipts table

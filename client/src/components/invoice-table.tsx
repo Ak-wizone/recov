@@ -94,6 +94,20 @@ export function InvoiceTable({
         enableColumnFilter: true,
       },
       {
+        accessorKey: "totalInterest",
+        header: "Interest (₹)",
+        cell: ({ row }) => {
+          const interest = row.original.totalInterest ? parseFloat(row.original.totalInterest) : 0;
+          return (
+            <div className="text-lg font-semibold text-amber-600 dark:text-amber-400" data-testid={`text-interest-${row.original.id}`}>
+              ₹{interest.toFixed(2)}
+            </div>
+          );
+        },
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
         accessorKey: "paymentStatus",
         header: "Payment Status",
         cell: ({ row }) => {

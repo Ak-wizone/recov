@@ -1203,9 +1203,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all invoices
   app.get("/api/invoices", async (_req, res) => {
     try {
-      const [allInvoices, allReceipts] = await Promise.all([
+      const [allInvoices, allReceipts, allCustomers] = await Promise.all([
         storage.getInvoices(),
-        storage.getReceipts()
+        storage.getReceipts(),
+        storage.getMasterCustomers()
       ]);
 
       // Group receipts by customer name
@@ -1215,6 +1216,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerReceipts.push(receipt);
         receiptsByCustomer.set(receipt.customerName, customerReceipts);
       }
+
+      // Group receipts by invoice number for interest calculation
+      const receiptsByInvoice = new Map<string, Receipt[]>();
+      for (const receipt of allReceipts) {
+        const invoiceReceipts = receiptsByInvoice.get(receipt.invoiceNumber) || [];
+        invoiceReceipts.push(receipt);
+        receiptsByInvoice.set(receipt.invoiceNumber, invoiceReceipts);
+      }
+
+      // Create a map of customers by ID for quick lookup
+      const customersById = new Map(allCustomers.map(c => [c.id, c]));
 
       // Group invoices by customer name and sort by invoice number (ascending)
       const invoicesByCustomer = new Map<string, typeof allInvoices>();
@@ -1236,7 +1248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
-      // Calculate payment status and balance for each invoice
+      // Calculate payment status, balance, and interest for each invoice
       const enhancedInvoices = allInvoices.map(invoice => {
         const customerName = invoice.customerName;
         const customerReceipts = receiptsByCustomer.get(customerName) || [];
@@ -1285,10 +1297,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paymentStatus = "Partial";
         }
 
+        // Calculate interest
+        let totalInterest = 0;
+        
+        // Get customer details for interest calculation
+        const customer = invoice.customerId ? customersById.get(invoice.customerId) : null;
+        
+        if (customer && customer.interestRate && customer.interestApplicableFrom) {
+          const interestRate = parseFloat(customer.interestRate);
+          const interestApplicableFromDays = parseInt(customer.interestApplicableFrom);
+          const invoiceAmount = parseFloat(invoice.invoiceAmount);
+          const invoiceDate = new Date(invoice.invoiceDate);
+          
+          // Get receipts for this specific invoice
+          const invoiceReceipts = receiptsByInvoice.get(invoice.invoiceNumber) || [];
+          
+          // Calculate interest for each receipt
+          for (const receipt of invoiceReceipts) {
+            const receiptDate = new Date(receipt.date);
+            const daysDelayed = Math.floor((receiptDate.getTime() - invoiceDate.getTime()) / (1000 * 60 * 60 * 24));
+            
+            // Only calculate interest if payment is delayed beyond the applicable days
+            if (daysDelayed > interestApplicableFromDays) {
+              const interest = (invoiceAmount * interestRate * daysDelayed) / (365 * 100);
+              totalInterest += interest;
+            }
+          }
+        }
+
         return {
           ...invoice,
           paymentStatus,
-          balanceAmount: invoiceBalance.toFixed(2)
+          balanceAmount: invoiceBalance.toFixed(2),
+          totalInterest: totalInterest.toFixed(2)
         };
       });
 
