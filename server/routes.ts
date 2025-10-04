@@ -1037,12 +1037,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const results = [];
       const errors = [];
+      
+      // Get existing items to check for duplicates
+      const existingItems = await storage.getMasterItems();
+      const existingNames = new Set(
+        existingItems.map(item => item.name.toLowerCase().trim())
+      );
 
       for (let i = 0; i < items.length; i++) {
         const result = insertMasterItemSchema.safeParse(items[i]);
         if (result.success) {
-          const item = await storage.createMasterItem(result.data);
-          results.push(item);
+          // Check for duplicate name
+          const normalizedName = result.data.name.toLowerCase().trim();
+          if (existingNames.has(normalizedName)) {
+            errors.push({ 
+              row: i + 2, 
+              error: `Duplicate item name: "${result.data.name}" already exists in database`
+            });
+          } else {
+            const item = await storage.createMasterItem(result.data);
+            results.push(item);
+            // Add to existing names to prevent duplicates within the import batch
+            existingNames.add(normalizedName);
+          }
         } else {
           errors.push({ row: i + 2, error: fromZodError(result.error).message });
         }
@@ -1080,6 +1097,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
+      
+      // Check for duplicate item name
+      const existingItems = await storage.getMasterItems();
+      const normalizedName = result.data.name.toLowerCase().trim();
+      const duplicate = existingItems.find(
+        item => item.name.toLowerCase().trim() === normalizedName
+      );
+      
+      if (duplicate) {
+        return res.status(400).json({ 
+          message: `Item with name "${result.data.name}" already exists` 
+        });
+      }
+      
       const item = await storage.createMasterItem(result.data);
       res.json(item);
     } catch (error: any) {
@@ -1094,6 +1125,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
+      
+      // If updating name, check for duplicates
+      if (result.data.name) {
+        const existingItems = await storage.getMasterItems();
+        const normalizedName = result.data.name.toLowerCase().trim();
+        const duplicate = existingItems.find(
+          item => item.id !== req.params.id && item.name.toLowerCase().trim() === normalizedName
+        );
+        
+        if (duplicate) {
+          return res.status(400).json({ 
+            message: `Item with name "${result.data.name}" already exists` 
+          });
+        }
+      }
+      
       const item = await storage.updateMasterItem(req.params.id, result.data);
       if (!item) {
         return res.status(404).json({ message: "Item not found" });
