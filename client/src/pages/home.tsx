@@ -102,57 +102,65 @@ export default function Home() {
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Today's Activity</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-l-4 border-l-blue-500" data-testid="card-today-leads">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  New Leads
-                </CardTitle>
-                <UserPlus className="h-5 w-5 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.leads}</div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Added today</p>
-              </CardContent>
-            </Card>
+            <Link href="/leads">
+              <Card className="border-l-4 border-l-blue-500 cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-today-leads">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    New Leads
+                  </CardTitle>
+                  <UserPlus className="h-5 w-5 text-blue-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.leads}</div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Added today</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="border-l-4 border-l-green-500" data-testid="card-today-quotations">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  New Quotations
-                </CardTitle>
-                <FileText className="h-5 w-5 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.quotations}</div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Created today</p>
-              </CardContent>
-            </Card>
+            <Link href="/quotations">
+              <Card className="border-l-4 border-l-green-500 cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-today-quotations">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    New Quotations
+                  </CardTitle>
+                  <FileText className="h-5 w-5 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.quotations}</div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Created today</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="border-l-4 border-l-orange-500" data-testid="card-today-invoices">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  New Invoices
-                </CardTitle>
-                <Receipt className="h-5 w-5 text-orange-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.invoices}</div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Generated today</p>
-              </CardContent>
-            </Card>
+            <Link href="/invoices">
+              <Card className="border-l-4 border-l-orange-500 cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-today-invoices">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    New Invoices
+                  </CardTitle>
+                  <Receipt className="h-5 w-5 text-orange-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.invoices}</div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Generated today</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="border-l-4 border-l-purple-500" data-testid="card-today-receipts">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                  Receipts
-                </CardTitle>
-                <DollarSign className="h-5 w-5 text-purple-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.receipts}</div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Collected today</p>
-              </CardContent>
-            </Card>
+            <Link href="/receipts">
+              <Card className="border-l-4 border-l-purple-500 cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-today-receipts">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Receipts
+                  </CardTitle>
+                  <DollarSign className="h-5 w-5 text-purple-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.receipts}</div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Collected today</p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
 
@@ -160,55 +168,65 @@ export default function Home() {
         <div className="mb-8">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Financial Overview</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white" data-testid="card-total-invoices">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-blue-100">Total Invoices</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">₹{stats.amounts.totalInvoices.toFixed(2)}</div>
-                <p className="text-xs text-blue-100 mt-1">All time</p>
-              </CardContent>
-            </Card>
+            <Link href="/invoices">
+              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white cursor-pointer hover:shadow-xl transition-shadow" data-testid="card-total-invoices">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-blue-100">Total Invoices</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">₹{stats.amounts.totalInvoices.toFixed(2)}</div>
+                  <p className="text-xs text-blue-100 mt-1">All time</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white" data-testid="card-total-receipts">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-green-100">Total Receipts</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">₹{stats.amounts.totalReceipts.toFixed(2)}</div>
-                <p className="text-xs text-green-100 mt-1">All time</p>
-              </CardContent>
-            </Card>
+            <Link href="/receipts">
+              <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white cursor-pointer hover:shadow-xl transition-shadow" data-testid="card-total-receipts">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-green-100">Total Receipts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">₹{stats.amounts.totalReceipts.toFixed(2)}</div>
+                  <p className="text-xs text-green-100 mt-1">All time</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white" data-testid="card-outstanding">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-red-100">Outstanding</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">₹{stats.amounts.outstandingBalance.toFixed(2)}</div>
-                <p className="text-xs text-red-100 mt-1">To collect</p>
-              </CardContent>
-            </Card>
+            <Link href="/invoices">
+              <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white cursor-pointer hover:shadow-xl transition-shadow" data-testid="card-outstanding">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-red-100">Outstanding</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">₹{stats.amounts.outstandingBalance.toFixed(2)}</div>
+                  <p className="text-xs text-red-100 mt-1">To collect</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white" data-testid="card-total-debtors">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-purple-100">Debtors</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">₹{stats.amounts.totalDebtors.toFixed(2)}</div>
-                <p className="text-xs text-purple-100 mt-1">Outstanding debt</p>
-              </CardContent>
-            </Card>
+            <Link href="/debtors">
+              <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white cursor-pointer hover:shadow-xl transition-shadow" data-testid="card-total-debtors">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-100">Debtors</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">₹{stats.amounts.totalDebtors.toFixed(2)}</div>
+                  <p className="text-xs text-purple-100 mt-1">Outstanding debt</p>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white" data-testid="card-total-quotations">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-yellow-100">Quotations</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">₹{stats.amounts.totalQuotations.toFixed(2)}</div>
-                <p className="text-xs text-yellow-100 mt-1">Total quoted</p>
-              </CardContent>
-            </Card>
+            <Link href="/quotations">
+              <Card className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white cursor-pointer hover:shadow-xl transition-shadow" data-testid="card-total-quotations">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-yellow-100">Quotations</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">₹{stats.amounts.totalQuotations.toFixed(2)}</div>
+                  <p className="text-xs text-yellow-100 mt-1">Total quoted</p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
 
