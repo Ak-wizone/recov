@@ -39,6 +39,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
       apiRequest("POST", "/api/receipts", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
       toast({
         title: "Success",
         description: "Receipt created successfully",
@@ -60,6 +61,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
       apiRequest("PUT", `/api/receipts/${receipt?.id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
       toast({
         title: "Success",
         description: "Receipt updated successfully",

@@ -42,6 +42,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
       apiRequest("POST", "/api/invoices", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
       toast({
         title: "Success",
         description: "Invoice created successfully",
@@ -63,6 +64,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
       apiRequest("PUT", `/api/invoices/${invoice?.id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
       toast({
         title: "Success",
         description: "Invoice updated successfully",

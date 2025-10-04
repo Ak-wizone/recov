@@ -122,6 +122,7 @@ export default function Invoices() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
       toast({
         title: "Success",
         description: "Invoice deleted successfully",
@@ -152,6 +153,7 @@ export default function Invoices() {
     },
     onSuccess: (data: { deleted: number }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
       toast({
         title: "Success",
         description: `${data.deleted} invoice(s) deleted successfully`,

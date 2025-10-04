@@ -125,6 +125,7 @@ export default function Receipts() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
       toast({
         title: "Success",
         description: "Receipt deleted successfully",
@@ -155,6 +156,7 @@ export default function Receipts() {
     },
     onSuccess: (data: { deleted: number }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/receipts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
       toast({
         title: "Success",
         description: `${data.deleted} receipt(s) deleted successfully`,
