@@ -29,6 +29,7 @@ interface DashboardStats {
     items: number;
     users: number;
     roles: number;
+    debtors: number;
   };
   amounts: {
     totalInvoices: number;
@@ -325,7 +326,7 @@ export default function Home() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.customers}</div>
+                  <div className="text-2xl font-bold">{stats.totals.debtors}</div>
                 </CardContent>
               </Card>
             </Link>

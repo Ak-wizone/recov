@@ -171,6 +171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           items: masterItems.length,
           users: users.length,
           roles: roles.length,
+          debtors: customers.length,
         },
         amounts: {
           totalInvoices: totalInvoiceAmount,
