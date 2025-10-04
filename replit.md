@@ -124,6 +124,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Analytics Dashboard (October 2025)
+- **Home Page Redesign**: Replaced debtors management on home page with comprehensive analytics dashboard
+- **Dashboard Statistics API** (`GET /api/dashboard/stats`): Single endpoint aggregates data from all modules
+  - Totals: Counts for leads, quotations, proforma invoices, invoices, receipts, customers, items, users, roles
+  - Amounts: Total invoices, receipts, debtors, quotations, and outstanding balance calculation
+  - Today's Activity: New leads, quotations, invoices, receipts added today
+  - Recent Activity: Last 5 items from leads, quotations, and invoices
+- **Dashboard UI Components**:
+  - **Today's Activity Cards**: Real-time counts for today's new leads, quotations, invoices, receipts
+  - **Financial Overview**: Gradient cards showing total amounts with color coding (invoices, receipts, outstanding, debtors, quotations)
+  - **Module Statistics**: Clickable cards linking to each module (10 modules total)
+  - **Charts & Visualizations**: 
+    - Pie chart for module distribution using Recharts
+    - Bar chart for financial overview comparing amounts
+  - **Recent Activity Feed**: Last 5 items from leads, quotations, and invoices with quick links
+- **Navigation**: Home route (/) now shows dashboard instead of debtors page
+- **Technology**: Recharts library for data visualization (pie and bar charts)
+
 ### Proforma Invoice Module (October 2025)
 - **Complete PI Management System**: Added dedicated proforma invoice module with full CRUD operations
 - **Grid Features**: TanStack Table with pagination, column chooser, filters, sorting, and row selection
