@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -2130,6 +2130,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Disposition', 'attachment; filename=proforma_invoices.xlsx');
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get debtors list with category-wise breakdown
+  app.get("/api/debtors", async (_req, res) => {
+    try {
+      const data = await storage.getDebtorsList();
+      res.json(data);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get debtors follow-ups by customer
+  app.get("/api/debtors/followups/:customerId", async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const followUps = await storage.getDebtorsFollowUpsByCustomer(customerId);
+      res.json(followUps);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create debtors follow-up
+  app.post("/api/debtors/followup", async (req, res) => {
+    try {
+      const validation = insertDebtorsFollowUpSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: validation.error.errors 
+        });
+      }
+      const followUp = await storage.createDebtorsFollowUp(validation.data);
+      res.status(201).json(followUp);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get debtors follow-ups by category
+  app.get("/api/debtors/followups/category/:category", async (req, res) => {
+    try {
+      const { category } = req.params;
+      const followUps = await storage.getDebtorsFollowUpsByCategory(category);
+      res.json(followUps);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
