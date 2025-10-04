@@ -304,14 +304,19 @@ export function DebtorsFollowUpDialog({
                       name="followUpDateTime"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Follow-up Date & Time</FormLabel>
+                          <FormLabel>Follow-up Date & Time (Auto-recorded)</FormLabel>
                           <FormControl>
                             <Input
                               type="datetime-local"
                               {...field}
+                              disabled
+                              className="bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                               data-testid="input-followup-datetime"
                             />
                           </FormControl>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Current timestamp is automatically recorded
+                          </p>
                           <FormMessage />
                         </FormItem>
                       )}
