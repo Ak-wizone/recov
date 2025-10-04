@@ -7,6 +7,12 @@ import {
   Calendar,
   CalendarRange,
   CalendarDays,
+  AlertCircle,
+  Clock,
+  CalendarClock,
+  CalendarCheck,
+  CalendarX2,
+  UserX,
 } from "lucide-react";
 import {
   Select,
@@ -34,6 +40,10 @@ export default function Debtors() {
 
   const { data: debtorsData, isLoading } = useQuery<any>({
     queryKey: ["/api/debtors"],
+  });
+
+  const { data: followUpStats } = useQuery<any>({
+    queryKey: ["/api/debtors/followup-stats"],
   });
 
   const categoryWise = debtorsData?.categoryWise || {
@@ -278,6 +288,102 @@ export default function Debtors() {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Follow-up Status Cards */}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Follow-up Status</h2>
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
+            {/* Overdue Card */}
+            <Card className="bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800" data-testid="card-followup-overdue">
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className="p-3 bg-red-500 rounded-full">
+                    <AlertCircle className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+                    {followUpStats?.overdue || 0}
+                  </div>
+                  <p className="text-xs font-medium text-red-600 dark:text-red-400">Overdue</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Due Today Card */}
+            <Card className="bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800" data-testid="card-followup-today">
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className="p-3 bg-orange-500 rounded-full">
+                    <Clock className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                    {followUpStats?.dueToday || 0}
+                  </div>
+                  <p className="text-xs font-medium text-orange-600 dark:text-orange-400">Due Today</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tomorrow Card */}
+            <Card className="bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800" data-testid="card-followup-tomorrow">
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className="p-3 bg-yellow-500 rounded-full">
+                    <CalendarClock className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+                    {followUpStats?.dueTomorrow || 0}
+                  </div>
+                  <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400">Tomorrow</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* This Week Card */}
+            <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800" data-testid="card-followup-week">
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className="p-3 bg-blue-500 rounded-full">
+                    <CalendarCheck className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {followUpStats?.dueThisWeek || 0}
+                  </div>
+                  <p className="text-xs font-medium text-blue-600 dark:text-blue-400">This Week</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* This Month Card */}
+            <Card className="bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800" data-testid="card-followup-month">
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className="p-3 bg-purple-500 rounded-full">
+                    <CalendarX2 className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                    {followUpStats?.dueThisMonth || 0}
+                  </div>
+                  <p className="text-xs font-medium text-purple-600 dark:text-purple-400">This Month</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* No Follow-Up Card */}
+            <Card className="bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800" data-testid="card-followup-none">
+              <CardContent className="pt-6">
+                <div className="flex flex-col items-center text-center space-y-2">
+                  <div className="p-3 bg-gray-500 rounded-full">
+                    <UserX className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="text-3xl font-bold text-gray-600 dark:text-gray-400">
+                    {followUpStats?.noFollowUp || 0}
+                  </div>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400">No Follow-Up</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Debtors Grid */}
