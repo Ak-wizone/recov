@@ -16,11 +16,13 @@ import {
   validateItemRow,
   validateInvoiceRow,
   validateReceiptRow,
+  detectDuplicatesInBatch,
   type ImportRow,
   type ImportItemRow,
   type ImportInvoiceRow,
   type ImportReceiptRow,
-  type ValidationError
+  type ValidationError,
+  type DuplicateInfo
 } from "@/lib/import-utils";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -39,6 +41,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [cellErrors, setCellErrors] = useState<Map<string, string>>(new Map());
+  const [duplicates, setDuplicates] = useState<Map<number, DuplicateInfo>>(new Map());
   const [isProcessing, setIsProcessing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importResults, setImportResults] = useState<any>(null);
@@ -147,6 +150,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     setPreviewData([]);
     setValidationErrors([]);
     setCellErrors(new Map());
+    setDuplicates(new Map());
     setIsProcessing(false);
     setUploadProgress(0);
     setImportResults(null);
@@ -248,14 +252,23 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
         });
       }
 
+      // Detect duplicates for customers
+      let duplicateMap = new Map<number, DuplicateInfo>();
+      if (module === 'customers') {
+        duplicateMap = detectDuplicatesInBatch(rows as ImportRow[]);
+      }
+
       setPreviewData(rows);
       setValidationErrors(errors);
+      setDuplicates(duplicateMap);
       setUploadProgress(100);
 
+      const duplicateCount = duplicateMap.size;
+      
       toast({
         title: "File Processed",
-        description: errors.length > 0 
-          ? `Found ${rows.length} rows. ${errors.length} validation errors detected.`
+        description: errors.length > 0 || duplicateCount > 0
+          ? `Found ${rows.length} rows. ${errors.length} validation errors, ${duplicateCount} potential duplicates detected.`
           : `Found ${rows.length} rows. All rows are valid.`,
       });
     } catch (error: any) {
@@ -597,15 +610,24 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                         {previewData.slice(0, 20).map((row: ImportRow, index: number) => {
                           const rowNumber = index + 2;
                           const hasError = validationErrors.some(err => err.row === rowNumber);
+                          const isDuplicate = duplicates.has(index);
+                          const duplicateInfo = duplicates.get(index);
+                          
                           return (
                             <TableRow
                               key={index}
-                              className={hasError ? "bg-red-50" : ""}
+                              className={cn(
+                                hasError && "bg-red-50",
+                                !hasError && isDuplicate && "bg-amber-50"
+                              )}
                               data-testid={`preview-row-${index}`}
                             >
                               <TableCell className="font-medium" data-testid={`cell-row-${index}`}>
                                 {rowNumber}
                                 {hasError && <AlertCircle className="h-3 w-3 text-red-600 inline ml-1" />}
+                                {!hasError && isDuplicate && (
+                                  <AlertCircle className="h-3 w-3 text-amber-600 inline ml-1" />
+                                )}
                               </TableCell>
                               <TableCell data-testid={`cell-clientname-${index}`}>{row.clientName || "-"}</TableCell>
                               <TableCell data-testid={`cell-category-${index}`}>{row.category || "-"}</TableCell>
@@ -661,16 +683,23 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                         {previewData.map((row: ImportRow, index: number) => {
                           const rowNumber = index + 2;
                           const hasError = validationErrors.some(err => err.row === rowNumber);
+                          const isDuplicate = duplicates.has(index);
                           
                           return (
                             <TableRow
                               key={index}
-                              className={hasError ? "bg-red-50" : ""}
+                              className={cn(
+                                hasError && "bg-red-50",
+                                !hasError && isDuplicate && "bg-amber-50"
+                              )}
                               data-testid={`edit-row-${index}`}
                             >
                               <TableCell className="font-medium">
                                 {rowNumber}
                                 {hasError && <AlertCircle className="h-3 w-3 text-red-600 inline ml-1" />}
+                                {!hasError && isDuplicate && (
+                                  <AlertCircle className="h-3 w-3 text-amber-600 inline ml-1" />
+                                )}
                               </TableCell>
                               <TableCell>
                                 <Input

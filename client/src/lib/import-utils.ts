@@ -73,6 +73,59 @@ export interface ValidationError {
   field?: string;
 }
 
+export interface DuplicateInfo {
+  row: number;
+  isDuplicate: boolean;
+  duplicateKey?: string;
+  duplicateRows?: number[];
+}
+
+// Normalize text for deduplication (lowercase, trim, remove extra spaces)
+function normalizeText(text?: string): string {
+  if (!text) return "";
+  return text.toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+// Generate a unique key for deduplication
+export function generateCustomerDuplicateKey(row: ImportRow): string {
+  const name = normalizeText(row.clientName);
+  const email = normalizeText(row.primaryEmail);
+  const mobile = normalizeText(row.primaryMobile);
+  return `${name}|${email}|${mobile}`;
+}
+
+// Detect duplicates within the import batch
+export function detectDuplicatesInBatch(rows: ImportRow[]): Map<number, DuplicateInfo> {
+  const duplicateMap = new Map<number, DuplicateInfo>();
+  const keyToRows = new Map<string, number[]>();
+  
+  // Build map of keys to row numbers
+  rows.forEach((row, index) => {
+    const key = generateCustomerDuplicateKey(row);
+    if (!keyToRows.has(key)) {
+      keyToRows.set(key, []);
+    }
+    keyToRows.get(key)!.push(index);
+  });
+  
+  // Mark duplicates
+  keyToRows.forEach((rowNumbers, key) => {
+    if (rowNumbers.length > 1) {
+      // All rows with this key are duplicates
+      rowNumbers.forEach(rowNum => {
+        duplicateMap.set(rowNum, {
+          row: rowNum,
+          isDuplicate: true,
+          duplicateKey: key,
+          duplicateRows: rowNumbers.filter(r => r !== rowNum),
+        });
+      });
+    }
+  });
+  
+  return duplicateMap;
+}
+
 export async function parseImportFile(file: File): Promise<ImportRow[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
