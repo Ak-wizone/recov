@@ -48,7 +48,7 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
       description: item?.description || "",
       unit: item?.unit || "",
       tax: item?.tax || "",
-      sku: item?.sku || "",
+      sku: "",
       saleUnitPrice: item?.saleUnitPrice || "",
       buyUnitPrice: item?.buyUnitPrice || "",
       openingQuantity: item?.openingQuantity || "",
@@ -108,7 +108,7 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
         description: item.description || "",
         unit: item.unit,
         tax: item.tax,
-        sku: item.sku,
+        sku: "",
         saleUnitPrice: item.saleUnitPrice || "",
         buyUnitPrice: item.buyUnitPrice || "",
         openingQuantity: item.openingQuantity || "",
@@ -135,6 +135,28 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
     }
   }, [open, item, form]);
 
+  const handleAddCustomUnit = () => {
+    if (newUnit.trim() && !allUnits.includes(newUnit.trim().toUpperCase())) {
+      const unitToAdd = newUnit.trim().toUpperCase();
+      const updatedCustomUnits = [...customUnits, unitToAdd];
+      setCustomUnits(updatedCustomUnits);
+      localStorage.setItem('customUnits', JSON.stringify(updatedCustomUnits));
+      form.setValue('unit', unitToAdd);
+      setNewUnit("");
+      setIsAddUnitOpen(false);
+      toast({
+        title: "Success",
+        description: `Custom UOM "${unitToAdd}" added successfully`,
+      });
+    } else if (allUnits.includes(newUnit.trim().toUpperCase())) {
+      toast({
+        title: "Error",
+        description: "This UOM already exists",
+        variant: "destructive",
+      });
+    }
+  };
+
   const onSubmit = (data: InsertMasterItem) => {
     if (item) {
       updateMutation.mutate(data);
@@ -146,6 +168,7 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -192,35 +215,19 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
             <div className="p-4 bg-mint-50 dark:bg-mint-950/20 rounded-lg border border-mint-200 dark:border-mint-800 space-y-4">
               <h3 className="text-base font-semibold text-mint-900 dark:text-mint-100">Basic Information</h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Item Name *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter item name" data-testid="input-name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="sku"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>SKU *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Stock Keeping Unit" data-testid="input-sku" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Item Name *</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Enter item name" data-testid="input-name" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -434,5 +441,55 @@ export default function MasterItemFormDialog({ open, onOpenChange, item }: Maste
         </Form>
       </DialogContent>
     </Dialog>
+
+    {/* Custom UOM Dialog */}
+    <Dialog open={isAddUnitOpen} onOpenChange={setIsAddUnitOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Custom UOM</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label htmlFor="custom-unit">Unit of Measurement</Label>
+            <Input
+              id="custom-unit"
+              placeholder="Enter custom UOM (e.g., PKT, GMS)"
+              value={newUnit}
+              onChange={(e) => setNewUnit(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddCustomUnit();
+                }
+              }}
+              data-testid="input-custom-unit"
+            />
+            <p className="text-sm text-gray-500">
+              Custom UOM will be saved and available for future use
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsAddUnitOpen(false);
+              setNewUnit("");
+            }}
+            data-testid="button-cancel-unit"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddCustomUnit}
+            disabled={!newUnit.trim()}
+            data-testid="button-add-unit"
+          >
+            Add UOM
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
