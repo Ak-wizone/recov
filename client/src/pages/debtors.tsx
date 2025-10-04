@@ -1,0 +1,325 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Users,
+  TrendingUp,
+  Calendar,
+  CalendarRange,
+  CalendarDays,
+} from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { DebtorsTable } from "@/components/debtors-table";
+import { DebtorsFollowUpDialog } from "@/components/debtors-followup-dialog";
+import { isToday, isThisWeek, isThisMonth, isWithinInterval, parseISO } from "date-fns";
+
+export default function Debtors() {
+  const currentDate = new Date();
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
+  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("month");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+  const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
+
+  const { data: debtorsData, isLoading } = useQuery<any>({
+    queryKey: ["/api/debtors"],
+  });
+
+  const categoryWise = debtorsData?.categoryWise || {
+    Alpha: { count: 0, totalBalance: 0, debtors: [] },
+    Beta: { count: 0, totalBalance: 0, debtors: [] },
+    Gamma: { count: 0, totalBalance: 0, debtors: [] },
+    Delta: { count: 0, totalBalance: 0, debtors: [] },
+  };
+
+  const allDebtors = debtorsData?.allDebtors || [];
+
+  // Apply category filter
+  const filteredDebtors = categoryFilter
+    ? allDebtors.filter((d: any) => d.category === categoryFilter)
+    : allDebtors;
+
+  const handleOpenFollowUp = (debtor: any) => {
+    setSelectedCustomer(debtor);
+    setIsFollowUpDialogOpen(true);
+  };
+
+  const formatCurrency = (amount: number) => {
+    return `₹${amount.toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+
+  const years = Array.from({ length: 10 }, (_, i) => currentDate.getFullYear() - i);
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+              Debtors Management
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Track and manage customer outstanding balances
+            </p>
+          </div>
+        </div>
+
+        {/* Date Filter */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={dateFilterMode === "month" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDateFilterMode("month")}
+                  data-testid="button-filter-month"
+                >
+                  <CalendarDays className="h-4 w-4 mr-2" />
+                  Month/Year
+                </Button>
+                <Button
+                  variant={dateFilterMode === "allTime" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDateFilterMode("allTime")}
+                  data-testid="button-filter-all-time"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  All Time
+                </Button>
+                <Button
+                  variant={dateFilterMode === "dateRange" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDateFilterMode("dateRange")}
+                  data-testid="button-filter-date-range"
+                >
+                  <CalendarRange className="h-4 w-4 mr-2" />
+                  Date Range
+                </Button>
+              </div>
+
+              {dateFilterMode === "month" && (
+                <>
+                  <Select
+                    value={selectedMonth.toString()}
+                    onValueChange={(value) => setSelectedMonth(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-40" data-testid="select-month">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {months.map((month, index) => (
+                        <SelectItem key={index} value={index.toString()}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={selectedYear.toString()}
+                    onValueChange={(value) => setSelectedYear(parseInt(value))}
+                  >
+                    <SelectTrigger className="w-32" data-testid="select-year">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+
+              {dateFilterMode === "dateRange" && (
+                <>
+                  <Input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    placeholder="From Date"
+                    className="w-40"
+                    data-testid="input-from-date"
+                  />
+                  <Input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    placeholder="To Date"
+                    className="w-40"
+                    data-testid="input-to-date"
+                  />
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Category Cards */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Alpha Card */}
+          <Card
+            className={`cursor-pointer transition-all hover:shadow-lg ${
+              categoryFilter === "Alpha" ? "ring-2 ring-red-500" : ""
+            }`}
+            onClick={() => setCategoryFilter(categoryFilter === "Alpha" ? null : "Alpha")}
+            data-testid="card-category-alpha"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-t-lg">
+              <CardTitle className="text-sm font-medium">ALPHA</CardTitle>
+              <Users className="h-4 w-4" />
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold" data-testid="text-alpha-count">
+                {categoryWise.Alpha.count} Debtors
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Outstanding
+              </p>
+              <div className="text-xl font-semibold text-red-600 dark:text-red-400 mt-2" data-testid="text-alpha-balance">
+                {formatCurrency(categoryWise.Alpha.totalBalance)}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Beta Card */}
+          <Card
+            className={`cursor-pointer transition-all hover:shadow-lg ${
+              categoryFilter === "Beta" ? "ring-2 ring-blue-500" : ""
+            }`}
+            onClick={() => setCategoryFilter(categoryFilter === "Beta" ? null : "Beta")}
+            data-testid="card-category-beta"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-t-lg">
+              <CardTitle className="text-sm font-medium">BETA</CardTitle>
+              <Users className="h-4 w-4" />
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold" data-testid="text-beta-count">
+                {categoryWise.Beta.count} Debtors
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Outstanding
+              </p>
+              <div className="text-xl font-semibold text-blue-600 dark:text-blue-400 mt-2" data-testid="text-beta-balance">
+                {formatCurrency(categoryWise.Beta.totalBalance)}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Gamma Card */}
+          <Card
+            className={`cursor-pointer transition-all hover:shadow-lg ${
+              categoryFilter === "Gamma" ? "ring-2 ring-green-500" : ""
+            }`}
+            onClick={() => setCategoryFilter(categoryFilter === "Gamma" ? null : "Gamma")}
+            data-testid="card-category-gamma"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-t-lg">
+              <CardTitle className="text-sm font-medium">GAMMA</CardTitle>
+              <Users className="h-4 w-4" />
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold" data-testid="text-gamma-count">
+                {categoryWise.Gamma.count} Debtors
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Outstanding
+              </p>
+              <div className="text-xl font-semibold text-green-600 dark:text-green-400 mt-2" data-testid="text-gamma-balance">
+                {formatCurrency(categoryWise.Gamma.totalBalance)}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Delta Card */}
+          <Card
+            className={`cursor-pointer transition-all hover:shadow-lg ${
+              categoryFilter === "Delta" ? "ring-2 ring-yellow-500" : ""
+            }`}
+            onClick={() => setCategoryFilter(categoryFilter === "Delta" ? null : "Delta")}
+            data-testid="card-category-delta"
+          >
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-t-lg">
+              <CardTitle className="text-sm font-medium">DELTA</CardTitle>
+              <Users className="h-4 w-4" />
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="text-2xl font-bold" data-testid="text-delta-count">
+                {categoryWise.Delta.count} Debtors
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Outstanding
+              </p>
+              <div className="text-xl font-semibold text-yellow-600 dark:text-yellow-400 mt-2" data-testid="text-delta-balance">
+                {formatCurrency(categoryWise.Delta.totalBalance)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Debtors Grid */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl">
+                {categoryFilter ? `${categoryFilter} Debtors` : "All Debtors"}
+              </CardTitle>
+              {categoryFilter && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCategoryFilter(null)}
+                  data-testid="button-clear-filter"
+                >
+                  Clear Filter
+                </Button>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Loading debtors...</p>
+              </div>
+            ) : (
+              <DebtorsTable
+                data={filteredDebtors}
+                onOpenFollowUp={handleOpenFollowUp}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Follow-up Dialog */}
+        <DebtorsFollowUpDialog
+          open={isFollowUpDialogOpen}
+          onOpenChange={setIsFollowUpDialogOpen}
+          customer={selectedCustomer}
+        />
+      </div>
+    </div>
+  );
+}
