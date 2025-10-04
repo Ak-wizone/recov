@@ -5,10 +5,97 @@ import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insert
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication endpoints
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const loginSchema = z.object({
+        email: z.string().email("Invalid email address"),
+        password: z.string().min(1, "Password is required"),
+      });
+
+      const result = loginSchema.safeParse(req.body);
+      if (!result.success) {
+        const error = fromZodError(result.error);
+        return res.status(400).json({ message: error.message });
+      }
+
+      const { email, password } = result.data;
+      const user = await storage.getUserByEmail(email);
+
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      if (user.status !== "Active") {
+        return res.status(401).json({ message: "Your account is inactive. Please contact administrator." });
+      }
+
+      if (!user.password) {
+        return res.status(401).json({ message: "Password not set for this account" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Store user in session
+      (req.session as any).user = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        roleId: user.roleId,
+        roleName: user.roleName,
+      };
+
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Could not log out" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Fetch fresh user data
+      const user = await storage.getUser(sessionUser.id);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      if (user.status !== "Active") {
+        return res.status(401).json({ message: "Account is inactive" });
+      }
+
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get all customers
   app.get("/api/customers", async (_req, res) => {
     try {
