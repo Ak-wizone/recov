@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertInvoiceSchema, type InsertInvoice, type Invoice } from "@shared/schema";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,20 +23,15 @@ interface InvoiceFormDialogProps {
 export default function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDialogProps) {
   const { toast } = useToast();
 
-  const { data: customerList, isLoading: isLoadingCustomers } = useQuery<Array<{ id: string; clientName: string }>>({
-    queryKey: ["/api/masters/customers/list"],
-    enabled: open,
-  });
-
   const form = useForm<InsertInvoice>({
     resolver: zodResolver(insertInvoiceSchema),
     defaultValues: {
       invoiceNumber: invoice?.invoiceNumber || "",
-      customerId: invoice?.customerId || "",
       customerName: invoice?.customerName || "",
       invoiceDate: invoice?.invoiceDate ? format(new Date(invoice.invoiceDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       invoiceAmount: invoice?.invoiceAmount || "",
       netProfit: invoice?.netProfit || "",
+      status: (invoice?.status as "Paid" | "Unpaid" | "Partial") || "Unpaid",
       assignedUser: invoice?.assignedUser as "Manpreet Bedi" | "Bilal Ahamad" | "Anjali Dhiman" | "Princi Soni" | undefined,
       remarks: invoice?.remarks || "",
     },
@@ -89,22 +84,22 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
     if (open && invoice) {
       form.reset({
         invoiceNumber: invoice.invoiceNumber,
-        customerId: invoice.customerId || "",
         customerName: invoice.customerName,
         invoiceDate: format(new Date(invoice.invoiceDate), "yyyy-MM-dd"),
         invoiceAmount: invoice.invoiceAmount || "",
         netProfit: invoice.netProfit || "",
+        status: invoice.status as "Paid" | "Unpaid" | "Partial",
         assignedUser: invoice.assignedUser as "Manpreet Bedi" | "Bilal Ahamad" | "Anjali Dhiman" | "Princi Soni" | undefined,
         remarks: invoice.remarks || "",
       });
     } else if (open && !invoice) {
       form.reset({
         invoiceNumber: "",
-        customerId: "",
         customerName: "",
         invoiceDate: format(new Date(), "yyyy-MM-dd"),
         invoiceAmount: "",
         netProfit: "",
+        status: "Unpaid",
         assignedUser: undefined,
         remarks: "",
       });
@@ -151,34 +146,13 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
 
                 <FormField
                   control={form.control}
-                  name="customerId"
+                  name="customerName"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Customer Name *</FormLabel>
-                      <Select 
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          const selectedCustomer = customerList?.find(c => c.id === value);
-                          if (selectedCustomer) {
-                            form.setValue("customerName", selectedCustomer.clientName);
-                          }
-                        }} 
-                        value={field.value}
-                        disabled={isLoadingCustomers}
-                      >
-                        <FormControl>
-                          <SelectTrigger data-testid="select-customer-name">
-                            <SelectValue placeholder={isLoadingCustomers ? "Loading customers..." : "Select customer"} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {customerList?.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id} data-testid={`option-customer-${customer.id}`}>
-                              {customer.clientName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Input {...field} placeholder="Enter customer name" data-testid="input-customer-name" />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -195,6 +169,29 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
                       <FormControl>
                         <Input type="date" {...field} data-testid="input-invoice-date" />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-status">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Unpaid" data-testid="option-unpaid">Unpaid</SelectItem>
+                          <SelectItem value="Partial" data-testid="option-partial">Partial</SelectItem>
+                          <SelectItem value="Paid" data-testid="option-paid">Paid</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -232,7 +229,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
                   name="netProfit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Net Profit (₹)</FormLabel>
+                      <FormLabel>Net Profit (₹) *</FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
@@ -258,11 +255,11 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
                 name="assignedUser"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Assigned Sales Person</FormLabel>
+                    <FormLabel>Assigned User</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-assigned-user">
-                          <SelectValue placeholder="Select assigned sales person" />
+                          <SelectValue placeholder="Select assigned user" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

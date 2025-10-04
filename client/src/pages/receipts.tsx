@@ -49,7 +49,7 @@ export default function Receipts() {
   const [activeFilter, setActiveFilter] = useState<CardFilter>(null);
   
   // Date filter mode state
-  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("allTime");
+  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("month");
   const [dateRangeFrom, setDateRangeFrom] = useState("");
   const [dateRangeTo, setDateRangeTo] = useState("");
 

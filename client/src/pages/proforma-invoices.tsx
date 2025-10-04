@@ -47,7 +47,7 @@ export default function ProformaInvoices() {
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
   const [activeCardFilter, setActiveCardFilter] = useState<string | null>(null);
-  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("allTime");
+  const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("month");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
 

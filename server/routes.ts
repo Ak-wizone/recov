@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, type Receipt } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -558,20 +558,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get simple list of master customers for dropdown (MUST BE BEFORE /:id)
-  app.get("/api/masters/customers/list", async (_req, res) => {
-    try {
-      const customers = await storage.getMasterCustomers();
-      const customerList = customers.map(c => ({
-        id: c.id,
-        clientName: c.clientName
-      }));
-      res.json(customerList);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
   // Download sample import template for master customers (MUST BE BEFORE /:id)
   app.get("/api/masters/customers/template", async (_req, res) => {
     try {
@@ -827,24 +813,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bulk update interest rate for all customers
   app.post("/api/masters/customers/bulk-update-interest", async (req, res) => {
     try {
-      const { interestRate, interestApplicableFrom } = req.body;
+      const { interestRate } = req.body;
       if (interestRate === undefined || interestRate === null) {
         return res.status(400).json({ message: "Interest rate is required" });
       }
       const customers = await storage.getMasterCustomers();
-      const updateData: any = { interestRate: interestRate.toString() };
-      if (interestApplicableFrom !== undefined && interestApplicableFrom !== null && interestApplicableFrom !== "") {
-        updateData.interestApplicableFrom = interestApplicableFrom.toString();
-      }
       const updates = await Promise.all(
         customers.map(customer => 
-          storage.updateMasterCustomer(customer.id, updateData)
+          storage.updateMasterCustomer(customer.id, { interestRate: interestRate.toString() })
         )
       );
-      const message = interestApplicableFrom 
-        ? "Interest rate and interest applicable from updated for all customers"
-        : "Interest rate updated for all customers";
-      res.json({ updated: updates.length, message });
+      res.json({ updated: updates.length, message: "Interest rate updated for all customers" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -1203,137 +1182,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all invoices
   app.get("/api/invoices", async (_req, res) => {
     try {
-      const [allInvoices, allReceipts, allCustomers] = await Promise.all([
-        storage.getInvoices(),
-        storage.getReceipts(),
-        storage.getMasterCustomers()
-      ]);
-
-      // Group receipts by customer name
-      const receiptsByCustomer = new Map<string, Receipt[]>();
-      for (const receipt of allReceipts) {
-        const customerReceipts = receiptsByCustomer.get(receipt.customerName) || [];
-        customerReceipts.push(receipt);
-        receiptsByCustomer.set(receipt.customerName, customerReceipts);
-      }
-
-      // Group receipts by invoice number for interest calculation
-      const receiptsByInvoice = new Map<string, Receipt[]>();
-      for (const receipt of allReceipts) {
-        const invoiceReceipts = receiptsByInvoice.get(receipt.invoiceNumber) || [];
-        invoiceReceipts.push(receipt);
-        receiptsByInvoice.set(receipt.invoiceNumber, invoiceReceipts);
-      }
-
-      // Create a map of customers by ID for quick lookup
-      const customersById = new Map(allCustomers.map(c => [c.id, c]));
-
-      // Group invoices by customer name and sort by invoice number (ascending)
-      const invoicesByCustomer = new Map<string, typeof allInvoices>();
-      for (const invoice of allInvoices) {
-        const customerInvoices = invoicesByCustomer.get(invoice.customerName) || [];
-        customerInvoices.push(invoice);
-        invoicesByCustomer.set(invoice.customerName, customerInvoices);
-      }
-
-      // Sort invoices for each customer by invoice number or date
-      invoicesByCustomer.forEach((invoices) => {
-        invoices.sort((a: any, b: any) => {
-          // Try to compare by invoice number first
-          const numA = parseInt(a.invoiceNumber.replace(/\D/g, '')) || 0;
-          const numB = parseInt(b.invoiceNumber.replace(/\D/g, '')) || 0;
-          if (numA !== numB) return numA - numB;
-          // Fall back to date comparison
-          return new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime();
-        });
-      });
-
-      // Calculate payment status, balance, and interest for each invoice
-      const enhancedInvoices = allInvoices.map(invoice => {
-        const customerName = invoice.customerName;
-        const customerReceipts = receiptsByCustomer.get(customerName) || [];
-        const customerInvoices = invoicesByCustomer.get(customerName) || [];
-
-        // Calculate total receipts for this customer
-        const totalReceiptAmount = customerReceipts.reduce((sum, receipt) => 
-          sum + parseFloat(receipt.amount), 0
-        );
-
-        // Apply receipts sequentially to invoices in order
-        let remainingReceipts = totalReceiptAmount;
-        let invoiceBalance = parseFloat(invoice.invoiceAmount);
-        
-        // Find this invoice's position in the sorted customer invoices
-        const invoiceIndex = customerInvoices.findIndex(inv => inv.id === invoice.id);
-        
-        // Apply receipt amounts to invoices before this one
-        for (let i = 0; i < invoiceIndex && remainingReceipts > 0; i++) {
-          const priorInvoiceAmount = parseFloat(customerInvoices[i].invoiceAmount);
-          if (remainingReceipts >= priorInvoiceAmount) {
-            remainingReceipts -= priorInvoiceAmount;
-          } else {
-            remainingReceipts = 0;
-          }
-        }
-
-        // Apply remaining receipt amount to current invoice
-        if (remainingReceipts > 0) {
-          if (remainingReceipts >= invoiceBalance) {
-            invoiceBalance = 0;
-            remainingReceipts -= parseFloat(invoice.invoiceAmount);
-          } else {
-            invoiceBalance -= remainingReceipts;
-            remainingReceipts = 0;
-          }
-        }
-
-        // Determine payment status
-        let paymentStatus: string;
-        if (invoiceBalance === 0) {
-          paymentStatus = "Paid";
-        } else if (invoiceBalance === parseFloat(invoice.invoiceAmount)) {
-          paymentStatus = "Unpaid";
-        } else {
-          paymentStatus = "Partial";
-        }
-
-        // Calculate interest
-        let totalInterest = 0;
-        
-        // Get customer details for interest calculation
-        const customer = invoice.customerId ? customersById.get(invoice.customerId) : null;
-        
-        if (customer && customer.interestRate && customer.interestApplicableFrom) {
-          const interestRate = parseFloat(customer.interestRate);
-          const interestApplicableFromDays = parseInt(customer.interestApplicableFrom);
-          const invoiceAmount = parseFloat(invoice.invoiceAmount);
-          const invoiceDate = new Date(invoice.invoiceDate);
-          
-          // Get receipts for this specific invoice
-          const invoiceReceipts = receiptsByInvoice.get(invoice.invoiceNumber) || [];
-          
-          // Calculate interest for each receipt
-          for (const receipt of invoiceReceipts) {
-            const receiptDate = new Date(receipt.date);
-            const daysDelayed = Math.floor((receiptDate.getTime() - invoiceDate.getTime()) / (1000 * 60 * 60 * 24));
-            
-            // Only calculate interest if payment is delayed beyond the applicable days
-            if (daysDelayed > interestApplicableFromDays) {
-              const interest = (invoiceAmount * interestRate * daysDelayed) / (365 * 100);
-              totalInterest += interest;
-            }
-          }
-        }
-
-        return {
-          ...invoice,
-          paymentStatus,
-          balanceAmount: invoiceBalance.toFixed(2),
-          totalInterest: totalInterest.toFixed(2)
-        };
-      });
-
-      res.json(enhancedInvoices);
+      const invoices = await storage.getInvoices();
+      res.json(invoices);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -1432,13 +1282,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const worksheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(worksheet);
 
-      const customers = await storage.getMasterCustomers();
-      
-      const customersByName = new Map();
-      customers.forEach(c => {
-        customersByName.set(c.clientName.toLowerCase().trim(), c);
-      });
-
       const results = [];
       const errors = [];
       const duplicates = [];
@@ -1460,21 +1303,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedDate = String(dateValue).trim();
         }
         
-        const customerName = String((row as any)["Customer Name"] || "").trim();
-        const customer = customersByName.get(customerName.toLowerCase().trim());
-        
-        if (!customer) {
-          errors.push({ 
-            row: i + 2, 
-            error: "Customer not found in master customers. Please add customer first." 
-          });
-          continue;
-        }
-        
         const invoiceData = {
           invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
-          customerId: customer.id,
-          customerName: customer.clientName,
+          customerName: String((row as any)["Customer Name"] || "").trim(),
           invoiceDate: parsedDate,
           invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
           netProfit: String((row as any)["Net Profit"] || "0").trim(),
@@ -1532,34 +1363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create invoice
   app.post("/api/invoices", async (req, res) => {
     try {
-      const { customerId, assignedUser, netProfit, ...rest } = req.body;
-
-      // Fetch customer name from masterCustomers
-      if (!customerId) {
-        return res.status(400).json({ message: "Customer ID is required" });
-      }
-
-      const customer = await storage.getMasterCustomer(customerId);
-      if (!customer) {
-        return res.status(400).json({ message: "Customer not found" });
-      }
-
-      // Auto-populate assignedUser from session if not provided
-      const sessionUser = (req.session as any).user;
-      const finalAssignedUser = assignedUser || sessionUser?.name;
-
-      // Handle optional netProfit (can be empty string or undefined)
-      const finalNetProfit = netProfit === "" || netProfit === undefined ? undefined : netProfit;
-
-      const invoiceData = {
-        ...rest,
-        customerId,
-        customerName: customer.clientName,
-        assignedUser: finalAssignedUser,
-        netProfit: finalNetProfit,
-      };
-
-      const result = insertInvoiceSchema.safeParse(invoiceData);
+      const result = insertInvoiceSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
@@ -1573,34 +1377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update invoice
   app.put("/api/invoices/:id", async (req, res) => {
     try {
-      const { customerId, assignedUser, netProfit, ...rest } = req.body;
-
-      const invoiceData: any = { ...rest };
-
-      // If customerId is provided, fetch and update customer name
-      if (customerId) {
-        const customer = await storage.getMasterCustomer(customerId);
-        if (!customer) {
-          return res.status(400).json({ message: "Customer not found" });
-        }
-        invoiceData.customerId = customerId;
-        invoiceData.customerName = customer.clientName;
-      }
-
-      // Auto-populate assignedUser from session if not provided
-      if (assignedUser !== undefined) {
-        invoiceData.assignedUser = assignedUser;
-      } else if (!invoiceData.assignedUser) {
-        const sessionUser = (req.session as any).user;
-        invoiceData.assignedUser = sessionUser?.name;
-      }
-
-      // Handle optional netProfit (can be empty string or undefined)
-      if (netProfit !== undefined) {
-        invoiceData.netProfit = netProfit === "" ? undefined : netProfit;
-      }
-
-      const result = insertInvoiceSchema.partial().safeParse(invoiceData);
+      const result = insertInvoiceSchema.partial().safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }

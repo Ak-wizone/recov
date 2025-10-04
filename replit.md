@@ -47,7 +47,6 @@ Preferred communication style: Simple, everyday language.
 *   **Authentication System**: Secure login with email/password, bcrypt hashing, session-based authentication, and protected routes.
 *   **Customer Inline Editing**: Quick-edit dropdowns for Category, Interest Rate, and Status directly within the customer grid.
 *   **Master Items Enhancements**: 21 standardized UOMs (NOS, KGS, MTR, SQM, LTR, etc.) with custom UOM functionality via localStorage. SKU field removed from UI. Interest rate bulk update capability.
-*   **Invoice Module Enhancements**: Invoices now reference masterCustomers table via customerId. Payment status (Paid/Unpaid/Partial) is calculated dynamically based on sequential receipt application. Balance amount is auto-calculated. Net profit is optional. Assigned sales person auto-filled from current user session.
 
 # External Dependencies
 

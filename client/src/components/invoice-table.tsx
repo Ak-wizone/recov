@@ -80,55 +80,10 @@ export function InvoiceTable({
         enableColumnFilter: true,
       },
       {
-        accessorKey: "balanceAmount",
-        header: "Balance Amount",
-        cell: ({ row }) => {
-          const balance = row.original.balanceAmount ? parseFloat(row.original.balanceAmount) : 0;
-          return (
-            <div className="text-lg font-semibold text-orange-600 dark:text-orange-400" data-testid={`text-balance-${row.original.id}`}>
-              ₹{balance.toFixed(2)}
-            </div>
-          );
-        },
-        enableSorting: true,
-        enableColumnFilter: true,
-      },
-      {
-        accessorKey: "totalInterest",
-        header: "Interest (₹)",
-        cell: ({ row }) => {
-          const interest = row.original.totalInterest ? parseFloat(row.original.totalInterest) : 0;
-          return (
-            <div className="text-lg font-semibold text-amber-600 dark:text-amber-400" data-testid={`text-interest-${row.original.id}`}>
-              ₹{interest.toFixed(2)}
-            </div>
-          );
-        },
-        enableSorting: true,
-        enableColumnFilter: true,
-      },
-      {
-        accessorKey: "paymentStatus",
-        header: "Payment Status",
-        cell: ({ row }) => {
-          const status = row.original.paymentStatus || row.original.status;
-          return (
-            <Badge 
-              className={statusColors[status as keyof typeof statusColors]}
-              data-testid={`badge-status-${row.original.id}`}
-            >
-              {status}
-            </Badge>
-          );
-        },
-        enableSorting: true,
-        enableColumnFilter: true,
-      },
-      {
         accessorKey: "netProfit",
         header: "Net Profit",
         cell: ({ row }) => {
-          const profit = parseFloat(row.original.netProfit || "0");
+          const profit = parseFloat(row.original.netProfit);
           const isPositive = profit >= 0;
           return (
             <div 
@@ -143,6 +98,20 @@ export function InvoiceTable({
         enableColumnFilter: true,
       },
       {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => (
+          <Badge 
+            className={statusColors[row.original.status as keyof typeof statusColors]}
+            data-testid={`badge-status-${row.original.id}`}
+          >
+            {row.original.status}
+          </Badge>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
         accessorKey: "assignedUser",
         header: "Assigned User",
         cell: ({ row }) => (
@@ -152,6 +121,21 @@ export function InvoiceTable({
         ),
         enableSorting: true,
         enableColumnFilter: true,
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Date Created",
+        cell: ({ row }) => (
+          <div data-testid={`text-created-${row.original.id}`}>
+            {format(new Date(row.original.createdAt), "MMM dd, yyyy HH:mm")}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+        filterFn: (row, _columnId, filterValue) => {
+          const dateStr = format(new Date(row.original.createdAt), "MMM dd, yyyy HH:mm");
+          return dateStr.toLowerCase().includes(filterValue.toLowerCase());
+        },
       },
       {
         accessorKey: "remarks",

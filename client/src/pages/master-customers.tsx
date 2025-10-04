@@ -25,7 +25,6 @@ export default function MasterCustomers() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isBulkInterestOpen, setIsBulkInterestOpen] = useState(false);
   const [bulkInterestRate, setBulkInterestRate] = useState("");
-  const [bulkInterestApplicableFrom, setBulkInterestApplicableFrom] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<MasterCustomer | undefined>(undefined);
 
   const { data: customers = [], isLoading } = useQuery<MasterCustomer[]>({
@@ -81,11 +80,11 @@ export default function MasterCustomers() {
   });
 
   const bulkUpdateInterestMutation = useMutation({
-    mutationFn: async ({ interestRate, interestApplicableFrom }: { interestRate: string; interestApplicableFrom: string }) => {
+    mutationFn: async (interestRate: string) => {
       const response = await fetch("/api/masters/customers/bulk-update-interest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interestRate, interestApplicableFrom }),
+        body: JSON.stringify({ interestRate }),
       });
       if (!response.ok) throw new Error("Failed to update interest rate");
       return response.json();
@@ -94,11 +93,10 @@ export default function MasterCustomers() {
       queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
       toast({
         title: "Success",
-        description: data.message || `Interest rate updated for ${data.updated} customers`,
+        description: `Interest rate updated for ${data.updated} customers`,
       });
       setIsBulkInterestOpen(false);
       setBulkInterestRate("");
-      setBulkInterestApplicableFrom("");
     },
     onError: (error: Error) => {
       toast({
@@ -139,10 +137,10 @@ export default function MasterCustomers() {
   });
 
   const categoryColors = {
-    Alpha: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 border-green-300",
-    Beta: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 border-blue-300",
-    Gamma: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 border-yellow-300",
-    Delta: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 border-red-300",
+    Alpha: "bg-red-100 text-red-800 border-red-300",
+    Beta: "bg-orange-100 text-orange-800 border-orange-300",
+    Gamma: "bg-blue-100 text-blue-800 border-blue-300",
+    Delta: "bg-green-100 text-green-800 border-green-300",
   };
 
   const statusColors = {
@@ -833,20 +831,6 @@ export default function MasterCustomers() {
                 This will update the interest rate for all customers in the database.
               </p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="bulk-interest-applicable-from">Interest Applicable From (Days)</Label>
-              <Input
-                id="bulk-interest-applicable-from"
-                type="number"
-                placeholder="Enter days (e.g., 30, 60, 90)"
-                value={bulkInterestApplicableFrom}
-                onChange={(e) => setBulkInterestApplicableFrom(e.target.value)}
-                data-testid="input-bulk-interest-applicable-from"
-              />
-              <p className="text-sm text-gray-500">
-                Number of days after which interest applies (optional).
-              </p>
-            </div>
           </div>
           <DialogFooter>
             <Button
@@ -854,14 +838,13 @@ export default function MasterCustomers() {
               onClick={() => {
                 setIsBulkInterestOpen(false);
                 setBulkInterestRate("");
-                setBulkInterestApplicableFrom("");
               }}
               data-testid="button-cancel-bulk-interest"
             >
               Cancel
             </Button>
             <Button
-              onClick={() => bulkUpdateInterestMutation.mutate({ interestRate: bulkInterestRate, interestApplicableFrom: bulkInterestApplicableFrom })}
+              onClick={() => bulkUpdateInterestMutation.mutate(bulkInterestRate)}
               disabled={!bulkInterestRate || bulkUpdateInterestMutation.isPending}
               data-testid="button-confirm-bulk-interest"
             >
