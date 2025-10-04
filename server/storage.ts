@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -114,6 +114,14 @@ export interface IStorage {
   getProformaInvoiceItems(invoiceId: string): Promise<ProformaInvoiceItem[]>;
   createProformaInvoiceItem(item: InsertProformaInvoiceItem): Promise<ProformaInvoiceItem>;
   deleteProformaInvoiceItem(id: string): Promise<boolean>;
+  
+  // Debtors operations
+  getDebtorsList(): Promise<any>;
+  
+  // Debtors Follow-up operations
+  getDebtorsFollowUpsByCustomer(customerId: string): Promise<any[]>;
+  createDebtorsFollowUp(followUp: any): Promise<any>;
+  getDebtorsFollowUpsByCategory(category: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -930,6 +938,100 @@ export class DatabaseStorage implements IStorage {
       .where(eq(proformaInvoiceItems.id, id))
       .returning();
     return result.length > 0;
+  }
+
+  async getDebtorsList(): Promise<any> {
+    const customers = await db.select().from(masterCustomers);
+    const allInvoices = await db.select().from(invoices);
+    const allReceipts = await db.select().from(receipts);
+
+    const debtorsByCategory = {
+      Alpha: { count: 0, totalBalance: 0, debtors: [] as any[] },
+      Beta: { count: 0, totalBalance: 0, debtors: [] as any[] },
+      Gamma: { count: 0, totalBalance: 0, debtors: [] as any[] },
+      Delta: { count: 0, totalBalance: 0, debtors: [] as any[] },
+    };
+
+    const allDebtors: any[] = [];
+
+    for (const customer of customers) {
+      const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+      const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+
+      const totalInvoices = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()), 0);
+      const totalReceipts = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount.toString()), 0);
+      const balance = totalInvoices - totalReceipts;
+
+      if (balance > 0) {
+        const lastInvoice = customerInvoices.sort((a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime())[0];
+        const lastReceipt = customerReceipts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
+        const debtor = {
+          customerId: customer.id,
+          name: customer.clientName,
+          category: customer.category,
+          salesPerson: customer.salesPerson,
+          mobile: customer.primaryMobile,
+          email: customer.primaryEmail,
+          totalInvoices,
+          totalReceipts,
+          balance,
+          invoiceCount: customerInvoices.length,
+          receiptCount: customerReceipts.length,
+          lastInvoiceDate: lastInvoice?.invoiceDate || null,
+          lastPaymentDate: lastReceipt?.date || null,
+        };
+
+        allDebtors.push(debtor);
+
+        if (customer.category in debtorsByCategory) {
+          const categoryKey = customer.category as keyof typeof debtorsByCategory;
+          debtorsByCategory[categoryKey].count++;
+          debtorsByCategory[categoryKey].totalBalance += balance;
+          debtorsByCategory[categoryKey].debtors.push(debtor);
+        }
+      }
+    }
+
+    return {
+      categoryWise: debtorsByCategory,
+      allDebtors,
+    };
+  }
+
+  async getDebtorsFollowUpsByCustomer(customerId: string): Promise<DebtorsFollowUp[]> {
+    return await db
+      .select()
+      .from(debtorsFollowUps)
+      .where(eq(debtorsFollowUps.customerId, customerId))
+      .orderBy(desc(debtorsFollowUps.followUpDateTime));
+  }
+
+  async createDebtorsFollowUp(insertFollowUp: InsertDebtorsFollowUp): Promise<DebtorsFollowUp> {
+    const followUpData: any = { ...insertFollowUp };
+    if (insertFollowUp.followUpDateTime) {
+      followUpData.followUpDateTime = new Date(insertFollowUp.followUpDateTime);
+    }
+    if (insertFollowUp.nextFollowUpDate) {
+      followUpData.nextFollowUpDate = new Date(insertFollowUp.nextFollowUpDate);
+    }
+    const [followUp] = await db
+      .insert(debtorsFollowUps)
+      .values(followUpData)
+      .returning();
+    return followUp;
+  }
+
+  async getDebtorsFollowUpsByCategory(category: string): Promise<any[]> {
+    const customers = await db.select().from(masterCustomers).where(eq(masterCustomers.category, category));
+    const customerIds = customers.map(c => c.id);
+
+    const allFollowUps = await db
+      .select()
+      .from(debtorsFollowUps)
+      .orderBy(desc(debtorsFollowUps.followUpDateTime));
+
+    return allFollowUps.filter(f => customerIds.includes(f.customerId));
   }
 }
 
