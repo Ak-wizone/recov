@@ -1324,6 +1324,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ DEBTORS ROUTES (AUTO-CALCULATED) ============
+
+  // Get debtors summary (auto-calculated from invoices and receipts)
+  app.get("/api/debtors", async (_req, res) => {
+    try {
+      const debtors = await storage.getDebtorsSummary();
+      res.json(debtors);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // ============ LEAD ROUTES ============
 
   // Get all leads
