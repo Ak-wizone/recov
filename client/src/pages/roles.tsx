@@ -50,18 +50,59 @@ import {
   ColumnDef,
 } from "@tanstack/react-table";
 
-const AVAILABLE_PERMISSIONS = [
-  "Dashboard",
-  "Leads",
-  "Quotations",
-  "Proforma Invoices",
-  "Invoices",
-  "Receipts",
-  "Debtors",
-  "Masters",
-  "Company Settings",
-  "User Management",
-  "Reports",
+const MODULES_WITH_PERMISSIONS = [
+  {
+    module: "Dashboard",
+    operations: ["View"]
+  },
+  {
+    module: "Leads",
+    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+  },
+  {
+    module: "Quotations",
+    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+  },
+  {
+    module: "Proforma Invoices",
+    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+  },
+  {
+    module: "Invoices",
+    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+  },
+  {
+    module: "Receipts",
+    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+  },
+  {
+    module: "Debtors",
+    operations: ["View", "Export", "Print"]
+  },
+  {
+    module: "Masters - Customers",
+    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+  },
+  {
+    module: "Masters - Items",
+    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+  },
+  {
+    module: "Company Settings",
+    operations: ["View", "Edit"]
+  },
+  {
+    module: "User Management",
+    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+  },
+  {
+    module: "Roles Management",
+    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+  },
+  {
+    module: "Reports",
+    operations: ["View", "Export", "Print"]
+  },
 ];
 
 const roleFormSchema = z.object({
@@ -559,30 +600,46 @@ export default function Roles() {
             </div>
 
             <div>
-              <Label>Permissions *</Label>
-              <div className="grid grid-cols-2 gap-3 mt-2">
-                {AVAILABLE_PERMISSIONS.map((permission) => (
-                  <div key={permission} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`permission-${permission}`}
-                      checked={selectedPermissions.includes(permission)}
-                      onCheckedChange={(checked) => {
-                        const current = selectedPermissions;
-                        const updated = checked
-                          ? [...current, permission]
-                          : current.filter((p) => p !== permission);
-                        form.setValue("permissions", updated);
-                      }}
-                      data-testid={`checkbox-permission-${permission.toLowerCase().replace(/\s+/g, "-")}`}
-                    />
-                    <Label htmlFor={`permission-${permission}`} className="cursor-pointer">
-                      {permission}
-                    </Label>
+              <Label>Permissions * (Select operations for each module)</Label>
+              <div className="mt-3 space-y-4 max-h-96 overflow-y-auto border rounded-lg p-4">
+                {MODULES_WITH_PERMISSIONS.map((moduleItem) => (
+                  <div key={moduleItem.module} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-blue-500" />
+                      <h4 className="font-semibold text-sm">{moduleItem.module}</h4>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 ml-6">
+                      {moduleItem.operations.map((operation) => {
+                        const permissionKey = `${moduleItem.module} - ${operation}`;
+                        return (
+                          <div key={operation} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`permission-${moduleItem.module}-${operation}`}
+                              checked={selectedPermissions.includes(permissionKey)}
+                              onCheckedChange={(checked) => {
+                                const current = selectedPermissions;
+                                const updated = checked
+                                  ? [...current, permissionKey]
+                                  : current.filter((p) => p !== permissionKey);
+                                form.setValue("permissions", updated);
+                              }}
+                              data-testid={`checkbox-permission-${moduleItem.module.toLowerCase().replace(/\s+/g, "-")}-${operation.toLowerCase()}`}
+                            />
+                            <Label 
+                              htmlFor={`permission-${moduleItem.module}-${operation}`} 
+                              className="cursor-pointer text-xs"
+                            >
+                              {operation}
+                            </Label>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 ))}
               </div>
               {form.formState.errors.permissions && (
-                <p className="text-sm text-red-500">{form.formState.errors.permissions.message}</p>
+                <p className="text-sm text-red-500 mt-2">{form.formState.errors.permissions.message}</p>
               )}
             </div>
 

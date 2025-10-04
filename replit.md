@@ -167,7 +167,11 @@ Preferred communication style: Simple, everyday language.
 - **Roles Management Page** (`/settings/roles`):
   - Dashboard cards: Total Roles, Total Permissions
   - TanStack Table with columns: Role Name, Description, Permissions Count, Actions
-  - Form dialog with multi-select checkboxes for 11 permission modules
+  - **Granular Permissions System**: Each module has specific operation-level access control
+    - View, Create, Edit, Delete, Export, Import, Print permissions per module
+    - 13 modules: Dashboard, Leads, Quotations, Proforma Invoices, Invoices, Receipts, Debtors, Masters (Customers & Items), Company Settings, User Management, Roles Management, Reports
+    - Permission format: "Module - Operation" (e.g., "Leads - Create", "Invoices - Export")
+  - Form dialog with organized module-wise permission checkboxes (scrollable layout)
   - Full CRUD: Create, Read, Update, Delete, Bulk Delete
   - Excel import/export with template download
   - Professional A4 PDF print format
@@ -178,7 +182,7 @@ Preferred communication style: Simple, everyday language.
   - Full CRUD: Create, Read, Update, Delete, Bulk Delete
   - Excel import/export with template download
   - Professional A4 PDF print format
-- **Permission Modules**: Dashboard, Leads, Quotations, Proforma Invoices, Invoices, Receipts, Debtors, Masters, Company Settings, User Management, Reports
+- **Permission Operations**: View, Create, Edit, Delete, Export, Import, Print (module-specific)
 - **API Endpoints**: Complete REST API for both users and roles with validation, import, export, template download
 - **Navigation**: Added under Company Settings → User Management and Roles Management
 - **Data Integration**: Users can be assigned to customers (assignedUser field) for follow-ups and task assignment
