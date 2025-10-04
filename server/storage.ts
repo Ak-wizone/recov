@@ -1050,9 +1050,26 @@ export class DatabaseStorage implements IStorage {
     endOfWeek.setDate(endOfWeek.getDate() + (7 - today.getDay()));
     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-    const allCustomers = await db.select().from(masterCustomers);
+    // Get only debtors (customers with outstanding balance)
+    const customers = await db.select().from(masterCustomers);
+    const allInvoices = await db.select().from(invoices);
+    const allReceipts = await db.select().from(receipts);
+    
+    const debtorIds = new Set<string>();
+    for (const customer of customers) {
+      const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+      const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+      const totalInvoices = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()), 0);
+      const totalReceipts = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount.toString()), 0);
+      const balance = totalInvoices - totalReceipts;
+      
+      if (balance > 0) {
+        debtorIds.add(customer.id);
+      }
+    }
+
     const customersWithFollowUps = new Set(allFollowUps.map(f => f.customerId));
-    const noFollowUp = allCustomers.length - customersWithFollowUps.size;
+    const noFollowUp = Array.from(debtorIds).filter(id => !customersWithFollowUps.has(id)).length;
 
     let overdue = 0;
     let dueToday = 0;
