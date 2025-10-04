@@ -40,10 +40,13 @@ Preferred communication style: Simple, everyday language.
 
 *   **Analytics Dashboard**: Replaces debtors management as the home page, offering real-time statistics, financial overviews, module statistics, and recent activity feeds.
 *   **Proforma Invoice Module**: Full CRUD operations for PIs, including grid features (pagination, filters, sorting), dashboard cards, date filtering, and print/export. Enforces one PI per quotation.
-*   **Enhanced Import System**: Universal editable import preview for Customers, Items, Invoices, Receipts. Features inline error correction, smart data parsing, and template downloads. Includes duplicate detection for customer imports with visual indicators and normalization.
+*   **Enhanced Import System**: Universal editable import preview for Customers, Items, Invoices, Receipts. Features inline error correction, smart data parsing, and template downloads. Includes duplicate detection for both customer and item imports with visual indicators and normalization.
+*   **Duplicate Detection**: Strict duplicate prevention for both Customers (by name) and Items (by name) during create, update, and import operations. Uses case-insensitive, normalized comparison and provides clear error messages.
+*   **Bulk Operations**: Checkbox-based selection system with bulk delete functionality available for Items and other modules. Includes confirmation dialogs and visual feedback.
 *   **User Management & RBAC**: Comprehensive system for managing users and roles. Granular, module-specific permissions (View, Create, Edit, Delete, Export, Import, Print) across 13 modules.
 *   **Authentication System**: Secure login with email/password, bcrypt hashing, session-based authentication, and protected routes.
 *   **Customer Inline Editing**: Quick-edit dropdowns for Category, Interest Rate, and Status directly within the customer grid.
+*   **Master Items Enhancements**: 21 standardized UOMs (NOS, KGS, MTR, SQM, LTR, etc.) with custom UOM functionality via localStorage. SKU field removed from UI. Interest rate bulk update capability.
 
 # External Dependencies
 
