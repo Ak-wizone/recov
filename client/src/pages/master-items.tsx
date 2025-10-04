@@ -5,7 +5,18 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Download, Upload, FileDown, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Download, Upload, FileDown, Pencil, Trash2, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import MasterItemFormDialog from "@/components/master-item-form-dialog";
 import { ImportModal } from "@/components/import-modal";
 import { DataTable } from "@/components/ui/data-table";
@@ -19,6 +30,8 @@ export default function MasterItems() {
   const [globalFilter, setGlobalFilter] = useState("");
   const [itemTypeFilter, setItemTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
   const { data: items = [], isLoading } = useQuery<MasterItem[]>({
     queryKey: ["/api/masters/items"],
@@ -37,6 +50,36 @@ export default function MasterItems() {
       toast({
         title: "Error",
         description: error.message || "Failed to delete item",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const response = await fetch("/api/masters/items/bulk-delete", {
+        method: "POST",
+        body: JSON.stringify({ ids }),
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete items");
+      }
+      return await response.json();
+    },
+    onSuccess: (data: { deleted: number }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/masters/items"] });
+      toast({
+        title: "Success",
+        description: `${data.deleted} item(s) deleted successfully`,
+      });
+      setIsBulkDeleteDialogOpen(false);
+      setSelectedIds([]);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -114,6 +157,28 @@ export default function MasterItems() {
     }
   };
 
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(filteredItems.map(item => item.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds([...selectedIds, id]);
+    } else {
+      setSelectedIds(selectedIds.filter(i => i !== id));
+    }
+  };
+
+  const handleBulkDeleteClick = () => {
+    if (selectedIds.length > 0) {
+      setIsBulkDeleteDialogOpen(true);
+    }
+  };
+
   const filteredItems = items.filter((item) => {
     const matchesType = itemTypeFilter === "all" || item.itemType === itemTypeFilter;
     const matchesStatus = statusFilter === "all" || item.isActive === statusFilter;
@@ -131,6 +196,25 @@ export default function MasterItems() {
 
   const columns = useMemo<ColumnDef<MasterItem>[]>(
     () => [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <Checkbox
+            checked={selectedIds.length === filteredItems.length && filteredItems.length > 0}
+            onCheckedChange={handleSelectAll}
+            data-testid="checkbox-select-all"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={selectedIds.includes(row.original.id)}
+            onCheckedChange={(checked) => handleSelectOne(row.original.id, checked as boolean)}
+            data-testid={`checkbox-item-${row.original.id}`}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
       {
         accessorKey: "name",
         header: "Item Name",
@@ -293,7 +377,7 @@ export default function MasterItems() {
         enableHiding: false,
       },
     ],
-    []
+    [selectedIds, filteredItems, handleSelectAll, handleSelectOne, handleEdit, handleDelete]
   );
 
   return (
@@ -407,6 +491,35 @@ export default function MasterItems() {
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg px-6 py-3 flex items-center justify-between mb-4" data-testid="bulk-action-bar">
+          <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+            {selectedIds.length} item{selectedIds.length > 1 ? 's' : ''} selected
+          </span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setSelectedIds([])}
+              data-testid="button-clear-selection"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Clear Selection
+            </Button>
+            <Button
+              size="sm"
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={handleBulkDeleteClick}
+              data-testid="button-bulk-delete"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedIds.length})
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Data Table */}
       <div className="flex-1 overflow-hidden border rounded-lg">
         <DataTable
@@ -432,6 +545,27 @@ export default function MasterItems() {
         onOpenChange={setImportModalOpen}
         module="items"
       />
+
+      <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedIds.length} item(s)? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-bulk-delete">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => bulkDeleteMutation.mutate(selectedIds)}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-confirm-bulk-delete"
+            >
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
