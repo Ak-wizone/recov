@@ -814,3 +814,58 @@ export const insertDebtorsFollowUpSchema = createInsertSchema(debtorsFollowUps).
 
 export type InsertDebtorsFollowUp = z.infer<typeof insertDebtorsFollowUpSchema>;
 export type DebtorsFollowUp = typeof debtorsFollowUps.$inferSelect;
+
+// Roles table for RBAC
+export const roles = pgTable("roles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  permissions: text("permissions").array().notNull().default(sql`ARRAY[]::text[]`),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertRoleSchema = createInsertSchema(roles).pick({
+  name: true,
+  description: true,
+  permissions: true,
+}).extend({
+  name: z.string().min(1, "Role name is required"),
+  description: z.string().optional(),
+  permissions: z.array(z.string()).min(1, "At least one permission is required"),
+});
+
+export type InsertRole = z.infer<typeof insertRoleSchema>;
+export type Role = typeof roles.$inferSelect;
+
+// Users table for user management
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  mobile: text("mobile"),
+  roleId: varchar("role_id").references(() => roles.id, { onDelete: "set null" }),
+  status: text("status").notNull().default("Active"), // Active, Inactive
+  password: text("password"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserSchema = createInsertSchema(users).pick({
+  name: true,
+  email: true,
+  mobile: true,
+  roleId: true,
+  status: true,
+  password: true,
+}).extend({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email address"),
+  mobile: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits").optional().or(z.literal("")),
+  roleId: z.string().optional(),
+  status: z.enum(["Active", "Inactive"]).default("Active"),
+  password: z.string().optional(),
+});
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect & {
+  roleName?: string | null;
+};

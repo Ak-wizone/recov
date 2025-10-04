@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -2179,6 +2179,365 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { category } = req.params;
       const followUps = await storage.getDebtorsFollowUpsByCategory(category);
       res.json(followUps);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ ROLES ROUTES ============
+  
+  // Get all roles
+  app.get("/api/roles", async (_req, res) => {
+    try {
+      const roles = await storage.getRoles();
+      res.json(roles);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get roles template
+  app.get("/api/roles/template", async (_req, res) => {
+    try {
+      const sampleData = [
+        {
+          Name: "Admin",
+          Description: "Full system access",
+          Permissions: "Dashboard,Leads,Quotations,Invoices,Receipts,Debtors,Masters,Settings",
+        },
+        {
+          Name: "Sales Manager",
+          Description: "Manage leads and quotations",
+          Permissions: "Dashboard,Leads,Quotations",
+        },
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(sampleData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Roles");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=roles_template.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Export roles
+  app.get("/api/roles/export", async (_req, res) => {
+    try {
+      const roles = await storage.getRoles();
+      const exportData = roles.map(role => ({
+        Name: role.name,
+        Description: role.description || "",
+        Permissions: role.permissions.join(","),
+        "Created At": new Date(role.createdAt).toLocaleDateString(),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Roles");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=roles.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Import roles
+  app.post("/api/roles/import", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      const roles = data.map((row: any) => ({
+        name: row.Name || row.name,
+        description: row.Description || row.description || "",
+        permissions: (row.Permissions || row.permissions || "").split(",").map((p: string) => p.trim()).filter(Boolean),
+      }));
+
+      const createdRoles = await Promise.all(
+        roles.map(role => storage.createRole(role))
+      );
+
+      res.status(201).json({ 
+        message: `Successfully imported ${createdRoles.length} roles`,
+        count: createdRoles.length
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single role
+  app.get("/api/roles/:id", async (req, res) => {
+    try {
+      const role = await storage.getRole(req.params.id);
+      if (!role) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.json(role);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create role
+  app.post("/api/roles", async (req, res) => {
+    try {
+      const validation = insertRoleSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const role = await storage.createRole(validation.data);
+      res.status(201).json(role);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update role
+  app.put("/api/roles/:id", async (req, res) => {
+    try {
+      const validation = insertRoleSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const role = await storage.updateRole(req.params.id, validation.data);
+      if (!role) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.json(role);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete role
+  app.delete("/api/roles/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteRole(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+      res.json({ message: "Role deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk delete roles
+  app.post("/api/roles/bulk-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Invalid IDs array" });
+      }
+
+      const count = await storage.bulkDeleteRoles(ids);
+      res.json({ message: `Successfully deleted ${count} roles`, count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ USERS ROUTES ============
+  
+  // Get all users
+  app.get("/api/users", async (_req, res) => {
+    try {
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get users template
+  app.get("/api/users/template", async (_req, res) => {
+    try {
+      const sampleData = [
+        {
+          Name: "John Doe",
+          Email: "john.doe@example.com",
+          Mobile: "9876543210",
+          Role: "Admin",
+          Status: "Active",
+        },
+        {
+          Name: "Jane Smith",
+          Email: "jane.smith@example.com",
+          Mobile: "9876543211",
+          Role: "Sales Manager",
+          Status: "Active",
+        },
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(sampleData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=users_template.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Export users
+  app.get("/api/users/export", async (_req, res) => {
+    try {
+      const users = await storage.getUsers();
+      const exportData = users.map(user => ({
+        Name: user.name,
+        Email: user.email,
+        Mobile: user.mobile || "",
+        Role: user.roleName || "",
+        Status: user.status,
+        "Created At": new Date(user.createdAt).toLocaleDateString(),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
+
+      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+      res.setHeader("Content-Disposition", "attachment; filename=users.xlsx");
+      res.send(buffer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Import users
+  app.post("/api/users/import", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const data = XLSX.utils.sheet_to_json(worksheet);
+
+      const allRoles = await storage.getRoles();
+
+      const users = data.map((row: any) => {
+        const roleName = row.Role || row.role;
+        const role = allRoles.find(r => r.name === roleName);
+
+        return {
+          name: row.Name || row.name,
+          email: row.Email || row.email,
+          mobile: row.Mobile || row.mobile || "",
+          roleId: role?.id,
+          status: row.Status || row.status || "Active",
+        };
+      });
+
+      const createdUsers = await Promise.all(
+        users.map(user => storage.createUser(user))
+      );
+
+      res.status(201).json({ 
+        message: `Successfully imported ${createdUsers.length} users`,
+        count: createdUsers.length
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single user
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create user
+  app.post("/api/users", async (req, res) => {
+    try {
+      const validation = insertUserSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const user = await storage.createUser(validation.data);
+      res.status(201).json(user);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update user
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const validation = insertUserSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const user = await storage.updateUser(req.params.id, validation.data);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete user
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteUser(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ message: "User deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk delete users
+  app.post("/api/users/bulk-delete", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "Invalid IDs array" });
+      }
+
+      const count = await storage.bulkDeleteUsers(ids);
+      res.json({ message: `Successfully deleted ${count} users`, count });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

@@ -16,6 +16,8 @@ import Receipts from "@/pages/receipts";
 import Debtors from "@/pages/debtors";
 import CompanySettings from "@/pages/company-settings";
 import NotFound from "@/pages/not-found";
+import Roles from "@/pages/roles";
+import Users from "@/pages/users";
 
 function Router() {
   return (
@@ -34,6 +36,8 @@ function Router() {
             <Route path="/masters/customers" component={MasterCustomers} />
             <Route path="/masters/items" component={MasterItems} />
             <Route path="/company-settings" component={CompanySettings} />
+            <Route path="/settings/roles" component={Roles} />
+            <Route path="/settings/users" component={Users} />
             <Route component={NotFound} />
           </Switch>
         </Layout>

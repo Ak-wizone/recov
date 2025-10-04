@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
@@ -122,6 +122,22 @@ export interface IStorage {
   getDebtorsFollowUpsByCustomer(customerId: string): Promise<any[]>;
   createDebtorsFollowUp(followUp: any): Promise<any>;
   getDebtorsFollowUpsByCategory(category: string): Promise<any[]>;
+  
+  // Role operations
+  getRoles(): Promise<any[]>;
+  getRole(id: string): Promise<any | undefined>;
+  createRole(data: any): Promise<any>;
+  updateRole(id: string, data: any): Promise<any | undefined>;
+  deleteRole(id: string): Promise<boolean>;
+  bulkDeleteRoles(ids: string[]): Promise<number>;
+  
+  // User operations
+  getUsers(): Promise<any[]>;
+  getUser(id: string): Promise<any | undefined>;
+  createUser(data: any): Promise<any>;
+  updateUser(id: string, data: any): Promise<any | undefined>;
+  deleteUser(id: string): Promise<boolean>;
+  bulkDeleteUsers(ids: string[]): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1032,6 +1048,91 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(debtorsFollowUps.followUpDateTime));
 
     return allFollowUps.filter(f => customerIds.includes(f.customerId));
+  }
+
+  async getRoles(): Promise<Role[]> {
+    return await db.select().from(roles).orderBy(desc(roles.createdAt));
+  }
+
+  async getRole(id: string): Promise<Role | undefined> {
+    const [role] = await db.select().from(roles).where(eq(roles.id, id));
+    return role || undefined;
+  }
+
+  async createRole(insertRole: InsertRole): Promise<Role> {
+    const [role] = await db.insert(roles).values(insertRole as any).returning();
+    return role;
+  }
+
+  async updateRole(id: string, updates: Partial<InsertRole>): Promise<Role | undefined> {
+    const [role] = await db.update(roles).set(updates as any).where(eq(roles.id, id)).returning();
+    return role || undefined;
+  }
+
+  async deleteRole(id: string): Promise<boolean> {
+    const result = await db.delete(roles).where(eq(roles.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async bulkDeleteRoles(ids: string[]): Promise<number> {
+    const deletePromises = ids.map(id => db.delete(roles).where(eq(roles.id, id)));
+    const results = await Promise.all(deletePromises);
+    return results.length;
+  }
+
+  async getUsers(): Promise<User[]> {
+    const allUsers = await db.select().from(users).orderBy(desc(users.createdAt));
+    const allRoles = await db.select().from(roles);
+    
+    return allUsers.map(user => {
+      const role = allRoles.find(r => r.id === user.roleId);
+      return {
+        ...user,
+        roleName: role?.name || null,
+      };
+    });
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    if (!user) return undefined;
+    
+    const [role] = user.roleId ? await db.select().from(roles).where(eq(roles.id, user.roleId)) : [null];
+    return {
+      ...user,
+      roleName: role?.name || null,
+    };
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser as any).returning();
+    const [role] = user.roleId ? await db.select().from(roles).where(eq(roles.id, user.roleId)) : [null];
+    return {
+      ...user,
+      roleName: role?.name || null,
+    };
+  }
+
+  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User | undefined> {
+    const [user] = await db.update(users).set(updates as any).where(eq(users.id, id)).returning();
+    if (!user) return undefined;
+    
+    const [role] = user.roleId ? await db.select().from(roles).where(eq(roles.id, user.roleId)) : [null];
+    return {
+      ...user,
+      roleName: role?.name || null,
+    };
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async bulkDeleteUsers(ids: string[]): Promise<number> {
+    const deletePromises = ids.map(id => db.delete(users).where(eq(users.id, id)));
+    const results = await Promise.all(deletePromises);
+    return results.length;
   }
 }
 

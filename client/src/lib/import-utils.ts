@@ -834,3 +834,158 @@ export function generateReceiptsTemplate(): any[] {
     },
   ];
 }
+
+export interface ImportRoleRow {
+  name?: string;
+  description?: string;
+  permissions?: string;
+}
+
+export interface ImportUserRow {
+  name?: string;
+  email?: string;
+  mobile?: string;
+  role?: string;
+  status?: string;
+}
+
+export async function parseRolesFile(file: File): Promise<ImportRoleRow[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        const rows: ImportRoleRow[] = jsonData.map((row: any) => ({
+          name: String(row["Name"] || row.name || row.Name || "").trim(),
+          description: String(row["Description"] || row.description || row.Description || "").trim(),
+          permissions: String(row["Permissions"] || row.permissions || row.Permissions || "").trim(),
+        }));
+
+        resolve(rows);
+      } catch (error: any) {
+        reject(new Error(`Failed to parse file: ${error.message}`));
+      }
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Failed to read file"));
+    };
+
+    reader.readAsBinaryString(file);
+  });
+}
+
+export function validateRoleRow(row: ImportRoleRow, rowNumber: number): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (!row.name || row.name === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Role Name is required",
+      field: "name",
+    });
+  }
+
+  if (!row.permissions || row.permissions === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Permissions are required",
+      field: "permissions",
+    });
+  }
+
+  return errors;
+}
+
+export async function parseUsersFile(file: File): Promise<ImportUserRow[]> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        const rows: ImportUserRow[] = jsonData.map((row: any) => ({
+          name: String(row["Name"] || row.name || row.Name || "").trim(),
+          email: String(row["Email"] || row.email || row.EMAIL || "").trim(),
+          mobile: String(row["Mobile"] || row.mobile || row.Mobile || "").trim(),
+          role: String(row["Role"] || row.role || row.Role || "").trim(),
+          status: String(row["Status"] || row.status || row.Status || "Active").trim(),
+        }));
+
+        resolve(rows);
+      } catch (error: any) {
+        reject(new Error(`Failed to parse file: ${error.message}`));
+      }
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Failed to read file"));
+    };
+
+    reader.readAsBinaryString(file);
+  });
+}
+
+export function validateUserRow(row: ImportUserRow, rowNumber: number): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  if (!row.name || row.name === "") {
+    errors.push({
+      row: rowNumber,
+      message: "User Name is required",
+      field: "name",
+    });
+  }
+
+  if (!row.email || row.email === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Email is required",
+      field: "email",
+    });
+  } else {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(row.email)) {
+      errors.push({
+        row: rowNumber,
+        message: "Invalid email format",
+        field: "email",
+      });
+    }
+  }
+
+  if (row.mobile && row.mobile !== "") {
+    const mobileRegex = /^\d{10}$/;
+    if (!mobileRegex.test(row.mobile)) {
+      errors.push({
+        row: rowNumber,
+        message: "Mobile must be exactly 10 digits",
+        field: "mobile",
+      });
+    }
+  }
+
+  if (row.status && row.status !== "") {
+    const validStatuses = ["Active", "Inactive"];
+    if (!validStatuses.includes(row.status)) {
+      errors.push({
+        row: rowNumber,
+        message: "Status must be 'Active' or 'Inactive'",
+        field: "status",
+      });
+    }
+  }
+
+  return errors;
+}
