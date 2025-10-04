@@ -301,42 +301,6 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-3">
               <Button
-                onClick={() => setIsAddDialogOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-5"
-                data-testid="button-add-customer"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                Add Customer
-              </Button>
-              <Button
-                onClick={() => {
-                  const a = document.createElement("a");
-                  a.href = "/api/customers/sample-template";
-                  a.download = "customer_import_template.xlsx";
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  toast({
-                    title: "Success",
-                    description: "Sample template downloaded successfully",
-                  });
-                }}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 px-5 py-5"
-                data-testid="button-download-template"
-              >
-                <FileDown className="mr-2 h-4 w-4" />
-                Template
-              </Button>
-              <Button
-                onClick={() => setIsImportDialogOpen(true)}
-                className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-5 py-5"
-                data-testid="button-import-excel"
-              >
-                <FileUp className="mr-2 h-4 w-4" />
-                Import
-              </Button>
-              <Button
                 onClick={() => exportMutation.mutate()}
                 variant="outline"
                 className="border-gray-300 text-gray-700 hover:bg-gray-50 px-5 py-5"
