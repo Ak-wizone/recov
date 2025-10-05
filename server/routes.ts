@@ -1331,12 +1331,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const netProfitValue = String((row as any)["Net Profit"] || "").trim();
         const netProfit = netProfitValue === "" ? "0" : netProfitValue;
         
+        const customerName = String((row as any)["Customer Name"] || "").trim();
+        
+        // Auto-populate customer details from master customers
+        let customerDetails = {};
+        if (customerName) {
+          const masterCustomers = await storage.getMasterCustomers();
+          const customer = masterCustomers.find(c => c.clientName.toLowerCase().trim() === customerName.toLowerCase().trim());
+          if (customer) {
+            customerDetails = {
+              category: customer.category || undefined,
+              primaryMobile: customer.primaryMobile || undefined,
+              city: customer.city || undefined,
+              pincode: customer.pincode || undefined,
+              paymentTerms: customer.paymentTermsDays ? parseInt(customer.paymentTermsDays) : undefined,
+              creditLimit: customer.creditLimit || undefined,
+              interestApplicableFrom: customer.interestApplicableFrom || undefined,
+              interestRate: customer.interestRate || undefined,
+              salesPerson: customer.salesPerson || undefined,
+            };
+          }
+        }
+        
         const invoiceData = {
           invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
-          customerName: String((row as any)["Customer Name"] || "").trim(),
+          customerName: customerName,
           invoiceDate: parsedDate,
           invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
           netProfit: netProfit,
+          ...customerDetails,
         };
 
         const result = insertInvoiceSchema.safeParse(invoiceData);
