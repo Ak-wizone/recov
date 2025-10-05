@@ -1235,27 +1235,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Customer Name": "ABC Corporation Pvt Ltd",
           "Invoice Date": "2025-01-15",
           "Invoice Amount": "150000",
-          "Net Profit": "45000",
-          "Status": "Unpaid",
-          "Remarks": "Q1 Services - Payment due in 30 days"
+          "Net Profit": "45000"
         },
         {
           "Invoice Number": "INV-2025-002",
           "Customer Name": "XYZ Industries Limited",
           "Invoice Date": "2025-01-20",
           "Invoice Amount": "250000",
-          "Net Profit": "75000",
-          "Status": "Paid",
-          "Remarks": "Hardware supply - Paid on delivery"
+          "Net Profit": "75000"
         },
         {
           "Invoice Number": "INV-2025-003",
           "Customer Name": "Tech Solutions India",
           "Invoice Date": "2025-01-25",
           "Invoice Amount": "180000",
-          "Net Profit": "50000",
-          "Status": "Partial",
-          "Remarks": "Consulting services - Partial payment received"
+          "Net Profit": ""
         }
       ];
 
@@ -1284,9 +1278,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Invoice Date": invoice.invoiceDate.toISOString().split('T')[0],
         "Invoice Amount": invoice.invoiceAmount,
         "Net Profit": invoice.netProfit,
-        "Status": invoice.status,
-        "Remarks": invoice.remarks || "",
-        "Created At": invoice.createdAt.toISOString(),
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
@@ -1336,37 +1327,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedDate = String(dateValue).trim();
         }
         
-        const customerName = String((row as any)["Customer Name"] || "").trim();
-        
-        // Auto-populate customer details from master customers
-        let customerDetails = {};
-        if (customerName) {
-          const masterCustomers = await storage.getMasterCustomers();
-          const customer = masterCustomers.find(c => c.clientName.toLowerCase().trim() === customerName.toLowerCase().trim());
-          if (customer) {
-            customerDetails = {
-              category: customer.category || undefined,
-              primaryMobile: customer.primaryMobile || undefined,
-              city: customer.city || undefined,
-              pincode: customer.pincode || undefined,
-              paymentTerms: customer.paymentTermsDays ? parseInt(customer.paymentTermsDays) : undefined,
-              creditLimit: customer.creditLimit || undefined,
-              interestApplicableFrom: customer.interestApplicableFrom || undefined,
-              interestRate: customer.interestRate || undefined,
-              salesPerson: customer.salesPerson || undefined,
-            };
-          }
-        }
+        // Get net profit value, default to "0" if empty or not provided
+        const netProfitValue = String((row as any)["Net Profit"] || "").trim();
+        const netProfit = netProfitValue === "" ? "0" : netProfitValue;
         
         const invoiceData = {
           invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
-          customerName: customerName,
+          customerName: String((row as any)["Customer Name"] || "").trim(),
           invoiceDate: parsedDate,
           invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
-          netProfit: String((row as any)["Net Profit"] || "0").trim(),
-          status: String((row as any)["Status"] || "Unpaid").trim() as "Paid" | "Unpaid" | "Partial",
-          remarks: String((row as any)["Remarks"] || "").trim() || undefined,
-          ...customerDetails,
+          netProfit: netProfit,
         };
 
         const result = insertInvoiceSchema.safeParse(invoiceData);
