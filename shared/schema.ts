@@ -262,7 +262,6 @@ export const invoices = pgTable("invoices", {
   invoiceAmount: decimal("invoice_amount", { precision: 15, scale: 2 }).notNull(),
   netProfit: decimal("net_profit", { precision: 15, scale: 2 }).notNull(),
   status: text("status").notNull().default("Unpaid"), // Paid, Unpaid, Partial
-  assignedUser: text("assigned_user"),
   remarks: text("remarks"),
   // Customer-related fields (auto-populated from customer selection)
   category: text("category"),
@@ -283,7 +282,6 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   invoiceDate: true,
   invoiceAmount: true,
   netProfit: true,
-  assignedUser: true,
   remarks: true,
   category: true,
   primaryMobile: true,
@@ -304,9 +302,6 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   netProfit: z.string().refine((val) => !isNaN(parseFloat(val)), {
     message: "Net profit must be a valid number",
   }),
-  assignedUser: z.enum(["Manpreet Bedi", "Bilal Ahamad", "Anjali Dhiman", "Princi Soni"], {
-    errorMap: () => ({ message: "Invalid assigned user" }),
-  }).optional(),
   remarks: z.string().optional(),
   category: z.string().optional(),
   primaryMobile: z.string().optional(),

@@ -1237,7 +1237,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Invoice Amount": "150000",
           "Net Profit": "45000",
           "Status": "Unpaid",
-          "Assigned User": "Manpreet Bedi",
           "Remarks": "Q1 Services - Payment due in 30 days"
         },
         {
@@ -1247,7 +1246,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Invoice Amount": "250000",
           "Net Profit": "75000",
           "Status": "Paid",
-          "Assigned User": "Bilal Ahamad",
           "Remarks": "Hardware supply - Paid on delivery"
         },
         {
@@ -1257,7 +1255,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Invoice Amount": "180000",
           "Net Profit": "50000",
           "Status": "Partial",
-          "Assigned User": "Anjali Dhiman",
           "Remarks": "Consulting services - Partial payment received"
         }
       ];
@@ -1288,7 +1285,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Invoice Amount": invoice.invoiceAmount,
         "Net Profit": invoice.netProfit,
         "Status": invoice.status,
-        "Assigned User": invoice.assignedUser || "",
         "Remarks": invoice.remarks || "",
         "Created At": invoice.createdAt.toISOString(),
       }));
@@ -1369,7 +1365,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
           netProfit: String((row as any)["Net Profit"] || "0").trim(),
           status: String((row as any)["Status"] || "Unpaid").trim() as "Paid" | "Unpaid" | "Partial",
-          assignedUser: String((row as any)["Assigned User"] || "").trim() || undefined,
           remarks: String((row as any)["Remarks"] || "").trim() || undefined,
           ...customerDetails,
         };

@@ -222,17 +222,6 @@ export function InvoiceTable({
         enableColumnFilter: true,
       },
       {
-        accessorKey: "assignedUser",
-        header: "Assigned User",
-        cell: ({ row }) => (
-          <div data-testid={`text-assigned-user-${row.original.id}`}>
-            {row.original.assignedUser || "—"}
-          </div>
-        ),
-        enableSorting: true,
-        enableColumnFilter: true,
-      },
-      {
         accessorKey: "createdAt",
         header: "Date Created",
         cell: ({ row }) => (

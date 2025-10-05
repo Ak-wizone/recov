@@ -36,7 +36,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
       invoiceDate: invoice?.invoiceDate ? format(new Date(invoice.invoiceDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       invoiceAmount: invoice?.invoiceAmount || "",
       netProfit: invoice?.netProfit || "",
-      assignedUser: invoice?.assignedUser as "Manpreet Bedi" | "Bilal Ahamad" | "Anjali Dhiman" | "Princi Soni" | undefined,
       remarks: invoice?.remarks || "",
       category: invoice?.category || "",
       primaryMobile: invoice?.primaryMobile || "",
@@ -123,7 +122,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         invoiceDate: format(new Date(invoice.invoiceDate), "yyyy-MM-dd"),
         invoiceAmount: invoice.invoiceAmount || "",
         netProfit: invoice.netProfit || "",
-        assignedUser: invoice.assignedUser as "Manpreet Bedi" | "Bilal Ahamad" | "Anjali Dhiman" | "Princi Soni" | undefined,
         remarks: invoice.remarks || "",
         category: invoice.category || "",
         primaryMobile: invoice.primaryMobile || "",
@@ -142,7 +140,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         invoiceDate: format(new Date(), "yyyy-MM-dd"),
         invoiceAmount: "",
         netProfit: "",
-        assignedUser: undefined,
         remarks: "",
         category: "",
         primaryMobile: "",
@@ -301,34 +298,10 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
               </div>
             </div>
 
-            {/* Assignment & Notes */}
+            {/* Notes */}
             <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800 space-y-4">
-              <h3 className="text-base font-semibold text-purple-900 dark:text-purple-100">Assignment & Notes</h3>
+              <h3 className="text-base font-semibold text-purple-900 dark:text-purple-100">Notes</h3>
               
-              <FormField
-                control={form.control}
-                name="assignedUser"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assigned User</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-assigned-user">
-                          <SelectValue placeholder="Select assigned user" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Manpreet Bedi" data-testid="option-manpreet">Manpreet Bedi</SelectItem>
-                        <SelectItem value="Bilal Ahamad" data-testid="option-bilal">Bilal Ahamad</SelectItem>
-                        <SelectItem value="Anjali Dhiman" data-testid="option-anjali">Anjali Dhiman</SelectItem>
-                        <SelectItem value="Princi Soni" data-testid="option-princi">Princi Soni</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
                 name="remarks"
