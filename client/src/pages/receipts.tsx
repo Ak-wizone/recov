@@ -8,7 +8,7 @@ import ReceiptFormDialog from "@/components/receipt-form-dialog";
 import { ImportModal } from "@/components/import-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";F
 import {
   AlertDialog,
   AlertDialogAction,
