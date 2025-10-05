@@ -1294,15 +1294,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedDate = String(dateValue).trim();
         }
         
+        const customerName = String((row as any)["Customer Name"] || "").trim();
+        
+        // Auto-populate customer details from master customers
+        let customerDetails = {};
+        if (customerName) {
+          const masterCustomers = await storage.getMasterCustomers();
+          const customer = masterCustomers.find(c => c.clientName.toLowerCase().trim() === customerName.toLowerCase().trim());
+          if (customer) {
+            customerDetails = {
+              category: customer.category || undefined,
+              primaryMobile: customer.primaryMobile || undefined,
+              city: customer.city || undefined,
+              pincode: customer.pincode || undefined,
+              paymentTerms: customer.paymentTerms ? parseInt(customer.paymentTerms) : undefined,
+              creditLimit: customer.creditLimit || undefined,
+              interestApplicableFrom: customer.interestApplicableFrom || undefined,
+              interestRate: customer.interestRate || undefined,
+              salesPerson: customer.salesPerson || undefined,
+            };
+          }
+        }
+        
         const invoiceData = {
           invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
-          customerName: String((row as any)["Customer Name"] || "").trim(),
+          customerName: customerName,
           invoiceDate: parsedDate,
           invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
           netProfit: String((row as any)["Net Profit"] || "0").trim(),
           status: String((row as any)["Status"] || "Unpaid").trim() as "Paid" | "Unpaid" | "Partial",
           assignedUser: String((row as any)["Assigned User"] || "").trim() || undefined,
           remarks: String((row as any)["Remarks"] || "").trim() || undefined,
+          ...customerDetails,
         };
 
         const result = insertInvoiceSchema.safeParse(invoiceData);
