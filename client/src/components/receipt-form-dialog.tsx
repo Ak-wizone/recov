@@ -26,6 +26,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
     resolver: zodResolver(insertReceiptSchema),
     defaultValues: {
       voucherNumber: receipt?.voucherNumber || "",
+      voucherType: receipt?.voucherType || "",
       customerName: receipt?.customerName || "",
       date: receipt?.date ? format(new Date(receipt.date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       amount: receipt?.amount || "",
@@ -80,6 +81,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
     if (open && receipt) {
       form.reset({
         voucherNumber: receipt.voucherNumber,
+        voucherType: receipt.voucherType,
         customerName: receipt.customerName,
         date: format(new Date(receipt.date), "yyyy-MM-dd"),
         amount: receipt.amount || "",
@@ -88,6 +90,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
     } else if (open && !receipt) {
       form.reset({
         voucherNumber: "",
+        voucherType: "",
         customerName: "",
         date: format(new Date(), "yyyy-MM-dd"),
         amount: "",
@@ -127,6 +130,20 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
                       <FormLabel>Voucher Number *</FormLabel>
                       <FormControl>
                         <Input {...field} placeholder="e.g., VCH-2025-001" data-testid="input-voucher-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="voucherType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Voucher Type *</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., Cash, Bank, UPI" data-testid="input-voucher-type" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

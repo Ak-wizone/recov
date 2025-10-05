@@ -376,6 +376,7 @@ export type Invoice = typeof invoices.$inferSelect;
 export const receipts = pgTable("receipts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   voucherNumber: text("voucher_number").notNull(),
+  voucherType: text("voucher_type").notNull(),
   customerName: text("customer_name").notNull(),
   date: timestamp("date").notNull(),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
@@ -385,12 +386,14 @@ export const receipts = pgTable("receipts", {
 
 export const insertReceiptSchema = createInsertSchema(receipts).pick({
   voucherNumber: true,
+  voucherType: true,
   customerName: true,
   date: true,
   amount: true,
   remarks: true,
 }).extend({
   voucherNumber: z.string().min(1, "Voucher number is required"),
+  voucherType: z.string().min(1, "Voucher type is required"),
   customerName: z.string().min(1, "Customer name is required"),
   date: z.string().min(1, "Date is required"),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {

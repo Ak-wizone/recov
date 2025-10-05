@@ -36,6 +36,17 @@ export function ReceiptTable({
         enableColumnFilter: true,
       },
       {
+        accessorKey: "voucherType",
+        header: "Voucher Type",
+        cell: ({ row }) => (
+          <div data-testid={`text-voucher-type-${row.original.id}`}>
+            {row.original.voucherType}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
         accessorKey: "customerName",
         header: "Customer Name",
         cell: ({ row }) => (

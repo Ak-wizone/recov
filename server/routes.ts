@@ -1528,10 +1528,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download receipt template (MUST BE BEFORE /:id)
   app.get("/api/receipts/template", async (req, res) => {
     try {
-      const headers = ["Voucher Number", "Customer Name", "Date", "Amount", "Remarks"];
+      const headers = ["Voucher Number", "Voucher Type", "Customer Name", "Date", "Amount", "Remarks"];
       const sampleData = [
         {
           "Voucher Number": "RCPT001",
+          "Voucher Type": "Cash",
           "Customer Name": "ABC Company",
           "Date": "2024-01-15",
           "Amount": "50000",
@@ -1560,6 +1561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const data = receipts.map((receipt) => ({
         "Voucher Number": receipt.voucherNumber,
+        "Voucher Type": receipt.voucherType,
         "Customer Name": receipt.customerName,
         "Date": receipt.date.toISOString().split('T')[0],
         "Amount": receipt.amount,
@@ -1616,6 +1618,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const receiptData = {
           voucherNumber: String((row as any)["Voucher Number"] || "").trim(),
+          voucherType: String((row as any)["Voucher Type"] || "").trim(),
           customerName: String((row as any)["Customer Name"] || "").trim(),
           date: parsedDate,
           amount: String((row as any)["Amount"] || "0").trim(),
@@ -1624,13 +1627,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const result = insertReceiptSchema.safeParse(receiptData);
         if (result.success) {
-          // Check if voucher number already exists
-          const existingReceipt = await storage.getReceiptByVoucherNumber(result.data.voucherNumber);
+          // Check if combination of voucherType and voucherNumber already exists
+          const existingReceipt = await storage.getReceiptByVoucherNumber(result.data.voucherType, result.data.voucherNumber);
           if (existingReceipt) {
             duplicates.push({ 
               row: i + 2, 
+              voucherType: result.data.voucherType,
               voucherNumber: result.data.voucherNumber,
-              error: `Duplicate voucher number: ${result.data.voucherNumber}` 
+              error: `Duplicate: ${result.data.voucherType} - ${result.data.voucherNumber}` 
             });
           } else {
             const receipt = await storage.createReceipt(result.data);
