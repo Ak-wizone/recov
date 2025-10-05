@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertReceiptSchema, type InsertReceipt, type Receipt } from "@shared/schema";
-import { useMutation } from "@tanstack/react-query";
+import { insertReceiptSchema, type InsertReceipt, type Receipt, type MasterCustomer } from "@shared/schema";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -9,9 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
 import { format } from "date-fns";
+
+const DEFAULT_VOUCHER_TYPES = ["Receipt", "CN", "TDS"];
 
 interface ReceiptFormDialogProps {
   open: boolean;
@@ -21,6 +24,19 @@ interface ReceiptFormDialogProps {
 
 export default function ReceiptFormDialog({ open, onOpenChange, receipt }: ReceiptFormDialogProps) {
   const { toast } = useToast();
+  const [customVoucherTypes, setCustomVoucherTypes] = useState<string[]>(() => {
+    const saved = localStorage.getItem('customVoucherTypes');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [isAddVoucherTypeOpen, setIsAddVoucherTypeOpen] = useState(false);
+  const [newVoucherType, setNewVoucherType] = useState("");
+
+  const allVoucherTypes = [...DEFAULT_VOUCHER_TYPES, ...customVoucherTypes].sort();
+
+  // Fetch master customers
+  const { data: masterCustomers = [], isLoading: isLoadingCustomers } = useQuery<MasterCustomer[]>({
+    queryKey: ["/api/masters/customers"],
+  });
 
   const form = useForm<InsertReceipt>({
     resolver: zodResolver(insertReceiptSchema),
@@ -99,6 +115,28 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
     }
   }, [open, receipt, form]);
 
+  const handleAddCustomVoucherType = () => {
+    if (newVoucherType.trim() && !allVoucherTypes.includes(newVoucherType.trim())) {
+      const typeToAdd = newVoucherType.trim();
+      const updatedCustomTypes = [...customVoucherTypes, typeToAdd];
+      setCustomVoucherTypes(updatedCustomTypes);
+      localStorage.setItem('customVoucherTypes', JSON.stringify(updatedCustomTypes));
+      form.setValue('voucherType', typeToAdd);
+      setNewVoucherType("");
+      setIsAddVoucherTypeOpen(false);
+      toast({
+        title: "Success",
+        description: `Custom voucher type "${typeToAdd}" added successfully`,
+      });
+    } else if (allVoucherTypes.includes(newVoucherType.trim())) {
+      toast({
+        title: "Error",
+        description: "This voucher type already exists",
+        variant: "destructive",
+      });
+    }
+  };
+
   const onSubmit = (data: InsertReceipt) => {
     if (receipt) {
       updateMutation.mutate(data);
@@ -142,9 +180,31 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Voucher Type *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., Cash, Bank, UPI" data-testid="input-voucher-type" />
-                      </FormControl>
+                      <div className="flex gap-2">
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-voucher-type">
+                              <SelectValue placeholder="Select voucher type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {allVoucherTypes.map((type) => (
+                              <SelectItem key={type} value={type} data-testid={`option-voucher-type-${type}`}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setIsAddVoucherTypeOpen(true)}
+                          data-testid="button-add-voucher-type"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -158,9 +218,30 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Customer Name *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter customer name" data-testid="input-customer-name" />
-                      </FormControl>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        disabled={isLoadingCustomers}
+                      >
+                        <FormControl>
+                          <SelectTrigger data-testid="select-customer">
+                            <SelectValue placeholder={isLoadingCustomers ? "Loading customers..." : "Select customer"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {masterCustomers
+                            .filter(c => c.isActive === "Active")
+                            .map((customer) => (
+                              <SelectItem 
+                                key={customer.id} 
+                                value={customer.clientName}
+                                data-testid={`option-customer-${customer.id}`}
+                              >
+                                {customer.clientName}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -236,6 +317,51 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
           </form>
         </Form>
       </DialogContent>
+
+      {/* Add Custom Voucher Type Dialog */}
+      <Dialog open={isAddVoucherTypeOpen} onOpenChange={setIsAddVoucherTypeOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Custom Voucher Type</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Input
+                placeholder="Enter voucher type name"
+                value={newVoucherType}
+                onChange={(e) => setNewVoucherType(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomVoucherType();
+                  }
+                }}
+                data-testid="input-new-voucher-type"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsAddVoucherTypeOpen(false);
+                  setNewVoucherType("");
+                }}
+                data-testid="button-cancel-voucher-type"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleAddCustomVoucherType}
+                data-testid="button-save-voucher-type"
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
