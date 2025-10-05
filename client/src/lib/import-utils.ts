@@ -16,6 +16,7 @@ export interface ImportRow {
   pincode?: string;
   paymentTermsDays?: string;
   creditLimit?: string;
+  openingBalance?: string;
   interestApplicableFrom?: string;
   interestRate?: string;
   salesPerson?: string;
@@ -142,6 +143,7 @@ export async function parseImportFile(file: File): Promise<ImportRow[]> {
           pincode: String(row["PINCODE"] || row["Pin Code"] || row["Pincode"] || row.pincode || row.PinCode || "").trim(),
           paymentTermsDays: String(row["PAYMENT TERMS (DAYS)"] || row["Payment Terms (Days)"] || row["Payment Terms"] || row.paymentTermsDays || row.PaymentTerms || "").trim(),
           creditLimit: String(row["CREDIT LIMIT"] || row["Credit Limit"] || row.creditLimit || row.CreditLimit || "").trim(),
+          openingBalance: String(row["OPENING BALANCE"] || row["Opening Balance"] || row.openingBalance || row.OpeningBalance || "").trim(),
           interestApplicableFrom: String(row["INTEREST APPLICABLE FROM"] || row["Interest Applicable From"] || row.interestApplicableFrom || row.InterestApplicableFrom || "").trim(),
           interestRate: String(row["INTEREST RATE"] || row["Interest Rate"] || row.interestRate || row.InterestRate || "").trim(),
           salesPerson: String(row["SALES PERSON"] || row["Sales Person"] || row.salesPerson || row.SalesPerson || "").trim(),
@@ -675,6 +677,7 @@ export function generateSampleTemplate(): any[] {
       "PINCODE": "400001",
       "PAYMENT TERMS (DAYS)": "30",
       "CREDIT LIMIT": "500000",
+      "OPENING BALANCE": "50000",
       "INTEREST APPLICABLE FROM": "After Due Date",
       "INTEREST RATE": "18",
       "SALES PERSON": "Manpreet Bedi",
@@ -696,6 +699,7 @@ export function generateSampleTemplate(): any[] {
       "PINCODE": "560001",
       "PAYMENT TERMS (DAYS)": "45",
       "CREDIT LIMIT": "750000",
+      "OPENING BALANCE": "",
       "INTEREST APPLICABLE FROM": "30 Days After Invoice",
       "INTEREST RATE": "15",
       "SALES PERSON": "Bilal Ahamad",
@@ -717,6 +721,7 @@ export function generateSampleTemplate(): any[] {
       "PINCODE": "411001",
       "PAYMENT TERMS (DAYS)": "60",
       "CREDIT LIMIT": "1000000",
+      "OPENING BALANCE": "25000",
       "INTEREST APPLICABLE FROM": "Immediate",
       "INTEREST RATE": "12",
       "SALES PERSON": "Anjali Dhiman",

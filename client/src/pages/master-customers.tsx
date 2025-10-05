@@ -373,6 +373,16 @@ export default function MasterCustomers() {
         enableSorting: true,
       },
       {
+        accessorKey: "openingBalance",
+        header: "OPENING BALANCE",
+        cell: ({ row }) => (
+          <span className="text-gray-700 font-medium" data-testid={`text-openingBalance-${row.original.id}`}>
+            {formatCurrency(row.original.openingBalance)}
+          </span>
+        ),
+        enableSorting: true,
+      },
+      {
         accessorKey: "salesPerson",
         header: "SALES PERSON",
         cell: ({ row }) => (

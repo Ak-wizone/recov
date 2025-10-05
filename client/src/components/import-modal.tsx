@@ -367,6 +367,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
             "PINCODE": row.pincode || "",
             "PAYMENT TERMS (DAYS)": row.paymentTermsDays || "",
             "CREDIT LIMIT": row.creditLimit || "",
+            "OPENING BALANCE": row.openingBalance || "",
             "INTEREST APPLICABLE FROM": row.interestApplicableFrom || "",
             "INTEREST RATE": row.interestRate || "",
             "SALES PERSON": row.salesPerson || "",
