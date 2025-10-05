@@ -54,6 +54,116 @@ export function InvoiceTable({
         enableColumnFilter: true,
       },
       {
+        accessorKey: "category",
+        header: "Category",
+        cell: ({ row }) => {
+          const categoryColors = {
+            Alpha: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+            Beta: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+            Gamma: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+            Delta: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+          };
+          const category = row.original.category;
+          return category ? (
+            <Badge className={categoryColors[category as keyof typeof categoryColors]}>
+              {category}
+            </Badge>
+          ) : (
+            <div>—</div>
+          );
+        },
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
+        accessorKey: "primaryMobile",
+        header: "Primary Mobile",
+        cell: ({ row }) => (
+          <div data-testid={`text-primary-mobile-${row.original.id}`}>
+            {row.original.primaryMobile || "—"}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
+        accessorKey: "city",
+        header: "City",
+        cell: ({ row }) => (
+          <div data-testid={`text-city-${row.original.id}`}>
+            {row.original.city || "—"}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
+        accessorKey: "pincode",
+        header: "Pincode",
+        cell: ({ row }) => (
+          <div data-testid={`text-pincode-${row.original.id}`}>
+            {row.original.pincode || "—"}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
+        accessorKey: "paymentTerms",
+        header: "Payment Terms",
+        cell: ({ row }) => (
+          <div data-testid={`text-payment-terms-${row.original.id}`}>
+            {row.original.paymentTerms ? `${row.original.paymentTerms} days` : "—"}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
+        accessorKey: "creditLimit",
+        header: "Credit Limit",
+        cell: ({ row }) => (
+          <div data-testid={`text-credit-limit-${row.original.id}`}>
+            {row.original.creditLimit ? `₹${parseFloat(row.original.creditLimit).toFixed(2)}` : "—"}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
+        accessorKey: "interestApplicableFrom",
+        header: "Interest Applicable From",
+        cell: ({ row }) => (
+          <div data-testid={`text-interest-applicable-${row.original.id}`}>
+            {row.original.interestApplicableFrom || "—"}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
+        accessorKey: "interestRate",
+        header: "Interest Rate",
+        cell: ({ row }) => (
+          <div data-testid={`text-interest-rate-${row.original.id}`}>
+            {row.original.interestRate ? `${row.original.interestRate}%` : "—"}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
+        accessorKey: "salesPerson",
+        header: "Sales Person",
+        cell: ({ row }) => (
+          <div data-testid={`text-sales-person-${row.original.id}`}>
+            {row.original.salesPerson || "—"}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
         accessorKey: "invoiceDate",
         header: "Invoice Date",
         cell: ({ row }) => (
