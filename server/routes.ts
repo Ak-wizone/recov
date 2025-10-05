@@ -1310,6 +1310,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const errors = [];
       const duplicates = [];
 
+      const uniqueCustomers = new Set<string>();
+      
       for (let i = 0; i < data.length; i++) {
         const row = data[i];
         
@@ -1375,10 +1377,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else {
             const invoice = await storage.createInvoice(result.data);
             results.push(invoice);
+            // Track unique customer names for FIFO recalculation
+            uniqueCustomers.add(invoice.customerName);
           }
         } else {
           errors.push({ row: i + 2, error: fromZodError(result.error).message });
         }
+      }
+
+      // Recalculate invoice statuses using FIFO for all affected customers
+      for (const customerName of uniqueCustomers) {
+        await calculateInvoiceStatuses(customerName);
       }
 
       res.json({ 
