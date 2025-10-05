@@ -264,6 +264,16 @@ export const invoices = pgTable("invoices", {
   status: text("status").notNull().default("Unpaid"), // Paid, Unpaid, Partial
   assignedUser: text("assigned_user"),
   remarks: text("remarks"),
+  // Customer-related fields (auto-populated from customer selection)
+  category: text("category"),
+  primaryMobile: text("primary_mobile"),
+  city: text("city"),
+  pincode: text("pincode"),
+  paymentTerms: integer("payment_terms"),
+  creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }),
+  interestApplicableFrom: text("interest_applicable_from"),
+  interestRate: decimal("interest_rate", { precision: 5, scale: 2 }),
+  salesPerson: text("sales_person"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -276,6 +286,15 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   status: true,
   assignedUser: true,
   remarks: true,
+  category: true,
+  primaryMobile: true,
+  city: true,
+  pincode: true,
+  paymentTerms: true,
+  creditLimit: true,
+  interestApplicableFrom: true,
+  interestRate: true,
+  salesPerson: true,
 }).extend({
   invoiceNumber: z.string().min(1, "Invoice number is required"),
   customerName: z.string().min(1, "Customer name is required"),
@@ -293,6 +312,15 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
     errorMap: () => ({ message: "Invalid assigned user" }),
   }).optional(),
   remarks: z.string().optional(),
+  category: z.string().optional(),
+  primaryMobile: z.string().optional(),
+  city: z.string().optional(),
+  pincode: z.string().optional(),
+  paymentTerms: z.string().optional(),
+  creditLimit: z.string().optional(),
+  interestApplicableFrom: z.string().optional(),
+  interestRate: z.string().optional(),
+  salesPerson: z.string().optional(),
 });
 
 export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
