@@ -774,7 +774,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               error: `Duplicate customer name: "${result.data.clientName}" already exists in database`
             });
           } else {
-            const customer = await storage.createMasterCustomer(result.data);
+            // For flexible import, provide defaults for required fields
+            const customerData: any = flexibleImport ? {
+              ...result.data,
+              category: result.data.category || "Alpha",
+              primaryMobile: result.data.primaryMobile || "",
+              primaryEmail: result.data.primaryEmail || "",
+              gstNumber: result.data.gstNumber || "",
+              billingAddress: result.data.billingAddress || "",
+              city: result.data.city || "",
+              pincode: result.data.pincode || "",
+              paymentTermsDays: result.data.paymentTermsDays || "0",
+              creditLimit: result.data.creditLimit || "0",
+              interestRate: result.data.interestRate || "0",
+            } : result.data;
+            
+            const customer = await storage.createMasterCustomer(customerData);
             results.push(customer);
             // Add to existing names to prevent duplicates within the import batch
             existingNames.add(normalizedName);
@@ -1392,7 +1407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Recalculate invoice statuses using FIFO for all affected customers
-      for (const customerName of uniqueCustomers) {
+      for (const customerName of Array.from(uniqueCustomers)) {
         await calculateInvoiceStatuses(customerName);
       }
 
