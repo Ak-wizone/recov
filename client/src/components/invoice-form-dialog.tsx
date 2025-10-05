@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertInvoiceSchema, type InsertInvoice, type Invoice } from "@shared/schema";
-import { useMutation } from "@tanstack/react-query";
+import { insertInvoiceSchema, type InsertInvoice, type Invoice, type MasterCustomer } from "@shared/schema";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,6 +23,11 @@ interface InvoiceFormDialogProps {
 export default function InvoiceFormDialog({ open, onOpenChange, invoice }: InvoiceFormDialogProps) {
   const { toast } = useToast();
 
+  // Fetch master customers for dropdown
+  const { data: customers = [], isLoading: customersLoading } = useQuery<MasterCustomer[]>({
+    queryKey: ["/api/masters/customers"],
+  });
+
   const form = useForm<InsertInvoice>({
     resolver: zodResolver(insertInvoiceSchema),
     defaultValues: {
@@ -34,8 +39,39 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
       status: (invoice?.status as "Paid" | "Unpaid" | "Partial") || "Unpaid",
       assignedUser: invoice?.assignedUser as "Manpreet Bedi" | "Bilal Ahamad" | "Anjali Dhiman" | "Princi Soni" | undefined,
       remarks: invoice?.remarks || "",
+      category: invoice?.category || "",
+      primaryMobile: invoice?.primaryMobile || "",
+      city: invoice?.city || "",
+      pincode: invoice?.pincode || "",
+      paymentTerms: invoice?.paymentTerms || undefined,
+      creditLimit: invoice?.creditLimit || "",
+      interestApplicableFrom: invoice?.interestApplicableFrom || "",
+      interestRate: invoice?.interestRate || "",
+      salesPerson: invoice?.salesPerson || "",
     },
   });
+
+  // Auto-populate customer fields when customer is selected
+  const handleCustomerSelect = async (clientName: string) => {
+    try {
+      const response = await fetch(`/api/masters/customers/by-name/${encodeURIComponent(clientName)}`);
+      if (response.ok) {
+        const customer = await response.json();
+        // Set customer details
+        form.setValue("category", customer.category || "");
+        form.setValue("primaryMobile", customer.primaryMobile || "");
+        form.setValue("city", customer.city || "");
+        form.setValue("pincode", customer.pincode || "");
+        form.setValue("paymentTerms", customer.paymentTerms ? parseInt(customer.paymentTerms) : undefined);
+        form.setValue("creditLimit", customer.creditLimit || "");
+        form.setValue("interestApplicableFrom", customer.interestApplicableFrom || "");
+        form.setValue("interestRate", customer.interestRate || "");
+        form.setValue("salesPerson", customer.salesPerson || "");
+      }
+    } catch (error) {
+      console.error("Failed to fetch customer details:", error);
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: (data: InsertInvoice) => 
@@ -91,6 +127,15 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         status: invoice.status as "Paid" | "Unpaid" | "Partial",
         assignedUser: invoice.assignedUser as "Manpreet Bedi" | "Bilal Ahamad" | "Anjali Dhiman" | "Princi Soni" | undefined,
         remarks: invoice.remarks || "",
+        category: invoice.category || "",
+        primaryMobile: invoice.primaryMobile || "",
+        city: invoice.city || "",
+        pincode: invoice.pincode || "",
+        paymentTerms: invoice.paymentTerms || undefined,
+        creditLimit: invoice.creditLimit || "",
+        interestApplicableFrom: invoice.interestApplicableFrom || "",
+        interestRate: invoice.interestRate || "",
+        salesPerson: invoice.salesPerson || "",
       });
     } else if (open && !invoice) {
       form.reset({
@@ -102,6 +147,15 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         status: "Unpaid",
         assignedUser: undefined,
         remarks: "",
+        category: "",
+        primaryMobile: "",
+        city: "",
+        pincode: "",
+        paymentTerms: undefined,
+        creditLimit: "",
+        interestApplicableFrom: "",
+        interestRate: "",
+        salesPerson: "",
       });
     }
   }, [open, invoice, form]);
@@ -150,9 +204,36 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Customer Name *</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Enter customer name" data-testid="input-customer-name" />
-                      </FormControl>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          handleCustomerSelect(value);
+                        }}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger data-testid="select-customer-name">
+                            <SelectValue placeholder="Select customer" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {customersLoading ? (
+                            <SelectItem value="loading" disabled>
+                              Loading customers...
+                            </SelectItem>
+                          ) : customers.length === 0 ? (
+                            <SelectItem value="no-customers" disabled>
+                              No customers found
+                            </SelectItem>
+                          ) : (
+                            customers.map((customer) => (
+                              <SelectItem key={customer.id} value={customer.clientName}>
+                                {customer.clientName}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
