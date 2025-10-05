@@ -36,17 +36,6 @@ export function ReceiptTable({
         enableColumnFilter: true,
       },
       {
-        accessorKey: "invoiceNumber",
-        header: "Invoice Number",
-        cell: ({ row }) => (
-          <div data-testid={`text-invoice-number-${row.original.id}`}>
-            {row.original.invoiceNumber}
-          </div>
-        ),
-        enableSorting: true,
-        enableColumnFilter: true,
-      },
-      {
         accessorKey: "customerName",
         header: "Customer Name",
         cell: ({ row }) => (
