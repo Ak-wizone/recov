@@ -283,7 +283,6 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   invoiceDate: true,
   invoiceAmount: true,
   netProfit: true,
-  status: true,
   assignedUser: true,
   remarks: true,
   category: true,
@@ -305,9 +304,6 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   netProfit: z.string().refine((val) => !isNaN(parseFloat(val)), {
     message: "Net profit must be a valid number",
   }),
-  status: z.enum(["Paid", "Unpaid", "Partial"], {
-    errorMap: () => ({ message: "Status must be Paid, Unpaid, or Partial" }),
-  }).default("Unpaid"),
   assignedUser: z.enum(["Manpreet Bedi", "Bilal Ahamad", "Anjali Dhiman", "Princi Soni"], {
     errorMap: () => ({ message: "Invalid assigned user" }),
   }).optional(),

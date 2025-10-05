@@ -1,12 +1,14 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, invoices } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -1170,6 +1172,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== INVOICE ROUTES =====
 
+  // FIFO Allocation Algorithm - Calculate invoice statuses based on receipt allocation
+  async function calculateInvoiceStatuses(customerName: string) {
+    try {
+      // Get all invoices for the customer (ordered by invoice date - oldest first)
+      const customerInvoices = await storage.getInvoicesByCustomerName(customerName);
+      
+      // Get all receipts for the customer
+      const customerReceipts = await storage.getReceiptsByCustomerName(customerName);
+      
+      // Calculate total receipt amount
+      const totalReceiptAmount = customerReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
+      
+      // Allocate receipt amount to invoices using FIFO
+      let remainingReceiptAmount = totalReceiptAmount;
+      
+      for (const invoice of customerInvoices) {
+        const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+        let status: "Paid" | "Unpaid" | "Partial";
+        
+        if (remainingReceiptAmount >= invoiceAmount) {
+          // Fully paid
+          status = "Paid";
+          remainingReceiptAmount -= invoiceAmount;
+        } else if (remainingReceiptAmount > 0 && remainingReceiptAmount < invoiceAmount) {
+          // Partially paid
+          status = "Partial";
+          remainingReceiptAmount = 0;
+        } else {
+          // Unpaid
+          status = "Unpaid";
+        }
+        
+        // Update invoice status if it changed
+        if (invoice.status !== status) {
+          // Update status directly in database (bypassing schema validation)
+          await db.update(invoices).set({ status }).where(eq(invoices.id, invoice.id));
+        }
+      }
+    } catch (error) {
+      console.error("Error calculating invoice statuses:", error);
+      throw error;
+    }
+  }
+
   // Get all invoices
   app.get("/api/invoices", async (_req, res) => {
     try {
@@ -1381,8 +1427,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const invoice = await storage.createInvoice(result.data);
-      res.json(invoice);
+      
+      // Set initial status to Unpaid
+      const invoiceData = { ...result.data, status: "Unpaid" as const };
+      const invoice = await storage.createInvoice(invoiceData);
+      
+      // Recalculate all invoice statuses for this customer using FIFO
+      await calculateInvoiceStatuses(invoice.customerName);
+      
+      // Get the updated invoice with the calculated status
+      const updatedInvoice = await storage.getInvoice(invoice.id);
+      
+      res.json(updatedInvoice);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -1395,11 +1451,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
+      
       const invoice = await storage.updateInvoice(req.params.id, result.data);
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
-      res.json(invoice);
+      
+      // Recalculate all invoice statuses for this customer using FIFO
+      await calculateInvoiceStatuses(invoice.customerName);
+      
+      // Get the updated invoice with the calculated status
+      const updatedInvoice = await storage.getInvoice(invoice.id);
+      
+      res.json(updatedInvoice);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -1597,6 +1661,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
       const receipt = await storage.createReceipt(result.data);
+      
+      // Recalculate all invoice statuses for this customer using FIFO
+      await calculateInvoiceStatuses(receipt.customerName);
+      
       res.json(receipt);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1614,6 +1682,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!receipt) {
         return res.status(404).json({ message: "Receipt not found" });
       }
+      
+      // Recalculate all invoice statuses for this customer using FIFO
+      await calculateInvoiceStatuses(receipt.customerName);
+      
       res.json(receipt);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1623,10 +1695,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete receipt
   app.delete("/api/receipts/:id", async (req, res) => {
     try {
+      // Get the receipt first to know the customer name
+      const receipt = await storage.getReceipt(req.params.id);
+      if (!receipt) {
+        return res.status(404).json({ message: "Receipt not found" });
+      }
+      
+      const customerName = receipt.customerName;
       const deleted = await storage.deleteReceipt(req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Receipt not found" });
       }
+      
+      // Recalculate all invoice statuses for this customer using FIFO
+      await calculateInvoiceStatuses(customerName);
+      
       res.json({ message: "Receipt deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });

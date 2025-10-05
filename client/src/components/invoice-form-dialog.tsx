@@ -36,7 +36,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
       invoiceDate: invoice?.invoiceDate ? format(new Date(invoice.invoiceDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       invoiceAmount: invoice?.invoiceAmount || "",
       netProfit: invoice?.netProfit || "",
-      status: (invoice?.status as "Paid" | "Unpaid" | "Partial") || "Unpaid",
       assignedUser: invoice?.assignedUser as "Manpreet Bedi" | "Bilal Ahamad" | "Anjali Dhiman" | "Princi Soni" | undefined,
       remarks: invoice?.remarks || "",
       category: invoice?.category || "",
@@ -124,7 +123,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         invoiceDate: format(new Date(invoice.invoiceDate), "yyyy-MM-dd"),
         invoiceAmount: invoice.invoiceAmount || "",
         netProfit: invoice.netProfit || "",
-        status: invoice.status as "Paid" | "Unpaid" | "Partial",
         assignedUser: invoice.assignedUser as "Manpreet Bedi" | "Bilal Ahamad" | "Anjali Dhiman" | "Princi Soni" | undefined,
         remarks: invoice.remarks || "",
         category: invoice.category || "",
@@ -144,7 +142,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         invoiceDate: format(new Date(), "yyyy-MM-dd"),
         invoiceAmount: "",
         netProfit: "",
-        status: "Unpaid",
         assignedUser: undefined,
         remarks: "",
         category: "",
@@ -250,29 +247,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
                       <FormControl>
                         <Input type="date" {...field} data-testid="input-invoice-date" />
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-status">
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Unpaid" data-testid="option-unpaid">Unpaid</SelectItem>
-                          <SelectItem value="Partial" data-testid="option-partial">Partial</SelectItem>
-                          <SelectItem value="Paid" data-testid="option-paid">Paid</SelectItem>
-                        </SelectContent>
-                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

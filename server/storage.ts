@@ -49,6 +49,7 @@ export interface IStorage {
   getInvoices(): Promise<Invoice[]>;
   getInvoice(id: string): Promise<Invoice | undefined>;
   getInvoiceByNumber(invoiceNumber: string): Promise<Invoice | undefined>;
+  getInvoicesByCustomerName(customerName: string): Promise<Invoice[]>;
   createInvoice(invoice: InsertInvoice): Promise<Invoice>;
   updateInvoice(id: string, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
   deleteInvoice(id: string): Promise<boolean>;
@@ -58,6 +59,7 @@ export interface IStorage {
   getReceipts(): Promise<Receipt[]>;
   getReceipt(id: string): Promise<Receipt | undefined>;
   getReceiptByVoucherNumber(voucherNumber: string): Promise<Receipt | undefined>;
+  getReceiptsByCustomerName(customerName: string): Promise<Receipt[]>;
   createReceipt(receipt: InsertReceipt): Promise<Receipt>;
   updateReceipt(id: string, receipt: Partial<InsertReceipt>): Promise<Receipt | undefined>;
   deleteReceipt(id: string): Promise<boolean>;
@@ -477,6 +479,12 @@ export class DatabaseStorage implements IStorage {
     return invoice || undefined;
   }
 
+  async getInvoicesByCustomerName(customerName: string): Promise<Invoice[]> {
+    return await db.select().from(invoices)
+      .where(eq(invoices.customerName, customerName))
+      .orderBy(invoices.invoiceDate);
+  }
+
   async createInvoice(insertInvoice: InsertInvoice): Promise<Invoice> {
     const [invoice] = await db
       .insert(invoices)
@@ -533,6 +541,12 @@ export class DatabaseStorage implements IStorage {
   async getReceiptByVoucherNumber(voucherNumber: string): Promise<Receipt | undefined> {
     const [receipt] = await db.select().from(receipts).where(eq(receipts.voucherNumber, voucherNumber));
     return receipt || undefined;
+  }
+
+  async getReceiptsByCustomerName(customerName: string): Promise<Receipt[]> {
+    return await db.select().from(receipts)
+      .where(eq(receipts.customerName, customerName))
+      .orderBy(receipts.date);
   }
 
   async createReceipt(insertReceipt: InsertReceipt): Promise<Receipt> {
