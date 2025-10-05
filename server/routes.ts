@@ -1528,11 +1528,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Download receipt template (MUST BE BEFORE /:id)
   app.get("/api/receipts/template", async (req, res) => {
     try {
-      const headers = ["Voucher Number", "Invoice Number", "Customer Name", "Date", "Amount", "Remarks"];
+      const headers = ["Voucher Number", "Customer Name", "Date", "Amount", "Remarks"];
       const sampleData = [
         {
           "Voucher Number": "RCPT001",
-          "Invoice Number": "INV001",
           "Customer Name": "ABC Company",
           "Date": "2024-01-15",
           "Amount": "50000",

@@ -51,7 +51,6 @@ export interface ImportInvoiceRow {
 
 export interface ImportReceiptRow {
   voucherNumber?: string;
-  invoiceNumber?: string;
   customerName?: string;
   date?: string;
   amount?: string;
@@ -272,7 +271,6 @@ export async function parseReceiptsFile(file: File): Promise<ImportReceiptRow[]>
 
         const rows: ImportReceiptRow[] = jsonData.map((row: any) => ({
           voucherNumber: String(row["Voucher Number"] || row.voucherNumber || row.VoucherNumber || "").trim(),
-          invoiceNumber: String(row["Invoice Number"] || row.invoiceNumber || row.InvoiceNumber || "").trim(),
           customerName: String(row["Customer Name"] || row.customerName || row.CustomerName || "").trim(),
           date: String(row["Date"] || row.date || row["Receipt Date"] || row.receiptDate || "").trim(),
           amount: String(row["Amount"] || row.amount || "").trim(),
@@ -683,14 +681,6 @@ export function validateReceiptRow(row: ImportReceiptRow, rowNumber: number): Va
       row: rowNumber,
       message: "Voucher Number is required",
       field: "voucherNumber",
-    });
-  }
-
-  if (!row.invoiceNumber || row.invoiceNumber === "") {
-    errors.push({
-      row: rowNumber,
-      message: "Invoice Number is required",
-      field: "invoiceNumber",
     });
   }
 

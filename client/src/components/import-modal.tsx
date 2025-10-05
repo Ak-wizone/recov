@@ -413,7 +413,6 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
         } else if (module === 'receipts') {
           worksheet = XLSX.utils.json_to_sheet(previewData.map(row => ({
             "Voucher Number": row.voucherNumber || "",
-            "Invoice Number": row.invoiceNumber || "",
             "Customer Name": row.customerName || "",
             "Date": row.date || "",
             "Amount": row.amount || "",
@@ -1165,7 +1164,6 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                         <TableRow>
                           <TableHead className="w-16">Row</TableHead>
                           <TableHead>Voucher Number *</TableHead>
-                          <TableHead>Invoice Number *</TableHead>
                           <TableHead>Customer Name *</TableHead>
                           <TableHead>Date *</TableHead>
                           <TableHead>Amount *</TableHead>
@@ -1198,20 +1196,6 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                                 />
                                 {cellErrors.has(`${rowNumber}-voucherNumber`) && (
                                   <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-voucherNumber`)}</p>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Input
-                                  value={row.invoiceNumber || ""}
-                                  onChange={(e) => handleCellEdit(index, "invoiceNumber", e.target.value)}
-                                  className={cn(
-                                    "h-8 text-sm",
-                                    cellErrors.has(`${rowNumber}-invoiceNumber`) && "border-red-500 focus-visible:ring-red-500"
-                                  )}
-                                  data-testid={`input-invoicenumber-${index}`}
-                                />
-                                {cellErrors.has(`${rowNumber}-invoiceNumber`) && (
-                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-invoiceNumber`)}</p>
                                 )}
                               </TableCell>
                               <TableCell>
