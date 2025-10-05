@@ -62,7 +62,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         form.setValue("primaryMobile", customer.primaryMobile || "");
         form.setValue("city", customer.city || "");
         form.setValue("pincode", customer.pincode || "");
-        form.setValue("paymentTerms", customer.paymentTerms ? parseInt(customer.paymentTerms) : undefined);
+        form.setValue("paymentTerms", customer.paymentTermsDays ? parseInt(customer.paymentTermsDays) : undefined);
         form.setValue("creditLimit", customer.creditLimit || "");
         form.setValue("interestApplicableFrom", customer.interestApplicableFrom || "");
         form.setValue("interestRate", customer.interestRate || "");

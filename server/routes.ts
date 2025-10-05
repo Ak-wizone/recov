@@ -1307,7 +1307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               primaryMobile: customer.primaryMobile || undefined,
               city: customer.city || undefined,
               pincode: customer.pincode || undefined,
-              paymentTerms: customer.paymentTerms ? parseInt(customer.paymentTerms) : undefined,
+              paymentTerms: customer.paymentTermsDays ? parseInt(customer.paymentTermsDays) : undefined,
               creditLimit: customer.creditLimit || undefined,
               interestApplicableFrom: customer.interestApplicableFrom || undefined,
               interestRate: customer.interestRate || undefined,
