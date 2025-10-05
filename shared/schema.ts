@@ -191,6 +191,61 @@ export const insertMasterCustomerSchema = createInsertSchema(masterCustomers).pi
 export type InsertMasterCustomer = z.infer<typeof insertMasterCustomerSchema>;
 export type MasterCustomer = typeof masterCustomers.$inferSelect;
 
+// Flexible import schema - only clientName is required
+export const insertMasterCustomerSchemaFlexible = createInsertSchema(masterCustomers).pick({
+  clientName: true,
+  category: true,
+  primaryContactName: true,
+  primaryMobile: true,
+  primaryEmail: true,
+  secondaryContactName: true,
+  secondaryMobile: true,
+  secondaryEmail: true,
+  gstNumber: true,
+  billingAddress: true,
+  city: true,
+  state: true,
+  pincode: true,
+  paymentTermsDays: true,
+  creditLimit: true,
+  openingBalance: true,
+  interestApplicableFrom: true,
+  interestRate: true,
+  salesPerson: true,
+  isActive: true,
+}).extend({
+  clientName: z.string().min(1, "Client name is required"),
+  category: z.enum(["Alpha", "Beta", "Gamma", "Delta"], {
+    errorMap: () => ({ message: "Category must be Alpha, Beta, Gamma, or Delta" }),
+  }).optional(),
+  primaryContactName: z.string().optional(),
+  primaryMobile: z.string()
+    .regex(/^[0-9]{10}$/, "Mobile number must be exactly 10 digits")
+    .optional()
+    .or(z.literal("")),
+  primaryEmail: z.string().email("Invalid primary email").optional().or(z.literal("")),
+  secondaryContactName: z.string().optional(),
+  secondaryMobile: z.string()
+    .regex(/^[0-9]{10}$/, "Secondary mobile must be exactly 10 digits")
+    .optional()
+    .or(z.literal("")),
+  secondaryEmail: z.string().email("Invalid secondary email").optional().or(z.literal("")),
+  gstNumber: z.string().optional(),
+  billingAddress: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  pincode: z.string().optional(),
+  paymentTermsDays: z.string().optional(),
+  creditLimit: z.string().optional().or(z.literal("")),
+  openingBalance: z.string().optional().or(z.literal("")),
+  interestApplicableFrom: z.string().optional(),
+  interestRate: z.string().optional().or(z.literal("")),
+  salesPerson: z.string().optional(),
+  isActive: z.enum(["Active", "Inactive"]).default("Active"),
+});
+
+export type InsertMasterCustomerFlexible = z.infer<typeof insertMasterCustomerSchemaFlexible>;
+
 // Master Items table (Products & Services)
 export const masterItems = pgTable("master_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

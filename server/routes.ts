@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, invoices } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, invoices } from "@shared/schema";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -712,6 +712,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
+      // Check if flexible import is enabled
+      const flexibleImport = req.body.flexibleImport === "true";
+
       const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
@@ -758,7 +761,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       for (let i = 0; i < customers.length; i++) {
-        const result = insertMasterCustomerSchema.safeParse(customers[i]);
+        // Use flexible or strict schema based on import mode
+        const schema = flexibleImport ? insertMasterCustomerSchemaFlexible : insertMasterCustomerSchema;
+        const result = schema.safeParse(customers[i]);
+        
         if (result.success) {
           // Check for duplicate name
           const normalizedName = result.data.clientName.toLowerCase().trim();
