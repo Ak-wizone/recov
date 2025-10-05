@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, decimal, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -316,7 +316,7 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   primaryMobile: z.string().optional(),
   city: z.string().optional(),
   pincode: z.string().optional(),
-  paymentTerms: z.string().optional(),
+  paymentTerms: z.number().optional(),
   creditLimit: z.string().optional(),
   interestApplicableFrom: z.string().optional(),
   interestRate: z.string().optional(),

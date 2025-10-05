@@ -558,6 +558,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get customer details by client name (for invoice dropdown auto-populate)
+  app.get("/api/masters/customers/by-name/:clientName", async (req, res) => {
+    try {
+      const clientName = decodeURIComponent(req.params.clientName);
+      const customers = await storage.getMasterCustomers();
+      const customer = customers.find(c => c.clientName.toLowerCase().trim() === clientName.toLowerCase().trim());
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      
+      res.json(customer);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Download sample import template for master customers (MUST BE BEFORE /:id)
   app.get("/api/masters/customers/template", async (_req, res) => {
     try {
