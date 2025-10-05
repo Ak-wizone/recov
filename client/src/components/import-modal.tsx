@@ -2,6 +2,8 @@ import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,6 +15,7 @@ import {
   parseInvoicesFile,
   parseReceiptsFile,
   validateMasterCustomerRow,
+  validateMasterCustomerRowFlexible,
   validateItemRow,
   validateInvoiceRow,
   validateReceiptRow,
@@ -46,6 +49,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importResults, setImportResults] = useState<any>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [flexibleImport, setFlexibleImport] = useState(false);
 
   const getImportEndpoint = () => {
     if (module === 'invoices') {
@@ -232,7 +236,9 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
       // Validate based on module type
       if (module === 'customers') {
         rows.forEach((row: ImportRow, index: number) => {
-          const rowErrors = validateMasterCustomerRow(row, index + 2);
+          const rowErrors = flexibleImport 
+            ? validateMasterCustomerRowFlexible(row, index + 2)
+            : validateMasterCustomerRow(row, index + 2);
           errors.push(...rowErrors);
         });
       } else if (module === 'items') {
@@ -293,7 +299,9 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     let rowErrors: ValidationError[] = [];
     
     if (module === 'customers') {
-      rowErrors = validateMasterCustomerRow(updatedData[rowIndex], rowNumber);
+      rowErrors = flexibleImport
+        ? validateMasterCustomerRowFlexible(updatedData[rowIndex], rowNumber)
+        : validateMasterCustomerRow(updatedData[rowIndex], rowNumber);
     } else if (module === 'items') {
       rowErrors = validateItemRow(updatedData[rowIndex], rowNumber);
     } else if (module === 'invoices') {
@@ -424,6 +432,9 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
         
         const formData = new FormData();
         formData.append("file", editedFile);
+        if (module === 'customers' && flexibleImport) {
+          formData.append("flexibleImport", "true");
+        }
         importMutation.mutate(formData);
       } catch (error: any) {
         toast({
@@ -436,6 +447,9 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
       // Normal import without editing
       const formData = new FormData();
       formData.append("file", file);
+      if (module === 'customers' && flexibleImport) {
+        formData.append("flexibleImport", "true");
+      }
       importMutation.mutate(formData);
     }
   };
@@ -459,6 +473,26 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Flexible Import Toggle - Only for customers */}
+          {module === 'customers' && !file && (
+            <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg" data-testid="flexible-import-toggle">
+              <div className="flex-1">
+                <Label htmlFor="flexible-import" className="text-sm font-medium cursor-pointer">
+                  Allow Incomplete Data (Flexible Import)
+                </Label>
+                <p className="text-xs text-gray-600 mt-1">
+                  Enable this to import customers with missing fields. Only Client Name will be required. You can fill in other details later.
+                </p>
+              </div>
+              <Switch
+                id="flexible-import"
+                checked={flexibleImport}
+                onCheckedChange={setFlexibleImport}
+                data-testid="switch-flexible-import"
+              />
+            </div>
+          )}
+          
           {!file ? (
             <div
               className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
