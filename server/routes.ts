@@ -1561,7 +1561,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const data = receipts.map((receipt) => ({
         "Voucher Number": receipt.voucherNumber,
-        "Invoice Number": receipt.invoiceNumber,
         "Customer Name": receipt.customerName,
         "Date": receipt.date.toISOString().split('T')[0],
         "Amount": receipt.amount,
@@ -1618,7 +1617,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const receiptData = {
           voucherNumber: String((row as any)["Voucher Number"] || "").trim(),
-          invoiceNumber: String((row as any)["Invoice Number"] || "").trim(),
           customerName: String((row as any)["Customer Name"] || "").trim(),
           date: parsedDate,
           amount: String((row as any)["Amount"] || "0").trim(),
