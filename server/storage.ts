@@ -997,9 +997,10 @@ export class DatabaseStorage implements IStorage {
       const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
       const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
 
+      const openingBalance = customer.openingBalance ? parseFloat(customer.openingBalance.toString()) : 0;
       const totalInvoices = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()), 0);
       const totalReceipts = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount.toString()), 0);
-      const balance = totalInvoices - totalReceipts;
+      const balance = openingBalance + totalInvoices - totalReceipts;
 
       if (balance > 0) {
         const lastInvoice = customerInvoices.sort((a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime())[0];
@@ -1075,9 +1076,10 @@ export class DatabaseStorage implements IStorage {
     for (const customer of customers) {
       const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
       const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+      const openingBalance = customer.openingBalance ? parseFloat(customer.openingBalance.toString()) : 0;
       const totalInvoices = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()), 0);
       const totalReceipts = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount.toString()), 0);
-      const balance = totalInvoices - totalReceipts;
+      const balance = openingBalance + totalInvoices - totalReceipts;
       
       if (balance > 0) {
         debtorIds.add(customer.id);
