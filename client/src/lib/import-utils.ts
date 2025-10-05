@@ -435,6 +435,77 @@ export function validateMasterCustomerRow(row: ImportRow, rowNumber: number): Va
   return errors;
 }
 
+// Flexible validation - only clientName is required, all other fields are optional
+export function validateMasterCustomerRowFlexible(row: ImportRow, rowNumber: number): ValidationError[] {
+  const errors: ValidationError[] = [];
+
+  // Only validate clientName as required
+  if (!row.clientName || row.clientName === "") {
+    errors.push({
+      row: rowNumber,
+      message: "Client Name is required",
+      field: "clientName",
+    });
+  }
+
+  // Validate optional fields only if provided
+  if (row.category && row.category !== "") {
+    const validCategories = ["Alpha", "Beta", "Gamma", "Delta"];
+    if (!validCategories.includes(row.category)) {
+      errors.push({
+        row: rowNumber,
+        message: `Category must be one of: Alpha, Beta, Gamma, Delta`,
+        field: "category",
+      });
+    }
+  }
+
+  if (row.primaryMobile && row.primaryMobile !== "" && !/^[0-9]{10}$/.test(row.primaryMobile)) {
+    errors.push({
+      row: rowNumber,
+      message: `Must be exactly 10 digits`,
+      field: "primaryMobile",
+    });
+  }
+
+  if (row.primaryEmail && row.primaryEmail !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.primaryEmail)) {
+    errors.push({
+      row: rowNumber,
+      message: `Invalid email format`,
+      field: "primaryEmail",
+    });
+  }
+
+  if (row.secondaryMobile && row.secondaryMobile !== "" && !/^[0-9]{10}$/.test(row.secondaryMobile)) {
+    errors.push({
+      row: rowNumber,
+      message: `Must be exactly 10 digits`,
+      field: "secondaryMobile",
+    });
+  }
+
+  if (row.secondaryEmail && row.secondaryEmail !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.secondaryEmail)) {
+    errors.push({
+      row: rowNumber,
+      message: `Invalid email format`,
+      field: "secondaryEmail",
+    });
+  }
+
+  if (row.paymentTermsDays && row.paymentTermsDays !== "") {
+    const paymentTerms = parseFloat(row.paymentTermsDays);
+    if (isNaN(paymentTerms) || paymentTerms < 0) {
+      errors.push({
+        row: rowNumber,
+        message: `Must be a valid non-negative number`,
+        field: "paymentTermsDays",
+      });
+    }
+  }
+
+  return errors;
+}
+
 export function validateItemRow(row: ImportItemRow, rowNumber: number): ValidationError[] {
   const errors: ValidationError[] = [];
 
