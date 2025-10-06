@@ -24,6 +24,9 @@ import Roles from "@/pages/roles";
 import Users from "@/pages/users";
 import EmailConfig from "@/pages/email-config";
 import EmailTemplates from "@/pages/email-templates";
+import RinggConfig from "@/pages/ringg-config";
+import RinggScriptMappings from "@/pages/ringg-script-mappings";
+import RinggCallHistory from "@/pages/ringg-call-history";
 
 function Router() {
   return (
@@ -52,6 +55,9 @@ function Router() {
               <Route path="/company-settings" component={CompanySettings} />
               <Route path="/email-config" component={EmailConfig} />
               <Route path="/email-templates" component={EmailTemplates} />
+              <Route path="/ringg-config" component={RinggConfig} />
+              <Route path="/ringg-script-mappings" component={RinggScriptMappings} />
+              <Route path="/ringg-call-history" component={RinggCallHistory} />
               <Route path="/settings/roles" component={Roles} />
               <Route path="/settings/users" component={Users} />
               <Route component={NotFound} />
