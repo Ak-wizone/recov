@@ -50,6 +50,12 @@ export default function Invoices() {
   const [dateRangeFrom, setDateRangeFrom] = useState("");
   const [dateRangeTo, setDateRangeTo] = useState("");
 
+  // Table filters state
+  const [tableFilters, setTableFilters] = useState<{ globalFilter: string; columnFilters: any[] }>({ 
+    globalFilter: "", 
+    columnFilters: [] 
+  });
+
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
   });
@@ -63,7 +69,7 @@ export default function Invoices() {
     totalPaidAmount: number;
     totalInterestAmount: number;
   }>({
-    queryKey: ["/api/invoices/dashboard-stats", dateFilterMode, selectedYear, selectedMonth, dateRangeFrom, dateRangeTo],
+    queryKey: ["/api/invoices/dashboard-stats", dateFilterMode, selectedYear, selectedMonth, dateRangeFrom, dateRangeTo, tableFilters.globalFilter, JSON.stringify(tableFilters.columnFilters)],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append("dateFilterMode", dateFilterMode);
@@ -74,6 +80,12 @@ export default function Invoices() {
       } else if (dateFilterMode === "dateRange") {
         if (dateRangeFrom) params.append("dateRangeFrom", dateRangeFrom);
         if (dateRangeTo) params.append("dateRangeTo", dateRangeTo);
+      }
+
+      // Add table filters
+      params.append("globalFilter", tableFilters.globalFilter);
+      if (tableFilters.columnFilters.length > 0) {
+        params.append("columnFilters", JSON.stringify(tableFilters.columnFilters));
       }
       
       const response = await fetch(`/api/invoices/dashboard-stats?${params.toString()}`);
@@ -606,6 +618,7 @@ export default function Invoices() {
           onEdit={handleEdit}
           onDelete={handleDelete}
           onBulkDelete={handleBulkDelete}
+          onFiltersChange={setTableFilters}
         />
       </div>
 

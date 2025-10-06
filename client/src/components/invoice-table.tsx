@@ -13,6 +13,7 @@ interface InvoiceTableProps {
   onEdit: (invoice: Invoice) => void;
   onDelete: (invoice: Invoice) => void;
   onBulkDelete?: (ids: string[]) => void;
+  onFiltersChange?: (filters: { globalFilter: string; columnFilters: any[] }) => void;
 }
 
 export function InvoiceTable({
@@ -21,6 +22,7 @@ export function InvoiceTable({
   onEdit,
   onDelete,
   onBulkDelete,
+  onFiltersChange,
 }: InvoiceTableProps) {
   
   const statusColors = {
@@ -344,6 +346,7 @@ export function InvoiceTable({
       enableColumnVisibility={true}
       enablePagination={true}
       onDeleteSelected={handleBulkDelete}
+      onFiltersChange={onFiltersChange}
     />
   );
 }

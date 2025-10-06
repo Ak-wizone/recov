@@ -1250,7 +1250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get dashboard stats for invoices (MUST BE BEFORE /:id)
   app.get("/api/invoices/dashboard-stats", async (req, res) => {
     try {
-      const { dateFilterMode, selectedYear, selectedMonth, dateRangeFrom, dateRangeTo } = req.query;
+      const { dateFilterMode, selectedYear, selectedMonth, dateRangeFrom, dateRangeTo, globalFilter, columnFilters } = req.query;
       
       let allInvoices = await storage.getInvoices();
       
@@ -1283,6 +1283,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           return true;
         });
+      }
+
+      // Apply global filter
+      if (globalFilter && typeof globalFilter === 'string' && globalFilter.trim() !== '') {
+        const filterText = globalFilter.toLowerCase().trim();
+        allInvoices = allInvoices.filter(invoice => {
+          const searchableFields = [
+            invoice.customerName,
+            invoice.invoiceNumber,
+            invoice.category,
+            invoice.city,
+            invoice.pincode,
+            invoice.primaryMobile,
+            invoice.salesPerson
+          ];
+          
+          return searchableFields.some(field => 
+            field && field.toString().toLowerCase().includes(filterText)
+          );
+        });
+      }
+
+      // Apply column filters
+      if (columnFilters && typeof columnFilters === 'string') {
+        try {
+          const parsedFilters = JSON.parse(columnFilters);
+          if (Array.isArray(parsedFilters)) {
+            parsedFilters.forEach((filter: { id: string; value: any }) => {
+              if (filter.value && filter.value.toString().trim() !== '') {
+                const filterValue = filter.value.toString().toLowerCase().trim();
+                allInvoices = allInvoices.filter(invoice => {
+                  const fieldValue = (invoice as any)[filter.id];
+                  return fieldValue && fieldValue.toString().toLowerCase().includes(filterValue);
+                });
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Error parsing columnFilters:', e);
+        }
       }
       
       const invoices = allInvoices;

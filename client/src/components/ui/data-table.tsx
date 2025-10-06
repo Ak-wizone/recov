@@ -60,6 +60,7 @@ interface DataTableProps<TData, TValue> {
   tableKey: string;
   onDeleteSelected?: (rows: TData[]) => void | Promise<void>;
   onExportSelected?: (rows: TData[]) => void | Promise<void>;
+  onFiltersChange?: (filters: { globalFilter: string; columnFilters: ColumnFiltersState }) => void;
   isLoading?: boolean;
   emptyMessage?: string;
   defaultPageSize?: number;
@@ -78,6 +79,7 @@ export function DataTable<TData, TValue>({
   tableKey,
   onDeleteSelected,
   onExportSelected,
+  onFiltersChange,
   isLoading = false,
   emptyMessage = "No data available.",
   defaultPageSize = 10,
@@ -128,6 +130,12 @@ export function DataTable<TData, TValue>({
     };
     saveTablePreferences(tableKey, preferences);
   }, [columnVisibility, columnOrder, pagination.pageSize, tableKey]);
+
+  useEffect(() => {
+    if (onFiltersChange) {
+      onFiltersChange({ globalFilter, columnFilters });
+    }
+  }, [globalFilter, columnFilters, onFiltersChange]);
 
   const columnsWithSelection = useMemo<ColumnDef<TData, TValue>[]>(() => {
     if (!enableRowSelection) return columns;
