@@ -49,6 +49,14 @@ Preferred communication style: Simple, everyday language.
 *   **Authentication System**: Secure login with email/password, bcrypt hashing, session-based authentication, and protected routes.
 *   **Customer Inline Editing**: Quick-edit dropdowns for Category, Interest Rate, and Status directly within the customer grid.
 *   **Master Items Enhancements**: 21 standardized UOMs (NOS, KGS, MTR, SQM, LTR, etc.) with custom UOM functionality via localStorage. SKU field removed from UI. Interest rate bulk update capability.
+*   **Email & WhatsApp Integration**: Complete communication system integrated across all 7 modules (Leads, Quotations, Proforma Invoices, Invoices, Receipts, Debtors, Credit Management). Features include:
+    - Email configuration supporting both Gmail OAuth2 and SMTP providers
+    - Template management with module-specific templates and variable substitution
+    - Reusable Email Dialog component with template selection and variable replacement
+    - WhatsApp integration with pre-formatted messages using WhatsApp Web API
+    - Quick-access communication buttons in all module grids
+    - 7 default email templates pre-configured for all modules
+    - Nodemailer integration for reliable email delivery
 
 # External Dependencies
 
@@ -57,3 +65,4 @@ Preferred communication style: Simple, everyday language.
 **File Processing**: `XLSX` library for Excel import/export; `Multer` for file uploads.
 **Frontend Libraries**: `date-fns` for date manipulation, `lucide-react` for icons, `class-variance-authority` and `clsx` for styling, `wouter` for routing, `recharts` for data visualization.
 **Authentication**: `bcrypt` for password hashing, `express-session` for session management.
+**Email Service**: `nodemailer` for email delivery with support for Gmail OAuth2 and SMTP providers.
