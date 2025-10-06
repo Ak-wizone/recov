@@ -159,6 +159,28 @@ export interface IStorage {
   createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
   updateEmailTemplate(id: string, template: Partial<InsertEmailTemplate>): Promise<EmailTemplate | undefined>;
   deleteEmailTemplate(id: string): Promise<boolean>;
+  
+  // Ringg.ai Configuration operations
+  getRinggConfig(): Promise<RinggConfig | undefined>;
+  createRinggConfig(config: InsertRinggConfig): Promise<RinggConfig>;
+  updateRinggConfig(id: string, config: Partial<InsertRinggConfig>): Promise<RinggConfig | undefined>;
+  deleteRinggConfig(id: string): Promise<boolean>;
+  
+  // Call Script Mapping operations
+  getCallScriptMappings(): Promise<CallScriptMapping[]>;
+  getCallScriptMappingsByModule(module: string): Promise<CallScriptMapping[]>;
+  getCallScriptMapping(id: string): Promise<CallScriptMapping | undefined>;
+  createCallScriptMapping(mapping: InsertCallScriptMapping): Promise<CallScriptMapping>;
+  updateCallScriptMapping(id: string, mapping: Partial<InsertCallScriptMapping>): Promise<CallScriptMapping | undefined>;
+  deleteCallScriptMapping(id: string): Promise<boolean>;
+  
+  // Call Log operations
+  getCallLogs(): Promise<CallLog[]>;
+  getCallLog(id: string): Promise<CallLog | undefined>;
+  createCallLog(log: InsertCallLog): Promise<CallLog>;
+  updateCallLog(id: string, log: Partial<InsertCallLog>): Promise<CallLog | undefined>;
+  updateCallLogByRinggId(ringgCallId: string, log: Partial<InsertCallLog>): Promise<CallLog | undefined>;
+  deleteCallLog(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
