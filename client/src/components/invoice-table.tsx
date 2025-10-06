@@ -174,7 +174,7 @@ export function InvoiceTable({
           }
           
           const invoiceDate = new Date(invoice.invoiceDate);
-          const paymentTerms = parseInt(invoice.paymentTerms) || 0;
+          const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
           const dueDate = new Date(invoiceDate);
           dueDate.setDate(dueDate.getDate() + paymentTerms);
           
