@@ -139,11 +139,42 @@ export default function EmailConfig() {
     }
   };
 
-  const handleGmailConnect = () => {
-    toast({
-      title: "OAuth2 Setup Required",
-      description: "Gmail OAuth2 authentication requires backend integration. Please use SMTP for now.",
-    });
+  const handleGmailConnect = async () => {
+    try {
+      const response = await fetch("/api/auth/google");
+      const data = await response.json();
+      
+      if (data.url) {
+        window.open(data.url, "_blank", "width=600,height=700");
+        
+        toast({
+          title: "Authentication Started",
+          description: "Please complete the authentication in the popup window",
+        });
+
+        const checkInterval = setInterval(async () => {
+          const configResponse = await fetch("/api/email-config");
+          const config = await configResponse.json();
+          
+          if (config && config.provider === "gmail" && config.gmailRefreshToken) {
+            clearInterval(checkInterval);
+            queryClient.invalidateQueries({ queryKey: ["/api/email-config"] });
+            toast({
+              title: "Success",
+              description: "Gmail account connected successfully!",
+            });
+          }
+        }, 2000);
+
+        setTimeout(() => clearInterval(checkInterval), 120000);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const onSubmit = (data: EmailConfigFormValues) => {

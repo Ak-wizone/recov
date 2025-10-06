@@ -3382,13 +3382,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const existingConfig = await storage.getEmailConfig();
-      const configData = {
+      const configData: any = {
         provider: "gmail" as const,
-        fromEmail: tokens.email || existingConfig?.fromEmail || "",
+        fromEmail: existingConfig?.fromEmail || "",
         fromName: existingConfig?.fromName || "Business Manager",
         gmailAccessToken: tokens.access_token,
         gmailRefreshToken: tokens.refresh_token,
-        gmailTokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
+        gmailTokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
         isActive: "Active" as const,
       };
 
