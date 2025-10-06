@@ -1007,3 +1007,111 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).pick
 
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
+
+// Ringg.ai Configuration table
+export const ringgConfigs = pgTable("ringg_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  apiKey: text("api_key").notNull(),
+  webhookUrl: text("webhook_url"),
+  isActive: text("is_active").notNull().default("Active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertRinggConfigSchema = createInsertSchema(ringgConfigs).pick({
+  apiKey: true,
+  webhookUrl: true,
+  isActive: true,
+}).extend({
+  apiKey: z.string().min(1, "API key is required"),
+  webhookUrl: z.string().optional(),
+  isActive: z.enum(["Active", "Inactive"]).default("Active"),
+});
+
+export type InsertRinggConfig = z.infer<typeof insertRinggConfigSchema>;
+export type RinggConfig = typeof ringgConfigs.$inferSelect;
+
+// Call Script Mappings table
+export const callScriptMappings = pgTable("call_script_mappings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  module: text("module").notNull(), // leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management
+  scriptName: text("script_name").notNull(),
+  ringgScriptId: text("ringg_script_id").notNull(),
+  description: text("description"),
+  isActive: text("is_active").notNull().default("Active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCallScriptMappingSchema = createInsertSchema(callScriptMappings).pick({
+  module: true,
+  scriptName: true,
+  ringgScriptId: true,
+  description: true,
+  isActive: true,
+}).extend({
+  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
+  scriptName: z.string().min(1, "Script name is required"),
+  ringgScriptId: z.string().min(1, "Ringg.ai Script ID is required"),
+  description: z.string().optional(),
+  isActive: z.enum(["Active", "Inactive"]).default("Active"),
+});
+
+export type InsertCallScriptMapping = z.infer<typeof insertCallScriptMappingSchema>;
+export type CallScriptMapping = typeof callScriptMappings.$inferSelect;
+
+// Call Logs table
+export const callLogs = pgTable("call_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: varchar("customer_id"),
+  customerName: text("customer_name").notNull(),
+  phoneNumber: text("phone_number").notNull(),
+  module: text("module").notNull(), // leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management
+  scriptId: varchar("script_id").references(() => callScriptMappings.id),
+  ringgCallId: text("ringg_call_id"),
+  status: text("status").notNull().default("initiated"), // initiated, ringing, answered, completed, failed, busy, no_answer
+  duration: integer("duration"), // in seconds
+  recordingUrl: text("recording_url"),
+  transcript: text("transcript"),
+  outcome: text("outcome"), // payment_promised, callback_requested, not_interested, wrong_number, etc.
+  notes: text("notes"),
+  callContext: text("call_context"), // JSON string with invoice number, amount, etc.
+  initiatedBy: varchar("initiated_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCallLogSchema = createInsertSchema(callLogs).pick({
+  customerId: true,
+  customerName: true,
+  phoneNumber: true,
+  module: true,
+  scriptId: true,
+  ringgCallId: true,
+  status: true,
+  duration: true,
+  recordingUrl: true,
+  transcript: true,
+  outcome: true,
+  notes: true,
+  callContext: true,
+  initiatedBy: true,
+}).extend({
+  customerId: z.string().optional(),
+  customerName: z.string().min(1, "Customer name is required"),
+  phoneNumber: z.string().min(1, "Phone number is required"),
+  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
+  scriptId: z.string().optional(),
+  ringgCallId: z.string().optional(),
+  status: z.enum(["initiated", "ringing", "answered", "completed", "failed", "busy", "no_answer"]).default("initiated"),
+  duration: z.number().optional(),
+  recordingUrl: z.string().optional(),
+  transcript: z.string().optional(),
+  outcome: z.string().optional(),
+  notes: z.string().optional(),
+  callContext: z.string().optional(),
+  initiatedBy: z.string().optional(),
+});
+
+export type InsertCallLog = z.infer<typeof insertCallLogSchema>;
+export type CallLog = typeof callLogs.$inferSelect;
