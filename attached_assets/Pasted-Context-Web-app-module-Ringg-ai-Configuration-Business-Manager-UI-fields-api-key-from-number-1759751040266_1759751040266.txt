@@ -1,0 +1,105 @@
+Context
+
+Web app module: Ringg.ai Configuration (Business Manager).
+
+UI fields: api_key, from_number, webhook_url.
+
+Runtime error on save/test:
+500: {"message":"column \"from_number\" does not exist"}
+
+Goal: make saving/testing Ringg config work end-to-end without breaking existing data.
+
+What to do
+
+Locate schema + model
+
+Find the table/model that stores Ringg/Ring/Calling provider config. Likely names: ringg_config, RinggConfig, calling_provider_config, or similar.
+
+Search codebase for: ringg, from_number, fromNumber, caller_id, webhook_url, api_key.
+
+Normalize column naming
+
+Target DB column name: from_number (snake_case).
+
+If DB already has a column with a different name (e.g., fromNumber, caller_id), do not duplicate—either rename to from_number or map the ORM field to the existing column.
+
+Store as VARCHAR(20) (enough for E.164 like +18085158398), nullable.
+
+Add/align migration (idempotent)
+
+Create a migration that:
+
+If the column doesn’t exist → add from_number VARCHAR(20) NULL.
+
+If there is a legacy column (e.g., fromNumber/caller_id) → either rename to from_number or map via ORM field mapping (@map in Prisma, field: in Sequelize/TypeORM).
+
+Make it safe to run multiple times (check-exists guards).
+
+Update ORM model
+
+Prisma example:
+
+model RinggConfig {
+  id           Int     @id @default(autoincrement())
+  apiKey       String  @map("api_key")
+  fromNumber   String? @map("from_number")
+  webhookUrl   String? @map("webhook_url")
+  @@map("ringg_config")
+}
+
+
+Sequelize/TypeORM: ensure property fromNumber maps to column from_number using the library’s column mapping.
+
+Backend handler alignment
+
+Ensure the controller/service that receives the form uses the same key as the UI:
+
+Parse from_number from request body.
+
+Persist into model field that maps to DB column from_number.
+
+If the UI sends from_number but backend expects fromNumber (or vice-versa), harmonize by normalizing request keys (accept both; prefer from_number).
+
+Validation + formatting
+
+Validate from_number as E.164 (optional +, digits only), length 8–20.
+
+Trim whitespace; store normalized value.
+
+Tests + verification
+
+Add a small integration test (or script) that:
+
+Creates/updates a config with api_key="TEST_KEY", from_number="+18085158398", and any webhook_url.
+
+Reads it back and asserts the stored value matches.
+
+Run the UI flow: Save Configuration then Test Connection. Confirm no 500s and the config persists.
+
+Backward compatibility
+
+If renaming a legacy column, include a migration step to copy existing values into from_number before dropping/renaming, so no data loss.
+
+Keep down/rollback migration minimal but safe.
+
+Deliverables
+
+The migration file(s) with idempotent checks.
+
+Updated ORM model/entity with correct column mapping.
+
+Backend handler diff showing consistent use of from_number.
+
+A short test script (or instructions) to verify.
+
+A brief CHANGELOG entry describing the fix.
+
+Acceptance Criteria
+
+Submitting the form no longer throws 500; row contains from_number with the submitted value.
+
+UI and API agree on the key name.
+
+Running migrations on an existing database does not break or duplicate columns.
+
+Phone value stored in E.164 format.
