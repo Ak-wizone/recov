@@ -3780,6 +3780,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Communication Schedules Routes
+  app.get("/api/schedules", async (req, res) => {
+    try {
+      const { module } = req.query;
+      let schedules;
+      
+      if (module) {
+        schedules = await storage.getCommunicationSchedulesByModule(module as string);
+      } else {
+        schedules = await storage.getCommunicationSchedules();
+      }
+      
+      res.json(schedules);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/schedules/:id", async (req, res) => {
+    try {
+      const schedule = await storage.getCommunicationSchedule(req.params.id);
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      res.json(schedule);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/schedules", async (req, res) => {
+    try {
+      const schedule = await storage.createCommunicationSchedule(req.body);
+      res.status(201).json(schedule);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/schedules/:id", async (req, res) => {
+    try {
+      const schedule = await storage.updateCommunicationSchedule(req.params.id, req.body);
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      res.json(schedule);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/schedules/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteCommunicationSchedule(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
