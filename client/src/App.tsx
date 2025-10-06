@@ -27,6 +27,7 @@ import EmailTemplates from "@/pages/email-templates";
 import RinggConfig from "@/pages/ringg-config";
 import RinggScriptMappings from "@/pages/ringg-script-mappings";
 import RinggCallHistory from "@/pages/ringg-call-history";
+import CommunicationSchedules from "@/pages/communication-schedules";
 
 function Router() {
   return (
@@ -58,6 +59,7 @@ function Router() {
               <Route path="/ringg-config" component={RinggConfig} />
               <Route path="/ringg-script-mappings" component={RinggScriptMappings} />
               <Route path="/ringg-call-history" component={RinggCallHistory} />
+              <Route path="/communication-schedules" component={CommunicationSchedules} />
               <Route path="/settings/roles" component={Roles} />
               <Route path="/settings/users" component={Users} />
               <Route component={NotFound} />

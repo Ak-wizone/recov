@@ -123,6 +123,11 @@ const navItems: NavItem[] = [
         path: "/settings/roles",
         icon: <Shield className="h-4 w-4" />,
       },
+      {
+        name: "Communication Schedules",
+        path: "/communication-schedules",
+        icon: <Settings className="h-4 w-4" />,
+      },
     ],
   },
   {
