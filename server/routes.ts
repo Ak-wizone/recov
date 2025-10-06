@@ -3352,6 +3352,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============ GOOGLE OAUTH ROUTES ============
+  
+  // Initiate Google OAuth flow
+  app.get("/api/auth/google", async (req, res) => {
+    try {
+      const { getAuthUrl } = await import("./google-oauth");
+      const authUrl = getAuthUrl();
+      res.json({ url: authUrl });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Google OAuth callback
+  app.get("/api/auth/google/callback", async (req, res) => {
+    try {
+      const { code } = req.query;
+      
+      if (!code || typeof code !== 'string') {
+        return res.status(400).send('<html><body><h1>Error: No authorization code received</h1><p>Please close this window and try again.</p></body></html>');
+      }
+
+      const { getTokensFromCode } = await import("./google-oauth");
+      const tokens = await getTokensFromCode(code);
+
+      if (!tokens.access_token || !tokens.refresh_token) {
+        return res.status(400).send('<html><body><h1>Error: Failed to get tokens</h1><p>Please close this window and try again.</p></body></html>');
+      }
+
+      const existingConfig = await storage.getEmailConfig();
+      const configData = {
+        provider: "gmail" as const,
+        fromEmail: tokens.email || existingConfig?.fromEmail || "",
+        fromName: existingConfig?.fromName || "Business Manager",
+        gmailAccessToken: tokens.access_token,
+        gmailRefreshToken: tokens.refresh_token,
+        gmailTokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
+        isActive: "Active" as const,
+      };
+
+      if (existingConfig) {
+        await storage.updateEmailConfig(existingConfig.id, configData);
+      } else {
+        await storage.createEmailConfig(configData);
+      }
+
+      res.send(`
+        <html>
+          <head>
+            <title>Authentication Successful</title>
+            <style>
+              body {
+                font-family: system-ui, -apple-system, sans-serif;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              }
+              .container {
+                background: white;
+                padding: 3rem;
+                border-radius: 1rem;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+                text-align: center;
+                max-width: 400px;
+              }
+              h1 {
+                color: #10b981;
+                margin-bottom: 1rem;
+              }
+              p {
+                color: #6b7280;
+                margin-bottom: 2rem;
+              }
+              .close-btn {
+                background: #667eea;
+                color: white;
+                border: none;
+                padding: 0.75rem 2rem;
+                border-radius: 0.5rem;
+                font-size: 1rem;
+                cursor: pointer;
+                transition: background 0.2s;
+              }
+              .close-btn:hover {
+                background: #5568d3;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1>✓ Authentication Successful!</h1>
+              <p>Your Gmail account has been connected successfully. You can now close this window and return to the application.</p>
+              <button class="close-btn" onclick="window.close()">Close Window</button>
+            </div>
+            <script>
+              setTimeout(() => {
+                window.close();
+              }, 3000);
+            </script>
+          </body>
+        </html>
+      `);
+    } catch (error: any) {
+      console.error('Google OAuth callback error:', error);
+      res.status(500).send(`
+        <html>
+          <body>
+            <h1>Error</h1>
+            <p>${error.message}</p>
+            <button onclick="window.close()">Close Window</button>
+          </body>
+        </html>
+      `);
+    }
+  });
+
   // ============ EMAIL TEMPLATE ROUTES ============
 
   // Get all email templates
