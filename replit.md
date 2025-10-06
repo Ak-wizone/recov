@@ -57,6 +57,15 @@ Preferred communication style: Simple, everyday language.
     - Quick-access communication buttons in all module grids
     - 7 default email templates pre-configured for all modules
     - Nodemailer integration for reliable email delivery
+*   **Ringg.ai AI Calling Integration**: Comprehensive AI-powered voice calling system fully integrated across all 7 modules. Multi-tenant SaaS architecture features:
+    - Configuration Management: API key setup, test connection validation, webhook URL display
+    - Script Mapping System: Link Ringg.ai call scripts to specific modules (e.g., Payment Reminder for Invoices)
+    - Call Triggering: Reusable Call Dialog component with script selection, phone validation, and call context variables
+    - Call History: Complete log viewer with filters, call status tracking, recording playback, transcript display, and outcome tracking
+    - Webhook Integration: Real-time call status updates, recording URLs, and conversation transcripts
+    - Make Call buttons integrated in all 7 modules: Leads, Quotations, PI, Invoices, Receipts, Debtors, Credit Management
+    - Navigation accessible via Company Settings page
+    - Database tables: ringg_configs, call_script_mappings, call_logs
 
 # External Dependencies
 
