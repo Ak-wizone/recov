@@ -1351,6 +1351,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let unpaidInvoicesAmount = 0;
       let totalPaidAmount = 0;
       let totalInterestAmount = 0;
+      
+      // Add counts
+      let totalInvoicesCount = 0;
+      let paidInvoicesCount = 0;
+      let partialInvoicesCount = 0;
+      let unpaidInvoicesCount = 0;
 
       // Calculate total paid amount (sum of all receipts)
       totalPaidAmount = receipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
@@ -1370,6 +1376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const invoice of sortedInvoices) {
           const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
           totalInvoicesAmount += invoiceAmount;
+          totalInvoicesCount++;
 
           let allocatedPayment = 0;
           let status: "Paid" | "Unpaid" | "Partial";
@@ -1380,19 +1387,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
             allocatedPayment = invoiceAmount;
             remainingReceiptAmount -= invoiceAmount;
             paidInvoicesAmount += invoiceAmount;
+            paidInvoicesCount++;
           } else if (remainingReceiptAmount > 0 && remainingReceiptAmount < invoiceAmount) {
             // Partially paid
             status = "Partial";
             allocatedPayment = remainingReceiptAmount;
             const balance = invoiceAmount - allocatedPayment;
-            partialPaidAmount += invoiceAmount;
+            partialPaidAmount += allocatedPayment; // FIX: Only count the amount that's been paid
             partialBalanceAmount += balance;
+            partialInvoicesCount++;
             remainingReceiptAmount = 0;
           } else {
             // Unpaid
             status = "Unpaid";
             allocatedPayment = 0;
             unpaidInvoicesAmount += invoiceAmount;
+            unpaidInvoicesCount++;
           }
 
           // Calculate interest amount using same logic as frontend
@@ -1424,6 +1434,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Calculate debtors balance (opening balance + invoices - receipts)
+      const masterCustomers = await storage.getMasterCustomers();
+      const allInvoicesForDebtors = await storage.getInvoices();
+      const allReceiptsForDebtors = await storage.getReceipts();
+      
+      let debtorsBalance = 0;
+      let debtorsCount = 0;
+      
+      for (const customer of masterCustomers) {
+        const customerInvoicesTotal = allInvoicesForDebtors
+          .filter(inv => inv.customerName === customer.clientName)
+          .reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()), 0);
+        
+        const customerReceiptsTotal = allReceiptsForDebtors
+          .filter(rec => rec.customerName === customer.clientName)
+          .reduce((sum, rec) => sum + parseFloat(rec.amount.toString()), 0);
+        
+        const openingBalance = parseFloat(customer.openingBalance?.toString() || '0');
+        const balance = openingBalance + customerInvoicesTotal - customerReceiptsTotal;
+        
+        if (balance > 0) {
+          debtorsBalance += balance;
+          debtorsCount++;
+        }
+      }
+
       res.json({
         totalInvoicesAmount,
         paidInvoicesAmount,
@@ -1432,6 +1468,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         unpaidInvoicesAmount,
         totalPaidAmount,
         totalInterestAmount,
+        debtorsBalance,
+        totalInvoicesCount,
+        paidInvoicesCount,
+        partialInvoicesCount,
+        unpaidInvoicesCount,
+        debtorsCount,
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
