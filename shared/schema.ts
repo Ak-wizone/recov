@@ -1116,3 +1116,56 @@ export const insertCallLogSchema = createInsertSchema(callLogs).pick({
   initiatedBy: z.string().optional(),
 });
 
+
+export type InsertCallLog = z.infer<typeof insertCallLogSchema>;
+export type CallLog = typeof callLogs.$inferSelect;
+
+// Communication Schedules table
+export const communicationSchedules = pgTable("communication_schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  module: text("module").notNull(),
+  communicationType: text("communication_type").notNull(),
+  frequency: text("frequency").notNull(),
+  dayOfWeek: integer("day_of_week"),
+  dayOfMonth: integer("day_of_month"),
+  timeOfDay: text("time_of_day"),
+  filterCondition: text("filter_condition"),
+  scriptId: varchar("script_id").references(() => callScriptMappings.id),
+  emailTemplateId: varchar("email_template_id").references(() => emailTemplates.id),
+  message: text("message"),
+  isActive: text("is_active").notNull().default("Active"),
+  lastRunAt: timestamp("last_run_at"),
+  nextRunAt: timestamp("next_run_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCommunicationScheduleSchema = createInsertSchema(communicationSchedules).pick({
+  module: true,
+  communicationType: true,
+  frequency: true,
+  dayOfWeek: true,
+  dayOfMonth: true,
+  timeOfDay: true,
+  filterCondition: true,
+  scriptId: true,
+  emailTemplateId: true,
+  message: true,
+  isActive: true,
+}).extend({
+  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
+  communicationType: z.enum(["call", "email", "whatsapp"]),
+  frequency: z.enum(["once", "daily", "weekly", "monthly"]),
+  dayOfWeek: z.number().min(0).max(6).optional(),
+  dayOfMonth: z.number().min(1).max(31).optional(),
+  timeOfDay: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
+  filterCondition: z.string().optional(),
+  scriptId: z.string().optional(),
+  emailTemplateId: z.string().optional(),
+  message: z.string().optional(),
+  isActive: z.enum(["Active", "Inactive"]).default("Active"),
+});
+
+export type InsertCommunicationSchedule = z.infer<typeof insertCommunicationScheduleSchema>;
+export type CommunicationSchedule = typeof communicationSchedules.$inferSelect;
+
