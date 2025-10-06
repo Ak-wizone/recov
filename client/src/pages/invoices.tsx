@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp } from "lucide-react";
+import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp, Wallet } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -68,6 +68,12 @@ export default function Invoices() {
     unpaidInvoicesAmount: number;
     totalPaidAmount: number;
     totalInterestAmount: number;
+    debtorsBalance: number;
+    totalInvoicesCount: number;
+    paidInvoicesCount: number;
+    partialInvoicesCount: number;
+    unpaidInvoicesCount: number;
+    debtorsCount: number;
   }>({
     queryKey: ["/api/invoices/dashboard-stats", dateFilterMode, selectedYear, selectedMonth, dateRangeFrom, dateRangeTo, tableFilters.globalFilter, JSON.stringify(tableFilters.columnFilters)],
     queryFn: async () => {
@@ -475,6 +481,9 @@ export default function Invoices() {
                 <p className="text-xl font-bold text-blue-600 dark:text-blue-400 break-all">
                   ₹{(dashboardStats?.totalInvoicesAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {dashboardStats?.totalInvoicesCount || 0} invoice{(dashboardStats?.totalInvoicesCount || 0) !== 1 ? 's' : ''}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -498,6 +507,9 @@ export default function Invoices() {
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Paid Invoices</p>
                 <p className="text-xl font-bold text-green-600 dark:text-green-400 break-all">
                   ₹{(dashboardStats?.paidInvoicesAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {dashboardStats?.paidInvoicesCount || 0} invoice{(dashboardStats?.paidInvoicesCount || 0) !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
@@ -523,6 +535,9 @@ export default function Invoices() {
                 <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 break-all">
                   ₹{(dashboardStats?.partialPaidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {dashboardStats?.partialInvoicesCount || 0} invoice{(dashboardStats?.partialInvoicesCount || 0) !== 1 ? 's' : ''}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -541,6 +556,9 @@ export default function Invoices() {
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Partial Balance</p>
                 <p className="text-xl font-bold text-orange-600 dark:text-orange-400 break-all">
                   ₹{(dashboardStats?.partialBalanceAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Outstanding on partial invoices
                 </p>
               </div>
             </div>
@@ -565,6 +583,9 @@ export default function Invoices() {
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Unpaid Invoices</p>
                 <p className="text-xl font-bold text-red-600 dark:text-red-400 break-all">
                   ₹{(dashboardStats?.unpaidInvoicesAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {dashboardStats?.unpaidInvoicesCount || 0} invoice{(dashboardStats?.unpaidInvoicesCount || 0) !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
@@ -603,6 +624,31 @@ export default function Invoices() {
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Total Interest</p>
                 <p className="text-xl font-bold text-purple-600 dark:text-purple-400 break-all">
                   ₹{(dashboardStats?.totalInterestAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Calculated interest amount
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer transition-all border-0 bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 dark:hover:bg-pink-900/40"
+          data-testid="card-debtors-balance"
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-pink-500 p-3 rounded-xl flex-shrink-0">
+                <Wallet className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Unpaid + Opening Balance</p>
+                <p className="text-xl font-bold text-pink-600 dark:text-pink-400 break-all">
+                  ₹{(dashboardStats?.debtorsBalance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {dashboardStats?.debtorsCount || 0} debtor{(dashboardStats?.debtorsCount || 0) !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
