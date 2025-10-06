@@ -1012,6 +1012,7 @@ export type EmailTemplate = typeof emailTemplates.$inferSelect;
 export const ringgConfigs = pgTable("ringg_configs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   apiKey: text("api_key").notNull(),
+  fromNumber: text("from_number").notNull(),
   webhookUrl: text("webhook_url"),
   isActive: text("is_active").notNull().default("Active"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -1020,10 +1021,12 @@ export const ringgConfigs = pgTable("ringg_configs", {
 
 export const insertRinggConfigSchema = createInsertSchema(ringgConfigs).pick({
   apiKey: true,
+  fromNumber: true,
   webhookUrl: true,
   isActive: true,
 }).extend({
   apiKey: z.string().min(1, "API key is required"),
+  fromNumber: z.string().min(1, "From Number is required").regex(/^\+\d{1,15}$/, "Must be in format +1234567890"),
   webhookUrl: z.string().optional(),
   isActive: z.enum(["Active", "Inactive"]).default("Active"),
 });

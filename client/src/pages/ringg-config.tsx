@@ -15,6 +15,7 @@ import type { RinggConfig } from "@shared/schema";
 
 const ringgConfigFormSchema = z.object({
   apiKey: z.string().min(1, "API key is required"),
+  fromNumber: z.string().min(1, "From Number is required").regex(/^\+\d{1,15}$/, "Must be in format +1234567890"),
   webhookUrl: z.string().optional(),
 });
 
@@ -34,6 +35,7 @@ export default function RinggConfig() {
     resolver: zodResolver(ringgConfigFormSchema),
     defaultValues: {
       apiKey: "",
+      fromNumber: "",
       webhookUrl: "",
     },
   });
@@ -42,6 +44,7 @@ export default function RinggConfig() {
     if (config) {
       form.reset({
         apiKey: config.apiKey || "",
+        fromNumber: config.fromNumber || "",
         webhookUrl: config.webhookUrl || "",
       });
     }
@@ -190,6 +193,28 @@ export default function RinggConfig() {
                       </div>
                     </FormControl>
                     <FormDescription>Your Ringg.ai API authentication key</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="fromNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>From Number *</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="tel"
+                        placeholder="+919876543210"
+                        data-testid="input-from-number"
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      The phone number that will appear as caller ID (with country code, e.g., +919876543210)
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

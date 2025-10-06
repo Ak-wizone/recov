@@ -91,6 +91,7 @@ class RinggServiceImpl implements RinggService {
       phoneNumber: string;
       scriptId: string;
       variables: Record<string, any>;
+      fromNumber: string;
     }
   ): Promise<{ success: boolean; callId?: string; message?: string }> {
     try {
@@ -102,7 +103,7 @@ class RinggServiceImpl implements RinggService {
           name: customerName,
           mobile_number: params.phoneNumber,
           agent_id: params.scriptId,
-          from_number_id: "default",
+          from_number: params.fromNumber,
           custom_args_values: params.variables,
         }),
       });

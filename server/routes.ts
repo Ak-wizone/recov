@@ -3657,6 +3657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const callResult = await ringgService.triggerCall(config.apiKey, {
         phoneNumber,
         scriptId: scriptMapping.ringgScriptId,
+        fromNumber: config.fromNumber,
         variables: {
           customerName,
           module,
