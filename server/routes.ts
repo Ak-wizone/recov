@@ -1247,6 +1247,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get dashboard stats for invoices (MUST BE BEFORE /:id)
+  app.get("/api/invoices/dashboard-stats", async (_req, res) => {
+    try {
+      const invoices = await storage.getInvoices();
+      const receipts = await storage.getReceipts();
+
+      // Group receipts by customer
+      const receiptsByCustomer = new Map<string, typeof receipts>();
+      receipts.forEach(receipt => {
+        const existing = receiptsByCustomer.get(receipt.customerName) || [];
+        existing.push(receipt);
+        receiptsByCustomer.set(receipt.customerName, existing);
+      });
+
+      // Group invoices by customer
+      const invoicesByCustomer = new Map<string, typeof invoices>();
+      invoices.forEach(invoice => {
+        const existing = invoicesByCustomer.get(invoice.customerName) || [];
+        existing.push(invoice);
+        invoicesByCustomer.set(invoice.customerName, existing);
+      });
+
+      let totalInvoicesAmount = 0;
+      let paidInvoicesAmount = 0;
+      let partialPaidAmount = 0;
+      let partialBalanceAmount = 0;
+      let unpaidInvoicesAmount = 0;
+      let totalPaidAmount = 0;
+      let totalInterestAmount = 0;
+
+      // Calculate total paid amount (sum of all receipts)
+      totalPaidAmount = receipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
+
+      // Process each customer's invoices with FIFO logic
+      for (const [customerName, customerInvoices] of Array.from(invoicesByCustomer.entries())) {
+        const customerReceipts = receiptsByCustomer.get(customerName) || [];
+        const totalReceiptAmount = customerReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
+        
+        // Sort invoices by date (oldest first) for FIFO
+        const sortedInvoices = [...customerInvoices].sort((a, b) => 
+          new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime()
+        );
+
+        let remainingReceiptAmount = totalReceiptAmount;
+
+        for (const invoice of sortedInvoices) {
+          const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+          totalInvoicesAmount += invoiceAmount;
+
+          let allocatedPayment = 0;
+          let status: "Paid" | "Unpaid" | "Partial";
+
+          if (remainingReceiptAmount >= invoiceAmount) {
+            // Fully paid
+            status = "Paid";
+            allocatedPayment = invoiceAmount;
+            remainingReceiptAmount -= invoiceAmount;
+            paidInvoicesAmount += invoiceAmount;
+          } else if (remainingReceiptAmount > 0 && remainingReceiptAmount < invoiceAmount) {
+            // Partially paid
+            status = "Partial";
+            allocatedPayment = remainingReceiptAmount;
+            const balance = invoiceAmount - allocatedPayment;
+            partialPaidAmount += invoiceAmount;
+            partialBalanceAmount += balance;
+            remainingReceiptAmount = 0;
+          } else {
+            // Unpaid
+            status = "Unpaid";
+            allocatedPayment = 0;
+            unpaidInvoicesAmount += invoiceAmount;
+          }
+
+          // Calculate interest amount using same logic as frontend
+          const interestRate = invoice.interestRate ? parseFloat(invoice.interestRate.toString()) : 0;
+          if (interestRate > 0) {
+            const invoiceDate = new Date(invoice.invoiceDate);
+            const paymentTerms = invoice.paymentTerms || 0;
+            const dueDate = new Date(invoiceDate);
+            dueDate.setDate(dueDate.getDate() + paymentTerms);
+
+            let applicableDate: Date | null = null;
+            if (invoice.interestApplicableFrom === "Due Date") {
+              applicableDate = dueDate;
+            } else if (invoice.interestApplicableFrom === "Invoice Date") {
+              applicableDate = invoiceDate;
+            }
+
+            if (applicableDate) {
+              const today = new Date();
+              const diffTime = today.getTime() - applicableDate.getTime();
+              const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+              if (daysOverdue > 0) {
+                const interestAmount = (invoiceAmount * interestRate * daysOverdue) / (100 * 365);
+                totalInterestAmount += interestAmount;
+              }
+            }
+          }
+        }
+      }
+
+      res.json({
+        totalInvoicesAmount,
+        paidInvoicesAmount,
+        partialPaidAmount,
+        partialBalanceAmount,
+        unpaidInvoicesAmount,
+        totalPaidAmount,
+        totalInterestAmount,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Download sample template for import (MUST BE BEFORE /:id)
   app.get("/api/invoices/template", async (_req, res) => {
     try {

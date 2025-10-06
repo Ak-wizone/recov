@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users } from "lucide-react";
+import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -52,6 +52,18 @@ export default function Invoices() {
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
+  });
+
+  const { data: dashboardStats } = useQuery<{
+    totalInvoicesAmount: number;
+    paidInvoicesAmount: number;
+    partialPaidAmount: number;
+    partialBalanceAmount: number;
+    unpaidInvoicesAmount: number;
+    totalPaidAmount: number;
+    totalInterestAmount: number;
+  }>({
+    queryKey: ["/api/invoices/dashboard-stats"],
   });
 
   const exportMutation = useMutation({
@@ -170,48 +182,6 @@ export default function Invoices() {
     },
   });
 
-  // Filter invoices based on date filter mode
-  const monthFilteredInvoices = invoices.filter((invoice) => {
-    const invoiceDate = new Date(invoice.invoiceDate);
-    
-    if (dateFilterMode === "allTime") {
-      return true;
-    } else if (dateFilterMode === "dateRange") {
-      if (!dateRangeFrom && !dateRangeTo) return true;
-      
-      const fromDate = dateRangeFrom ? new Date(dateRangeFrom) : new Date(0);
-      const toDate = dateRangeTo ? new Date(dateRangeTo) : new Date();
-      toDate.setHours(23, 59, 59, 999);
-      
-      return invoiceDate >= fromDate && invoiceDate <= toDate;
-    } else {
-      return (
-        invoiceDate.getFullYear() === selectedYear &&
-        invoiceDate.getMonth() === selectedMonth
-      );
-    }
-  });
-
-  // Calculate statistics for cards based on month-filtered data
-  const paidInvoices = monthFilteredInvoices.filter(inv => inv.status === "Paid");
-  const paidCount = paidInvoices.length;
-  const paidAmount = paidInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
-  const paidProfit = paidInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
-
-  const unpaidInvoices = monthFilteredInvoices.filter(inv => inv.status === "Unpaid");
-  const unpaidCount = unpaidInvoices.length;
-  const unpaidAmount = unpaidInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
-  const unpaidProfit = unpaidInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
-
-  const partialInvoices = monthFilteredInvoices.filter(inv => inv.status === "Partial");
-  const partialCount = partialInvoices.length;
-  const partialAmount = partialInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
-  const partialProfit = partialInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
-
-  const totalCount = monthFilteredInvoices.length;
-  const totalAmount = monthFilteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
-  const totalProfit = monthFilteredInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
-
   // Filter table data by date filter mode, status filter, assigned user, and active card
   const filteredInvoices = invoices.filter((invoice) => {
     const invoiceDate = new Date(invoice.invoiceDate);
@@ -239,7 +209,7 @@ export default function Invoices() {
 
     let matchesAssignedUserFilter = true;
     if (assignedUserFilter) {
-      matchesAssignedUserFilter = invoice.assignedUser === assignedUserFilter;
+      matchesAssignedUserFilter = invoice.salesPerson === assignedUserFilter;
     }
 
     let matchesCardFilter = true;
@@ -455,7 +425,7 @@ export default function Invoices() {
       </div>
 
       {/* Dashboard Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card
           className={`cursor-pointer transition-all border-0 ${
             activeCardFilter === null
@@ -463,7 +433,7 @@ export default function Invoices() {
               : "bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40"
           }`}
           onClick={() => setActiveCardFilter(null)}
-          data-testid="card-all-invoices"
+          data-testid="card-total-invoices"
         >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
@@ -473,9 +443,8 @@ export default function Invoices() {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Total Invoices</p>
                 <p className="text-xl font-bold text-blue-600 dark:text-blue-400 break-all">
-                  ₹{totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{(dashboardStats?.totalInvoicesAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{totalCount}</p>
               </div>
             </div>
           </CardContent>
@@ -488,7 +457,7 @@ export default function Invoices() {
               : "bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40"
           }`}
           onClick={() => setActiveCardFilter(activeCardFilter === "Paid" ? null : "Paid")}
-          data-testid="card-paid"
+          data-testid="card-paid-invoices"
         >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
@@ -496,36 +465,10 @@ export default function Invoices() {
                 <CheckCircle2 className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Paid</p>
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Paid Invoices</p>
                 <p className="text-xl font-bold text-green-600 dark:text-green-400 break-all">
-                  ₹{paidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  ₹{(dashboardStats?.paidInvoicesAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{paidCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className={`cursor-pointer transition-all border-0 ${
-            activeCardFilter === "Unpaid"
-              ? "bg-orange-100 dark:bg-orange-900/40 shadow-md"
-              : "bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40"
-          }`}
-          onClick={() => setActiveCardFilter(activeCardFilter === "Unpaid" ? null : "Unpaid")}
-          data-testid="card-unpaid"
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-4">
-              <div className="bg-orange-500 p-3 rounded-xl flex-shrink-0">
-                <AlertCircle className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Unpaid</p>
-                <p className="text-xl font-bold text-orange-600 dark:text-orange-400 break-all">
-                  ₹{unpaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{unpaidCount}</p>
               </div>
             </div>
           </CardContent>
@@ -534,23 +477,103 @@ export default function Invoices() {
         <Card
           className={`cursor-pointer transition-all border-0 ${
             activeCardFilter === "Partial"
-              ? "bg-cyan-100 dark:bg-cyan-900/40 shadow-md"
-              : "bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40"
+              ? "bg-yellow-100 dark:bg-yellow-900/40 shadow-md"
+              : "bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40"
           }`}
           onClick={() => setActiveCardFilter(activeCardFilter === "Partial" ? null : "Partial")}
-          data-testid="card-partial"
+          data-testid="card-partial-paid"
         >
           <CardContent className="p-5">
             <div className="flex items-center gap-4">
-              <div className="bg-cyan-500 p-3 rounded-xl flex-shrink-0">
+              <div className="bg-yellow-500 p-3 rounded-xl flex-shrink-0">
                 <Clock className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Partial</p>
-                <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400 break-all">
-                  ₹{partialAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Partial Paid</p>
+                <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 break-all">
+                  ₹{(dashboardStats?.partialPaidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{partialCount}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer transition-all border-0 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40"
+          data-testid="card-partial-balance"
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-orange-500 p-3 rounded-xl flex-shrink-0">
+                <AlertCircle className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Partial Balance</p>
+                <p className="text-xl font-bold text-orange-600 dark:text-orange-400 break-all">
+                  ₹{(dashboardStats?.partialBalanceAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className={`cursor-pointer transition-all border-0 ${
+            activeCardFilter === "Unpaid"
+              ? "bg-red-100 dark:bg-red-900/40 shadow-md"
+              : "bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40"
+          }`}
+          onClick={() => setActiveCardFilter(activeCardFilter === "Unpaid" ? null : "Unpaid")}
+          data-testid="card-unpaid-invoices"
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-red-500 p-3 rounded-xl flex-shrink-0">
+                <X className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Unpaid Invoices</p>
+                <p className="text-xl font-bold text-red-600 dark:text-red-400 break-all">
+                  ₹{(dashboardStats?.unpaidInvoicesAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer transition-all border-0 bg-teal-50 dark:bg-teal-900/20 hover:bg-teal-100 dark:hover:bg-teal-900/40"
+          data-testid="card-total-paid"
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-teal-500 p-3 rounded-xl flex-shrink-0">
+                <DollarSign className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Total Paid Amount</p>
+                <p className="text-xl font-bold text-teal-600 dark:text-teal-400 break-all">
+                  ₹{(dashboardStats?.totalPaidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="cursor-pointer transition-all border-0 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/40"
+          data-testid="card-total-interest"
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="bg-purple-500 p-3 rounded-xl flex-shrink-0">
+                <TrendingUp className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Total Interest</p>
+                <p className="text-xl font-bold text-purple-600 dark:text-purple-400 break-all">
+                  ₹{(dashboardStats?.totalInterestAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
               </div>
             </div>
           </CardContent>
