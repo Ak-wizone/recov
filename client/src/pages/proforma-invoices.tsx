@@ -5,6 +5,7 @@ import { ProformaInvoice } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { ProformaInvoiceTable } from "@/components/proforma-invoice-table";
 import { ProformaInvoicePrintDialog } from "@/components/proforma-invoice-print-dialog";
+import { EmailDialog } from "@/components/email-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { isToday, isYesterday, isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 
 export default function ProformaInvoices() {
   const { toast } = useToast();
@@ -42,6 +44,8 @@ export default function ProformaInvoices() {
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
   const [printInvoice, setPrintInvoice] = useState<ProformaInvoice | null>(null);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<ProformaInvoice | null>(null);
 
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -441,11 +445,32 @@ export default function ProformaInvoices() {
                 }, 500);
               }}
               onEmail={(invoice: ProformaInvoice) => {
-                window.location.href = `mailto:${invoice.leadEmail}?subject=Proforma Invoice ${invoice.invoiceNumber}`;
+                if (!invoice.leadEmail) {
+                  toast({
+                    title: "Error",
+                    description: "Email address is not available for this proforma invoice",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setSelectedInvoiceForEmail(invoice);
+                setIsEmailDialogOpen(true);
               }}
               onWhatsApp={(invoice: ProformaInvoice) => {
-                const message = `Hi, please find your proforma invoice ${invoice.invoiceNumber} for ₹${invoice.grandTotal}`;
-                window.open(`https://wa.me/${invoice.leadMobile.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                if (!invoice.leadMobile) {
+                  toast({
+                    title: "Error",
+                    description: "Mobile number is not available for this proforma invoice",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                const message = getWhatsAppMessageTemplate("proforma_invoices", {
+                  customerName: invoice.leadName,
+                  invoiceNumber: invoice.invoiceNumber,
+                  amount: invoice.grandTotal,
+                });
+                openWhatsApp(invoice.leadMobile, message);
               }}
             />
           </CardContent>
@@ -499,6 +524,18 @@ export default function ProformaInvoices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EmailDialog
+        isOpen={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        moduleType="proforma_invoices"
+        recordData={{
+          customerName: selectedInvoiceForEmail?.leadName || "",
+          customerEmail: selectedInvoiceForEmail?.leadEmail || "",
+          piNumber: selectedInvoiceForEmail?.invoiceNumber || "",
+          amount: selectedInvoiceForEmail?.grandTotal || "",
+        }}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { LeadTable } from "@/components/lead-table";
 import { LeadFormDialog } from "@/components/lead-form-dialog";
 import { LeadFollowUpDialog } from "@/components/lead-followup-dialog";
 import LeadImportModal from "@/components/lead-import-modal";
+import { EmailDialog } from "@/components/email-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { isToday, isTomorrow, isBefore, isAfter, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
+import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 
 type FollowUpFilter = "overdue" | "today" | "tomorrow" | "thisWeek" | "thisMonth" | "none" | null;
 
@@ -63,6 +65,8 @@ export default function Leads() {
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [selectedLeadForEmail, setSelectedLeadForEmail] = useState<Lead | null>(null);
 
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -371,15 +375,31 @@ export default function Leads() {
   };
 
   const handleWhatsApp = (lead: Lead) => {
-    const message = encodeURIComponent(`Hello ${lead.contactPerson}, this is regarding your inquiry from ${lead.companyName}.`);
-    const phoneNumber = lead.mobile.replace(/\D/g, '');
-    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+    if (!lead.mobile) {
+      toast({
+        title: "Error",
+        description: "Mobile number is not available for this lead",
+        variant: "destructive",
+      });
+      return;
+    }
+    const message = getWhatsAppMessageTemplate("leads", {
+      customerName: lead.contactPerson || lead.companyName,
+    });
+    openWhatsApp(lead.mobile, message);
   };
 
   const handleEmail = (lead: Lead) => {
-    const subject = encodeURIComponent('Follow-up on Your Inquiry');
-    const body = encodeURIComponent(`Dear ${lead.contactPerson},\n\nThank you for your interest in our services.\n\nBest regards`);
-    window.location.href = `mailto:${lead.email}?subject=${subject}&body=${body}`;
+    if (!lead.email) {
+      toast({
+        title: "Error",
+        description: "Email address is not available for this lead",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedLeadForEmail(lead);
+    setIsEmailDialogOpen(true);
   };
 
   const handleFollowUp = (lead: Lead) => {
@@ -993,6 +1013,17 @@ export default function Leads() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EmailDialog
+        isOpen={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        moduleType="leads"
+        recordData={{
+          customerName: selectedLeadForEmail?.companyName || "",
+          customerEmail: selectedLeadForEmail?.email || "",
+          contactPerson: selectedLeadForEmail?.contactPerson || "",
+        }}
+      />
     </div>
   );
 }

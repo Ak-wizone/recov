@@ -7,6 +7,7 @@ import { QuotationTable } from "@/components/quotation-table";
 import { QuotationFormDialog } from "@/components/quotation-form-dialog";
 import { QuotationSettingsDialog } from "@/components/quotation-settings-dialog";
 import { QuotationPrintDialog } from "@/components/quotation-print-dialog";
+import { EmailDialog } from "@/components/email-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -37,6 +38,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { isToday, isYesterday, isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import html2pdf from "html2pdf.js";
+import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 
 export default function Quotations() {
   const { toast } = useToast();
@@ -48,6 +50,8 @@ export default function Quotations() {
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
   const [printQuotation, setPrintQuotation] = useState<Quotation | null>(null);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [selectedQuotationForEmail, setSelectedQuotationForEmail] = useState<Quotation | null>(null);
 
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -468,11 +472,32 @@ export default function Quotations() {
                 }, 500);
               }}
               onEmail={(quotation) => {
-                window.location.href = `mailto:${quotation.leadEmail}?subject=Quotation ${quotation.quotationNumber}`;
+                if (!quotation.leadEmail) {
+                  toast({
+                    title: "Error",
+                    description: "Email address is not available for this quotation",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setSelectedQuotationForEmail(quotation);
+                setIsEmailDialogOpen(true);
               }}
               onWhatsApp={(quotation) => {
-                const message = `Hi, please find your quotation ${quotation.quotationNumber} for ₹${quotation.grandTotal}`;
-                window.open(`https://wa.me/${quotation.leadMobile.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`, '_blank');
+                if (!quotation.leadMobile) {
+                  toast({
+                    title: "Error",
+                    description: "Mobile number is not available for this quotation",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                const message = getWhatsAppMessageTemplate("quotations", {
+                  customerName: quotation.leadName,
+                  quotationNumber: quotation.quotationNumber,
+                  amount: quotation.grandTotal,
+                });
+                openWhatsApp(quotation.leadMobile, message);
               }}
             />
           </CardContent>
@@ -537,6 +562,18 @@ export default function Quotations() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EmailDialog
+        isOpen={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        moduleType="quotations"
+        recordData={{
+          customerName: selectedQuotationForEmail?.leadName || "",
+          customerEmail: selectedQuotationForEmail?.leadEmail || "",
+          quotationNumber: selectedQuotationForEmail?.quotationNumber || "",
+          amount: selectedQuotationForEmail?.grandTotal || "",
+        }}
+      />
     </div>
   );
 }
