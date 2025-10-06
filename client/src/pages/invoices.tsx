@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { InvoiceTable } from "@/components/invoice-table";
 import InvoiceFormDialog from "@/components/invoice-form-dialog";
 import { ImportModal } from "@/components/import-modal";
+import { EmailDialog } from "@/components/email-dialog";
+import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp, Wallet } from "lucide-react";
+import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp, Wallet, MessageSquare, Mail } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -39,6 +41,8 @@ export default function Invoices() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<Invoice | null>(null);
   
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -274,6 +278,34 @@ export default function Invoices() {
   const handleAddNew = () => {
     setSelectedInvoice(null);
     setIsAddDialogOpen(true);
+  };
+
+  const handleWhatsApp = (invoice: Invoice) => {
+    if (!invoice.primaryMobile) {
+      toast({
+        title: "Error",
+        description: "Customer mobile number is not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const message = getWhatsAppMessageTemplate("invoices", {
+      customerName: invoice.customerName,
+      invoiceNumber: invoice.invoiceNumber,
+      amount: invoice.invoiceAmount,
+    });
+
+    openWhatsApp(invoice.primaryMobile, message);
+  };
+
+  const handleEmail = (invoice: Invoice) => {
+    const dueDate = invoice.paymentTerms 
+      ? new Date(new Date(invoice.invoiceDate).getTime() + invoice.paymentTerms * 24 * 60 * 60 * 1000)
+      : new Date(invoice.invoiceDate);
+
+    setSelectedInvoiceForEmail(invoice);
+    setIsEmailDialogOpen(true);
   };
 
   return (
@@ -663,6 +695,8 @@ export default function Invoices() {
           isLoading={isLoading}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onWhatsApp={handleWhatsApp}
+          onEmail={handleEmail}
           onBulkDelete={handleBulkDelete}
           onFiltersChange={setTableFilters}
         />
@@ -731,6 +765,24 @@ export default function Invoices() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Email Dialog */}
+      {selectedInvoiceForEmail && (
+        <EmailDialog
+          isOpen={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          moduleType="invoices"
+          recordData={{
+            customerName: selectedInvoiceForEmail.customerName,
+            customerEmail: "",
+            invoiceNumber: selectedInvoiceForEmail.invoiceNumber,
+            amount: selectedInvoiceForEmail.invoiceAmount,
+            dueDate: selectedInvoiceForEmail.paymentTerms 
+              ? new Date(new Date(selectedInvoiceForEmail.invoiceDate).getTime() + selectedInvoiceForEmail.paymentTerms * 24 * 60 * 60 * 1000).toISOString()
+              : new Date(selectedInvoiceForEmail.invoiceDate).toISOString(),
+          }}
+        />
+      )}
     </div>
   );
 }

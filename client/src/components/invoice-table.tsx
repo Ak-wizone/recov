@@ -4,7 +4,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, MessageSquare, Mail } from "lucide-react";
 import { format } from "date-fns";
 
 interface InvoiceTableProps {
@@ -12,6 +12,8 @@ interface InvoiceTableProps {
   isLoading: boolean;
   onEdit: (invoice: Invoice) => void;
   onDelete: (invoice: Invoice) => void;
+  onWhatsApp?: (invoice: Invoice) => void;
+  onEmail?: (invoice: Invoice) => void;
   onBulkDelete?: (ids: string[]) => void;
   onFiltersChange?: (filters: { globalFilter: string; columnFilters: any[] }) => void;
 }
@@ -21,6 +23,8 @@ export function InvoiceTable({
   isLoading,
   onEdit,
   onDelete,
+  onWhatsApp,
+  onEmail,
   onBulkDelete,
   onFiltersChange,
 }: InvoiceTableProps) {
@@ -306,6 +310,22 @@ export function InvoiceTable({
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => onWhatsApp?.(row.original)}
+              data-testid={`button-whatsapp-${row.original.id}`}
+            >
+              <MessageSquare className="h-4 w-4 text-green-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEmail?.(row.original)}
+              data-testid={`button-email-${row.original.id}`}
+            >
+              <Mail className="h-4 w-4 text-blue-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => onEdit(row.original)}
               data-testid={`button-edit-${row.original.id}`}
             >
@@ -324,7 +344,7 @@ export function InvoiceTable({
         enableHiding: false,
       },
     ],
-    [onEdit, onDelete]
+    [onEdit, onDelete, onWhatsApp, onEmail]
   );
 
   const handleBulkDelete = async (rows: Invoice[]) => {

@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ReceiptTable } from "@/components/receipt-table";
 import ReceiptFormDialog from "@/components/receipt-form-dialog";
 import { ImportModal } from "@/components/import-modal";
+import { EmailDialog } from "@/components/email-dialog";
+import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, FileDown, FileUp, Receipt as ReceiptIcon, DollarSign, Calendar, Clock, CalendarDays, CalendarRange, TrendingUp } from "lucide-react";
+import { Plus, FileDown, FileUp, Receipt as ReceiptIcon, DollarSign, Calendar, Clock, CalendarDays, CalendarRange, TrendingUp, MessageSquare, Mail } from "lucide-react";
 import { isToday, isYesterday, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isWithinInterval, addWeeks, getYear, getMonth, setYear, setMonth as setMonthFn } from "date-fns";
 import {
   Select,
@@ -42,6 +44,8 @@ export default function Receipts() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [selectedReceiptForEmail, setSelectedReceiptForEmail] = useState<Receipt | null>(null);
   
   // Year/Month selection and card filter state
   const [selectedYear, setSelectedYear] = useState(getYear(now));
@@ -314,6 +318,19 @@ export default function Receipts() {
   const handleAddNew = () => {
     setSelectedReceipt(null);
     setIsAddDialogOpen(true);
+  };
+
+  const handleWhatsApp = (receipt: Receipt) => {
+    toast({
+      title: "Information",
+      description: "Mobile number not available for this receipt. Please add customer mobile in the receipt form.",
+      variant: "default",
+    });
+  };
+
+  const handleEmail = (receipt: Receipt) => {
+    setSelectedReceiptForEmail(receipt);
+    setIsEmailDialogOpen(true);
   };
 
   return (
@@ -667,6 +684,8 @@ export default function Receipts() {
           isLoading={isLoading}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onWhatsApp={handleWhatsApp}
+          onEmail={handleEmail}
           onBulkDelete={handleBulkDelete}
         />
       </div>
@@ -734,6 +753,22 @@ export default function Receipts() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Email Dialog */}
+      {selectedReceiptForEmail && (
+        <EmailDialog
+          isOpen={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          moduleType="receipts"
+          recordData={{
+            customerName: selectedReceiptForEmail.customerName,
+            customerEmail: "",
+            voucherType: selectedReceiptForEmail.voucherType,
+            voucherNumber: selectedReceiptForEmail.voucherNumber,
+            amount: selectedReceiptForEmail.amount,
+          }}
+        />
+      )}
     </div>
   );
 }
