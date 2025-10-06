@@ -22,6 +22,8 @@ import CompanySettings from "@/pages/company-settings";
 import NotFound from "@/pages/not-found";
 import Roles from "@/pages/roles";
 import Users from "@/pages/users";
+import EmailConfig from "@/pages/email-config";
+import EmailTemplates from "@/pages/email-templates";
 
 function Router() {
   return (
@@ -48,6 +50,8 @@ function Router() {
               <Route path="/masters/customers" component={MasterCustomers} />
               <Route path="/masters/items" component={MasterItems} />
               <Route path="/company-settings" component={CompanySettings} />
+              <Route path="/email-config" component={EmailConfig} />
+              <Route path="/email-templates" component={EmailTemplates} />
               <Route path="/settings/roles" component={Roles} />
               <Route path="/settings/users" component={Users} />
               <Route component={NotFound} />

@@ -388,27 +388,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createMasterCustomer(insertCustomer: InsertMasterCustomer): Promise<MasterCustomer> {
-    const dataToInsert: any = {
-      ...insertCustomer,
-      incorporationDate: insertCustomer.incorporationDate ? new Date(insertCustomer.incorporationDate) : null,
-    };
-    
     const [customer] = await db
       .insert(masterCustomers)
-      .values(dataToInsert)
+      .values(insertCustomer)
       .returning();
     return customer;
   }
 
   async updateMasterCustomer(id: string, updates: Partial<InsertMasterCustomer>): Promise<MasterCustomer | undefined> {
-    const dataToUpdate: any = { ...updates };
-    if (dataToUpdate.incorporationDate) {
-      dataToUpdate.incorporationDate = new Date(dataToUpdate.incorporationDate);
-    }
-    
     const [customer] = await db
       .update(masterCustomers)
-      .set(dataToUpdate)
+      .set(updates)
       .where(eq(masterCustomers.id, id))
       .returning();
     return customer || undefined;
