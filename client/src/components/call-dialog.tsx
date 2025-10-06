@@ -108,9 +108,20 @@ export function CallDialog({
     },
   });
 
+  const normalizePhoneNumber = (phone: string): string => {
+    const cleaned = phone.replace(/\D/g, "");
+    if (cleaned.length === 10) {
+      return `+91${cleaned}`;
+    }
+    if (cleaned.length === 12 && cleaned.startsWith("91")) {
+      return `+${cleaned}`;
+    }
+    return phone;
+  };
+
   const validatePhoneNumber = (phone: string): boolean => {
     const cleaned = phone.replace(/\D/g, "");
-    return cleaned.length === 10;
+    return cleaned.length === 10 || (cleaned.length === 12 && cleaned.startsWith("91"));
   };
 
   const handleMakeCall = () => {
@@ -160,7 +171,7 @@ export function CallDialog({
     const selectedScript = scripts?.find(s => s.id === selectedScriptId);
 
     makeCallMutation.mutate({
-      phoneNumber: phoneNumber.replace(/\D/g, ""),
+      phoneNumber: normalizePhoneNumber(phoneNumber),
       scriptId: selectedScript?.scriptId || selectedScriptId,
       customerName: recordData.customerName || "",
       module: moduleType,
@@ -177,7 +188,13 @@ export function CallDialog({
 
   useEffect(() => {
     if (isOpen) {
-      setPhoneNumber(recordData.phoneNumber || "");
+      const phone = recordData.phoneNumber || "";
+      const cleaned = phone.replace(/\D/g, "");
+      if (cleaned.length === 10 && !phone.startsWith("+91")) {
+        setPhoneNumber(`+91${cleaned}`);
+      } else {
+        setPhoneNumber(phone);
+      }
       setSelectedScriptId("");
       setNotes("");
     }
@@ -273,14 +290,15 @@ export function CallDialog({
             <Input
               id="phone-number"
               type="tel"
-              placeholder="Enter 10-digit phone number"
+              placeholder="+91 XXXXXXXXXX (India)"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               data-testid="input-phone"
             />
             {phoneNumber && !validatePhoneNumber(phoneNumber) && (
-              <p className="text-sm text-red-500">Phone number must be exactly 10 digits</p>
+              <p className="text-sm text-red-500">Phone number must be 10 digits (India format: +91XXXXXXXXXX)</p>
             )}
+            <p className="text-xs text-gray-500">+91 will be added automatically for Indian numbers</p>
           </div>
 
           {Object.keys(contextVariables).length > 0 && (
