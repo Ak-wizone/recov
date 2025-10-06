@@ -13,7 +13,7 @@ export interface RinggService {
 }
 
 class RinggServiceImpl implements RinggService {
-  private baseUrl = "https://api.ringg.ai/v1";
+  private baseUrl = "https://prod-api.ringg.ai/ca/api/v0";
 
   private async makeRequest(
     endpoint: string,
@@ -27,7 +27,7 @@ class RinggServiceImpl implements RinggService {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
-          "Authorization": `Bearer ${apiKey}`,
+          "X-API-KEY": apiKey,
           "Content-Type": "application/json",
           ...options.headers,
         },
@@ -61,7 +61,7 @@ class RinggServiceImpl implements RinggService {
         throw new Error("Failed to connect to Ringg.ai API. Please check your network connection.");
       }
       if (error.name === "SyntaxError" || error.message.includes("JSON")) {
-        throw new Error("Ringg.ai API returned invalid response. Please check your API key and script ID.");
+        throw new Error("Ringg.ai API returned invalid response. Please check your API key and agent ID.");
       }
       throw error;
     }
@@ -69,7 +69,7 @@ class RinggServiceImpl implements RinggService {
 
   async testConnection(apiKey: string): Promise<{ success: boolean; message: string }> {
     try {
-      await this.makeRequest("/account", apiKey, {
+      await this.makeRequest("/workspace", apiKey, {
         method: "GET",
       });
 
@@ -94,18 +94,22 @@ class RinggServiceImpl implements RinggService {
     }
   ): Promise<{ success: boolean; callId?: string; message?: string }> {
     try {
-      const data = await this.makeRequest("/calls", apiKey, {
+      const customerName = params.variables.customerName || "Customer";
+      
+      const data = await this.makeRequest("/calling/outbound/individual", apiKey, {
         method: "POST",
         body: JSON.stringify({
-          phone_number: params.phoneNumber,
-          script_id: params.scriptId,
-          variables: params.variables,
+          name: customerName,
+          mobile_number: params.phoneNumber,
+          agent_id: params.scriptId,
+          from_number_id: "default",
+          custom_args_values: params.variables,
         }),
       });
 
       return {
         success: true,
-        callId: data.call_id || data.id,
+        callId: data.data?.["Unique Call ID"] || data.data?.id,
       };
     } catch (error: any) {
       return {
@@ -117,7 +121,7 @@ class RinggServiceImpl implements RinggService {
 
   async getCallStatus(apiKey: string, callId: string): Promise<any> {
     try {
-      const data = await this.makeRequest(`/calls/${callId}`, apiKey, {
+      const data = await this.makeRequest(`/calling/${callId}`, apiKey, {
         method: "GET",
       });
 
@@ -129,13 +133,13 @@ class RinggServiceImpl implements RinggService {
 
   async listScripts(apiKey: string): Promise<any[]> {
     try {
-      const data = await this.makeRequest("/scripts", apiKey, {
+      const data = await this.makeRequest("/agents", apiKey, {
         method: "GET",
       });
 
-      return Array.isArray(data) ? data : data.scripts || [];
+      return Array.isArray(data) ? data : data.agents || data.data || [];
     } catch (error: any) {
-      throw new Error(error.message || "Failed to list scripts");
+      throw new Error(error.message || "Failed to list agents");
     }
   }
 }
