@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, invoices } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, invoices } from "@shared/schema";
+import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -3245,6 +3246,239 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const count = await storage.bulkDeleteUsers(ids);
       res.json({ message: `Successfully deleted ${count} users`, count });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ EMAIL CONFIGURATION ROUTES ============
+
+  // Get current email configuration (without sensitive data)
+  app.get("/api/email-config", async (req, res) => {
+    try {
+      const config = await storage.getEmailConfig();
+      if (!config) {
+        return res.json(null);
+      }
+
+      const { smtpPassword, gmailAccessToken, gmailRefreshToken, ...safeConfig } = config;
+      res.json(safeConfig);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Save email configuration
+  app.post("/api/email-config", async (req, res) => {
+    try {
+      const validation = insertEmailConfigSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const existingConfig = await storage.getEmailConfig();
+      let config;
+      
+      if (existingConfig) {
+        config = await storage.updateEmailConfig(existingConfig.id, validation.data);
+      } else {
+        config = await storage.createEmailConfig(validation.data);
+      }
+
+      if (!config) {
+        return res.status(500).json({ message: "Failed to save email configuration" });
+      }
+
+      const { smtpPassword, gmailAccessToken, gmailRefreshToken, ...safeConfig } = config;
+      res.json(safeConfig);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update email configuration
+  app.put("/api/email-config/:id", async (req, res) => {
+    try {
+      const validation = insertEmailConfigSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const config = await storage.updateEmailConfig(req.params.id, validation.data);
+      if (!config) {
+        return res.status(404).json({ message: "Email configuration not found" });
+      }
+
+      const { smtpPassword, gmailAccessToken, gmailRefreshToken, ...safeConfig } = config;
+      res.json(safeConfig);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Test email connection
+  app.post("/api/email-config/test", async (req, res) => {
+    try {
+      const { testEmail } = req.body;
+      if (!testEmail) {
+        return res.status(400).json({ message: "Test email address is required" });
+      }
+
+      const config = await storage.getEmailConfig();
+      if (!config) {
+        return res.status(400).json({ message: "No email configuration found" });
+      }
+
+      if (config.isActive !== "Active") {
+        return res.status(400).json({ message: "Email configuration is not active" });
+      }
+
+      const isValid = await testEmailConnection(config);
+      if (!isValid) {
+        return res.status(400).json({ message: "Failed to connect to email server. Please check your configuration." });
+      }
+
+      await sendEmail(
+        config,
+        testEmail,
+        "Test Email",
+        "<p>This is a test email from your application. If you received this, your email configuration is working correctly!</p>"
+      );
+
+      res.json({ message: "Test email sent successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ EMAIL TEMPLATE ROUTES ============
+
+  // Get all email templates
+  app.get("/api/email-templates", async (req, res) => {
+    try {
+      const templates = await storage.getEmailTemplates();
+      res.json(templates);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get templates for specific module
+  app.get("/api/email-templates/module/:module", async (req, res) => {
+    try {
+      const templates = await storage.getEmailTemplatesByModule(req.params.module);
+      res.json(templates);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single template
+  app.get("/api/email-templates/:id", async (req, res) => {
+    try {
+      const template = await storage.getEmailTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ message: "Email template not found" });
+      }
+      res.json(template);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create new template
+  app.post("/api/email-templates", async (req, res) => {
+    try {
+      const validation = insertEmailTemplateSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const template = await storage.createEmailTemplate(validation.data);
+      res.status(201).json(template);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update template
+  app.put("/api/email-templates/:id", async (req, res) => {
+    try {
+      const validation = insertEmailTemplateSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const template = await storage.updateEmailTemplate(req.params.id, validation.data);
+      if (!template) {
+        return res.status(404).json({ message: "Email template not found" });
+      }
+      res.json(template);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete template
+  app.delete("/api/email-templates/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteEmailTemplate(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Email template not found" });
+      }
+      res.json({ message: "Email template deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ SEND EMAIL ROUTE ============
+
+  // Send email
+  app.post("/api/send-email", async (req, res) => {
+    try {
+      const { to, templateId, templateData, subject, body } = req.body;
+
+      if (!to) {
+        return res.status(400).json({ message: "Recipient email address is required" });
+      }
+
+      const config = await storage.getEmailConfig();
+      if (!config) {
+        return res.status(400).json({ message: "No email configuration found. Please configure email settings first." });
+      }
+
+      if (config.isActive !== "Active") {
+        return res.status(400).json({ message: "Email configuration is not active" });
+      }
+
+      let emailSubject: string;
+      let emailBody: string;
+
+      if (templateId) {
+        const template = await storage.getEmailTemplate(templateId);
+        if (!template) {
+          return res.status(404).json({ message: "Email template not found" });
+        }
+
+        emailSubject = renderTemplate(template.subject, templateData || {});
+        emailBody = renderTemplate(template.body, templateData || {});
+      } else if (subject && body) {
+        emailSubject = subject;
+        emailBody = body;
+      } else {
+        return res.status(400).json({ 
+          message: "Either templateId with templateData or subject and body are required" 
+        });
+      }
+
+      await sendEmail(config, to, emailSubject, emailBody);
+
+      res.json({ 
+        message: "Email sent successfully",
+        to,
+        subject: emailSubject
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
