@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Phone, Play, Eye, Search } from "lucide-react";
+import { Loader2, Phone, Play, Eye, Search, RefreshCw } from "lucide-react";
 import type { CallLog } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -55,9 +55,8 @@ export default function RinggCallHistory() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedCall, setSelectedCall] = useState<CallLog | null>(null);
 
-  const { data: calls, isLoading } = useQuery<CallLog[]>({
+  const { data: calls, isLoading, refetch } = useQuery<CallLog[]>({
     queryKey: ["/api/calls/history", { module: moduleFilter, status: statusFilter, search: searchQuery }],
-    refetchInterval: 10000,
   });
 
   const filteredCalls = calls?.filter((call) => {
@@ -94,11 +93,22 @@ export default function RinggCallHistory() {
 
   return (
     <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Call History</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-2">
-          View and manage all Ringg.ai call logs
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Call History</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
+            View and manage all Ringg.ai call logs
+          </p>
+        </div>
+        <Button
+          onClick={() => refetch()}
+          variant="outline"
+          size="sm"
+          data-testid="button-refresh"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-4">
