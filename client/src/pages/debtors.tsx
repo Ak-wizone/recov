@@ -26,9 +26,12 @@ import { Button } from "@/components/ui/button";
 import { DebtorsTable } from "@/components/debtors-table";
 import { DebtorsFollowUpDialog } from "@/components/debtors-followup-dialog";
 import { EmailDialog } from "@/components/email-dialog";
+import { CallDialog } from "@/components/call-dialog";
+import { useToast } from "@/hooks/use-toast";
 import { isToday, isThisWeek, isThisMonth, isWithinInterval, parseISO } from "date-fns";
 
 export default function Debtors() {
+  const { toast } = useToast();
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
@@ -41,6 +44,8 @@ export default function Debtors() {
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [selectedEmailCustomer, setSelectedEmailCustomer] = useState<any | null>(null);
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
+  const [selectedDebtorForCall, setSelectedDebtorForCall] = useState<any | null>(null);
 
   const { data: debtorsData, isLoading } = useQuery<any>({
     queryKey: ["/api/debtors"],
@@ -107,6 +112,20 @@ export default function Debtors() {
   const handleOpenEmail = (debtor: any) => {
     setSelectedEmailCustomer(debtor);
     setIsEmailDialogOpen(true);
+  };
+
+  const handleOpenCall = (debtor: any) => {
+    const phoneNumber = debtor.mobile || debtor.primaryMobile;
+    if (!phoneNumber) {
+      toast({
+        title: "Mobile number not available",
+        description: "This customer doesn't have a mobile number on file.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedDebtorForCall(debtor);
+    setIsCallDialogOpen(true);
   };
 
   const formatCurrency = (amount: number) => {
@@ -529,6 +548,7 @@ export default function Debtors() {
                 data={filteredDebtors}
                 onOpenFollowUp={handleOpenFollowUp}
                 onOpenEmail={handleOpenEmail}
+                onOpenCall={handleOpenCall}
               />
             )}
           </CardContent>
@@ -551,6 +571,19 @@ export default function Debtors() {
             customerEmail: selectedEmailCustomer?.email,
             balance: selectedEmailCustomer?.balance,
             overdueAmount: selectedEmailCustomer?.balance,
+          }}
+        />
+
+        <CallDialog
+          isOpen={isCallDialogOpen}
+          onOpenChange={setIsCallDialogOpen}
+          moduleType="debtors"
+          recordData={{
+            customerName: selectedDebtorForCall?.name || selectedDebtorForCall?.clientName || "",
+            phoneNumber: selectedDebtorForCall?.mobile || selectedDebtorForCall?.primaryMobile || "",
+            balance: selectedDebtorForCall?.balance || "",
+            overdueAmount: selectedDebtorForCall?.overdueAmount || selectedDebtorForCall?.balance || "",
+            customerId: selectedDebtorForCall?.id || selectedDebtorForCall?.customerId || "",
           }}
         />
       </div>

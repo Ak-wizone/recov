@@ -7,6 +7,7 @@ import { ReceiptTable } from "@/components/receipt-table";
 import ReceiptFormDialog from "@/components/receipt-form-dialog";
 import { ImportModal } from "@/components/import-modal";
 import { EmailDialog } from "@/components/email-dialog";
+import { CallDialog } from "@/components/call-dialog";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,6 +47,8 @@ export default function Receipts() {
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [selectedReceiptForEmail, setSelectedReceiptForEmail] = useState<Receipt | null>(null);
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
+  const [selectedReceiptForCall, setSelectedReceiptForCall] = useState<Receipt | null>(null);
   
   // Year/Month selection and card filter state
   const [selectedYear, setSelectedYear] = useState(getYear(now));
@@ -331,6 +334,14 @@ export default function Receipts() {
   const handleEmail = (receipt: Receipt) => {
     setSelectedReceiptForEmail(receipt);
     setIsEmailDialogOpen(true);
+  };
+
+  const handleCall = (receipt: Receipt) => {
+    toast({
+      title: "Information",
+      description: "Mobile number not available for this receipt. Please add customer mobile in the receipt form.",
+      variant: "default",
+    });
   };
 
   return (
@@ -686,6 +697,7 @@ export default function Receipts() {
           onDelete={handleDelete}
           onWhatsApp={handleWhatsApp}
           onEmail={handleEmail}
+          onCall={handleCall}
           onBulkDelete={handleBulkDelete}
         />
       </div>
@@ -769,6 +781,19 @@ export default function Receipts() {
           }}
         />
       )}
+
+      <CallDialog
+        isOpen={isCallDialogOpen}
+        onOpenChange={setIsCallDialogOpen}
+        moduleType="receipts"
+        recordData={{
+          customerName: selectedReceiptForCall?.customerName || "",
+          phoneNumber: "",
+          voucherType: selectedReceiptForCall?.voucherType || "",
+          voucherNumber: selectedReceiptForCall?.voucherNumber || "",
+          amount: selectedReceiptForCall?.amount || "",
+        }}
+      />
     </div>
   );
 }

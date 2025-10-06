@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Upload, Building2, Mail, FileText, ArrowRight } from "lucide-react";
+import { Loader2, Upload, Building2, Mail, FileText, ArrowRight, Phone, ListOrdered, History } from "lucide-react";
 import { Link } from "wouter";
 
 export default function CompanySettings() {
@@ -257,6 +257,75 @@ export default function CompanySettings() {
             </Link>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Ringg.ai Calling Agent Settings */}
+      <div>
+        <h2 className="text-xl font-bold mb-2">Ringg.ai Calling Agent</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          AI-powered voice calling for automated reminders and customer outreach
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Phone className="h-5 w-5 text-purple-600" />
+                Ringg.ai Configuration
+              </CardTitle>
+              <CardDescription>
+                Configure your Ringg.ai API key and settings
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/ringg-config">
+                <Button variant="outline" className="w-full" data-testid="button-ringg-config">
+                  Manage API Settings
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ListOrdered className="h-5 w-5 text-orange-600" />
+                Script Mappings
+              </CardTitle>
+              <CardDescription>
+                Map Ringg.ai call scripts to different modules
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/ringg-script-mappings">
+                <Button variant="outline" className="w-full" data-testid="button-ringg-scripts">
+                  Manage Script Mappings
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-md transition-shadow">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <History className="h-5 w-5 text-teal-600" />
+                Call History
+              </CardTitle>
+              <CardDescription>
+                View all call logs, recordings, and outcomes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/ringg-call-history">
+                <Button variant="outline" className="w-full" data-testid="button-call-history">
+                  View Call History
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <Form {...form}>

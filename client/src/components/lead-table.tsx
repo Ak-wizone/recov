@@ -50,6 +50,7 @@ interface LeadTableProps {
   onDelete: (lead: Lead) => void;
   onWhatsApp: (lead: Lead) => void;
   onEmail: (lead: Lead) => void;
+  onCall?: (lead: Lead) => void;
   onFollowUp?: (lead: Lead) => void;
   onBulkDelete?: (ids: string[]) => void;
 }
@@ -61,6 +62,7 @@ export function LeadTable({
   onDelete,
   onWhatsApp,
   onEmail,
+  onCall,
   onFollowUp,
   onBulkDelete,
 }: LeadTableProps) {
@@ -863,6 +865,17 @@ export function LeadTable({
                     )}
                     <TableCell className="py-4">
                       <div className="flex items-center gap-2">
+                        {onCall && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => onCall(lead)}
+                            data-testid={`button-call-${lead.id}`}
+                          >
+                            <Phone className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"

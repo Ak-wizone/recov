@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash2, ChevronUp, ChevronDown, Settings2, Printer, Mail, Download } from "lucide-react";
+import { Edit, Trash2, ChevronUp, ChevronDown, Settings2, Printer, Mail, Download, Phone } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -38,6 +38,7 @@ interface QuotationTableProps {
   onDownloadPDF?: (quotation: Quotation) => void;
   onEmail?: (quotation: Quotation) => void;
   onWhatsApp?: (quotation: Quotation) => void;
+  onCall?: (quotation: Quotation) => void;
 }
 
 export function QuotationTable({
@@ -50,6 +51,7 @@ export function QuotationTable({
   onDownloadPDF,
   onEmail,
   onWhatsApp,
+  onCall,
 }: QuotationTableProps) {
   const [sortField, setSortField] = useState<keyof Quotation | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
@@ -392,6 +394,17 @@ export function QuotationTable({
                           data-testid={`button-email-${quotation.id}`}
                         >
                           <Mail className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {onCall && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onCall(quotation)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          data-testid={`button-call-${quotation.id}`}
+                        >
+                          <Phone className="h-4 w-4" />
                         </Button>
                       )}
                       {onWhatsApp && (

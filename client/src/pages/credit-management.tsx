@@ -4,10 +4,11 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Users, CheckCircle, AlertTriangle, TrendingUp, Target, BarChart, AlertCircle, MessageSquare, Mail } from "lucide-react";
+import { Download, Users, CheckCircle, AlertTriangle, TrendingUp, Target, BarChart, AlertCircle, MessageSquare, Mail, Phone } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { useToast } from "@/hooks/use-toast";
 import { EmailDialog } from "@/components/email-dialog";
+import { CallDialog } from "@/components/call-dialog";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import * as XLSX from "xlsx";
 
@@ -28,6 +29,8 @@ export default function CreditManagement() {
   const [utilizationFilter, setUtilizationFilter] = useState<string | null>(null);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [selectedEmailCustomer, setSelectedEmailCustomer] = useState<CreditManagementData | null>(null);
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
+  const [selectedCreditForCall, setSelectedCreditForCall] = useState<CreditManagementData | null>(null);
 
   const { data: creditData = [], isLoading } = useQuery<CreditManagementData[]>({
     queryKey: ["/api/credit-management"],
@@ -112,6 +115,20 @@ export default function CreditManagement() {
 
     setSelectedEmailCustomer(credit);
     setIsEmailDialogOpen(true);
+  };
+
+  const handleCallClick = (credit: CreditManagementData) => {
+    if (!credit.mobile) {
+      toast({
+        title: "Mobile number not available",
+        description: "This customer doesn't have a mobile number on file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedCreditForCall(credit);
+    setIsCallDialogOpen(true);
   };
 
   const columns = useMemo<ColumnDef<CreditManagementData>[]>(
@@ -209,13 +226,22 @@ export default function CreditManagement() {
             >
               <Mail className="h-4 w-4" />
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleCallClick(row.original)}
+              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+              data-testid={`button-call-${row.original.customerId}`}
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
           </div>
         ),
         enableSorting: false,
         enableHiding: false,
       },
     ],
-    [categoryColors, handleWhatsAppClick, handleEmailClick]
+    [categoryColors, handleWhatsAppClick, handleEmailClick, handleCallClick]
   );
 
   const handleExportSelected = (rows: CreditManagementData[]) => {
@@ -484,6 +510,19 @@ export default function CreditManagement() {
           customerEmail: selectedEmailCustomer?.email,
           creditLimit: selectedEmailCustomer?.creditLimit,
           balance: selectedEmailCustomer?.utilizedLimit,
+        }}
+      />
+
+      <CallDialog
+        isOpen={isCallDialogOpen}
+        onOpenChange={setIsCallDialogOpen}
+        moduleType="credit_management"
+        recordData={{
+          customerName: selectedCreditForCall?.customerName || "",
+          phoneNumber: selectedCreditForCall?.mobile || "",
+          creditLimit: selectedCreditForCall?.creditLimit || "",
+          balance: selectedCreditForCall?.utilizedLimit || "",
+          customerId: selectedCreditForCall?.customerId || "",
         }}
       />
     </div>

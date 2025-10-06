@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ProformaInvoiceTable } from "@/components/proforma-invoice-table";
 import { ProformaInvoicePrintDialog } from "@/components/proforma-invoice-print-dialog";
 import { EmailDialog } from "@/components/email-dialog";
+import { CallDialog } from "@/components/call-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -46,6 +47,8 @@ export default function ProformaInvoices() {
   const [printInvoice, setPrintInvoice] = useState<ProformaInvoice | null>(null);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<ProformaInvoice | null>(null);
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
+  const [selectedInvoiceForCall, setSelectedInvoiceForCall] = useState<ProformaInvoice | null>(null);
 
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -472,6 +475,18 @@ export default function ProformaInvoices() {
                 });
                 openWhatsApp(invoice.leadMobile, message);
               }}
+              onCall={(invoice: ProformaInvoice) => {
+                if (!invoice.mobile) {
+                  toast({
+                    title: "Error",
+                    description: "Mobile number is not available for this proforma invoice",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setSelectedInvoiceForCall(invoice);
+                setIsCallDialogOpen(true);
+              }}
             />
           </CardContent>
         </Card>
@@ -534,6 +549,19 @@ export default function ProformaInvoices() {
           customerEmail: selectedInvoiceForEmail?.leadEmail || "",
           piNumber: selectedInvoiceForEmail?.invoiceNumber || "",
           amount: selectedInvoiceForEmail?.grandTotal || "",
+        }}
+      />
+
+      <CallDialog
+        isOpen={isCallDialogOpen}
+        onOpenChange={setIsCallDialogOpen}
+        moduleType="proforma_invoices"
+        recordData={{
+          customerName: selectedInvoiceForCall?.leadName || "",
+          phoneNumber: selectedInvoiceForCall?.mobile || "",
+          piNumber: selectedInvoiceForCall?.invoiceNumber || "",
+          amount: selectedInvoiceForCall?.grandTotal || "",
+          customerId: selectedInvoiceForCall?.leadId || "",
         }}
       />
     </div>

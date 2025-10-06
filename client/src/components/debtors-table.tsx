@@ -54,9 +54,10 @@ interface DebtorsTableProps {
   data: DebtorData[];
   onOpenFollowUp: (debtor: DebtorData) => void;
   onOpenEmail: (debtor: DebtorData) => void;
+  onOpenCall: (debtor: DebtorData) => void;
 }
 
-export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail }: DebtorsTableProps) {
+export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: DebtorsTableProps) {
   const { toast } = useToast();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);

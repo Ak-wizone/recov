@@ -8,6 +8,7 @@ import { LeadFormDialog } from "@/components/lead-form-dialog";
 import { LeadFollowUpDialog } from "@/components/lead-followup-dialog";
 import LeadImportModal from "@/components/lead-import-modal";
 import { EmailDialog } from "@/components/email-dialog";
+import { CallDialog } from "@/components/call-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,8 @@ export default function Leads() {
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [selectedLeadForEmail, setSelectedLeadForEmail] = useState<Lead | null>(null);
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
+  const [selectedLeadForCall, setSelectedLeadForCall] = useState<Lead | null>(null);
 
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -405,6 +408,19 @@ export default function Leads() {
   const handleFollowUp = (lead: Lead) => {
     setSelectedLead(lead);
     setIsFollowUpDialogOpen(true);
+  };
+
+  const handleCall = (lead: Lead) => {
+    if (!lead.mobile) {
+      toast({
+        title: "Error",
+        description: "Mobile number is not available for this lead",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedLeadForCall(lead);
+    setIsCallDialogOpen(true);
   };
 
   const clearFilters = () => {
@@ -943,6 +959,7 @@ export default function Leads() {
           onDelete={handleDelete}
           onWhatsApp={handleWhatsApp}
           onEmail={handleEmail}
+          onCall={handleCall}
           onBulkDelete={handleBulkDelete}
           onFollowUp={handleFollowUp}
         />
@@ -1022,6 +1039,18 @@ export default function Leads() {
           customerName: selectedLeadForEmail?.companyName || "",
           customerEmail: selectedLeadForEmail?.email || "",
           contactPerson: selectedLeadForEmail?.contactPerson || "",
+        }}
+      />
+
+      <CallDialog
+        isOpen={isCallDialogOpen}
+        onOpenChange={setIsCallDialogOpen}
+        moduleType="leads"
+        recordData={{
+          customerName: selectedLeadForCall?.companyName || "",
+          phoneNumber: selectedLeadForCall?.mobile || "",
+          contactPerson: selectedLeadForCall?.contactPerson || "",
+          customerId: selectedLeadForCall?.id || "",
         }}
       />
     </div>

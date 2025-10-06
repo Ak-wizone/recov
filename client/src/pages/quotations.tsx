@@ -8,6 +8,7 @@ import { QuotationFormDialog } from "@/components/quotation-form-dialog";
 import { QuotationSettingsDialog } from "@/components/quotation-settings-dialog";
 import { QuotationPrintDialog } from "@/components/quotation-print-dialog";
 import { EmailDialog } from "@/components/email-dialog";
+import { CallDialog } from "@/components/call-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -52,6 +53,8 @@ export default function Quotations() {
   const [printQuotation, setPrintQuotation] = useState<Quotation | null>(null);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [selectedQuotationForEmail, setSelectedQuotationForEmail] = useState<Quotation | null>(null);
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
+  const [selectedQuotationForCall, setSelectedQuotationForCall] = useState<Quotation | null>(null);
 
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -499,6 +502,18 @@ export default function Quotations() {
                 });
                 openWhatsApp(quotation.leadMobile, message);
               }}
+              onCall={(quotation) => {
+                if (!quotation.mobile) {
+                  toast({
+                    title: "Error",
+                    description: "Mobile number is not available for this quotation",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setSelectedQuotationForCall(quotation);
+                setIsCallDialogOpen(true);
+              }}
             />
           </CardContent>
         </Card>
@@ -572,6 +587,19 @@ export default function Quotations() {
           customerEmail: selectedQuotationForEmail?.leadEmail || "",
           quotationNumber: selectedQuotationForEmail?.quotationNumber || "",
           amount: selectedQuotationForEmail?.grandTotal || "",
+        }}
+      />
+
+      <CallDialog
+        isOpen={isCallDialogOpen}
+        onOpenChange={setIsCallDialogOpen}
+        moduleType="quotations"
+        recordData={{
+          customerName: selectedQuotationForCall?.leadName || "",
+          phoneNumber: selectedQuotationForCall?.mobile || "",
+          quotationNumber: selectedQuotationForCall?.quotationNumber || "",
+          amount: selectedQuotationForCall?.grandTotal || "",
+          customerId: selectedQuotationForCall?.leadId || "",
         }}
       />
     </div>

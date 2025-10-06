@@ -7,6 +7,7 @@ import { InvoiceTable } from "@/components/invoice-table";
 import InvoiceFormDialog from "@/components/invoice-form-dialog";
 import { ImportModal } from "@/components/import-modal";
 import { EmailDialog } from "@/components/email-dialog";
+import { CallDialog } from "@/components/call-dialog";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,6 +44,8 @@ export default function Invoices() {
   const [bulkDeleteIds, setBulkDeleteIds] = useState<string[]>([]);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<Invoice | null>(null);
+  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
+  const [selectedInvoiceForCall, setSelectedInvoiceForCall] = useState<Invoice | null>(null);
   
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -306,6 +309,19 @@ export default function Invoices() {
 
     setSelectedInvoiceForEmail(invoice);
     setIsEmailDialogOpen(true);
+  };
+
+  const handleCall = (invoice: Invoice) => {
+    if (!invoice.primaryMobile) {
+      toast({
+        title: "Error",
+        description: "Customer mobile number is not available",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSelectedInvoiceForCall(invoice);
+    setIsCallDialogOpen(true);
   };
 
   return (
@@ -697,6 +713,7 @@ export default function Invoices() {
           onDelete={handleDelete}
           onWhatsApp={handleWhatsApp}
           onEmail={handleEmail}
+          onCall={handleCall}
           onBulkDelete={handleBulkDelete}
           onFiltersChange={setTableFilters}
         />
@@ -783,6 +800,22 @@ export default function Invoices() {
           }}
         />
       )}
+
+      <CallDialog
+        isOpen={isCallDialogOpen}
+        onOpenChange={setIsCallDialogOpen}
+        moduleType="invoices"
+        recordData={{
+          customerName: selectedInvoiceForCall?.customerName || "",
+          phoneNumber: selectedInvoiceForCall?.primaryMobile || "",
+          invoiceNumber: selectedInvoiceForCall?.invoiceNumber || "",
+          amount: selectedInvoiceForCall?.invoiceAmount || "",
+          dueDate: selectedInvoiceForCall?.paymentTerms 
+            ? new Date(new Date(selectedInvoiceForCall.invoiceDate).getTime() + selectedInvoiceForCall.paymentTerms * 24 * 60 * 60 * 1000).toISOString()
+            : selectedInvoiceForCall?.invoiceDate || "",
+          customerId: selectedInvoiceForCall?.customerId || "",
+        }}
+      />
     </div>
   );
 }
