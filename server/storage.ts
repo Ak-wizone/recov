@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, ringgConfigs, callScriptMappings, callLogs } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -176,11 +176,21 @@ export interface IStorage {
   
   // Call Log operations
   getCallLogs(): Promise<CallLog[]>;
+  getCallLogsByModule(module: string): Promise<CallLog[]>;
+  getCallLogsByCustomer(customerId: string): Promise<CallLog[]>;
   getCallLog(id: string): Promise<CallLog | undefined>;
   createCallLog(log: InsertCallLog): Promise<CallLog>;
   updateCallLog(id: string, log: Partial<InsertCallLog>): Promise<CallLog | undefined>;
   updateCallLogByRinggId(ringgCallId: string, log: Partial<InsertCallLog>): Promise<CallLog | undefined>;
   deleteCallLog(id: string): Promise<boolean>;
+  
+  // Communication Schedule operations
+  getCommunicationSchedules(): Promise<any[]>;
+  getCommunicationSchedule(id: string): Promise<any | undefined>;
+  getCommunicationSchedulesByModule(module: string): Promise<any[]>;
+  createCommunicationSchedule(schedule: any): Promise<any>;
+  updateCommunicationSchedule(id: string, schedule: any): Promise<any | undefined>;
+  deleteCommunicationSchedule(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1473,6 +1483,39 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCallLog(id: string): Promise<boolean> {
     const result = await db.delete(callLogs).where(eq(callLogs.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Communication Schedule operations
+  async getCommunicationSchedules(): Promise<CommunicationSchedule[]> {
+    return await db.select().from(communicationSchedules).orderBy(desc(communicationSchedules.createdAt));
+  }
+
+  async getCommunicationSchedule(id: string): Promise<CommunicationSchedule | undefined> {
+    const [schedule] = await db.select().from(communicationSchedules).where(eq(communicationSchedules.id, id));
+    return schedule;
+  }
+
+  async getCommunicationSchedulesByModule(module: string): Promise<CommunicationSchedule[]> {
+    return await db.select().from(communicationSchedules).where(eq(communicationSchedules.module, module)).orderBy(desc(communicationSchedules.createdAt));
+  }
+
+  async createCommunicationSchedule(schedule: InsertCommunicationSchedule): Promise<CommunicationSchedule> {
+    const [newSchedule] = await db.insert(communicationSchedules).values(schedule).returning();
+    return newSchedule;
+  }
+
+  async updateCommunicationSchedule(id: string, schedule: Partial<InsertCommunicationSchedule>): Promise<CommunicationSchedule | undefined> {
+    const [updated] = await db
+      .update(communicationSchedules)
+      .set({ ...schedule, updatedAt: new Date() })
+      .where(eq(communicationSchedules.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteCommunicationSchedule(id: string): Promise<boolean> {
+    const result = await db.delete(communicationSchedules).where(eq(communicationSchedules.id, id)).returning();
     return result.length > 0;
   }
 }
