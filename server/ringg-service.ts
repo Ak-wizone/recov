@@ -21,6 +21,9 @@ class RinggServiceImpl implements RinggService {
     options: RequestInit = {}
   ): Promise<any> {
     try {
+      console.log(`[Ringg.ai] Making request to: ${this.baseUrl}${endpoint}`);
+      console.log(`[Ringg.ai] Request body:`, options.body);
+      
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
         headers: {
@@ -30,29 +33,35 @@ class RinggServiceImpl implements RinggService {
         },
       });
 
+      console.log(`[Ringg.ai] Response status: ${response.status}`);
+      console.log(`[Ringg.ai] Response headers:`, Object.fromEntries(response.headers.entries()));
+
       const contentType = response.headers.get("content-type");
       let data;
 
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
+        console.log(`[Ringg.ai] Response data:`, data);
       } else {
         const text = await response.text();
-        throw new Error(`Ringg.ai API returned non-JSON response: ${text.substring(0, 100)}`);
+        console.log(`[Ringg.ai] Non-JSON response:`, text);
+        throw new Error(`Ringg.ai API returned non-JSON response (status ${response.status}): ${text.substring(0, 200)}`);
       }
 
       if (!response.ok) {
         throw new Error(
-          data.message || data.error || `Request failed with status ${response.status}`
+          data.message || data.error || `Request failed with status ${response.status}: ${JSON.stringify(data)}`
         );
       }
 
       return data;
     } catch (error: any) {
+      console.error(`[Ringg.ai] Error:`, error.message);
       if (error.message.includes("fetch")) {
         throw new Error("Failed to connect to Ringg.ai API. Please check your network connection.");
       }
       if (error.name === "SyntaxError" || error.message.includes("JSON")) {
-        throw new Error("Ringg.ai API returned invalid response. Please check your API key.");
+        throw new Error("Ringg.ai API returned invalid response. Please check your API key and script ID.");
       }
       throw error;
     }
