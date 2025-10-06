@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -146,6 +146,19 @@ export interface IStorage {
   updateUser(id: string, data: any): Promise<any | undefined>;
   deleteUser(id: string): Promise<boolean>;
   bulkDeleteUsers(ids: string[]): Promise<number>;
+  
+  // Email Configuration operations
+  getEmailConfig(): Promise<EmailConfig | undefined>;
+  createEmailConfig(config: InsertEmailConfig): Promise<EmailConfig>;
+  updateEmailConfig(id: string, config: Partial<InsertEmailConfig>): Promise<EmailConfig | undefined>;
+  
+  // Email Template operations
+  getEmailTemplates(): Promise<EmailTemplate[]>;
+  getEmailTemplatesByModule(module: string): Promise<EmailTemplate[]>;
+  getEmailTemplate(id: string): Promise<EmailTemplate | undefined>;
+  createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
+  updateEmailTemplate(id: string, template: Partial<InsertEmailTemplate>): Promise<EmailTemplate | undefined>;
+  deleteEmailTemplate(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1292,6 +1305,59 @@ export class DatabaseStorage implements IStorage {
     const deletePromises = ids.map(id => db.delete(users).where(eq(users.id, id)));
     const results = await Promise.all(deletePromises);
     return results.length;
+  }
+
+  // Email Configuration operations
+  async getEmailConfig(): Promise<EmailConfig | undefined> {
+    const [config] = await db.select().from(emailConfigs).limit(1);
+    return config;
+  }
+
+  async createEmailConfig(config: InsertEmailConfig): Promise<EmailConfig> {
+    const [newConfig] = await db.insert(emailConfigs).values(config).returning();
+    return newConfig;
+  }
+
+  async updateEmailConfig(id: string, config: Partial<InsertEmailConfig>): Promise<EmailConfig | undefined> {
+    const [updated] = await db.update(emailConfigs)
+      .set({ ...config, updatedAt: new Date() })
+      .where(eq(emailConfigs.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Email Template operations
+  async getEmailTemplates(): Promise<EmailTemplate[]> {
+    return await db.select().from(emailTemplates).orderBy(desc(emailTemplates.createdAt));
+  }
+
+  async getEmailTemplatesByModule(module: string): Promise<EmailTemplate[]> {
+    return await db.select().from(emailTemplates)
+      .where(eq(emailTemplates.module, module))
+      .orderBy(desc(emailTemplates.createdAt));
+  }
+
+  async getEmailTemplate(id: string): Promise<EmailTemplate | undefined> {
+    const [template] = await db.select().from(emailTemplates).where(eq(emailTemplates.id, id));
+    return template;
+  }
+
+  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> {
+    const [newTemplate] = await db.insert(emailTemplates).values(template).returning();
+    return newTemplate;
+  }
+
+  async updateEmailTemplate(id: string, template: Partial<InsertEmailTemplate>): Promise<EmailTemplate | undefined> {
+    const [updated] = await db.update(emailTemplates)
+      .set({ ...template, updatedAt: new Date() })
+      .where(eq(emailTemplates.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteEmailTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(emailTemplates).where(eq(emailTemplates.id, id)).returning();
+    return result.length > 0;
   }
 }
 
