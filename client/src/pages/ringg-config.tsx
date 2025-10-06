@@ -86,7 +86,13 @@ export default function RinggConfig() {
         headers: { "Content-Type": "application/json" },
       });
 
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch (jsonError) {
+        const text = await response.text();
+        throw new Error(`Server returned invalid response: ${text.substring(0, 100)}`);
+      }
 
       if (response.ok) {
         setTestResult({ success: true, message: result.message || "Connection successful" });
@@ -103,10 +109,11 @@ export default function RinggConfig() {
         });
       }
     } catch (error: any) {
-      setTestResult({ success: false, message: error.message });
+      const errorMessage = error.message || "An unexpected error occurred";
+      setTestResult({ success: false, message: errorMessage });
       toast({
         title: "Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
