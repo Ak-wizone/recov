@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, invoices } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
+import { ringgService } from "./ringg-service";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -3479,6 +3480,260 @@ export async function registerRoutes(app: Express): Promise<Server> {
         to,
         subject: emailSubject
       });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ RINGG.AI CALLING AGENT ROUTES ============
+
+  // Get Ringg.ai configuration
+  app.get("/api/ringg-config", async (req, res) => {
+    try {
+      const config = await storage.getRinggConfig();
+      if (!config) {
+        return res.status(404).json({ message: "Ringg.ai configuration not found" });
+      }
+      res.json(config);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create or update Ringg.ai configuration
+  app.post("/api/ringg-config", async (req, res) => {
+    try {
+      const validation = insertRinggConfigSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const existingConfig = await storage.getRinggConfig();
+      const webhookUrl = `${process.env.REPLIT_DOMAINS || 'localhost'}/api/calls/webhook`;
+      
+      const configData = {
+        ...validation.data,
+        webhookUrl,
+      };
+
+      let config;
+      if (existingConfig) {
+        config = await storage.updateRinggConfig(existingConfig.id, configData);
+      } else {
+        config = await storage.createRinggConfig(configData);
+      }
+
+      res.json(config);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Test Ringg.ai API connection
+  app.post("/api/ringg-config/test", async (req, res) => {
+    try {
+      const { apiKey } = req.body;
+      
+      if (!apiKey) {
+        return res.status(400).json({ message: "API key is required" });
+      }
+
+      const result = await ringgService.testConnection(apiKey);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get all call script mappings
+  app.get("/api/ringg-scripts", async (req, res) => {
+    try {
+      const mappings = await storage.getCallScriptMappings();
+      res.json(mappings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get script mappings by module
+  app.get("/api/ringg-scripts/module/:module", async (req, res) => {
+    try {
+      const mappings = await storage.getCallScriptMappingsByModule(req.params.module);
+      res.json(mappings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create script mapping
+  app.post("/api/ringg-scripts", async (req, res) => {
+    try {
+      const validation = insertCallScriptMappingSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const mapping = await storage.createCallScriptMapping(validation.data);
+      res.status(201).json(mapping);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update script mapping
+  app.put("/api/ringg-scripts/:id", async (req, res) => {
+    try {
+      const validation = insertCallScriptMappingSchema.partial().safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const mapping = await storage.updateCallScriptMapping(req.params.id, validation.data);
+      if (!mapping) {
+        return res.status(404).json({ message: "Script mapping not found" });
+      }
+      res.json(mapping);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete script mapping
+  app.delete("/api/ringg-scripts/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteCallScriptMapping(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Script mapping not found" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Trigger a call
+  app.post("/api/calls", async (req, res) => {
+    try {
+      const { phoneNumber, scriptId, customerName, module, callContext } = req.body;
+
+      if (!phoneNumber || !scriptId || !customerName || !module) {
+        return res.status(400).json({ 
+          message: "phoneNumber, scriptId, customerName, and module are required" 
+        });
+      }
+
+      const config = await storage.getRinggConfig();
+      if (!config) {
+        return res.status(400).json({ 
+          message: "Ringg.ai configuration not found. Please configure Ringg.ai settings first." 
+        });
+      }
+
+      let parsedContext = {};
+      if (callContext) {
+        try {
+          parsedContext = typeof callContext === 'string' ? JSON.parse(callContext) : callContext;
+        } catch (error) {
+          return res.status(400).json({ message: "Invalid callContext JSON" });
+        }
+      }
+
+      const callLog = await storage.createCallLog({
+        customerName,
+        phoneNumber,
+        module,
+        scriptId,
+        status: "initiated",
+        callContext: callContext || null,
+      });
+
+      const callResult = await ringgService.triggerCall(config.apiKey, {
+        phoneNumber,
+        scriptId,
+        variables: {
+          customerName,
+          module,
+          ...parsedContext,
+        },
+      });
+
+      if (!callResult.success) {
+        await storage.updateCallLog(callLog.id, {
+          status: "failed",
+          outcome: callResult.message || "Failed to trigger call",
+        });
+        return res.status(500).json({ 
+          message: callResult.message || "Failed to trigger call" 
+        });
+      }
+
+      const updatedLog = await storage.updateCallLog(callLog.id, {
+        ringgCallId: callResult.callId,
+      });
+
+      res.status(201).json(updatedLog);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Webhook to receive call status updates from Ringg.ai
+  app.post("/api/calls/webhook", async (req, res) => {
+    try {
+      const { call_id, callId, status, duration, recording_url, recordingUrl, transcript, outcome } = req.body;
+
+      const ringgCallId = call_id || callId;
+      if (!ringgCallId) {
+        return res.status(400).json({ message: "call_id or callId is required" });
+      }
+
+      const updateData: any = {};
+      if (status) updateData.status = status;
+      if (duration !== undefined) updateData.duration = duration;
+      if (recording_url || recordingUrl) updateData.recordingUrl = recording_url || recordingUrl;
+      if (transcript) updateData.transcript = transcript;
+      if (outcome) updateData.outcome = outcome;
+
+      const updatedLog = await storage.updateCallLogByRinggId(ringgCallId, updateData);
+      
+      if (!updatedLog) {
+        return res.status(404).json({ message: "Call log not found" });
+      }
+
+      res.json({ success: true, message: "Webhook received successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get call history
+  app.get("/api/calls/history", async (req, res) => {
+    try {
+      const { module, customerId } = req.query;
+
+      let logs;
+      if (module) {
+        logs = await storage.getCallLogsByModule(module as string);
+      } else if (customerId) {
+        logs = await storage.getCallLogsByCustomer(customerId as string);
+      } else {
+        logs = await storage.getCallLogs();
+      }
+
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single call log
+  app.get("/api/calls/:id", async (req, res) => {
+    try {
+      const log = await storage.getCallLog(req.params.id);
+      if (!log) {
+        return res.status(404).json({ message: "Call log not found" });
+      }
+      res.json(log);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
