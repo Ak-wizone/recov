@@ -27,7 +27,7 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Search, MessageSquare, Mail } from "lucide-react";
+import { ChevronDown, Search, MessageSquare, Mail, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
@@ -278,6 +278,15 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
             data-testid={`button-email-${row.original.customerId}`}
           >
             <Mail className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenCall(row.original)}
+            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+            data-testid={`button-call-${row.original.customerId}`}
+          >
+            <Phone className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
