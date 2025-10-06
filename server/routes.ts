@@ -3629,6 +3629,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      const scriptMapping = await storage.getCallScriptMapping(scriptId);
+      if (!scriptMapping) {
+        return res.status(400).json({ 
+          message: "Script mapping not found. Please check your script configuration." 
+        });
+      }
+
       let parsedContext = {};
       if (callContext) {
         try {
@@ -3649,7 +3656,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const callResult = await ringgService.triggerCall(config.apiKey, {
         phoneNumber,
-        scriptId,
+        scriptId: scriptMapping.ringgScriptId,
         variables: {
           customerName,
           module,
