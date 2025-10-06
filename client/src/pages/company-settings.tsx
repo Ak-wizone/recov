@@ -11,7 +11,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Upload, Building2 } from "lucide-react";
+import { Loader2, Upload, Building2, Mail, FileText, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 
 export default function CompanySettings() {
   const { toast } = useToast();
@@ -213,6 +214,49 @@ export default function CompanySettings() {
         <p className="text-gray-500 dark:text-gray-400 mt-2">
           Manage your company profile and business information
         </p>
+      </div>
+
+      {/* Email & Communication Settings */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Mail className="h-5 w-5 text-blue-600" />
+              Email Configuration
+            </CardTitle>
+            <CardDescription>
+              Configure Gmail OAuth2 or SMTP settings for sending emails
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/email-config">
+              <Button variant="outline" className="w-full" data-testid="button-email-config">
+                Manage Email Settings
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5 text-green-600" />
+              Email Templates
+            </CardTitle>
+            <CardDescription>
+              Create and manage email templates for different modules
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/email-templates">
+              <Button variant="outline" className="w-full" data-testid="button-email-templates">
+                Manage Templates
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
 
       <Form {...form}>
