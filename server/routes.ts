@@ -3529,6 +3529,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update Ringg.ai configuration
+  app.put("/api/ringg-config/:id", async (req, res) => {
+    try {
+      const validation = insertRinggConfigSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const webhookUrl = `${process.env.REPLIT_DOMAINS || 'localhost'}/api/calls/webhook`;
+      
+      const configData = {
+        ...validation.data,
+        webhookUrl,
+      };
+
+      const config = await storage.updateRinggConfig(req.params.id, configData);
+      if (!config) {
+        return res.status(404).json({ message: "Ringg.ai configuration not found" });
+      }
+
+      res.json(config);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Test Ringg.ai API connection
   app.post("/api/ringg-config/test", async (req, res) => {
     try {
