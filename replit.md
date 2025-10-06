@@ -58,14 +58,25 @@ Preferred communication style: Simple, everyday language.
     - 7 default email templates pre-configured for all modules
     - Nodemailer integration for reliable email delivery
 *   **Ringg.ai AI Calling Integration**: Comprehensive AI-powered voice calling system fully integrated across all 7 modules. Multi-tenant SaaS architecture features:
-    - Configuration Management: API key setup, test connection validation, webhook URL display
+    - Configuration Management: API key setup, from_number configuration, test connection validation, webhook URL display
     - Script Mapping System: Link Ringg.ai call scripts to specific modules (e.g., Payment Reminder for Invoices)
-    - Call Triggering: Reusable Call Dialog component with script selection, phone validation, and call context variables
-    - Call History: Complete log viewer with filters, call status tracking, recording playback, transcript display, and outcome tracking
-    - Webhook Integration: Real-time call status updates, recording URLs, and conversation transcripts
+    - Call Triggering: Reusable Call Dialog component with script selection, phone validation, and call context variables with full invoice data passing
+    - Call History: Complete log viewer with manual refresh, filters, call status tracking, recording playback, transcript display, and outcome tracking
+    - Webhook Integration: Real-time call status updates, recording URLs, and conversation transcripts from Ringg.ai
     - Make Call buttons integrated in all 7 modules: Leads, Quotations, PI, Invoices, Receipts, Debtors, Credit Management
+    - Enhanced logging for debugging call data flow and API interactions
     - Navigation accessible via Company Settings page
     - Database tables: ringg_configs, call_script_mappings, call_logs
+*   **Communication Schedules**: Automated communication scheduling system for proactive customer engagement:
+    - Multi-channel support: Schedule automated calls (via Ringg.ai), emails, and WhatsApp messages
+    - Flexible frequency options: Once, daily, weekly (with day selection), or monthly (with date selection)
+    - Time-based scheduling: Configure specific time of day for automated communications
+    - Module-specific configurations: Set up schedules for each business module independently
+    - Filter conditions: JSON-based filtering to target specific records (e.g., overdue invoices, pending leads)
+    - Integration with existing systems: Links to call scripts and email templates
+    - Active/Inactive status toggle for easy management
+    - Complete CRUD interface accessible from Company Settings
+    - Database table: communication_schedules
 
 # External Dependencies
 
