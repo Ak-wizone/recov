@@ -52,13 +52,8 @@ export default function RinggConfig() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: RinggConfigFormValues) => {
-      if (config?.id) {
-        const response = await apiRequest("PUT", `/api/ringg-config/${config.id}`, data);
-        return await response.json();
-      } else {
-        const response = await apiRequest("POST", "/api/ringg-config", data);
-        return await response.json();
-      }
+      const response = await apiRequest("POST", "/api/ringg-config", data);
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ringg-config"] });
