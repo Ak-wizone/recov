@@ -1248,9 +1248,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get dashboard stats for invoices (MUST BE BEFORE /:id)
-  app.get("/api/invoices/dashboard-stats", async (_req, res) => {
+  app.get("/api/invoices/dashboard-stats", async (req, res) => {
     try {
-      const invoices = await storage.getInvoices();
+      const { dateFilterMode, selectedYear, selectedMonth, dateRangeFrom, dateRangeTo } = req.query;
+      
+      let allInvoices = await storage.getInvoices();
+      
+      // Apply date filtering based on query parameters
+      if (dateFilterMode === "month" && selectedYear && selectedMonth !== undefined) {
+        const year = parseInt(selectedYear as string);
+        const month = parseInt(selectedMonth as string);
+        allInvoices = allInvoices.filter(invoice => {
+          const invoiceDate = new Date(invoice.invoiceDate);
+          return invoiceDate.getFullYear() === year && invoiceDate.getMonth() === month;
+        });
+      } else if (dateFilterMode === "dateRange") {
+        const fromDate = dateRangeFrom ? new Date(dateRangeFrom as string) : null;
+        const toDate = dateRangeTo ? new Date(dateRangeTo as string) : null;
+        
+        allInvoices = allInvoices.filter(invoice => {
+          const invoiceDate = new Date(invoice.invoiceDate);
+          
+          if (fromDate && toDate) {
+            const endOfDay = new Date(toDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            return invoiceDate >= fromDate && invoiceDate <= endOfDay;
+          } else if (fromDate) {
+            return invoiceDate >= fromDate;
+          } else if (toDate) {
+            const endOfDay = new Date(toDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            return invoiceDate <= endOfDay;
+          }
+          
+          return true;
+        });
+      }
+      
+      const invoices = allInvoices;
       const receipts = await storage.getReceipts();
 
       // Group receipts by customer

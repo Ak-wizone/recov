@@ -63,7 +63,25 @@ export default function Invoices() {
     totalPaidAmount: number;
     totalInterestAmount: number;
   }>({
-    queryKey: ["/api/invoices/dashboard-stats"],
+    queryKey: ["/api/invoices/dashboard-stats", dateFilterMode, selectedYear, selectedMonth, dateRangeFrom, dateRangeTo],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      params.append("dateFilterMode", dateFilterMode);
+      
+      if (dateFilterMode === "month") {
+        params.append("selectedYear", selectedYear.toString());
+        params.append("selectedMonth", selectedMonth.toString());
+      } else if (dateFilterMode === "dateRange") {
+        if (dateRangeFrom) params.append("dateRangeFrom", dateRangeFrom);
+        if (dateRangeTo) params.append("dateRangeTo", dateRangeTo);
+      }
+      
+      const response = await fetch(`/api/invoices/dashboard-stats?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard stats");
+      }
+      return response.json();
+    },
   });
 
   const exportMutation = useMutation({
