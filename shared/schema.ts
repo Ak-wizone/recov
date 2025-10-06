@@ -376,7 +376,7 @@ export type Invoice = typeof invoices.$inferSelect;
 export const receipts = pgTable("receipts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   voucherNumber: text("voucher_number").notNull(),
-  voucherType: text("voucher_type").notNull(),
+  voucherType: text("voucher_type"),
   customerName: text("customer_name").notNull(),
   date: timestamp("date").notNull(),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
