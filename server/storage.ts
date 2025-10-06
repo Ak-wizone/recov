@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, ringgConfigs, callScriptMappings, callLogs } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -1347,6 +1347,110 @@ export class DatabaseStorage implements IStorage {
 
   async deleteEmailTemplate(id: string): Promise<boolean> {
     const result = await db.delete(emailTemplates).where(eq(emailTemplates.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Ringg.ai Configuration operations
+  async getRinggConfig(): Promise<RinggConfig | undefined> {
+    const [config] = await db.select().from(ringgConfigs).limit(1);
+    return config;
+  }
+
+  async createRinggConfig(config: InsertRinggConfig): Promise<RinggConfig> {
+    const [newConfig] = await db.insert(ringgConfigs).values(config).returning();
+    return newConfig;
+  }
+
+  async updateRinggConfig(id: string, config: Partial<InsertRinggConfig>): Promise<RinggConfig | undefined> {
+    const [updated] = await db
+      .update(ringgConfigs)
+      .set({ ...config, updatedAt: new Date() })
+      .where(eq(ringgConfigs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteRinggConfig(id: string): Promise<boolean> {
+    const result = await db.delete(ringgConfigs).where(eq(ringgConfigs.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Call Script Mappings operations
+  async getCallScriptMappings(): Promise<CallScriptMapping[]> {
+    return await db.select().from(callScriptMappings).orderBy(callScriptMappings.module);
+  }
+
+  async getCallScriptMappingsByModule(module: string): Promise<CallScriptMapping[]> {
+    return await db.select().from(callScriptMappings).where(eq(callScriptMappings.module, module));
+  }
+
+  async getCallScriptMapping(id: string): Promise<CallScriptMapping | undefined> {
+    const [mapping] = await db.select().from(callScriptMappings).where(eq(callScriptMappings.id, id));
+    return mapping;
+  }
+
+  async createCallScriptMapping(mapping: InsertCallScriptMapping): Promise<CallScriptMapping> {
+    const [newMapping] = await db.insert(callScriptMappings).values(mapping).returning();
+    return newMapping;
+  }
+
+  async updateCallScriptMapping(id: string, mapping: Partial<InsertCallScriptMapping>): Promise<CallScriptMapping | undefined> {
+    const [updated] = await db
+      .update(callScriptMappings)
+      .set({ ...mapping, updatedAt: new Date() })
+      .where(eq(callScriptMappings.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteCallScriptMapping(id: string): Promise<boolean> {
+    const result = await db.delete(callScriptMappings).where(eq(callScriptMappings.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Call Logs operations
+  async getCallLogs(): Promise<CallLog[]> {
+    return await db.select().from(callLogs).orderBy(callLogs.createdAt);
+  }
+
+  async getCallLogsByModule(module: string): Promise<CallLog[]> {
+    return await db.select().from(callLogs).where(eq(callLogs.module, module)).orderBy(callLogs.createdAt);
+  }
+
+  async getCallLogsByCustomer(customerId: string): Promise<CallLog[]> {
+    return await db.select().from(callLogs).where(eq(callLogs.customerId, customerId)).orderBy(callLogs.createdAt);
+  }
+
+  async getCallLog(id: string): Promise<CallLog | undefined> {
+    const [log] = await db.select().from(callLogs).where(eq(callLogs.id, id));
+    return log;
+  }
+
+  async createCallLog(log: InsertCallLog): Promise<CallLog> {
+    const [newLog] = await db.insert(callLogs).values(log).returning();
+    return newLog;
+  }
+
+  async updateCallLog(id: string, log: Partial<InsertCallLog>): Promise<CallLog | undefined> {
+    const [updated] = await db
+      .update(callLogs)
+      .set({ ...log, updatedAt: new Date() })
+      .where(eq(callLogs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateCallLogByRinggId(ringgCallId: string, log: Partial<InsertCallLog>): Promise<CallLog | undefined> {
+    const [updated] = await db
+      .update(callLogs)
+      .set({ ...log, updatedAt: new Date() })
+      .where(eq(callLogs.ringgCallId, ringgCallId))
+      .returning();
+    return updated;
+  }
+
+  async deleteCallLog(id: string): Promise<boolean> {
+    const result = await db.delete(callLogs).where(eq(callLogs.id, id)).returning();
     return result.length > 0;
   }
 }
