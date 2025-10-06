@@ -3666,6 +3666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (callContext) {
         try {
           parsedContext = typeof callContext === 'string' ? JSON.parse(callContext) : callContext;
+          console.log('[Call API] Parsed context:', parsedContext);
         } catch (error) {
           return res.status(400).json({ message: "Invalid callContext JSON" });
         }
@@ -3680,15 +3681,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         callContext: callContext || null,
       });
 
+      const callVariables = {
+        customerName,
+        module,
+        ...parsedContext,
+      };
+      console.log('[Call API] Sending variables to Ringg.ai:', callVariables);
+
       const callResult = await ringgService.triggerCall(config.apiKey, {
         phoneNumber,
         scriptId: scriptMapping.ringgScriptId,
         fromNumber: config.fromNumber,
-        variables: {
-          customerName,
-          module,
-          ...parsedContext,
-        },
+        variables: callVariables,
       });
 
       if (!callResult.success) {
@@ -3714,10 +3718,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Webhook to receive call status updates from Ringg.ai
   app.post("/api/calls/webhook", async (req, res) => {
     try {
+      console.log('[Ringg.ai Webhook] Received webhook data:', JSON.stringify(req.body, null, 2));
+      
       const { call_id, callId, status, duration, recording_url, recordingUrl, transcript, outcome } = req.body;
 
       const ringgCallId = call_id || callId;
       if (!ringgCallId) {
+        console.log('[Ringg.ai Webhook] Error: No call_id or callId provided');
         return res.status(400).json({ message: "call_id or callId is required" });
       }
 

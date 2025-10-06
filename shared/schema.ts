@@ -1116,5 +1116,3 @@ export const insertCallLogSchema = createInsertSchema(callLogs).pick({
   initiatedBy: z.string().optional(),
 });
 
-export type InsertCallLog = z.infer<typeof insertCallLogSchema>;
-export type CallLog = typeof callLogs.$inferSelect;
