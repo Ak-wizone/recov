@@ -928,3 +928,82 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect & {
   roleName?: string | null;
 };
+
+// Email Configuration table
+export const emailConfigs = pgTable("email_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  provider: text("provider").notNull(), // gmail, smtp
+  smtpHost: text("smtp_host"),
+  smtpPort: integer("smtp_port"),
+  smtpUser: text("smtp_user"),
+  smtpPassword: text("smtp_password"),
+  gmailAccessToken: text("gmail_access_token"),
+  gmailRefreshToken: text("gmail_refresh_token"),
+  gmailTokenExpiry: timestamp("gmail_token_expiry"),
+  fromEmail: text("from_email").notNull(),
+  fromName: text("from_name").notNull(),
+  isActive: text("is_active").notNull().default("Active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertEmailConfigSchema = createInsertSchema(emailConfigs).pick({
+  provider: true,
+  smtpHost: true,
+  smtpPort: true,
+  smtpUser: true,
+  smtpPassword: true,
+  gmailAccessToken: true,
+  gmailRefreshToken: true,
+  gmailTokenExpiry: true,
+  fromEmail: true,
+  fromName: true,
+  isActive: true,
+}).extend({
+  provider: z.enum(["gmail", "smtp"]),
+  smtpHost: z.string().optional(),
+  smtpPort: z.number().optional(),
+  smtpUser: z.string().optional(),
+  smtpPassword: z.string().optional(),
+  gmailAccessToken: z.string().optional(),
+  gmailRefreshToken: z.string().optional(),
+  gmailTokenExpiry: z.date().optional(),
+  fromEmail: z.string().email("Invalid email address"),
+  fromName: z.string().min(1, "From name is required"),
+  isActive: z.enum(["Active", "Inactive"]).default("Active"),
+});
+
+export type InsertEmailConfig = z.infer<typeof insertEmailConfigSchema>;
+export type EmailConfig = typeof emailConfigs.$inferSelect;
+
+// Email Templates table
+export const emailTemplates = pgTable("email_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  module: text("module").notNull(), // leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management
+  name: text("name").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  variables: text("variables").array().notNull().default(sql`ARRAY[]::text[]`),
+  isDefault: text("is_default").notNull().default("No"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).pick({
+  module: true,
+  name: true,
+  subject: true,
+  body: true,
+  variables: true,
+  isDefault: true,
+}).extend({
+  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
+  name: z.string().min(1, "Template name is required"),
+  subject: z.string().min(1, "Subject is required"),
+  body: z.string().min(1, "Email body is required"),
+  variables: z.array(z.string()).default([]),
+  isDefault: z.enum(["Yes", "No"]).default("No"),
+});
+
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
