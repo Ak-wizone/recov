@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DebtorsTable } from "@/components/debtors-table";
 import { DebtorsFollowUpDialog } from "@/components/debtors-followup-dialog";
+import { EmailDialog } from "@/components/email-dialog";
 import { isToday, isThisWeek, isThisMonth, isWithinInterval, parseISO } from "date-fns";
 
 export default function Debtors() {
@@ -38,6 +39,8 @@ export default function Debtors() {
   const [followUpFilter, setFollowUpFilter] = useState<string | null>(null);
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [isFollowUpDialogOpen, setIsFollowUpDialogOpen] = useState(false);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [selectedEmailCustomer, setSelectedEmailCustomer] = useState<any | null>(null);
 
   const { data: debtorsData, isLoading } = useQuery<any>({
     queryKey: ["/api/debtors"],
@@ -99,6 +102,11 @@ export default function Debtors() {
   const handleOpenFollowUp = (debtor: any) => {
     setSelectedCustomer(debtor);
     setIsFollowUpDialogOpen(true);
+  };
+
+  const handleOpenEmail = (debtor: any) => {
+    setSelectedEmailCustomer(debtor);
+    setIsEmailDialogOpen(true);
   };
 
   const formatCurrency = (amount: number) => {
@@ -520,6 +528,7 @@ export default function Debtors() {
               <DebtorsTable
                 data={filteredDebtors}
                 onOpenFollowUp={handleOpenFollowUp}
+                onOpenEmail={handleOpenEmail}
               />
             )}
           </CardContent>
@@ -530,6 +539,19 @@ export default function Debtors() {
           open={isFollowUpDialogOpen}
           onOpenChange={setIsFollowUpDialogOpen}
           customer={selectedCustomer}
+        />
+
+        {/* Email Dialog */}
+        <EmailDialog
+          isOpen={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          moduleType="debtors"
+          recordData={{
+            customerName: selectedEmailCustomer?.name,
+            customerEmail: selectedEmailCustomer?.email,
+            balance: selectedEmailCustomer?.balance,
+            overdueAmount: selectedEmailCustomer?.balance,
+          }}
         />
       </div>
     </div>

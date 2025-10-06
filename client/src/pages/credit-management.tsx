@@ -4,9 +4,11 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Users, CheckCircle, AlertTriangle, TrendingUp, Target, BarChart, AlertCircle } from "lucide-react";
+import { Download, Users, CheckCircle, AlertTriangle, TrendingUp, Target, BarChart, AlertCircle, MessageSquare, Mail } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { useToast } from "@/hooks/use-toast";
+import { EmailDialog } from "@/components/email-dialog";
+import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import * as XLSX from "xlsx";
 
 interface CreditManagementData {
@@ -17,11 +19,15 @@ interface CreditManagementData {
   utilizedLimit: number;
   availableLimit: number;
   utilizationPercentage: number;
+  mobile?: string;
+  email?: string;
 }
 
 export default function CreditManagement() {
   const { toast } = useToast();
   const [utilizationFilter, setUtilizationFilter] = useState<string | null>(null);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [selectedEmailCustomer, setSelectedEmailCustomer] = useState<CreditManagementData | null>(null);
 
   const { data: creditData = [], isLoading } = useQuery<CreditManagementData[]>({
     queryKey: ["/api/credit-management"],
@@ -74,6 +80,38 @@ export default function CreditManagement() {
     Beta: "bg-blue-100 text-blue-800 border-blue-300",
     Gamma: "bg-yellow-100 text-yellow-800 border-yellow-300",
     Delta: "bg-red-100 text-red-800 border-red-300",
+  };
+
+  const handleWhatsAppClick = (credit: CreditManagementData) => {
+    if (!credit.mobile) {
+      toast({
+        title: "Mobile number not available",
+        description: "This customer doesn't have a mobile number on file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const message = getWhatsAppMessageTemplate("credit_management", {
+      customerName: credit.customerName,
+      amount: credit.utilizedLimit,
+    });
+
+    openWhatsApp(credit.mobile, message);
+  };
+
+  const handleEmailClick = (credit: CreditManagementData) => {
+    if (!credit.email) {
+      toast({
+        title: "Email not available",
+        description: "This customer doesn't have an email address on file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedEmailCustomer(credit);
+    setIsEmailDialogOpen(true);
   };
 
   const columns = useMemo<ColumnDef<CreditManagementData>[]>(
@@ -148,8 +186,36 @@ export default function CreditManagement() {
         ),
         enableSorting: true,
       },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: ({ row }) => (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleWhatsAppClick(row.original)}
+              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              data-testid={`button-whatsapp-${row.original.customerId}`}
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleEmailClick(row.original)}
+              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              data-testid={`button-email-${row.original.customerId}`}
+            >
+              <Mail className="h-4 w-4" />
+            </Button>
+          </div>
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      },
     ],
-    [categoryColors]
+    [categoryColors, handleWhatsAppClick, handleEmailClick]
   );
 
   const handleExportSelected = (rows: CreditManagementData[]) => {
@@ -407,6 +473,19 @@ export default function CreditManagement() {
           />
         </div>
       </div>
+
+      {/* Email Dialog */}
+      <EmailDialog
+        isOpen={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        moduleType="credit_management"
+        recordData={{
+          customerName: selectedEmailCustomer?.customerName,
+          customerEmail: selectedEmailCustomer?.email,
+          creditLimit: selectedEmailCustomer?.creditLimit,
+          balance: selectedEmailCustomer?.utilizedLimit,
+        }}
+      />
     </div>
   );
 }

@@ -27,8 +27,10 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Search, MessageSquare } from "lucide-react";
+import { ChevronDown, Search, MessageSquare, Mail } from "lucide-react";
 import { format } from "date-fns";
+import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
+import { useToast } from "@/hooks/use-toast";
 
 interface DebtorData {
   customerId: string;
@@ -51,13 +53,46 @@ interface DebtorData {
 interface DebtorsTableProps {
   data: DebtorData[];
   onOpenFollowUp: (debtor: DebtorData) => void;
+  onOpenEmail: (debtor: DebtorData) => void;
 }
 
-export function DebtorsTable({ data, onOpenFollowUp }: DebtorsTableProps) {
+export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail }: DebtorsTableProps) {
+  const { toast } = useToast();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [globalFilter, setGlobalFilter] = useState("");
+
+  const handleWhatsAppClick = (debtor: DebtorData) => {
+    if (!debtor.mobile) {
+      toast({
+        title: "Mobile number not available",
+        description: "This customer doesn't have a mobile number on file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const message = getWhatsAppMessageTemplate("debtors", {
+      customerName: debtor.name,
+      amount: debtor.balance,
+    });
+
+    openWhatsApp(debtor.mobile, message);
+  };
+
+  const handleEmailClick = (debtor: DebtorData) => {
+    if (!debtor.email) {
+      toast({
+        title: "Email not available",
+        description: "This customer doesn't have an email address on file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    onOpenEmail(debtor);
+  };
 
   const formatCurrency = (amount: number) => {
     return `₹${amount.toLocaleString("en-IN", {
@@ -224,15 +259,35 @@ export function DebtorsTable({ data, onOpenFollowUp }: DebtorsTableProps) {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onOpenFollowUp(row.original)}
-          data-testid={`button-followup-${row.original.customerId}`}
-        >
-          <MessageSquare className="h-4 w-4 mr-1" />
-          Follow-up
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleWhatsAppClick(row.original)}
+            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+            data-testid={`button-whatsapp-${row.original.customerId}`}
+          >
+            <MessageSquare className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleEmailClick(row.original)}
+            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+            data-testid={`button-email-${row.original.customerId}`}
+          >
+            <Mail className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenFollowUp(row.original)}
+            data-testid={`button-followup-${row.original.customerId}`}
+          >
+            <MessageSquare className="h-4 w-4 mr-1" />
+            Follow-up
+          </Button>
+        </div>
       ),
     },
   ];
