@@ -86,3 +86,15 @@ Preferred communication style: Simple, everyday language.
 **Frontend Libraries**: `date-fns` for date manipulation, `lucide-react` for icons, `class-variance-authority` and `clsx` for styling, `wouter` for routing, `recharts` for data visualization.
 **Authentication**: `bcrypt` for password hashing, `express-session` for session management.
 **Email Service**: `nodemailer` for email delivery with support for Gmail OAuth2 and SMTP providers.
+
+# Important Configuration Notes
+
+## External Database Schema Sync
+
+**CRITICAL**: When pushing database schema changes, you MUST specify the external database URL explicitly:
+
+```bash
+DATABASE_URL="postgresql://postgres:ss123456@103.122.85.61:9095/DebtorStream_Database" npm run db:push -- --force
+```
+
+**Why**: The application uses an external PostgreSQL database (103.122.85.61:9095), but the default `DATABASE_URL` environment variable points to Replit's internal Neon database. Schema changes must be pushed to the external database to be accessible by the application.
