@@ -69,7 +69,7 @@ export function EmailDialog({
 
   const sendEmailMutation = useMutation({
     mutationFn: async (data: { to: string; subject: string; body: string }) => {
-      const response = await apiRequest("POST", "/api/email/send", data);
+      const response = await apiRequest("POST", "/api/send-email", data);
       return await response.json();
     },
     onSuccess: () => {
