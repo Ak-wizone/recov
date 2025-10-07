@@ -3672,8 +3672,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailSubject = renderTemplate(template.subject, enrichedData);
         emailBody = renderTemplate(template.body, enrichedData);
       } else if (subject && body) {
-        emailSubject = subject;
-        emailBody = body;
+        // Apply enriched data to subject and body if quotationId was provided
+        emailSubject = quotationId ? renderTemplate(subject, enrichedData) : subject;
+        emailBody = quotationId ? renderTemplate(body, enrichedData) : body;
       } else {
         return res.status(400).json({ 
           message: "Either templateId with templateData or subject and body are required" 
