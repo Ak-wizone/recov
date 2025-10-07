@@ -3557,7 +3557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Send email
   app.post("/api/send-email", async (req, res) => {
     try {
-      const { to, templateId, templateData, subject, body } = req.body;
+      const { to, templateId, templateData, subject, body, quotationId } = req.body;
 
       if (!to) {
         return res.status(400).json({ message: "Recipient email address is required" });
@@ -3572,6 +3572,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email configuration is not active" });
       }
 
+      let enrichedData = templateData || {};
+
+      // Enrich data for quotation emails
+      if (quotationId) {
+        const quotation = await storage.getQuotation(quotationId);
+        if (!quotation) {
+          return res.status(404).json({ message: "Quotation not found" });
+        }
+
+        const items = await storage.getQuotationItems(quotationId);
+        const companyProfile = await storage.getCompanyProfile();
+        const quotationSettings = await storage.getQuotationSettings();
+
+        // Format items table HTML
+        const itemsHtml = items.map((item, index) => {
+          const taxableAmount = parseFloat(item.rate) * parseFloat(item.quantity);
+          const taxAmount = (taxableAmount * parseFloat(item.taxPercent)) / 100;
+          return `
+            <tr>
+              <td>${index + 1}</td>
+              <td>${item.itemName}</td>
+              <td>-</td>
+              <td>${item.quantity} ${item.unit}</td>
+              <td>₹${parseFloat(item.rate).toFixed(2)}</td>
+              <td>₹${taxableAmount.toFixed(2)}</td>
+              <td>${item.taxPercent}%</td>
+              <td>₹${parseFloat(item.amount).toFixed(2)}</td>
+            </tr>
+          `;
+        }).join('');
+
+        // Calculate average tax percent
+        const avgTaxPercent = items.length > 0 
+          ? (items.reduce((sum, item) => sum + parseFloat(item.taxPercent || '0'), 0) / items.length).toFixed(2)
+          : '0';
+
+        // Convert amount to words (simple implementation)
+        const numberToWords = (num: number): string => {
+          const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+          const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+          const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+          
+          if (num === 0) return 'Zero';
+          if (num < 10) return ones[num];
+          if (num >= 10 && num < 20) return teens[num - 10];
+          if (num >= 20 && num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + ones[num % 10] : '');
+          if (num >= 100 && num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 !== 0 ? ' ' + numberToWords(num % 100) : '');
+          if (num >= 1000 && num < 100000) return numberToWords(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 !== 0 ? ' ' + numberToWords(num % 1000) : '');
+          if (num >= 100000) return numberToWords(Math.floor(num / 100000)) + ' Lakh' + (num % 100000 !== 0 ? ' ' + numberToWords(num % 100000) : '');
+          return '';
+        };
+
+        const amountInWords = 'INR ' + numberToWords(Math.floor(parseFloat(quotation.grandTotal))) + ' Only';
+
+        enrichedData = {
+          ...enrichedData,
+          // Quotation details
+          quotationNumber: quotation.quotationNumber,
+          quotationDate: new Date(quotation.quotationDate).toLocaleDateString('en-IN'),
+          validUntil: new Date(quotation.validUntil).toLocaleDateString('en-IN'),
+          leadName: quotation.leadName,
+          leadEmail: quotation.leadEmail,
+          leadMobile: quotation.leadMobile,
+          subtotal: parseFloat(quotation.subtotal).toFixed(2),
+          totalTax: parseFloat(quotation.totalTax).toFixed(2),
+          grandTotal: parseFloat(quotation.grandTotal).toFixed(2),
+          taxPercent: avgTaxPercent,
+          amountInWords,
+          items: itemsHtml,
+          termsAndConditions: quotationSettings?.termsAndConditions || 'No terms specified',
+          // Company details
+          companyLegalName: companyProfile?.legalName || '',
+          companyEntityType: companyProfile?.entityType || '',
+          companyAddress: companyProfile?.regAddressLine1 || '',
+          companyCity: companyProfile?.regCity || '',
+          companyState: companyProfile?.regState || '',
+          companyPincode: companyProfile?.regPincode || '',
+          companyPhone: companyProfile?.primaryContactMobile || '',
+          companyEmail: companyProfile?.primaryContactEmail || '',
+          companyGSTIN: companyProfile?.gstin || '',
+          // Banking details
+          bankName: companyProfile?.bankName || '',
+          branchName: companyProfile?.branchName || '',
+          accountNumber: companyProfile?.accountNumber || '',
+          ifscCode: companyProfile?.ifscCode || '',
+        };
+      }
+
       let emailSubject: string;
       let emailBody: string;
 
@@ -3581,8 +3669,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ message: "Email template not found" });
         }
 
-        emailSubject = renderTemplate(template.subject, templateData || {});
-        emailBody = renderTemplate(template.body, templateData || {});
+        emailSubject = renderTemplate(template.subject, enrichedData);
+        emailBody = renderTemplate(template.body, enrichedData);
       } else if (subject && body) {
         emailSubject = subject;
         emailBody = body;

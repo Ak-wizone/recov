@@ -586,6 +586,7 @@ export default function Quotations() {
           customerName: selectedQuotationForEmail?.leadName || "",
           customerEmail: selectedQuotationForEmail?.leadEmail || "",
           quotationNumber: selectedQuotationForEmail?.quotationNumber || "",
+          quotationId: selectedQuotationForEmail?.id || "",
           amount: selectedQuotationForEmail?.grandTotal || "",
         }}
       />
