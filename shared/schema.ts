@@ -1008,6 +1008,76 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).pick
 export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
 export type EmailTemplate = typeof emailTemplates.$inferSelect;
 
+// WhatsApp Configuration table
+export const whatsappConfigs = pgTable("whatsapp_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  provider: text("provider").notNull(), // twilio, wati, meta, interakt, aisensy
+  apiKey: text("api_key").notNull(),
+  apiSecret: text("api_secret"),
+  accountSid: text("account_sid"), // For Twilio
+  phoneNumberId: text("phone_number_id"), // For Meta WhatsApp Business API
+  businessAccountId: text("business_account_id"), // For Meta
+  fromNumber: text("from_number").notNull(), // WhatsApp number in format +1234567890
+  apiUrl: text("api_url"), // Custom API endpoint URL
+  isActive: text("is_active").notNull().default("Active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWhatsappConfigSchema = createInsertSchema(whatsappConfigs).pick({
+  provider: true,
+  apiKey: true,
+  apiSecret: true,
+  accountSid: true,
+  phoneNumberId: true,
+  businessAccountId: true,
+  fromNumber: true,
+  apiUrl: true,
+  isActive: true,
+}).extend({
+  provider: z.enum(["twilio", "wati", "meta", "interakt", "aisensy", "other"]),
+  apiKey: z.string().min(1, "API Key is required"),
+  apiSecret: z.string().optional(),
+  accountSid: z.string().optional(),
+  phoneNumberId: z.string().optional(),
+  businessAccountId: z.string().optional(),
+  fromNumber: z.string().min(1, "WhatsApp number is required").regex(/^\+\d{1,15}$/, "Must be in format +1234567890"),
+  apiUrl: z.string().url("Must be a valid URL").optional(),
+  isActive: z.enum(["Active", "Inactive"]).default("Active"),
+});
+
+export type InsertWhatsappConfig = z.infer<typeof insertWhatsappConfigSchema>;
+export type WhatsappConfig = typeof whatsappConfigs.$inferSelect;
+
+// WhatsApp Message Templates table
+export const whatsappTemplates = pgTable("whatsapp_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  module: text("module").notNull(), // leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management
+  name: text("name").notNull(),
+  message: text("message").notNull(),
+  variables: text("variables").array().notNull().default(sql`ARRAY[]::text[]`),
+  isDefault: text("is_default").notNull().default("No"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWhatsappTemplateSchema = createInsertSchema(whatsappTemplates).pick({
+  module: true,
+  name: true,
+  message: true,
+  variables: true,
+  isDefault: true,
+}).extend({
+  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
+  name: z.string().min(1, "Template name is required"),
+  message: z.string().min(1, "Message is required"),
+  variables: z.array(z.string()).default([]),
+  isDefault: z.enum(["Yes", "No"]).default("No"),
+});
+
+export type InsertWhatsappTemplate = z.infer<typeof insertWhatsappTemplateSchema>;
+export type WhatsappTemplate = typeof whatsappTemplates.$inferSelect;
+
 // Ringg.ai Configuration table
 export const ringgConfigs = pgTable("ringg_configs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
