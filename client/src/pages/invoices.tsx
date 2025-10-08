@@ -793,6 +793,7 @@ export default function Invoices() {
             customerName: selectedInvoiceForEmail.customerName,
             customerEmail: "",
             invoiceNumber: selectedInvoiceForEmail.invoiceNumber,
+            invoiceId: selectedInvoiceForEmail.id,
             amount: selectedInvoiceForEmail.invoiceAmount,
             dueDate: selectedInvoiceForEmail.paymentTerms 
               ? new Date(new Date(selectedInvoiceForEmail.invoiceDate).getTime() + selectedInvoiceForEmail.paymentTerms * 24 * 60 * 60 * 1000).toISOString()
@@ -812,8 +813,7 @@ export default function Invoices() {
           amount: selectedInvoiceForCall?.invoiceAmount || "",
           dueDate: selectedInvoiceForCall?.paymentTerms 
             ? new Date(new Date(selectedInvoiceForCall.invoiceDate).getTime() + selectedInvoiceForCall.paymentTerms * 24 * 60 * 60 * 1000).toISOString()
-            : selectedInvoiceForCall?.invoiceDate || "",
-          customerId: selectedInvoiceForCall?.customerId || "",
+            : new Date(selectedInvoiceForCall?.invoiceDate || new Date()).toISOString(),
         }}
       />
     </div>

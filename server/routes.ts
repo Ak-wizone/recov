@@ -3557,7 +3557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Send email
   app.post("/api/send-email", async (req, res) => {
     try {
-      const { to, templateId, templateData, subject, body, quotationId } = req.body;
+      const { to, templateId, templateData, subject, body, quotationId, invoiceId } = req.body;
 
       if (!to) {
         return res.status(400).json({ message: "Recipient email address is required" });
@@ -3660,6 +3660,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
+      // Enrich data for invoice emails
+      if (invoiceId) {
+        const invoice = await storage.getInvoice(invoiceId);
+        if (!invoice) {
+          return res.status(404).json({ message: "Invoice not found" });
+        }
+
+        const companyProfile = await storage.getCompanyProfile();
+        const quotationSettings = await storage.getQuotationSettings();
+
+        // Convert amount to words (simple implementation)
+        const numberToWords = (num: number): string => {
+          const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+          const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+          const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+          
+          if (num === 0) return 'Zero';
+          if (num < 10) return ones[num];
+          if (num >= 10 && num < 20) return teens[num - 10];
+          if (num >= 20 && num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + ones[num % 10] : '');
+          if (num >= 100 && num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 !== 0 ? ' ' + numberToWords(num % 100) : '');
+          if (num >= 1000 && num < 100000) return numberToWords(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 !== 0 ? ' ' + numberToWords(num % 1000) : '');
+          if (num >= 100000) return numberToWords(Math.floor(num / 100000)) + ' Lakh' + (num % 100000 !== 0 ? ' ' + numberToWords(num % 100000) : '');
+          return '';
+        };
+
+        const amountInWords = 'INR ' + numberToWords(Math.floor(parseFloat(invoice.invoiceAmount))) + ' Only';
+
+        enrichedData = {
+          ...enrichedData,
+          // Invoice details
+          invoiceNumber: invoice.invoiceNumber,
+          invoiceDate: new Date(invoice.invoiceDate).toLocaleDateString('en-IN'),
+          customerName: invoice.customerName,
+          customerMobile: invoice.primaryMobile || 'N/A',
+          customerCity: invoice.city || 'N/A',
+          customerPincode: invoice.pincode || 'N/A',
+          invoiceAmount: parseFloat(invoice.invoiceAmount).toFixed(2),
+          netProfit: parseFloat(invoice.netProfit).toFixed(2),
+          status: invoice.status,
+          category: invoice.category || 'N/A',
+          paymentTerms: invoice.paymentTerms?.toString() || 'N/A',
+          creditLimit: invoice.creditLimit ? parseFloat(invoice.creditLimit).toFixed(2) : 'N/A',
+          salesPerson: invoice.salesPerson || 'N/A',
+          amountInWords,
+          termsAndConditions: quotationSettings?.termsAndConditions || 'No terms specified',
+          // Company details
+          companyLegalName: companyProfile?.legalName || '',
+          companyEntityType: companyProfile?.entityType || '',
+          companyAddress: companyProfile?.regAddressLine1 || '',
+          companyCity: companyProfile?.regCity || '',
+          companyState: companyProfile?.regState || '',
+          companyPincode: companyProfile?.regPincode || '',
+          companyPhone: companyProfile?.primaryContactMobile || '',
+          companyEmail: companyProfile?.primaryContactEmail || '',
+          companyGSTIN: companyProfile?.gstin || '',
+          // Banking details
+          bankName: companyProfile?.bankName || '',
+          branchName: companyProfile?.branchName || '',
+          accountNumber: companyProfile?.accountNumber || '',
+          ifscCode: companyProfile?.ifscCode || '',
+        };
+      }
+
       let emailSubject: string;
       let emailBody: string;
 
@@ -3672,9 +3736,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailSubject = renderTemplate(template.subject, enrichedData);
         emailBody = renderTemplate(template.body, enrichedData);
       } else if (subject && body) {
-        // Apply enriched data to subject and body if quotationId was provided
-        emailSubject = quotationId ? renderTemplate(subject, enrichedData) : subject;
-        emailBody = quotationId ? renderTemplate(body, enrichedData) : body;
+        // Apply enriched data to subject and body if quotationId or invoiceId was provided
+        emailSubject = (quotationId || invoiceId) ? renderTemplate(subject, enrichedData) : subject;
+        emailBody = (quotationId || invoiceId) ? renderTemplate(body, enrichedData) : body;
       } else {
         return res.status(400).json({ 
           message: "Either templateId with templateData or subject and body are required" 
