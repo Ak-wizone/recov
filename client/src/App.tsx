@@ -25,6 +25,7 @@ import Users from "@/pages/users";
 import EmailConfig from "@/pages/email-config";
 import EmailTemplates from "@/pages/email-templates";
 import WhatsAppConfig from "@/pages/whatsapp-config";
+import WhatsAppTemplates from "@/pages/whatsapp-templates";
 import RinggConfig from "@/pages/ringg-config";
 import RinggScriptMappings from "@/pages/ringg-script-mappings";
 import RinggCallHistory from "@/pages/ringg-call-history";
@@ -58,6 +59,7 @@ function Router() {
               <Route path="/email-config" component={EmailConfig} />
               <Route path="/email-templates" component={EmailTemplates} />
               <Route path="/whatsapp-config" component={WhatsAppConfig} />
+              <Route path="/whatsapp-templates" component={WhatsAppTemplates} />
               <Route path="/ringg-config" component={RinggConfig} />
               <Route path="/ringg-script-mappings" component={RinggScriptMappings} />
               <Route path="/ringg-call-history" component={RinggCallHistory} />
