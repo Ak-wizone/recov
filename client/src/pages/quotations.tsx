@@ -8,6 +8,7 @@ import { QuotationFormDialog } from "@/components/quotation-form-dialog";
 import { QuotationSettingsDialog } from "@/components/quotation-settings-dialog";
 import { QuotationPrintDialog } from "@/components/quotation-print-dialog";
 import { EmailDialog } from "@/components/email-dialog";
+import { WhatsAppDialog } from "@/components/whatsapp-dialog";
 import { CallDialog } from "@/components/call-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,7 +40,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { isToday, isYesterday, isWithinInterval, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 import html2pdf from "html2pdf.js";
-import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 
 export default function Quotations() {
   const { toast } = useToast();
@@ -53,6 +53,8 @@ export default function Quotations() {
   const [printQuotation, setPrintQuotation] = useState<Quotation | null>(null);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [selectedQuotationForEmail, setSelectedQuotationForEmail] = useState<Quotation | null>(null);
+  const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = useState(false);
+  const [selectedQuotationForWhatsApp, setSelectedQuotationForWhatsApp] = useState<Quotation | null>(null);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [selectedQuotationForCall, setSelectedQuotationForCall] = useState<Quotation | null>(null);
 
@@ -495,15 +497,11 @@ export default function Quotations() {
                   });
                   return;
                 }
-                const message = getWhatsAppMessageTemplate("quotations", {
-                  customerName: quotation.leadName,
-                  quotationNumber: quotation.quotationNumber,
-                  amount: quotation.grandTotal,
-                });
-                openWhatsApp(quotation.leadMobile, message);
+                setSelectedQuotationForWhatsApp(quotation);
+                setIsWhatsAppDialogOpen(true);
               }}
               onCall={(quotation) => {
-                if (!quotation.mobile) {
+                if (!quotation.leadMobile) {
                   toast({
                     title: "Error",
                     description: "Mobile number is not available for this quotation",
@@ -591,13 +589,28 @@ export default function Quotations() {
         }}
       />
 
+      <WhatsAppDialog
+        isOpen={isWhatsAppDialogOpen}
+        onOpenChange={setIsWhatsAppDialogOpen}
+        moduleType="quotations"
+        recordData={{
+          customerName: selectedQuotationForWhatsApp?.leadName || "",
+          customerMobile: selectedQuotationForWhatsApp?.leadMobile || "",
+          quotationNumber: selectedQuotationForWhatsApp?.quotationNumber || "",
+          quotationId: selectedQuotationForWhatsApp?.id || "",
+          amount: selectedQuotationForWhatsApp?.grandTotal || "",
+          date: selectedQuotationForWhatsApp?.quotationDate ? new Date(selectedQuotationForWhatsApp.quotationDate).toLocaleDateString() : "",
+          validUntil: selectedQuotationForWhatsApp?.validUntil ? new Date(selectedQuotationForWhatsApp.validUntil).toLocaleDateString() : "",
+        }}
+      />
+
       <CallDialog
         isOpen={isCallDialogOpen}
         onOpenChange={setIsCallDialogOpen}
         moduleType="quotations"
         recordData={{
           customerName: selectedQuotationForCall?.leadName || "",
-          phoneNumber: selectedQuotationForCall?.mobile || "",
+          phoneNumber: selectedQuotationForCall?.leadMobile || "",
           quotationNumber: selectedQuotationForCall?.quotationNumber || "",
           amount: selectedQuotationForCall?.grandTotal || "",
           customerId: selectedQuotationForCall?.leadId || "",
