@@ -107,3 +107,15 @@ DATABASE_URL="postgresql://postgres:ss123456@103.122.85.61:9095/DebtorStream_Dat
 ```
 
 **Why**: The application uses an external PostgreSQL database (103.122.85.61:9095), but the default `DATABASE_URL` environment variable points to Replit's internal Neon database. Schema changes must be pushed to the external database to be accessible by the application.
+
+## Direct Database Connection for Manual Operations
+
+**CRITICAL**: When connecting to the external database via psql for manual operations (INSERT, SELECT, etc.), you MUST unset the `DATABASE_URL` environment variable first:
+
+```bash
+unset DATABASE_URL && psql "postgresql://postgres:ss123456@103.122.85.61:9095/DebtorStream_Database"
+```
+
+**Why**: The Replit environment has a `DATABASE_URL` environment variable pointing to the internal Neon database. If not unset, psql will connect to the wrong database (Neon) instead of the external PostgreSQL database, causing data to be inserted/queried from the wrong location.
+
+**Note**: The Node.js application correctly connects to the external database because `server/db.ts` uses `process.env.EXTERNAL_DB_URL` (which doesn't exist) and falls back to the hardcoded external database connection string, thus ignoring the Replit `DATABASE_URL` environment variable.
