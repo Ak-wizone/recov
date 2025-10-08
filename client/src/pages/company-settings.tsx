@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Upload, Building2, Mail, FileText, ArrowRight, Phone, ListOrdered, History } from "lucide-react";
+import { Loader2, Upload, Building2, Mail, FileText, ArrowRight, Phone, ListOrdered, History, MessageSquare } from "lucide-react";
 import { Link } from "wouter";
 
 export default function CompanySettings() {
@@ -251,6 +251,49 @@ export default function CompanySettings() {
           <CardContent>
             <Link href="/email-templates">
               <Button variant="outline" className="w-full" data-testid="button-email-templates">
+                Manage Templates
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* WhatsApp Communication Settings */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <MessageSquare className="h-5 w-5 text-green-600" />
+              WhatsApp Configuration
+            </CardTitle>
+            <CardDescription>
+              Configure WhatsApp API settings for automated messaging
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/whatsapp-config">
+              <Button variant="outline" className="w-full" data-testid="button-whatsapp-config">
+                Manage WhatsApp Settings
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <FileText className="h-5 w-5 text-emerald-600" />
+              WhatsApp Templates
+            </CardTitle>
+            <CardDescription>
+              Create and manage WhatsApp message templates
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/whatsapp-templates">
+              <Button variant="outline" className="w-full" data-testid="button-whatsapp-templates">
                 Manage Templates
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>

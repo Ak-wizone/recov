@@ -4267,10 +4267,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         enrichedData = {
           ...enrichedData,
-          customerName: quotation.customerName,
+          customerName: quotation.leadName,
           quotationNumber: quotation.quotationNumber,
           quotationDate: quotation.quotationDate ? new Date(quotation.quotationDate).toLocaleDateString("en-IN") : "",
-          totalAmount: `₹${quotation.totalAmount}`,
+          totalAmount: `₹${quotation.grandTotal}`,
           companyName: companyProfile?.legalName || "Our Company",
         };
       }
@@ -4286,10 +4286,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         enrichedData = {
           ...enrichedData,
-          customerName: invoice.partyName,
+          customerName: invoice.customerName,
           invoiceNumber: invoice.invoiceNumber,
           invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString("en-IN") : "",
-          totalAmount: `₹${invoice.totalAmount}`,
+          totalAmount: `₹${invoice.invoiceAmount}`,
           companyName: companyProfile?.legalName || "Our Company",
         };
       }
