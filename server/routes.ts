@@ -3557,7 +3557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Send email
   app.post("/api/send-email", async (req, res) => {
     try {
-      const { to, templateId, templateData, subject, body, quotationId, invoiceId } = req.body;
+      const { to, templateId, templateData, subject, body, quotationId, invoiceId, receiptId } = req.body;
 
       if (!to) {
         return res.status(400).json({ message: "Recipient email address is required" });
@@ -3724,6 +3724,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
 
+      // Enrich data for receipt emails
+      if (receiptId) {
+        const receipt = await storage.getReceipt(receiptId);
+        if (!receipt) {
+          return res.status(404).json({ message: "Receipt not found" });
+        }
+
+        const companyProfile = await storage.getCompanyProfile();
+
+        // Convert amount to words (simple implementation)
+        const numberToWords = (num: number): string => {
+          const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
+          const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+          const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+          
+          if (num === 0) return 'Zero';
+          if (num < 10) return ones[num];
+          if (num >= 10 && num < 20) return teens[num - 10];
+          if (num >= 20 && num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + ones[num % 10] : '');
+          if (num >= 100 && num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 !== 0 ? ' ' + numberToWords(num % 100) : '');
+          if (num >= 1000 && num < 100000) return numberToWords(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 !== 0 ? ' ' + numberToWords(num % 1000) : '');
+          if (num >= 100000) return numberToWords(Math.floor(num / 100000)) + ' Lakh' + (num % 100000 !== 0 ? ' ' + numberToWords(num % 100000) : '');
+          return '';
+        };
+
+        const amountInWords = 'INR ' + numberToWords(Math.floor(parseFloat(receipt.amount))) + ' Only';
+
+        enrichedData = {
+          ...enrichedData,
+          // Receipt details
+          voucherNumber: receipt.voucherNumber,
+          voucherType: receipt.voucherType || 'Receipt',
+          customerName: receipt.customerName,
+          receiptDate: new Date(receipt.date).toLocaleDateString('en-IN'),
+          amount: parseFloat(receipt.amount).toFixed(2),
+          remarks: receipt.remarks || 'No remarks',
+          amountInWords,
+          // Company details
+          companyLegalName: companyProfile?.legalName || '',
+          companyEntityType: companyProfile?.entityType || '',
+          companyAddress: companyProfile?.regAddressLine1 || '',
+          companyCity: companyProfile?.regCity || '',
+          companyState: companyProfile?.regState || '',
+          companyPincode: companyProfile?.regPincode || '',
+          companyPhone: companyProfile?.primaryContactMobile || '',
+          companyEmail: companyProfile?.primaryContactEmail || '',
+          companyGSTIN: companyProfile?.gstin || '',
+          // Banking details
+          bankName: companyProfile?.bankName || '',
+          branchName: companyProfile?.branchName || '',
+          accountNumber: companyProfile?.accountNumber || '',
+          ifscCode: companyProfile?.ifscCode || '',
+        };
+      }
+
       let emailSubject: string;
       let emailBody: string;
 
@@ -3736,9 +3791,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         emailSubject = renderTemplate(template.subject, enrichedData);
         emailBody = renderTemplate(template.body, enrichedData);
       } else if (subject && body) {
-        // Apply enriched data to subject and body if quotationId or invoiceId was provided
-        emailSubject = (quotationId || invoiceId) ? renderTemplate(subject, enrichedData) : subject;
-        emailBody = (quotationId || invoiceId) ? renderTemplate(body, enrichedData) : body;
+        // Apply enriched data to subject and body if quotationId, invoiceId, or receiptId was provided
+        emailSubject = (quotationId || invoiceId || receiptId) ? renderTemplate(subject, enrichedData) : subject;
+        emailBody = (quotationId || invoiceId || receiptId) ? renderTemplate(body, enrichedData) : body;
       } else {
         return res.status(400).json({ 
           message: "Either templateId with templateData or subject and body are required" 

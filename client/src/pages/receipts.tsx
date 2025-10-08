@@ -777,6 +777,7 @@ export default function Receipts() {
             customerEmail: "",
             voucherType: selectedReceiptForEmail.voucherType,
             voucherNumber: selectedReceiptForEmail.voucherNumber,
+            receiptId: selectedReceiptForEmail.id,
             amount: selectedReceiptForEmail.amount,
           }}
         />

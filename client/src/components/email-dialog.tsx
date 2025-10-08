@@ -39,6 +39,7 @@ interface EmailDialogProps {
     quotationId?: string;
     voucherNumber?: string;
     voucherType?: string;
+    receiptId?: string;
     [key: string]: any;
   };
 }
@@ -70,7 +71,7 @@ export function EmailDialog({
   });
 
   const sendEmailMutation = useMutation({
-    mutationFn: async (data: { to: string; subject: string; body: string; quotationId?: string; invoiceId?: string }) => {
+    mutationFn: async (data: { to: string; subject: string; body: string; quotationId?: string; invoiceId?: string; receiptId?: string }) => {
       const response = await apiRequest("POST", "/api/send-email", data);
       return await response.json();
     },
@@ -138,7 +139,7 @@ export function EmailDialog({
       return;
     }
 
-    const emailData: { to: string; subject: string; body: string; quotationId?: string; invoiceId?: string } = {
+    const emailData: { to: string; subject: string; body: string; quotationId?: string; invoiceId?: string; receiptId?: string } = {
       to,
       subject,
       body
@@ -152,6 +153,11 @@ export function EmailDialog({
     // Include invoiceId if available for enriched invoice emails
     if (recordData.invoiceId) {
       emailData.invoiceId = recordData.invoiceId;
+    }
+
+    // Include receiptId if available for enriched receipt emails
+    if (recordData.receiptId) {
+      emailData.receiptId = recordData.receiptId;
     }
 
     sendEmailMutation.mutate(emailData);
