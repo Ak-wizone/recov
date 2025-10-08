@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { ringgService } from "./ringg-service";
 import { fromZodError } from "zod-validation-error";
@@ -4102,6 +4102,249 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Call log not found" });
       }
       res.json(log);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ WHATSAPP CONFIGURATION ROUTES ============
+
+  // Get WhatsApp configuration
+  app.get("/api/whatsapp-config", async (req, res) => {
+    try {
+      const config = await storage.getWhatsappConfig();
+      res.json(config);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Save or update WhatsApp configuration
+  app.post("/api/whatsapp-config", async (req, res) => {
+    try {
+      const validation = insertWhatsappConfigSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const config = await storage.saveWhatsappConfig(validation.data);
+      res.json(config);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Test WhatsApp connection
+  app.post("/api/whatsapp-config/test", async (req, res) => {
+    try {
+      const config = await storage.getWhatsappConfig();
+      if (!config) {
+        return res.status(400).json({ message: "No WhatsApp configuration found" });
+      }
+
+      const { testWhatsAppConnection } = await import("./whatsapp-service");
+      const result = await testWhatsAppConnection(config);
+      
+      if (result.success) {
+        res.json({ success: true, message: "WhatsApp connection test successful" });
+      } else {
+        res.status(400).json({ success: false, message: result.error || "Connection test failed" });
+      }
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // ============ WHATSAPP TEMPLATES ROUTES ============
+
+  // Get all WhatsApp templates
+  app.get("/api/whatsapp-templates", async (req, res) => {
+    try {
+      const { module } = req.query;
+      let templates;
+      
+      if (module) {
+        templates = await storage.getWhatsappTemplatesByModule(module as string);
+      } else {
+        templates = await storage.getWhatsappTemplates();
+      }
+      
+      res.json(templates);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single WhatsApp template
+  app.get("/api/whatsapp-templates/:id", async (req, res) => {
+    try {
+      const template = await storage.getWhatsappTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ message: "WhatsApp template not found" });
+      }
+      res.json(template);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create WhatsApp template
+  app.post("/api/whatsapp-templates", async (req, res) => {
+    try {
+      const validation = insertWhatsappTemplateSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const template = await storage.createWhatsappTemplate(validation.data);
+      res.json(template);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update WhatsApp template
+  app.put("/api/whatsapp-templates/:id", async (req, res) => {
+    try {
+      const validation = insertWhatsappTemplateSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const template = await storage.updateWhatsappTemplate(req.params.id, validation.data);
+      if (!template) {
+        return res.status(404).json({ message: "WhatsApp template not found" });
+      }
+      res.json(template);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete WhatsApp template
+  app.delete("/api/whatsapp-templates/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteWhatsappTemplate(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "WhatsApp template not found" });
+      }
+      res.json({ message: "WhatsApp template deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ SEND WHATSAPP MESSAGE ROUTE ============
+
+  // Send WhatsApp message
+  app.post("/api/send-whatsapp", async (req, res) => {
+    try {
+      const { to, templateId, templateData, message: directMessage, quotationId, invoiceId, receiptId } = req.body;
+
+      if (!to) {
+        return res.status(400).json({ message: "Recipient phone number is required" });
+      }
+
+      const config = await storage.getWhatsappConfig();
+      if (!config) {
+        return res.status(400).json({ message: "No WhatsApp configuration found. Please configure WhatsApp settings first." });
+      }
+
+      if (config.isActive !== "Active") {
+        return res.status(400).json({ message: "WhatsApp configuration is not active" });
+      }
+
+      let enrichedData = templateData || {};
+
+      // Enrich data for quotation WhatsApp messages
+      if (quotationId) {
+        const quotation = await storage.getQuotation(quotationId);
+        if (!quotation) {
+          return res.status(404).json({ message: "Quotation not found" });
+        }
+
+        const companyProfile = await storage.getCompanyProfile();
+        
+        enrichedData = {
+          ...enrichedData,
+          customerName: quotation.customerName,
+          quotationNumber: quotation.quotationNumber,
+          quotationDate: quotation.quotationDate ? new Date(quotation.quotationDate).toLocaleDateString("en-IN") : "",
+          totalAmount: `₹${quotation.totalAmount}`,
+          companyName: companyProfile?.legalName || "Our Company",
+        };
+      }
+
+      // Enrich data for invoice WhatsApp messages
+      if (invoiceId) {
+        const invoice = await storage.getInvoice(invoiceId);
+        if (!invoice) {
+          return res.status(404).json({ message: "Invoice not found" });
+        }
+
+        const companyProfile = await storage.getCompanyProfile();
+        
+        enrichedData = {
+          ...enrichedData,
+          customerName: invoice.partyName,
+          invoiceNumber: invoice.invoiceNumber,
+          invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate).toLocaleDateString("en-IN") : "",
+          totalAmount: `₹${invoice.totalAmount}`,
+          companyName: companyProfile?.legalName || "Our Company",
+        };
+      }
+
+      // Enrich data for receipt WhatsApp messages
+      if (receiptId) {
+        const receipt = await storage.getReceipt(receiptId);
+        if (!receipt) {
+          return res.status(404).json({ message: "Receipt not found" });
+        }
+
+        const companyProfile = await storage.getCompanyProfile();
+        
+        enrichedData = {
+          ...enrichedData,
+          customerName: receipt.customerName,
+          voucherNumber: receipt.voucherNumber,
+          voucherType: receipt.voucherType,
+          receiptDate: receipt.date ? new Date(receipt.date).toLocaleDateString("en-IN") : "",
+          amount: `₹${receipt.amount}`,
+          companyName: companyProfile?.legalName || "Our Company",
+        };
+      }
+
+      let messageToSend = directMessage;
+
+      // If templateId is provided, get the template and render it
+      if (templateId) {
+        const template = await storage.getWhatsappTemplate(templateId);
+        if (!template) {
+          return res.status(404).json({ message: "WhatsApp template not found" });
+        }
+
+        const { renderTemplate } = await import("./whatsapp-service");
+        messageToSend = renderTemplate(template.message, enrichedData);
+      }
+
+      if (!messageToSend) {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      const { sendWhatsAppMessage } = await import("./whatsapp-service");
+      const result = await sendWhatsAppMessage(config, to, messageToSend);
+
+      if (result.success) {
+        res.json({ 
+          message: "WhatsApp message sent successfully", 
+          messageId: result.messageId,
+          to 
+        });
+      } else {
+        res.status(400).json({ 
+          message: result.error || "Failed to send WhatsApp message" 
+        });
+      }
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

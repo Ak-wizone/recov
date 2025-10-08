@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -159,6 +159,19 @@ export interface IStorage {
   createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
   updateEmailTemplate(id: string, template: Partial<InsertEmailTemplate>): Promise<EmailTemplate | undefined>;
   deleteEmailTemplate(id: string): Promise<boolean>;
+  
+  // WhatsApp Configuration operations
+  getWhatsappConfig(): Promise<WhatsappConfig | undefined>;
+  saveWhatsappConfig(config: InsertWhatsappConfig): Promise<WhatsappConfig>;
+  updateWhatsappConfig(id: string, config: Partial<InsertWhatsappConfig>): Promise<WhatsappConfig | undefined>;
+  
+  // WhatsApp Template operations
+  getWhatsappTemplates(): Promise<WhatsappTemplate[]>;
+  getWhatsappTemplatesByModule(module: string): Promise<WhatsappTemplate[]>;
+  getWhatsappTemplate(id: string): Promise<WhatsappTemplate | undefined>;
+  createWhatsappTemplate(template: InsertWhatsappTemplate): Promise<WhatsappTemplate>;
+  updateWhatsappTemplate(id: string, template: Partial<InsertWhatsappTemplate>): Promise<WhatsappTemplate | undefined>;
+  deleteWhatsappTemplate(id: string): Promise<boolean>;
   
   // Ringg.ai Configuration operations
   getRinggConfig(): Promise<RinggConfig | undefined>;
@@ -1379,6 +1392,73 @@ export class DatabaseStorage implements IStorage {
 
   async deleteEmailTemplate(id: string): Promise<boolean> {
     const result = await db.delete(emailTemplates).where(eq(emailTemplates.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // WhatsApp Configuration operations
+  async getWhatsappConfig(): Promise<WhatsappConfig | undefined> {
+    const [config] = await db.select().from(whatsappConfigs).limit(1);
+    return config;
+  }
+
+  async saveWhatsappConfig(config: InsertWhatsappConfig): Promise<WhatsappConfig> {
+    const existing = await this.getWhatsappConfig();
+    
+    if (existing) {
+      const [updated] = await db.update(whatsappConfigs)
+        .set({ ...config, updatedAt: new Date() })
+        .where(eq(whatsappConfigs.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(whatsappConfigs)
+        .values(config)
+        .returning();
+      return created;
+    }
+  }
+
+  async updateWhatsappConfig(id: string, config: Partial<InsertWhatsappConfig>): Promise<WhatsappConfig | undefined> {
+    const [updated] = await db.update(whatsappConfigs)
+      .set({ ...config, updatedAt: new Date() })
+      .where(eq(whatsappConfigs.id, id))
+      .returning();
+    return updated;
+  }
+
+  // WhatsApp Template operations
+  async getWhatsappTemplates(): Promise<WhatsappTemplate[]> {
+    return await db.select().from(whatsappTemplates).orderBy(desc(whatsappTemplates.createdAt));
+  }
+
+  async getWhatsappTemplatesByModule(module: string): Promise<WhatsappTemplate[]> {
+    return await db.select().from(whatsappTemplates)
+      .where(eq(whatsappTemplates.module, module))
+      .orderBy(desc(whatsappTemplates.createdAt));
+  }
+
+  async getWhatsappTemplate(id: string): Promise<WhatsappTemplate | undefined> {
+    const [template] = await db.select().from(whatsappTemplates).where(eq(whatsappTemplates.id, id));
+    return template;
+  }
+
+  async createWhatsappTemplate(template: InsertWhatsappTemplate): Promise<WhatsappTemplate> {
+    const [created] = await db.insert(whatsappTemplates)
+      .values(template)
+      .returning();
+    return created;
+  }
+
+  async updateWhatsappTemplate(id: string, template: Partial<InsertWhatsappTemplate>): Promise<WhatsappTemplate | undefined> {
+    const [updated] = await db.update(whatsappTemplates)
+      .set({ ...template, updatedAt: new Date() })
+      .where(eq(whatsappTemplates.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteWhatsappTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(whatsappTemplates).where(eq(whatsappTemplates.id, id)).returning();
     return result.length > 0;
   }
 
