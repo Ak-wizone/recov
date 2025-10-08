@@ -4169,8 +4169,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         templates = await storage.getWhatsappTemplates();
       }
       
+      console.log('[WhatsApp Templates] Retrieved templates:', templates.length, 'items');
       res.json(templates);
     } catch (error: any) {
+      console.error('[WhatsApp Templates] Error:', error);
       res.status(500).json({ message: error.message });
     }
   });
