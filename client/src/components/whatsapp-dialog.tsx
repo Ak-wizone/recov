@@ -137,8 +137,8 @@ export function WhatsAppDialog({
       return;
     }
 
-    const whatsappData: { phoneNumber: string; message: string; quotationId?: string; invoiceId?: string; receiptId?: string } = {
-      phoneNumber,
+    const whatsappData: { to: string; message: string; quotationId?: string; invoiceId?: string; receiptId?: string } = {
+      to: phoneNumber,
       message
     };
 
