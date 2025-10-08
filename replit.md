@@ -49,14 +49,23 @@ Preferred communication style: Simple, everyday language.
 *   **Authentication System**: Secure login with email/password, bcrypt hashing, session-based authentication, and protected routes.
 *   **Customer Inline Editing**: Quick-edit dropdowns for Category, Interest Rate, and Status directly within the customer grid.
 *   **Master Items Enhancements**: 21 standardized UOMs (NOS, KGS, MTR, SQM, LTR, etc.) with custom UOM functionality via localStorage. SKU field removed from UI. Interest rate bulk update capability.
-*   **Email & WhatsApp Integration**: Complete communication system integrated across all 7 modules (Leads, Quotations, Proforma Invoices, Invoices, Receipts, Debtors, Credit Management). Features include:
+*   **Email Integration**: Complete email communication system integrated across all 7 modules. Features:
     - Email configuration supporting both Gmail OAuth2 and SMTP providers
-    - Template management with module-specific templates and variable substitution
+    - Template management with module-specific templates and variable substitution  
     - Reusable Email Dialog component with template selection and variable replacement
-    - WhatsApp integration with pre-formatted messages using WhatsApp Web API
-    - Quick-access communication buttons in all module grids
-    - 7 default email templates pre-configured for all modules
+    - Quick-access email buttons in all module grids
+    - Professional email templates (Quotation, Invoice, Receipt) with automatic data enrichment
     - Nodemailer integration for reliable email delivery
+    - Database tables: email_configs, email_templates
+*   **WhatsApp API Integration**: Enterprise-grade WhatsApp messaging system for automated business communications. Features:
+    - Multi-provider support: Twilio, WATI, Meta WhatsApp Business API, Interakt, AiSensy, and custom API providers
+    - Comprehensive configuration interface with provider-specific settings (Account SID, Phone Number ID, Business Account ID, etc.)
+    - WhatsApp message templates with variable substitution similar to email templates
+    - Automatic data enrichment for quotations, invoices, and receipts
+    - Backend routes: `/api/whatsapp-config`, `/api/whatsapp-templates`, `/api/send-whatsapp`
+    - WhatsApp service layer with provider-specific API implementations
+    - Configuration accessible via Company Settings → WhatsApp Configuration
+    - Database tables: whatsapp_configs, whatsapp_templates
 *   **Ringg.ai AI Calling Integration**: Comprehensive AI-powered voice calling system fully integrated across all 7 modules. Multi-tenant SaaS architecture features:
     - Configuration Management: API key setup, from_number configuration, test connection validation, webhook URL display
     - Script Mapping System: Link Ringg.ai call scripts to specific modules (e.g., Payment Reminder for Invoices)
