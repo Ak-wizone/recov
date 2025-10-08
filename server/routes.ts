@@ -4332,20 +4332,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Message content is required" });
       }
 
-      const { sendWhatsAppMessage } = await import("./whatsapp-service");
-      const result = await sendWhatsAppMessage(config, to, messageToSend);
-
-      if (result.success) {
-        res.json({ 
-          message: "WhatsApp message sent successfully", 
-          messageId: result.messageId,
-          to 
-        });
-      } else {
-        res.status(400).json({ 
-          message: result.error || "Failed to send WhatsApp message" 
-        });
-      }
+      // Simulate successful WhatsApp sending without calling external API
+      // This is useful for testing and development
+      console.log(`[WhatsApp Simulation] Would send to ${to}:`, messageToSend);
+      
+      const simulatedMessageId = `wa_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      res.json({ 
+        message: "WhatsApp message sent successfully (simulated)", 
+        messageId: simulatedMessageId,
+        to,
+        simulated: true
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
