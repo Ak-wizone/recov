@@ -52,7 +52,11 @@ import {
 
 const MODULES_WITH_PERMISSIONS = [
   {
-    module: "Customer Dashboard",
+    module: "Business Overview",
+    operations: ["View"]
+  },
+  {
+    module: "Customer Analytics",
     operations: ["View"]
   },
   {

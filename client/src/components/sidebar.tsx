@@ -21,6 +21,7 @@ import {
   User,
   Wallet,
   BookOpen,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -35,9 +36,14 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    name: "Customer Dashboard",
+    name: "Business Overview",
     path: "/",
     icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
+    name: "Customer Analytics",
+    path: "/customer-analytics",
+    icon: <BarChart3 className="h-5 w-5" />,
   },
   {
     name: "Leads",

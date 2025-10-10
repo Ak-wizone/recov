@@ -7,6 +7,7 @@ import { AuthProvider, ProtectedRoute } from "@/lib/auth";
 import Layout from "@/components/layout";
 import Login from "@/pages/login";
 import Home from "@/pages/home";
+import CustomerAnalytics from "@/pages/customer-analytics";
 import Leads from "@/pages/leads";
 import Quotations from "@/pages/quotations";
 import QuotationPrint from "@/pages/quotation-print";
@@ -45,6 +46,7 @@ function Router() {
           <Layout>
             <Switch>
               <Route path="/" component={Home} />
+              <Route path="/customer-analytics" component={CustomerAnalytics} />
               <Route path="/leads" component={Leads} />
               <Route path="/quotations" component={Quotations} />
               <Route path="/proforma-invoices" component={ProformaInvoices} />
