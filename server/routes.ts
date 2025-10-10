@@ -137,19 +137,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const receiptCount = customerReceipts.length;
       const receiptAmount = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
 
-      // Calculate interest amount (sum of net profit from invoices)
-      const interestAmount = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
+      // Calculate interest amount based on interest rate and overdue days
+      let totalInterestAmount = 0;
+      const today = new Date();
+      
+      for (const invoice of customerInvoices) {
+        if (invoice.status === "Unpaid" || invoice.status === "Partial") {
+          const interestRate = parseFloat(invoice.interestRate || "0");
+          const invoiceAmt = parseFloat(invoice.invoiceAmount);
+          
+          if (interestRate > 0 && invoice.interestApplicableFrom) {
+            const applicableDate = new Date(invoice.interestApplicableFrom);
+            const diffTime = today.getTime() - applicableDate.getTime();
+            const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-      // Calculate debtor amount for customer's category
+            if (daysOverdue > 0) {
+              const interestAmount = (invoiceAmt * interestRate * daysOverdue) / (100 * 365);
+              totalInterestAmount += interestAmount;
+            }
+          }
+        }
+      }
+
+      // Calculate debtor amount and opening balance for customer's category
       const categoryCustomers = allMasterCustomers.filter(c => c.category === customer.category);
-      const categoryDebtorAmount = categoryCustomers.reduce((sum, c) => {
+      let categoryOpeningBalance = 0;
+      let categoryDebtorAmount = 0;
+      
+      categoryCustomers.forEach((c) => {
         const custInvoices = allInvoices.filter(inv => inv.customerName === c.clientName);
         const custReceipts = allReceipts.filter(rec => rec.customerName === c.clientName);
         const custInvoiceTotal = custInvoices.reduce((s, inv) => s + parseFloat(inv.invoiceAmount), 0);
         const custReceiptTotal = custReceipts.reduce((s, rec) => s + parseFloat(rec.amount), 0);
         const openingBalance = parseFloat(c.openingBalance || "0");
-        return sum + (openingBalance + custInvoiceTotal - custReceiptTotal);
-      }, 0);
+        
+        categoryOpeningBalance += openingBalance;
+        categoryDebtorAmount += (openingBalance + custInvoiceTotal - custReceiptTotal);
+      });
 
       // Calculate credit details - include opening balance in utilized credit
       const openingBalance = parseFloat(customer.openingBalance || "0");
@@ -184,9 +208,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         categoryInfo: {
           category: customer.category,
           totalDebtorAmount: categoryDebtorAmount.toFixed(2),
+          categoryOpeningBalance: categoryOpeningBalance.toFixed(2),
         },
         debtorAmount: customerDebtorAmount.toFixed(2),
-        interestAmount: interestAmount.toFixed(2),
+        interestAmount: totalInterestAmount.toFixed(2),
         creditInfo: {
           creditLimit: creditLimit.toFixed(2),
           utilizedCredit: utilizedCredit.toFixed(2),

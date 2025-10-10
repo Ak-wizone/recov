@@ -57,6 +57,7 @@ interface CustomerAnalytics {
   categoryInfo: {
     category: string;
     totalDebtorAmount: string;
+    categoryOpeningBalance: string;
   };
   debtorAmount: string;
   interestAmount: string;
@@ -308,24 +309,33 @@ export default function Home() {
                 </CardContent>
               </Card>
 
-              {/* Category Debtor Card */}
-              <Card className="border-l-4 border-l-purple-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-category-debtor">
+              {/* Category Card */}
+              <Card className="border-l-4 border-l-purple-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-category">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    Category Debtor Amount
+                    {analytics.categoryInfo.category} Category
                   </CardTitle>
                   <Users className="h-6 w-6 text-purple-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <Badge className={`${getCategoryColor(analytics.categoryInfo.category)} text-sm font-semibold`}>
-                      {analytics.categoryInfo.category} Category
-                    </Badge>
-                    <div className="text-4xl font-bold text-purple-600">
-                      ₹{parseFloat(analytics.categoryInfo.totalDebtorAmount).toLocaleString("en-IN", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium mb-1">Opening Balance</p>
+                      <div className="text-2xl font-bold text-indigo-600">
+                        ₹{parseFloat(analytics.categoryInfo.categoryOpeningBalance).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 font-medium mb-1">Debtor Amount</p>
+                      <div className="text-2xl font-bold text-purple-600">
+                        ₹{parseFloat(analytics.categoryInfo.totalDebtorAmount).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </div>
                     </div>
                     <p className="text-sm text-gray-500 font-medium">Total outstanding in this category</p>
                   </div>
