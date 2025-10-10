@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Gauge, AlertTriangle, TrendingUp, Users } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { RiskThermometer } from "@/components/risk-thermometer";
 
 interface RiskData {
   customers: Array<{
@@ -51,12 +51,6 @@ export default function ClientRiskThermometer() {
     if (level === 'High') return 'text-red-600 bg-red-50 border-red-200';
     if (level === 'Medium') return 'text-yellow-600 bg-yellow-50 border-yellow-200';
     return 'text-green-600 bg-green-50 border-green-200';
-  };
-
-  const getRiskBarColor = (score: number) => {
-    if (score >= 70) return 'bg-red-500';
-    if (score >= 30) return 'bg-yellow-500';
-    return 'bg-green-500';
   };
 
   return (
@@ -129,48 +123,48 @@ export default function ClientRiskThermometer() {
                 className={`p-4 rounded-lg border-2 ${getRiskColor(customer.riskLevel)}`}
                 data-testid={`risk-customer-${customer.customerId}`}
               >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="font-bold text-lg">{customer.customerName}</h3>
-                    <p className="text-sm opacity-75">{customer.category}</p>
+                <div className="flex gap-6">
+                  {/* Thermometer Visual */}
+                  <div className="flex-shrink-0">
+                    <RiskThermometer riskScore={customer.riskScore} size="md" showLabel={false} />
                   </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-bold">{customer.riskScore}%</span>
-                    <p className="text-sm font-medium">{customer.riskLevel} Risk</p>
-                  </div>
-                </div>
 
-                {/* Risk Score Bar */}
-                <div className="mb-4">
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div
-                      className={`h-3 rounded-full ${getRiskBarColor(customer.riskScore)}`}
-                      style={{ width: `${customer.riskScore}%` }}
-                    ></div>
-                  </div>
-                </div>
+                  {/* Customer Details */}
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-bold text-lg">{customer.customerName}</h3>
+                        <p className="text-sm opacity-75">{customer.category}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-bold">{customer.riskScore}%</span>
+                        <p className="text-sm font-medium">{customer.riskLevel} Risk</p>
+                      </div>
+                    </div>
 
-                {/* Risk Factors */}
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                  <div>
-                    <p className="opacity-75">Credit Utilization</p>
-                    <p className="font-semibold">{parseFloat(customer.factors.creditUtilization).toFixed(0)}%</p>
-                  </div>
-                  <div>
-                    <p className="opacity-75">Avg Delay</p>
-                    <p className="font-semibold">{customer.factors.avgPaymentDelay} days</p>
-                  </div>
-                  <div>
-                    <p className="opacity-75">Overdue Invoices</p>
-                    <p className="font-semibold">{customer.factors.overdueInvoices}</p>
-                  </div>
-                  <div>
-                    <p className="opacity-75">Outstanding</p>
-                    <p className="font-semibold">₹{parseFloat(customer.factors.outstanding).toLocaleString("en-IN")}</p>
-                  </div>
-                  <div>
-                    <p className="opacity-75">Credit Limit</p>
-                    <p className="font-semibold">₹{parseFloat(customer.factors.creditLimit).toLocaleString("en-IN")}</p>
+                    {/* Risk Factors */}
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm mt-4">
+                      <div>
+                        <p className="opacity-75">Credit Utilization</p>
+                        <p className="font-semibold">{parseFloat(customer.factors.creditUtilization).toFixed(0)}%</p>
+                      </div>
+                      <div>
+                        <p className="opacity-75">Avg Delay</p>
+                        <p className="font-semibold">{customer.factors.avgPaymentDelay} days</p>
+                      </div>
+                      <div>
+                        <p className="opacity-75">Overdue Invoices</p>
+                        <p className="font-semibold">{customer.factors.overdueInvoices}</p>
+                      </div>
+                      <div>
+                        <p className="opacity-75">Outstanding</p>
+                        <p className="font-semibold">₹{parseFloat(customer.factors.outstanding).toLocaleString("en-IN")}</p>
+                      </div>
+                      <div>
+                        <p className="opacity-75">Credit Limit</p>
+                        <p className="font-semibold">₹{parseFloat(customer.factors.creditLimit).toLocaleString("en-IN")}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
