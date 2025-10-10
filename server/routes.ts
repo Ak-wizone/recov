@@ -489,6 +489,341 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Risk Management: Client Risk Thermometer
+  app.get("/api/risk/client-thermometer", async (_req, res) => {
+    try {
+      const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
+        storage.getInvoices(),
+        storage.getReceipts(),
+        storage.getMasterCustomers()
+      ]);
+
+      const today = new Date();
+      const customerRisks = allMasterCustomers.map((customer) => {
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+        
+        const invoiceTotal = customerInvoices.reduce((s, inv) => s + parseFloat(inv.invoiceAmount), 0);
+        const receiptTotal = customerReceipts.reduce((s, rec) => s + parseFloat(rec.amount), 0);
+        const openingBalance = parseFloat(customer.openingBalance || "0");
+        const outstanding = openingBalance + invoiceTotal - receiptTotal;
+        const creditLimit = parseFloat(customer.creditLimit || "0");
+
+        // Calculate payment delays
+        let totalDelays = 0;
+        let delayedPayments = 0;
+        let overdueInvoices = 0;
+        
+        customerInvoices.forEach((invoice) => {
+          const paymentTerms = parseInt(String(invoice.paymentTerms || "30"));
+          const dueDate = new Date(invoice.invoiceDate);
+          dueDate.setDate(dueDate.getDate() + paymentTerms);
+          
+          if (invoice.status !== 'Paid' && dueDate < today) {
+            overdueInvoices++;
+            const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+            totalDelays += daysOverdue;
+            delayedPayments++;
+          }
+        });
+
+        const avgDelay = delayedPayments > 0 ? totalDelays / delayedPayments : 0;
+        const creditUtilization = creditLimit > 0 ? (outstanding / creditLimit) * 100 : 0;
+
+        // Risk score calculation (0-100)
+        let riskScore = 0;
+        
+        // Factor 1: Credit Utilization (40 points)
+        if (creditUtilization > 80) riskScore += 40;
+        else if (creditUtilization > 50) riskScore += 25;
+        else if (creditUtilization > 30) riskScore += 15;
+        
+        // Factor 2: Average Payment Delay (30 points)
+        if (avgDelay > 30) riskScore += 30;
+        else if (avgDelay > 15) riskScore += 20;
+        else if (avgDelay > 5) riskScore += 10;
+        
+        // Factor 3: Overdue Invoices Count (30 points)
+        if (overdueInvoices > 5) riskScore += 30;
+        else if (overdueInvoices > 3) riskScore += 20;
+        else if (overdueInvoices > 0) riskScore += 10;
+
+        // Risk Level
+        let riskLevel = 'Low';
+        if (riskScore >= 70) riskLevel = 'High';
+        else if (riskScore >= 30) riskLevel = 'Medium';
+
+        return {
+          customerId: customer.id,
+          customerName: customer.clientName,
+          category: customer.category,
+          riskScore: Math.min(riskScore, 100),
+          riskLevel,
+          factors: {
+            creditUtilization: creditUtilization.toFixed(2),
+            avgPaymentDelay: avgDelay.toFixed(0),
+            overdueInvoices,
+            outstanding: outstanding.toFixed(2),
+            creditLimit: creditLimit.toFixed(2)
+          }
+        };
+      });
+
+      // Sort by risk score descending
+      customerRisks.sort((a, b) => b.riskScore - a.riskScore);
+
+      res.json({
+        customers: customerRisks,
+        summary: {
+          highRisk: customerRisks.filter(c => c.riskLevel === 'High').length,
+          mediumRisk: customerRisks.filter(c => c.riskLevel === 'Medium').length,
+          lowRisk: customerRisks.filter(c => c.riskLevel === 'Low').length,
+          totalCustomers: customerRisks.length
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Risk Management: Payment Risk Forecaster
+  app.get("/api/risk/payment-forecaster", async (_req, res) => {
+    try {
+      const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
+        storage.getInvoices(),
+        storage.getReceipts(),
+        storage.getMasterCustomers()
+      ]);
+
+      const today = new Date();
+      const forecasts = allMasterCustomers.map((customer) => {
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+        
+        // Calculate historical payment pattern
+        let onTimePayments = 0;
+        let latePayments = 0;
+        let totalPaymentDays = 0;
+
+        customerInvoices.forEach((invoice) => {
+          if (invoice.status === 'Paid') {
+            const paymentTerms = parseInt(String(invoice.paymentTerms || "30"));
+            const dueDate = new Date(invoice.invoiceDate);
+            dueDate.setDate(dueDate.getDate() + paymentTerms);
+            
+            // Find receipt for this invoice (simplified matching)
+            const receipt = customerReceipts.find(r => 
+              new Date(r.date) >= new Date(invoice.invoiceDate) &&
+              parseFloat(r.amount) === parseFloat(invoice.invoiceAmount)
+            );
+            
+            if (receipt) {
+              const paymentDate = new Date(receipt.date);
+              const daysDiff = Math.floor((paymentDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+              totalPaymentDays += Math.max(daysDiff, 0);
+              
+              if (daysDiff <= 0) onTimePayments++;
+              else latePayments++;
+            }
+          }
+        });
+
+        const totalPaidInvoices = onTimePayments + latePayments;
+        const onTimeRate = totalPaidInvoices > 0 ? (onTimePayments / totalPaidInvoices) * 100 : 50;
+        const avgDelayDays = totalPaidInvoices > 0 ? totalPaymentDays / totalPaidInvoices : 0;
+
+        // Unpaid invoices
+        const unpaidInvoices = customerInvoices.filter(inv => inv.status !== 'Paid');
+        const unpaidAmount = unpaidInvoices.reduce((s, inv) => s + parseFloat(inv.invoiceAmount), 0);
+
+        // Forecast risk probability
+        let stuckProbability = 0;
+        
+        if (onTimeRate < 50) stuckProbability += 40;
+        else if (onTimeRate < 70) stuckProbability += 25;
+        else if (onTimeRate < 85) stuckProbability += 10;
+        
+        if (avgDelayDays > 20) stuckProbability += 30;
+        else if (avgDelayDays > 10) stuckProbability += 15;
+        else if (avgDelayDays > 5) stuckProbability += 5;
+        
+        if (unpaidInvoices.length > 5) stuckProbability += 30;
+        else if (unpaidInvoices.length > 2) stuckProbability += 15;
+
+        stuckProbability = Math.min(stuckProbability, 100);
+
+        // Predict expected payment date (for next unpaid invoice)
+        let expectedPaymentDate = null;
+        if (unpaidInvoices.length > 0) {
+          const nextInvoice = unpaidInvoices[0];
+          const paymentTerms = parseInt(String(nextInvoice.paymentTerms || "30"));
+          const predicted = new Date(nextInvoice.invoiceDate);
+          predicted.setDate(predicted.getDate() + paymentTerms + Math.round(avgDelayDays));
+          expectedPaymentDate = predicted;
+        }
+
+        return {
+          customerId: customer.id,
+          customerName: customer.clientName,
+          category: customer.category,
+          stuckProbability: stuckProbability.toFixed(0),
+          expectedPaymentDate,
+          metrics: {
+            onTimeRate: onTimeRate.toFixed(1),
+            avgDelayDays: avgDelayDays.toFixed(0),
+            unpaidInvoices: unpaidInvoices.length,
+            unpaidAmount: unpaidAmount.toFixed(2)
+          }
+        };
+      });
+
+      // Sort by stuck probability descending
+      forecasts.sort((a, b) => parseFloat(b.stuckProbability) - parseFloat(a.stuckProbability));
+
+      res.json({
+        forecasts: forecasts.filter(f => parseFloat(f.stuckProbability) > 0),
+        summary: {
+          highRisk: forecasts.filter(f => parseFloat(f.stuckProbability) >= 70).length,
+          mediumRisk: forecasts.filter(f => parseFloat(f.stuckProbability) >= 30 && parseFloat(f.stuckProbability) < 70).length,
+          lowRisk: forecasts.filter(f => parseFloat(f.stuckProbability) > 0 && parseFloat(f.stuckProbability) < 30).length
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Risk Management: Recovery System Health Test
+  app.get("/api/risk/recovery-health", async (_req, res) => {
+    try {
+      const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
+        storage.getInvoices(),
+        storage.getReceipts(),
+        storage.getMasterCustomers()
+      ]);
+
+      const today = new Date();
+      
+      // Calculate recovery metrics
+      const paidInvoices = allInvoices.filter(inv => inv.status === 'Paid');
+      const unpaidInvoices = allInvoices.filter(inv => inv.status !== 'Paid');
+      
+      // Average collection time
+      let totalCollectionDays = 0;
+      let collectionCount = 0;
+
+      paidInvoices.forEach((invoice) => {
+        const receipt = allReceipts.find(r => 
+          new Date(r.date) >= new Date(invoice.invoiceDate) &&
+          r.customerName === invoice.customerName
+        );
+        
+        if (receipt) {
+          const collectionDays = Math.floor(
+            (new Date(receipt.date).getTime() - new Date(invoice.invoiceDate).getTime()) / (1000 * 60 * 60 * 24)
+          );
+          totalCollectionDays += collectionDays;
+          collectionCount++;
+        }
+      });
+
+      const avgCollectionDays = collectionCount > 0 ? totalCollectionDays / collectionCount : 0;
+
+      // Recovery rate by age bucket
+      const buckets = {
+        '0-30': { total: 0, recovered: 0 },
+        '31-60': { total: 0, recovered: 0 },
+        '61-90': { total: 0, recovered: 0 },
+        '90+': { total: 0, recovered: 0 }
+      };
+
+      allInvoices.forEach((invoice) => {
+        const invoiceAge = Math.floor((today.getTime() - new Date(invoice.invoiceDate).getTime()) / (1000 * 60 * 60 * 24));
+        let bucket = '90+';
+        if (invoiceAge <= 30) bucket = '0-30';
+        else if (invoiceAge <= 60) bucket = '31-60';
+        else if (invoiceAge <= 90) bucket = '61-90';
+
+        buckets[bucket].total++;
+        if (invoice.status === 'Paid') buckets[bucket].recovered++;
+      });
+
+      const recoveryRates = Object.entries(buckets).map(([age, data]) => ({
+        ageBucket: age,
+        total: data.total,
+        recovered: data.recovered,
+        rate: data.total > 0 ? ((data.recovered / data.total) * 100).toFixed(1) : '0.0'
+      }));
+
+      // Overall recovery rate
+      const totalInvoices = allInvoices.length;
+      const recoveredInvoices = paidInvoices.length;
+      const overallRecoveryRate = totalInvoices > 0 ? (recoveredInvoices / totalInvoices) * 100 : 0;
+
+      // Calculate health score
+      let healthScore = 0;
+      
+      // Factor 1: Average collection time (40 points)
+      if (avgCollectionDays < 30) healthScore += 40;
+      else if (avgCollectionDays < 60) healthScore += 25;
+      else if (avgCollectionDays < 90) healthScore += 10;
+      
+      // Factor 2: Overall recovery rate (40 points)
+      if (overallRecoveryRate > 85) healthScore += 40;
+      else if (overallRecoveryRate > 70) healthScore += 25;
+      else if (overallRecoveryRate > 50) healthScore += 15;
+      
+      // Factor 3: Recent recovery trend (20 points) - simplified
+      const recentInvoices = allInvoices.filter(inv => {
+        const age = Math.floor((today.getTime() - new Date(inv.invoiceDate).getTime()) / (1000 * 60 * 60 * 24));
+        return age <= 60;
+      });
+      const recentRecoveryRate = recentInvoices.length > 0 ? 
+        (recentInvoices.filter(inv => inv.status === 'Paid').length / recentInvoices.length) * 100 : 0;
+      
+      if (recentRecoveryRate > 80) healthScore += 20;
+      else if (recentRecoveryRate > 60) healthScore += 12;
+      else if (recentRecoveryRate > 40) healthScore += 5;
+
+      // Health level
+      let healthLevel = 'Weak';
+      if (healthScore >= 80) healthLevel = 'Strong';
+      else if (healthScore >= 50) healthLevel = 'Moderate';
+
+      // Recommendations
+      const recommendations = [];
+      if (avgCollectionDays > 45) {
+        recommendations.push('Increase follow-up frequency - average collection time is high');
+      }
+      if (overallRecoveryRate < 70) {
+        recommendations.push('Improve recovery process - recovery rate below target');
+      }
+      if (unpaidInvoices.length > 20) {
+        recommendations.push('Focus on high-value overdue invoices first');
+      }
+      if (buckets['90+'].total - buckets['90+'].recovered > 5) {
+        recommendations.push('Consider legal action for invoices overdue >90 days');
+      }
+
+      res.json({
+        healthScore,
+        healthLevel,
+        metrics: {
+          avgCollectionDays: avgCollectionDays.toFixed(0),
+          overallRecoveryRate: overallRecoveryRate.toFixed(1),
+          recentRecoveryRate: recentRecoveryRate.toFixed(1),
+          totalInvoices,
+          recoveredInvoices,
+          pendingInvoices: unpaidInvoices.length
+        },
+        recoveryRates,
+        recommendations
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get all customers
   app.get("/api/customers", async (_req, res) => {
     try {
