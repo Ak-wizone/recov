@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingDown, Calendar, AlertCircle, BarChart3 } from "lucide-react";
+import { RiskThermometer } from "@/components/risk-thermometer";
 
 interface ForecastData {
   forecasts: Array<{
@@ -113,44 +114,54 @@ export default function PaymentRiskForecaster() {
                     className={`p-4 rounded-lg border-2 ${risk.color}`}
                     data-testid={`forecast-${forecast.customerId}`}
                   >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-bold text-lg">{forecast.customerName}</h3>
-                        <p className="text-sm opacity-75">{forecast.category}</p>
+                    <div className="flex gap-6">
+                      {/* Thermometer Visual */}
+                      <div className="flex-shrink-0">
+                        <RiskThermometer riskScore={parseFloat(forecast.stuckProbability)} size="md" showLabel={false} />
                       </div>
-                      <div className="text-right">
-                        <span className="text-2xl font-bold">{forecast.stuckProbability}%</span>
-                        <p className="text-sm font-medium">{risk.level} Risk</p>
-                      </div>
-                    </div>
 
-                    {/* Expected Payment Date */}
-                    {forecast.expectedPaymentDate && (
-                      <div className="mb-3 flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span className="text-sm font-medium">
-                          Expected Payment: {new Date(forecast.expectedPaymentDate).toLocaleDateString("en-IN")}
-                        </span>
-                      </div>
-                    )}
+                      {/* Forecast Details */}
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="font-bold text-lg">{forecast.customerName}</h3>
+                            <p className="text-sm opacity-75">{forecast.category}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-2xl font-bold">{forecast.stuckProbability}%</span>
+                            <p className="text-sm font-medium">{risk.level} Risk</p>
+                          </div>
+                        </div>
 
-                    {/* Metrics */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
-                        <p className="opacity-75">On-Time Rate</p>
-                        <p className="font-semibold">{forecast.metrics.onTimeRate}%</p>
-                      </div>
-                      <div>
-                        <p className="opacity-75">Avg Delay</p>
-                        <p className="font-semibold">{forecast.metrics.avgDelayDays} days</p>
-                      </div>
-                      <div>
-                        <p className="opacity-75">Unpaid Invoices</p>
-                        <p className="font-semibold">{forecast.metrics.unpaidInvoices}</p>
-                      </div>
-                      <div>
-                        <p className="opacity-75">Unpaid Amount</p>
-                        <p className="font-semibold">₹{parseFloat(forecast.metrics.unpaidAmount).toLocaleString("en-IN")}</p>
+                        {/* Expected Payment Date */}
+                        {forecast.expectedPaymentDate && (
+                          <div className="mb-3 flex items-center gap-2">
+                            <Calendar className="h-4 w-4" />
+                            <span className="text-sm font-medium">
+                              Expected Payment: {new Date(forecast.expectedPaymentDate).toLocaleDateString("en-IN")}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Metrics */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <p className="opacity-75">On-Time Rate</p>
+                            <p className="font-semibold">{forecast.metrics.onTimeRate}%</p>
+                          </div>
+                          <div>
+                            <p className="opacity-75">Avg Delay</p>
+                            <p className="font-semibold">{forecast.metrics.avgDelayDays} days</p>
+                          </div>
+                          <div>
+                            <p className="opacity-75">Unpaid Invoices</p>
+                            <p className="font-semibold">{forecast.metrics.unpaidInvoices}</p>
+                          </div>
+                          <div>
+                            <p className="opacity-75">Unpaid Amount</p>
+                            <p className="font-semibold">₹{parseFloat(forecast.metrics.unpaidAmount).toLocaleString("en-IN")}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
