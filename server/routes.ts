@@ -162,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: customer.id,
           clientName: customer.clientName,
           category: customer.category,
-          status: customer.status,
+          status: customer.isActive,
           primaryMobile: customer.primaryMobile,
           primaryEmail: customer.primaryEmail,
           createdAt: customer.createdAt,
@@ -189,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           utilizationPercentage: utilizationPercentage.toFixed(2),
         },
         status: {
-          isActive: customer.status === "Active",
+          isActive: customer.isActive === "Active",
           customerSince: customer.createdAt,
           totalTransactions: invoiceCount + receiptCount,
         },

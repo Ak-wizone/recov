@@ -1,88 +1,111 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "wouter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import {
-  Users,
-  FileText,
   Receipt,
-  DollarSign,
-  UserPlus,
-  Package,
+  FileText,
   TrendingUp,
-  Activity,
-  ArrowRight,
+  CreditCard,
+  Users,
+  Mail,
+  MessageCircle,
+  Phone,
+  DollarSign,
+  TrendingDown,
   Building2,
-  ClipboardList,
-  Briefcase,
-  ShoppingCart,
+  User,
+  Calendar,
+  Activity,
 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { format } from "date-fns";
 
-interface DashboardStats {
-  totals: {
-    leads: number;
-    quotations: number;
-    proformaInvoices: number;
-    invoices: number;
-    receipts: number;
-    customers: number;
-    items: number;
-    users: number;
-    roles: number;
-    debtors: number;
+interface MasterCustomer {
+  id: string;
+  clientName: string;
+  category: string;
+  isActive: string;
+  primaryMobile: string;
+  primaryEmail: string;
+  createdAt: Date;
+}
+
+interface CustomerAnalytics {
+  customer: {
+    id: string;
+    clientName: string;
+    category: string;
+    status: string;
+    primaryMobile: string;
+    primaryEmail: string;
+    createdAt: Date;
   };
-  amounts: {
-    totalInvoices: number;
-    totalReceipts: number;
-    totalDebtors: number;
-    totalQuotations: number;
-    outstandingBalance: number;
+  invoiceSummary: {
+    count: number;
+    totalAmount: string;
+    avgAmount: string;
   };
-  today: {
-    leads: number;
-    quotations: number;
-    invoices: number;
-    receipts: number;
+  receiptSummary: {
+    count: number;
+    totalAmount: string;
+    lastPaymentDate: Date | null;
   };
-  recent: {
-    leads: any[];
-    quotations: any[];
-    invoices: any[];
+  categoryInfo: {
+    category: string;
+    totalDebtorAmount: string;
+  };
+  interestAmount: string;
+  creditInfo: {
+    creditLimit: string;
+    utilizedCredit: string;
+    availableCredit: string;
+    utilizationPercentage: string;
+  };
+  status: {
+    isActive: boolean;
+    customerSince: Date;
+    totalTransactions: number;
   };
 }
 
+const getCategoryColor = (category: string) => {
+  switch (category) {
+    case "Alpha":
+      return "bg-purple-500 text-white";
+    case "Beta":
+      return "bg-blue-500 text-white";
+    case "Gamma":
+      return "bg-green-500 text-white";
+    case "Delta":
+      return "bg-orange-500 text-white";
+    default:
+      return "bg-gray-500 text-white";
+  }
+};
+
 export default function Home() {
-  const { data: stats, isLoading } = useQuery<DashboardStats>({
-    queryKey: ["/api/dashboard/stats"],
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Fetch all customers for dropdown
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<MasterCustomer[]>({
+    queryKey: ["/api/masters/customers"],
   });
 
-  if (isLoading || !stats) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  // Fetch customer analytics when a customer is selected
+  const { data: analytics, isLoading: isLoadingAnalytics } = useQuery<CustomerAnalytics>({
+    queryKey: [`/api/customers/${selectedCustomerId}/dashboard-analytics`],
+    enabled: !!selectedCustomerId,
+  });
 
-  const moduleData = [
-    { name: "Leads", value: stats.totals.leads },
-    { name: "Quotations", value: stats.totals.quotations },
-    { name: "Proforma", value: stats.totals.proformaInvoices },
-    { name: "Invoices", value: stats.totals.invoices },
-    { name: "Receipts", value: stats.totals.receipts },
-  ];
-
-  const amountData = [
-    { name: "Invoices", amount: stats.amounts.totalInvoices },
-    { name: "Receipts", amount: stats.amounts.totalReceipts },
-    { name: "Debtors", amount: stats.amounts.totalDebtors },
-    { name: "Quotations", amount: stats.amounts.totalQuotations },
-  ];
-
-  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+  // Filter customers based on search
+  const filteredCustomers = customers.filter((customer) =>
+    customer.clientName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -91,419 +114,340 @@ export default function Home() {
         <div className="w-full px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Welcome to your business overview</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Customer Dashboard</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                View complete customer analytics and insights
+              </p>
             </div>
           </div>
         </div>
       </header>
 
       <div className="w-full px-6 lg:px-8 py-8">
-        {/* Today's Activity Cards */}
+        {/* Customer Search Section */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Today's Activity</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Link href="/leads">
-              <Card className="border-l-4 border-l-blue-500 cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-today-leads">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    New Leads
-                  </CardTitle>
-                  <UserPlus className="h-5 w-5 text-blue-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.leads}</div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Added today</p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/quotations">
-              <Card className="border-l-4 border-l-green-500 cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-today-quotations">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    New Quotations
-                  </CardTitle>
-                  <FileText className="h-5 w-5 text-green-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.quotations}</div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Created today</p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/invoices">
-              <Card className="border-l-4 border-l-orange-500 cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-today-invoices">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    New Invoices
-                  </CardTitle>
-                  <Receipt className="h-5 w-5 text-orange-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.invoices}</div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Generated today</p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/receipts">
-              <Card className="border-l-4 border-l-purple-500 cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-today-receipts">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Receipts
-                  </CardTitle>
-                  <DollarSign className="h-5 w-5 text-purple-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.today.receipts}</div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Collected today</p>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
-
-        {/* Financial Overview */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Financial Overview</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-            <Link href="/invoices">
-              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white cursor-pointer hover:shadow-xl transition-shadow" data-testid="card-total-invoices">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-blue-100">Total Invoices</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">₹{stats.amounts.totalInvoices.toFixed(2)}</div>
-                  <p className="text-xs text-blue-100 mt-1">All time</p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/receipts">
-              <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white cursor-pointer hover:shadow-xl transition-shadow" data-testid="card-total-receipts">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-green-100">Total Receipts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">₹{stats.amounts.totalReceipts.toFixed(2)}</div>
-                  <p className="text-xs text-green-100 mt-1">All time</p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/invoices">
-              <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white cursor-pointer hover:shadow-xl transition-shadow" data-testid="card-outstanding">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-red-100">Outstanding</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">₹{stats.amounts.outstandingBalance.toFixed(2)}</div>
-                  <p className="text-xs text-red-100 mt-1">To collect</p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/debtors">
-              <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white cursor-pointer hover:shadow-xl transition-shadow" data-testid="card-total-debtors">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-purple-100">Debtors</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">₹{stats.amounts.totalDebtors.toFixed(2)}</div>
-                  <p className="text-xs text-purple-100 mt-1">Outstanding debt</p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/quotations">
-              <Card className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white cursor-pointer hover:shadow-xl transition-shadow" data-testid="card-total-quotations">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-yellow-100">Quotations</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">₹{stats.amounts.totalQuotations.toFixed(2)}</div>
-                  <p className="text-xs text-yellow-100 mt-1">Total quoted</p>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
-
-        {/* Module Statistics */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Module Statistics</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-            <Link href="/leads">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-module-leads">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Leads</CardTitle>
-                  <UserPlus className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.leads}</div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/quotations">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-module-quotations">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Quotations</CardTitle>
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.quotations}</div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/proforma-invoices">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-module-proforma">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Proforma</CardTitle>
-                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.proformaInvoices}</div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/invoices">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-module-invoices">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Invoices</CardTitle>
-                  <Receipt className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.invoices}</div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/receipts">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-module-receipts">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Receipts</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.receipts}</div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/masters/customers">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-module-customers">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Customers</CardTitle>
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.customers}</div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/masters/items">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-module-items">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Items</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.items}</div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/debtors">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-module-debtors">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Debtors</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.debtors}</div>
-                  <p className="text-xs text-muted-foreground mt-1">₹{stats.amounts.totalDebtors.toFixed(2)} pending</p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/settings/users">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-module-users">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Users</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.users}</div>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Link href="/settings/roles">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-module-roles">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Roles</CardTitle>
-                  <Briefcase className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stats.totals.roles}</div>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* Module Distribution */}
-          <Card data-testid="card-chart-modules">
+          <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600">
             <CardHeader>
-              <CardTitle>Module Distribution</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Select Customer
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={moduleData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    label={({ name, value }) => `${name}: ${value}`}
-                    outerRadius={70}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {moduleData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Financial Overview Chart */}
-          <Card data-testid="card-chart-financial">
-            <CardHeader>
-              <CardTitle>Financial Overview</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={amountData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `₹${Number(value).toFixed(2)}`} />
-                  <Legend />
-                  <Bar dataKey="amount" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                    Search Customer
+                  </label>
+                  <Input
+                    placeholder="Type customer name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full"
+                    data-testid="input-customer-search"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                    Select from dropdown
+                  </label>
+                  <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                    <SelectTrigger className="w-full" data-testid="select-customer">
+                      <SelectValue placeholder="Choose a customer..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredCustomers.map((customer) => (
+                        <SelectItem
+                          key={customer.id}
+                          value={customer.id}
+                          data-testid={`customer-option-${customer.id}`}
+                        >
+                          {customer.clientName} ({customer.category})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Leads */}
-          <Card data-testid="card-recent-leads">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Leads</CardTitle>
-              <Link href="/leads">
-                <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                  View all <ArrowRight className="h-4 w-4" />
-                </button>
-              </Link>
-            </CardHeader>
-            <CardContent>
-              {stats.recent.leads.length > 0 ? (
-                <div className="space-y-4">
-                  {stats.recent.leads.map((lead, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {lead.companyName}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{lead.contactPerson}</p>
+        {/* Customer Analytics Cards */}
+        {selectedCustomerId && !isLoadingAnalytics && analytics && (
+          <>
+            {/* Customer Info Header */}
+            <div className="mb-6">
+              <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-white/20 p-4 rounded-full">
+                        <User className="h-8 w-8" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold">{analytics.customer.clientName}</h2>
+                        <div className="flex items-center gap-3 mt-2">
+                          <Badge className={getCategoryColor(analytics.customer.category)}>
+                            {analytics.customer.category}
+                          </Badge>
+                          <Badge variant={analytics.status.isActive ? "default" : "destructive"}>
+                            {analytics.customer.status}
+                          </Badge>
+                          <span className="text-sm text-white/80">
+                            Customer since {format(new Date(analytics.status.customerSince), "MMM yyyy")}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No recent leads</p>
-              )}
-            </CardContent>
-          </Card>
+                    <div className="flex items-center gap-2">
+                      <Button variant="secondary" size="sm" data-testid="button-email-customer">
+                        <Mail className="h-4 w-4 mr-2" />
+                        Email
+                      </Button>
+                      <Button variant="secondary" size="sm" data-testid="button-whatsapp-customer">
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        WhatsApp
+                      </Button>
+                      <Button variant="secondary" size="sm" data-testid="button-call-customer">
+                        <Phone className="h-4 w-4 mr-2" />
+                        Call
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Recent Quotations */}
-          <Card data-testid="card-recent-quotations">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Quotations</CardTitle>
-              <Link href="/quotations">
-                <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                  View all <ArrowRight className="h-4 w-4" />
-                </button>
-              </Link>
-            </CardHeader>
-            <CardContent>
-              {stats.recent.quotations.length > 0 ? (
-                <div className="space-y-4">
-                  {stats.recent.quotations.map((quotation, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {quotation.quotationNumber}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          ₹{parseFloat(quotation.grandTotal).toFixed(2)}
-                        </p>
-                      </div>
+            {/* Analytics Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {/* Invoice Summary Card */}
+              <Card className="border-l-4 border-l-blue-500" data-testid="card-invoice-summary">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Invoice Summary
+                  </CardTitle>
+                  <Receipt className="h-5 w-5 text-blue-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                        {analytics.invoiceSummary.count}
+                      </span>
+                      <span className="text-sm text-gray-500">invoices</span>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No recent quotations</p>
-              )}
-            </CardContent>
-          </Card>
+                    <div className="text-lg font-semibold text-blue-600">
+                      ₹{parseFloat(analytics.invoiceSummary.totalAmount).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Avg: ₹{parseFloat(analytics.invoiceSummary.avgAmount).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Recent Invoices */}
-          <Card data-testid="card-recent-invoices">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg">Recent Invoices</CardTitle>
-              <Link href="/invoices">
-                <button className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                  View all <ArrowRight className="h-4 w-4" />
-                </button>
-              </Link>
-            </CardHeader>
-            <CardContent>
-              {stats.recent.invoices.length > 0 ? (
-                <div className="space-y-4">
-                  {stats.recent.invoices.map((invoice, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {invoice.invoiceNumber}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          ₹{parseFloat(invoice.invoiceAmount).toFixed(2)}
-                        </p>
+              {/* Receipt Summary Card */}
+              <Card className="border-l-4 border-l-green-500" data-testid="card-receipt-summary">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Receipt Summary
+                  </CardTitle>
+                  <DollarSign className="h-5 w-5 text-green-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                        {analytics.receiptSummary.count}
+                      </span>
+                      <span className="text-sm text-gray-500">receipts</span>
+                    </div>
+                    <div className="text-lg font-semibold text-green-600">
+                      ₹{parseFloat(analytics.receiptSummary.totalAmount).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                    {analytics.receiptSummary.lastPaymentDate && (
+                      <p className="text-xs text-gray-500">
+                        Last payment: {format(new Date(analytics.receiptSummary.lastPaymentDate), "dd MMM yyyy")}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Category Debtor Card */}
+              <Card className="border-l-4 border-l-purple-500" data-testid="card-category-debtor">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Category Debtor Amount
+                  </CardTitle>
+                  <Users className="h-5 w-5 text-purple-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Badge className={getCategoryColor(analytics.categoryInfo.category)}>
+                      {analytics.categoryInfo.category} Category
+                    </Badge>
+                    <div className="text-3xl font-bold text-purple-600">
+                      ₹{parseFloat(analytics.categoryInfo.totalDebtorAmount).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                    <p className="text-xs text-gray-500">Total outstanding in this category</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Interest Amount Card */}
+              <Card className="border-l-4 border-l-orange-500" data-testid="card-interest-amount">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Interest Amount
+                  </CardTitle>
+                  <TrendingUp className="h-5 w-5 text-orange-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="text-3xl font-bold text-orange-600">
+                      ₹{parseFloat(analytics.interestAmount).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </div>
+                    <p className="text-xs text-gray-500">Sum of net profit from invoices</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Credit Limit Card */}
+              <Card className="border-l-4 border-l-red-500" data-testid="card-credit-limit">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Credit Management
+                  </CardTitle>
+                  <CreditCard className="h-5 w-5 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Credit Limit:</span>
+                      <span className="text-lg font-semibold">
+                        ₹{parseFloat(analytics.creditInfo.creditLimit).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Utilized:</span>
+                      <span className="text-lg font-semibold text-red-600">
+                        ₹{parseFloat(analytics.creditInfo.utilizedCredit).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Available:</span>
+                      <span className="text-lg font-semibold text-green-600">
+                        ₹{parseFloat(analytics.creditInfo.availableCredit).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">Utilization:</span>
+                        <span className="font-semibold">{parseFloat(analytics.creditInfo.utilizationPercentage).toFixed(1)}%</span>
+                      </div>
+                      <Progress 
+                        value={parseFloat(analytics.creditInfo.utilizationPercentage)} 
+                        className="h-2"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Customer Status Card */}
+              <Card className="border-l-4 border-l-indigo-500" data-testid="card-customer-status">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Customer Status
+                  </CardTitle>
+                  <Activity className="h-5 w-5 text-indigo-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={analytics.status.isActive ? "default" : "destructive"}>
+                        {analytics.status.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Calendar className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600">
+                          Since: {format(new Date(analytics.status.customerSince), "dd MMM yyyy")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <FileText className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600">
+                          Total Transactions: {analytics.status.totalTransactions}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600">{analytics.customer.primaryMobile || "N/A"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600 truncate">{analytics.customer.primaryEmail || "N/A"}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">No recent invoices</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )}
+
+        {/* Empty State */}
+        {!selectedCustomerId && (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Select a Customer
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400">
+                Choose a customer from the dropdown above to view their complete analytics
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {selectedCustomerId && isLoadingAnalytics && (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-4 text-muted-foreground">Loading customer analytics...</p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
