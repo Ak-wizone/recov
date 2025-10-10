@@ -147,9 +147,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let totalInterestAmount = 0;
       const today = new Date();
       
+      console.log(`[Interest Calculation] Customer: ${customer.clientName}, Total Invoices: ${customerInvoices.length}`);
+      
       for (const invoice of customerInvoices) {
         const interestRate = parseFloat(invoice.interestRate || "0");
         const invoiceAmt = parseFloat(invoice.invoiceAmount);
+        
+        console.log(`[Invoice] #${invoice.invoiceNumber}: Rate=${interestRate}%, Amount=${invoiceAmt}, ApplicableFrom=${invoice.interestApplicableFrom}`);
         
         if (interestRate > 0 && invoice.interestApplicableFrom) {
           const applicableDate = new Date(invoice.interestApplicableFrom);
@@ -159,9 +163,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (daysOverdue > 0) {
             const interestAmount = (invoiceAmt * interestRate * daysOverdue) / (100 * 365);
             totalInterestAmount += interestAmount;
+            console.log(`[Interest] Days Overdue: ${daysOverdue}, Interest Amount: ${interestAmount.toFixed(2)}`);
           }
         }
       }
+      
+      console.log(`[Total Interest] Customer: ${customer.clientName}, Total Interest: ${totalInterestAmount.toFixed(2)}`);
 
       // Calculate debtor amount and opening balance for customer's category
       const categoryCustomers = allMasterCustomers.filter(c => c.category === customer.category);
