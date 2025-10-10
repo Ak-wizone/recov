@@ -261,6 +261,234 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Business Overview Dashboard Analytics
+  app.get("/api/dashboard/business-overview", async (_req, res) => {
+    try {
+      const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
+        storage.getInvoices(),
+        storage.getReceipts(),
+        storage.getMasterCustomers()
+      ]);
+
+      // Financial Snapshot
+      const totalRevenue = allInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
+      const totalCollections = allReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+      
+      // Calculate total outstanding (opening balance + invoices - receipts)
+      let totalOutstanding = 0;
+      let totalInterest = 0;
+      const today = new Date();
+
+      allMasterCustomers.forEach((customer) => {
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+        
+        const invoiceTotal = customerInvoices.reduce((s, inv) => s + parseFloat(inv.invoiceAmount), 0);
+        const receiptTotal = customerReceipts.reduce((s, rec) => s + parseFloat(rec.amount), 0);
+        const openingBalance = parseFloat(customer.openingBalance || "0");
+        
+        totalOutstanding += (openingBalance + invoiceTotal - receiptTotal);
+
+        // Calculate interest for this customer
+        customerInvoices.forEach((invoice) => {
+          const interestRate = parseFloat(invoice.interestRate || "0");
+          const invoiceAmt = parseFloat(invoice.invoiceAmount);
+          const paymentTerms = parseInt(String(invoice.paymentTerms || "0"));
+          
+          if (interestRate > 0 && invoice.interestApplicableFrom) {
+            let applicableDate: Date | null = null;
+            
+            if (invoice.interestApplicableFrom.toLowerCase() === 'due date') {
+              applicableDate = new Date(invoice.invoiceDate);
+              applicableDate.setDate(applicableDate.getDate() + paymentTerms);
+            } else {
+              applicableDate = new Date(invoice.interestApplicableFrom);
+            }
+            
+            if (applicableDate && !isNaN(applicableDate.getTime())) {
+              const diffTime = today.getTime() - applicableDate.getTime();
+              const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+              if (daysOverdue > 0) {
+                const interestAmount = (invoiceAmt * interestRate * daysOverdue) / (100 * 365);
+                totalInterest += interestAmount;
+              }
+            }
+          }
+        });
+      });
+
+      // Module Statistics
+      const activeCustomers = allMasterCustomers.filter(c => c.isActive === "Active").length;
+      const tdsAmount = allReceipts.filter(r => r.voucherType === 'TDS').reduce((s, r) => s + parseFloat(r.amount), 0);
+      const cnAmount = allReceipts.filter(r => r.voucherType === 'CN').reduce((s, r) => s + parseFloat(r.amount), 0);
+      
+      const debtorsCount = allMasterCustomers.filter((customer) => {
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+        const invoiceTotal = customerInvoices.reduce((s, inv) => s + parseFloat(inv.invoiceAmount), 0);
+        const receiptTotal = customerReceipts.reduce((s, rec) => s + parseFloat(rec.amount), 0);
+        const openingBalance = parseFloat(customer.openingBalance || "0");
+        const outstanding = openingBalance + invoiceTotal - receiptTotal;
+        return outstanding > 0;
+      }).length;
+
+      // Top 5 Customers by Revenue
+      const customerRevenue = allMasterCustomers.map((customer) => {
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        const revenue = customerInvoices.reduce((s, inv) => s + parseFloat(inv.invoiceAmount), 0);
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+        const receiptTotal = customerReceipts.reduce((s, rec) => s + parseFloat(rec.amount), 0);
+        const openingBalance = parseFloat(customer.openingBalance || "0");
+        const outstanding = openingBalance + revenue - receiptTotal;
+        
+        return {
+          id: customer.id,
+          name: customer.clientName,
+          category: customer.category,
+          revenue: revenue,
+          outstanding: outstanding,
+          transactionCount: customerInvoices.length + customerReceipts.length
+        };
+      });
+
+      const top5ByRevenue = customerRevenue
+        .filter(c => c.revenue > 0)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+
+      const top5ByOutstanding = customerRevenue
+        .filter(c => c.outstanding > 0)
+        .sort((a, b) => b.outstanding - a.outstanding)
+        .slice(0, 5);
+
+      // Recent Activity
+      const recentInvoices = allInvoices
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5)
+        .map(inv => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          customerName: inv.customerName,
+          amount: inv.invoiceAmount,
+          date: inv.invoiceDate,
+          status: inv.status
+        }));
+
+      const recentReceipts = allReceipts
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 5)
+        .map(rec => ({
+          id: rec.id,
+          voucherNumber: rec.voucherNumber,
+          customerName: rec.customerName,
+          amount: rec.amount,
+          date: rec.date,
+          voucherType: rec.voucherType
+        }));
+
+      // Overdue Invoices
+      const overdueInvoices = allInvoices
+        .filter(inv => {
+          if (inv.status === 'Paid') return false;
+          const paymentTerms = parseInt(String(inv.paymentTerms || "0"));
+          const dueDate = new Date(inv.invoiceDate);
+          dueDate.setDate(dueDate.getDate() + paymentTerms);
+          return dueDate < today;
+        })
+        .sort((a, b) => {
+          const dateA = new Date(a.invoiceDate);
+          const dateB = new Date(b.invoiceDate);
+          return dateA.getTime() - dateB.getTime();
+        })
+        .slice(0, 5)
+        .map(inv => ({
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          customerName: inv.customerName,
+          amount: inv.invoiceAmount,
+          date: inv.invoiceDate,
+          daysOverdue: Math.floor((today.getTime() - new Date(inv.invoiceDate).getTime()) / (1000 * 60 * 60 * 24))
+        }));
+
+      // Category-wise outstanding
+      const categoryStats: { [key: string]: number } = {};
+      allMasterCustomers.forEach((customer) => {
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+        const invoiceTotal = customerInvoices.reduce((s, inv) => s + parseFloat(inv.invoiceAmount), 0);
+        const receiptTotal = customerReceipts.reduce((s, rec) => s + parseFloat(rec.amount), 0);
+        const openingBalance = parseFloat(customer.openingBalance || "0");
+        const outstanding = openingBalance + invoiceTotal - receiptTotal;
+        
+        if (outstanding > 0) {
+          const category = customer.category || 'Uncategorized';
+          categoryStats[category] = (categoryStats[category] || 0) + outstanding;
+        }
+      });
+
+      const categoryOutstanding = Object.entries(categoryStats).map(([category, amount]) => ({
+        category,
+        amount: parseFloat(amount.toFixed(2))
+      }));
+
+      // Collection Efficiency
+      const collectionEfficiency = totalRevenue > 0 ? (totalCollections / totalRevenue) * 100 : 0;
+
+      res.json({
+        financialSnapshot: {
+          totalRevenue: totalRevenue.toFixed(2),
+          totalCollections: totalCollections.toFixed(2),
+          totalOutstanding: totalOutstanding.toFixed(2),
+          totalInterest: totalInterest.toFixed(2),
+          collectionEfficiency: collectionEfficiency.toFixed(2)
+        },
+        moduleStats: {
+          invoices: {
+            count: allInvoices.length,
+            totalAmount: totalRevenue.toFixed(2)
+          },
+          receipts: {
+            count: allReceipts.length,
+            totalAmount: totalCollections.toFixed(2),
+            tdsAmount: tdsAmount.toFixed(2),
+            cnAmount: cnAmount.toFixed(2)
+          },
+          customers: {
+            total: allMasterCustomers.length,
+            active: activeCustomers
+          },
+          debtors: {
+            count: debtorsCount,
+            totalOutstanding: totalOutstanding.toFixed(2)
+          }
+        },
+        topCustomers: {
+          byRevenue: top5ByRevenue.map(c => ({
+            ...c,
+            revenue: c.revenue.toFixed(2),
+            outstanding: c.outstanding.toFixed(2)
+          })),
+          byOutstanding: top5ByOutstanding.map(c => ({
+            ...c,
+            revenue: c.revenue.toFixed(2),
+            outstanding: c.outstanding.toFixed(2)
+          }))
+        },
+        recentActivity: {
+          invoices: recentInvoices,
+          receipts: recentReceipts,
+          overdueInvoices: overdueInvoices
+        },
+        charts: {
+          categoryOutstanding: categoryOutstanding
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get all customers
   app.get("/api/customers", async (_req, res) => {
     try {
