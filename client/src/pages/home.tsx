@@ -1,500 +1,449 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import {
-  Receipt,
-  FileText,
-  TrendingUp,
-  CreditCard,
-  Users,
-  Mail,
-  MessageCircle,
-  Phone,
-  DollarSign,
-  TrendingDown,
-  Building2,
-  User,
-  Calendar,
-  Activity,
+import { 
+  DollarSign, 
+  TrendingUp, 
+  TrendingDown, 
+  Users, 
+  FileText, 
+  Receipt as ReceiptIcon,
+  AlertCircle,
+  BarChart3,
+  Percent
 } from "lucide-react";
-import { format } from "date-fns";
+import { Link } from "wouter";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
-interface MasterCustomer {
-  id: string;
-  clientName: string;
-  category: string;
-  isActive: string;
-  primaryMobile: string;
-  primaryEmail: string;
-  createdAt: Date;
+interface BusinessOverviewData {
+  financialSnapshot: {
+    totalRevenue: string;
+    totalCollections: string;
+    totalOutstanding: string;
+    totalInterest: string;
+    collectionEfficiency: string;
+  };
+  moduleStats: {
+    invoices: { count: number; totalAmount: string };
+    receipts: { count: number; totalAmount: string; tdsAmount: string; cnAmount: string };
+    customers: { total: number; active: number };
+    debtors: { count: number; totalOutstanding: string };
+  };
+  topCustomers: {
+    byRevenue: Array<{
+      id: string;
+      name: string;
+      category: string;
+      revenue: string;
+      outstanding: string;
+      transactionCount: number;
+    }>;
+    byOutstanding: Array<{
+      id: string;
+      name: string;
+      category: string;
+      revenue: string;
+      outstanding: string;
+      transactionCount: number;
+    }>;
+  };
+  recentActivity: {
+    invoices: Array<{
+      id: string;
+      invoiceNumber: string;
+      customerName: string;
+      amount: string;
+      date: Date;
+      status: string;
+    }>;
+    receipts: Array<{
+      id: string;
+      voucherNumber: string;
+      customerName: string;
+      amount: string;
+      date: Date;
+      voucherType: string;
+    }>;
+    overdueInvoices: Array<{
+      id: string;
+      invoiceNumber: string;
+      customerName: string;
+      amount: string;
+      date: Date;
+      daysOverdue: number;
+    }>;
+  };
+  charts: {
+    categoryOutstanding: Array<{
+      category: string;
+      amount: number;
+    }>;
+  };
 }
 
-interface CustomerAnalytics {
-  customer: {
-    id: string;
-    clientName: string;
-    category: string;
-    status: string;
-    primaryMobile: string;
-    primaryEmail: string;
-    createdAt: Date;
-  };
-  invoiceSummary: {
-    count: number;
-    totalAmount: string;
-    avgAmount: string;
-  };
-  receiptSummary: {
-    count: number;
-    totalAmount: string;
-    lastPaymentDate: Date | null;
-    tdsAmount: string;
-    cnAmount: string;
-  };
-  categoryInfo: {
-    category: string;
-    totalDebtorAmount: string;
-    categoryOpeningBalance: string;
-    customerOpeningBalance: string;
-  };
-  debtorAmount: string;
-  interestAmount: string;
-  creditInfo: {
-    creditLimit: string;
-    utilizedCredit: string;
-    availableCredit: string;
-    utilizationPercentage: string;
-  };
-  status: {
-    isActive: boolean;
-    customerSince: Date;
-    totalTransactions: number;
-  };
-}
-
-const getCategoryColor = (category: string) => {
-  switch (category) {
-    case "Alpha":
-      return "bg-purple-500 text-white";
-    case "Beta":
-      return "bg-blue-500 text-white";
-    case "Gamma":
-      return "bg-green-500 text-white";
-    case "Delta":
-      return "bg-orange-500 text-white";
-    default:
-      return "bg-gray-500 text-white";
-  }
-};
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function Home() {
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Fetch all customers for dropdown
-  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<MasterCustomer[]>({
-    queryKey: ["/api/masters/customers"],
+  const { data: dashboardData, isLoading } = useQuery<BusinessOverviewData>({
+    queryKey: ['/api/dashboard/business-overview'],
   });
 
-  // Fetch customer analytics when a customer is selected
-  const { data: analytics, isLoading: isLoadingAnalytics } = useQuery<CustomerAnalytics>({
-    queryKey: [`/api/customers/${selectedCustomerId}/dashboard-analytics`],
-    enabled: !!selectedCustomerId,
-  });
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
-  // Filter customers based on search
-  const filteredCustomers = customers.filter((customer) =>
-    customer.clientName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  if (!dashboardData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-500">No data available</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 shadow-sm">
-        <div className="w-full px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Customer Dashboard</h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                View complete customer analytics and insights
-              </p>
-            </div>
-          </div>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Business Overview</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Complete view of your business operations</p>
         </div>
-      </header>
-
-      <div className="w-full px-6 lg:px-8 py-8">
-        {/* Customer Search Section */}
-        <div className="mb-8">
-          <Card className="border-2 border-dashed border-gray-300 dark:border-gray-600">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5" />
-                Select Customer
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                    Search Customer
-                  </label>
-                  <Input
-                    placeholder="Type customer name..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full"
-                    data-testid="input-customer-search"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                    Select from dropdown
-                  </label>
-                  <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                    <SelectTrigger className="w-full" data-testid="select-customer">
-                      <SelectValue placeholder="Choose a customer..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredCustomers.map((customer) => (
-                        <SelectItem
-                          key={customer.id}
-                          value={customer.id}
-                          data-testid={`customer-option-${customer.id}`}
-                        >
-                          {customer.clientName} ({customer.category})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Customer Analytics Cards */}
-        {selectedCustomerId && !isLoadingAnalytics && analytics && (
-          <>
-            {/* Customer Info Header */}
-            <div className="mb-6">
-              <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-white/20 p-4 rounded-full">
-                        <User className="h-8 w-8" />
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold">{analytics.customer.clientName}</h2>
-                        <div className="flex items-center gap-3 mt-2">
-                          <Badge className={getCategoryColor(analytics.customer.category)}>
-                            {analytics.customer.category}
-                          </Badge>
-                          <Badge variant={analytics.status.isActive ? "default" : "destructive"}>
-                            {analytics.customer.status}
-                          </Badge>
-                          <span className="text-sm text-white/80">
-                            Customer since {format(new Date(analytics.status.customerSince), "MMM yyyy")}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="secondary" size="sm" data-testid="button-email-customer">
-                        <Mail className="h-4 w-4 mr-2" />
-                        Email
-                      </Button>
-                      <Button variant="secondary" size="sm" data-testid="button-whatsapp-customer">
-                        <MessageCircle className="h-4 w-4 mr-2" />
-                        WhatsApp
-                      </Button>
-                      <Button variant="secondary" size="sm" data-testid="button-call-customer">
-                        <Phone className="h-4 w-4 mr-2" />
-                        Call
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Customer Debtor Amount - Prominent Card */}
-            <div className="mb-6">
-              <Card className="bg-gradient-to-r from-red-600 to-pink-600 text-white shadow-xl" data-testid="card-customer-debtor">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-white/80 mb-2">Customer Outstanding Amount</p>
-                      <h3 className="text-5xl font-bold tracking-tight">
-                        ₹{parseFloat(analytics.debtorAmount).toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </h3>
-                      <p className="text-sm text-white/70 mt-2">Total amount to collect</p>
-                    </div>
-                    <div className="bg-white/20 p-5 rounded-full">
-                      <TrendingDown className="h-12 w-12" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Analytics Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {/* Invoice Summary Card */}
-              <Card className="border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-invoice-summary">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    Invoice Summary
-                  </CardTitle>
-                  <Receipt className="h-6 w-6 text-blue-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                        {analytics.invoiceSummary.count}
-                      </span>
-                      <span className="text-base text-gray-500 font-medium">invoices</span>
-                    </div>
-                    <div className="text-xl font-bold text-blue-600">
-                      ₹{parseFloat(analytics.invoiceSummary.totalAmount).toLocaleString("en-IN", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </div>
-                    <p className="text-sm text-gray-500 font-medium">
-                      Avg: ₹{parseFloat(analytics.invoiceSummary.avgAmount).toLocaleString("en-IN", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Receipt Summary Card */}
-              <Card className="border-l-4 border-l-green-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-receipt-summary">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    Receipt Summary
-                  </CardTitle>
-                  <DollarSign className="h-6 w-6 text-green-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                        {analytics.receiptSummary.count}
-                      </span>
-                      <span className="text-base text-gray-500 font-medium">receipts</span>
-                    </div>
-                    <div className="text-xl font-bold text-green-600">
-                      ₹{parseFloat(analytics.receiptSummary.totalAmount).toLocaleString("en-IN", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200">
-                      <div>
-                        <p className="text-xs text-gray-600 font-medium">TDS:</p>
-                        <p className="text-sm font-bold text-blue-600">
-                          ₹{parseFloat(analytics.receiptSummary.tdsAmount).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-600 font-medium">Credit Note:</p>
-                        <p className="text-sm font-bold text-purple-600">
-                          ₹{parseFloat(analytics.receiptSummary.cnAmount).toLocaleString("en-IN", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    {analytics.receiptSummary.lastPaymentDate && (
-                      <p className="text-sm text-gray-500 font-medium">
-                        Last payment: {format(new Date(analytics.receiptSummary.lastPaymentDate), "dd MMM yyyy")}
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Category Card */}
-              <Card className="border-l-4 border-l-purple-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-category">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    {analytics.categoryInfo.category} Category
-                  </CardTitle>
-                  <Users className="h-6 w-6 text-purple-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-600 font-medium">Opening Balance</p>
-                    <div className="text-4xl font-bold text-purple-600">
-                      ₹{parseFloat(analytics.categoryInfo.customerOpeningBalance).toLocaleString("en-IN", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </div>
-                    <p className="text-sm text-gray-500 font-medium">Customer's opening balance</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Interest Amount Card */}
-              <Card className="border-l-4 border-l-orange-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-interest-amount">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    Interest Amount
-                  </CardTitle>
-                  <TrendingUp className="h-6 w-6 text-orange-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="text-4xl font-bold text-orange-600">
-                      ₹{parseFloat(analytics.interestAmount).toLocaleString("en-IN", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </div>
-                    <p className="text-sm text-gray-500 font-medium">Sum of net profit from invoices</p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Credit Limit Card */}
-              <Card className="border-l-4 border-l-red-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-credit-limit">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    Credit Management
-                  </CardTitle>
-                  <CreditCard className="h-6 w-6 text-red-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 font-medium">Credit Limit:</span>
-                      <span className="text-xl font-bold">
-                        ₹{parseFloat(analytics.creditInfo.creditLimit).toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 font-medium">Utilized:</span>
-                      <span className="text-xl font-bold text-red-600">
-                        ₹{parseFloat(analytics.creditInfo.utilizedCredit).toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 font-medium">Available:</span>
-                      <span className="text-xl font-bold text-green-600">
-                        ₹{parseFloat(analytics.creditInfo.availableCredit).toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center text-base">
-                        <span className="text-gray-600 font-medium">Utilization:</span>
-                        <span className="font-bold">{parseFloat(analytics.creditInfo.utilizationPercentage).toFixed(1)}%</span>
-                      </div>
-                      <Progress 
-                        value={parseFloat(analytics.creditInfo.utilizationPercentage)} 
-                        className="h-2"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Customer Status Card */}
-              <Card className="border-l-4 border-l-indigo-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-customer-status">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    Customer Status
-                  </CardTitle>
-                  <Activity className="h-6 w-6 text-indigo-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={analytics.status.isActive ? "default" : "destructive"} className="text-sm font-semibold">
-                        {analytics.status.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-5 w-5 text-gray-500" />
-                        <span className="text-gray-600 font-medium">
-                          Since: {format(new Date(analytics.status.customerSince), "dd MMM yyyy")}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <FileText className="h-5 w-5 text-gray-500" />
-                        <span className="text-gray-600 font-medium">
-                          Total Transactions: {analytics.status.totalTransactions}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Phone className="h-5 w-5 text-gray-500" />
-                        <span className="text-gray-600 font-medium">{analytics.customer.primaryMobile || "N/A"}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-5 w-5 text-gray-500" />
-                        <span className="text-gray-600 truncate font-medium">{analytics.customer.primaryEmail || "N/A"}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
-
-        {/* Empty State */}
-        {!selectedCustomerId && (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <Building2 className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Select a Customer
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400">
-                Choose a customer from the dropdown above to view their complete analytics
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {selectedCustomerId && isLoadingAnalytics && (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-4 text-muted-foreground">Loading customer analytics...</p>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Financial Snapshot Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-l-4 border-l-green-500" data-testid="card-total-revenue">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Revenue</CardTitle>
+            <TrendingUp className="h-5 w-5 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-600">
+              ₹{parseFloat(dashboardData.financialSnapshot.totalRevenue).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">From {dashboardData.moduleStats.invoices.count} invoices</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500" data-testid="card-total-collections">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Collections</CardTitle>
+            <DollarSign className="h-5 w-5 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-600">
+              ₹{parseFloat(dashboardData.financialSnapshot.totalCollections).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">From {dashboardData.moduleStats.receipts.count} receipts</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-500" data-testid="card-total-outstanding">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Outstanding</CardTitle>
+            <TrendingDown className="h-5 w-5 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-orange-600">
+              ₹{parseFloat(dashboardData.financialSnapshot.totalOutstanding).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">{dashboardData.moduleStats.debtors.count} debtors</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-purple-500" data-testid="card-collection-efficiency">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Collection Efficiency</CardTitle>
+            <Percent className="h-5 w-5 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-purple-600">
+              {parseFloat(dashboardData.financialSnapshot.collectionEfficiency).toFixed(1)}%
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Interest: ₹{parseFloat(dashboardData.financialSnapshot.totalInterest).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Module Statistics */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card data-testid="card-invoices-stat">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Invoices</CardTitle>
+            <FileText className="h-5 w-5 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardData.moduleStats.invoices.count}</div>
+            <p className="text-xs text-gray-500">₹{parseFloat(dashboardData.moduleStats.invoices.totalAmount).toLocaleString("en-IN")}</p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-receipts-stat">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Receipts</CardTitle>
+            <ReceiptIcon className="h-5 w-5 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardData.moduleStats.receipts.count}</div>
+            <p className="text-xs text-gray-500">₹{parseFloat(dashboardData.moduleStats.receipts.totalAmount).toLocaleString("en-IN")}</p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-customers-stat">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Customers</CardTitle>
+            <Users className="h-5 w-5 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardData.moduleStats.customers.active}</div>
+            <p className="text-xs text-gray-500">Active of {dashboardData.moduleStats.customers.total} total</p>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-debtors-stat">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Debtors</CardTitle>
+            <AlertCircle className="h-5 w-5 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{dashboardData.moduleStats.debtors.count}</div>
+            <p className="text-xs text-gray-500">₹{parseFloat(dashboardData.moduleStats.debtors.totalOutstanding).toLocaleString("en-IN")}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Category Outstanding Chart */}
+        <Card data-testid="card-category-chart">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Outstanding by Category
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {dashboardData.charts.categoryOutstanding.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={dashboardData.charts.categoryOutstanding}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ category, amount }) => `${category}: ₹${amount.toLocaleString("en-IN")}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="amount"
+                  >
+                    {dashboardData.charts.categoryOutstanding.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => `₹${value.toLocaleString("en-IN")}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-gray-500 text-center py-8">No outstanding amounts</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top 5 Customers by Revenue */}
+        <Card data-testid="card-top-customers-revenue">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Top 5 Customers by Revenue
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {dashboardData.topCustomers.byRevenue.length > 0 ? (
+                dashboardData.topCustomers.byRevenue.map((customer, index) => (
+                  <div key={customer.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg" data-testid={`top-customer-revenue-${customer.id}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{customer.name}</p>
+                        <p className="text-xs text-gray-500">{customer.category} • {customer.transactionCount} transactions</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-green-600">₹{parseFloat(customer.revenue).toLocaleString("en-IN")}</p>
+                      <p className="text-xs text-gray-500">Outstanding: ₹{parseFloat(customer.outstanding).toLocaleString("en-IN")}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">No revenue data available</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Top 5 by Outstanding and Recent Activity */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Top 5 Customers by Outstanding */}
+        <Card data-testid="card-top-customers-outstanding">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingDown className="h-5 w-5" />
+              Top 5 Customers by Outstanding
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {dashboardData.topCustomers.byOutstanding.length > 0 ? (
+                dashboardData.topCustomers.byOutstanding.map((customer, index) => (
+                  <div key={customer.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg" data-testid={`top-customer-outstanding-${customer.id}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{customer.name}</p>
+                        <p className="text-xs text-gray-500">{customer.category}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-orange-600">₹{parseFloat(customer.outstanding).toLocaleString("en-IN")}</p>
+                      <p className="text-xs text-gray-500">Revenue: ₹{parseFloat(customer.revenue).toLocaleString("en-IN")}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">No outstanding amounts</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Overdue Invoices Alert */}
+        <Card data-testid="card-overdue-invoices" className="border-l-4 border-l-red-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <AlertCircle className="h-5 w-5" />
+              Overdue Invoices
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {dashboardData.recentActivity.overdueInvoices.length > 0 ? (
+                dashboardData.recentActivity.overdueInvoices.map((invoice) => (
+                  <div key={invoice.id} className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 rounded" data-testid={`overdue-invoice-${invoice.id}`}>
+                    <div>
+                      <p className="font-medium text-sm">{invoice.invoiceNumber}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{invoice.customerName}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-red-600">₹{parseFloat(invoice.amount).toLocaleString("en-IN")}</p>
+                      <p className="text-xs text-red-500">{invoice.daysOverdue} days overdue</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">No overdue invoices</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Recent Invoices */}
+        <Card data-testid="card-recent-invoices">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Recent Invoices
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {dashboardData.recentActivity.invoices.length > 0 ? (
+                dashboardData.recentActivity.invoices.map((invoice) => (
+                  <div key={invoice.id} className="flex justify-between items-center p-2 border-b last:border-0" data-testid={`recent-invoice-${invoice.id}`}>
+                    <div>
+                      <p className="font-medium text-sm">{invoice.invoiceNumber}</p>
+                      <p className="text-xs text-gray-500">{invoice.customerName}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">₹{parseFloat(invoice.amount).toLocaleString("en-IN")}</p>
+                      <p className="text-xs text-gray-500">{new Date(invoice.date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">No recent invoices</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Receipts */}
+        <Card data-testid="card-recent-receipts">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ReceiptIcon className="h-5 w-5" />
+              Recent Receipts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {dashboardData.recentActivity.receipts.length > 0 ? (
+                dashboardData.recentActivity.receipts.map((receipt) => (
+                  <div key={receipt.id} className="flex justify-between items-center p-2 border-b last:border-0" data-testid={`recent-receipt-${receipt.id}`}>
+                    <div>
+                      <p className="font-medium text-sm">{receipt.voucherNumber}</p>
+                      <p className="text-xs text-gray-500">{receipt.customerName}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-600">₹{parseFloat(receipt.amount).toLocaleString("en-IN")}</p>
+                      <p className="text-xs text-gray-500">{receipt.voucherType} • {new Date(receipt.date).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">No recent receipts</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Link to Customer Analytics */}
+      <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+        <CardContent className="py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Need Customer-Specific Analytics?</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">View detailed analytics for individual customers</p>
+            </div>
+            <Link href="/customer-analytics">
+              <a className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium" data-testid="link-customer-analytics">
+                View Customer Analytics
+              </a>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
