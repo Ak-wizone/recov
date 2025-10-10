@@ -215,6 +215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: customer.category,
           totalDebtorAmount: categoryDebtorAmount.toFixed(2),
           categoryOpeningBalance: categoryOpeningBalance.toFixed(2),
+          customerOpeningBalance: openingBalance.toFixed(2),
         },
         debtorAmount: customerDebtorAmount.toFixed(2),
         interestAmount: totalInterestAmount.toFixed(2),

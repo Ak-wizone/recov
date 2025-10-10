@@ -60,6 +60,7 @@ interface CustomerAnalytics {
     category: string;
     totalDebtorAmount: string;
     categoryOpeningBalance: string;
+    customerOpeningBalance: string;
   };
   debtorAmount: string;
   interestAmount: string;
@@ -343,12 +344,12 @@ export default function Home() {
                   <div className="space-y-2">
                     <p className="text-sm text-gray-600 font-medium">Opening Balance</p>
                     <div className="text-4xl font-bold text-purple-600">
-                      ₹{parseFloat(analytics.categoryInfo.categoryOpeningBalance).toLocaleString("en-IN", {
+                      ₹{parseFloat(analytics.categoryInfo.customerOpeningBalance).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
                     </div>
-                    <p className="text-sm text-gray-500 font-medium">Total opening balance in this category</p>
+                    <p className="text-sm text-gray-500 font-medium">Customer's opening balance</p>
                   </div>
                 </CardContent>
               </Card>
