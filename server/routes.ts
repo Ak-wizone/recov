@@ -152,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const invoice of customerInvoices) {
         const interestRate = parseFloat(invoice.interestRate || "0");
         const invoiceAmt = parseFloat(invoice.invoiceAmount);
-        const paymentTerms = parseInt(invoice.paymentTerms || "0");
+        const paymentTerms = parseInt(String(invoice.paymentTerms || "0"));
         
         console.log(`[Invoice] #${invoice.invoiceNumber}: Rate=${interestRate}%, Amount=${invoiceAmt}, PaymentTerms=${paymentTerms} days, ApplicableFrom=${invoice.interestApplicableFrom}`);
         
