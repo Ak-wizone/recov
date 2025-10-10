@@ -237,23 +237,18 @@ export default function Home() {
           <CardContent>
             {dashboardData.charts.categoryOutstanding.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={dashboardData.charts.categoryOutstanding}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ category, amount }) => `${category}: ₹${amount.toLocaleString("en-IN")}`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="amount"
-                  >
+                <BarChart data={dashboardData.charts.categoryOutstanding}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="category" />
+                  <YAxis tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`} />
+                  <Tooltip formatter={(value: number) => `₹${value.toLocaleString("en-IN")}`} />
+                  <Legend />
+                  <Bar dataKey="amount" fill="#8884d8" name="Outstanding Amount">
                     {dashboardData.charts.categoryOutstanding.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => `₹${value.toLocaleString("en-IN")}`} />
-                </PieChart>
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
             ) : (
               <p className="text-gray-500 text-center py-8">No outstanding amounts</p>
