@@ -152,18 +152,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const invoice of customerInvoices) {
         const interestRate = parseFloat(invoice.interestRate || "0");
         const invoiceAmt = parseFloat(invoice.invoiceAmount);
+        const paymentTerms = parseInt(invoice.paymentTerms || "0");
         
-        console.log(`[Invoice] #${invoice.invoiceNumber}: Rate=${interestRate}%, Amount=${invoiceAmt}, ApplicableFrom=${invoice.interestApplicableFrom}`);
+        console.log(`[Invoice] #${invoice.invoiceNumber}: Rate=${interestRate}%, Amount=${invoiceAmt}, PaymentTerms=${paymentTerms} days, ApplicableFrom=${invoice.interestApplicableFrom}`);
         
         if (interestRate > 0 && invoice.interestApplicableFrom) {
-          const applicableDate = new Date(invoice.interestApplicableFrom);
-          const diffTime = today.getTime() - applicableDate.getTime();
-          const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          let applicableDate: Date | null = null;
+          
+          // If "Due Date", calculate from invoice date + payment terms
+          if (invoice.interestApplicableFrom.toLowerCase() === 'due date') {
+            applicableDate = new Date(invoice.invoiceDate);
+            applicableDate.setDate(applicableDate.getDate() + paymentTerms);
+          } else {
+            // Try to parse as actual date
+            applicableDate = new Date(invoice.interestApplicableFrom);
+          }
+          
+          // Check if date is valid
+          if (applicableDate && !isNaN(applicableDate.getTime())) {
+            const diffTime = today.getTime() - applicableDate.getTime();
+            const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-          if (daysOverdue > 0) {
-            const interestAmount = (invoiceAmt * interestRate * daysOverdue) / (100 * 365);
-            totalInterestAmount += interestAmount;
-            console.log(`[Interest] Days Overdue: ${daysOverdue}, Interest Amount: ${interestAmount.toFixed(2)}`);
+            if (daysOverdue > 0) {
+              const interestAmount = (invoiceAmt * interestRate * daysOverdue) / (100 * 365);
+              totalInterestAmount += interestAmount;
+              console.log(`[Interest] Due Date: ${applicableDate.toISOString().split('T')[0]}, Days Overdue: ${daysOverdue}, Interest Amount: ${interestAmount.toFixed(2)}`);
+            } else {
+              console.log(`[Interest] Not yet overdue. Due Date: ${applicableDate.toISOString().split('T')[0]}, Days until due: ${Math.abs(daysOverdue)}`);
+            }
+          } else {
+            console.log(`[Interest] Invalid applicable date for invoice ${invoice.invoiceNumber}`);
           }
         }
       }
