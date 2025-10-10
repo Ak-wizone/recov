@@ -318,26 +318,15 @@ export default function Home() {
                   <Users className="h-6 w-6 text-purple-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium mb-1">Opening Balance</p>
-                      <div className="text-2xl font-bold text-indigo-600">
-                        ₹{parseFloat(analytics.categoryInfo.categoryOpeningBalance).toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-600 font-medium">Opening Balance</p>
+                    <div className="text-4xl font-bold text-purple-600">
+                      ₹{parseFloat(analytics.categoryInfo.categoryOpeningBalance).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600 font-medium mb-1">Debtor Amount</p>
-                      <div className="text-2xl font-bold text-purple-600">
-                        ₹{parseFloat(analytics.categoryInfo.totalDebtorAmount).toLocaleString("en-IN", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-500 font-medium">Total outstanding in this category</p>
+                    <p className="text-sm text-gray-500 font-medium">Total opening balance in this category</p>
                   </div>
                 </CardContent>
               </Card>

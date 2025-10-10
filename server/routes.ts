@@ -137,24 +137,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const receiptCount = customerReceipts.length;
       const receiptAmount = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
 
-      // Calculate interest amount based on interest rate and overdue days
+      // Calculate interest amount for each invoice (sum of interest amounts)
       let totalInterestAmount = 0;
       const today = new Date();
       
       for (const invoice of customerInvoices) {
-        if (invoice.status === "Unpaid" || invoice.status === "Partial") {
-          const interestRate = parseFloat(invoice.interestRate || "0");
-          const invoiceAmt = parseFloat(invoice.invoiceAmount);
-          
-          if (interestRate > 0 && invoice.interestApplicableFrom) {
-            const applicableDate = new Date(invoice.interestApplicableFrom);
-            const diffTime = today.getTime() - applicableDate.getTime();
-            const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const interestRate = parseFloat(invoice.interestRate || "0");
+        const invoiceAmt = parseFloat(invoice.invoiceAmount);
+        
+        if (interestRate > 0 && invoice.interestApplicableFrom) {
+          const applicableDate = new Date(invoice.interestApplicableFrom);
+          const diffTime = today.getTime() - applicableDate.getTime();
+          const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            if (daysOverdue > 0) {
-              const interestAmount = (invoiceAmt * interestRate * daysOverdue) / (100 * 365);
-              totalInterestAmount += interestAmount;
-            }
+          if (daysOverdue > 0) {
+            const interestAmount = (invoiceAmt * interestRate * daysOverdue) / (100 * 365);
+            totalInterestAmount += interestAmount;
           }
         }
       }
