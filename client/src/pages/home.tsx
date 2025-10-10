@@ -53,6 +53,8 @@ interface CustomerAnalytics {
     count: number;
     totalAmount: string;
     lastPaymentDate: Date | null;
+    tdsAmount: string;
+    cnAmount: string;
   };
   categoryInfo: {
     category: string;
@@ -287,7 +289,7 @@ export default function Home() {
                   <DollarSign className="h-6 w-6 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="flex items-baseline gap-2">
                       <span className="text-4xl font-bold text-gray-900 dark:text-white">
                         {analytics.receiptSummary.count}
@@ -299,6 +301,26 @@ export default function Home() {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200">
+                      <div>
+                        <p className="text-xs text-gray-600 font-medium">TDS:</p>
+                        <p className="text-sm font-bold text-blue-600">
+                          ₹{parseFloat(analytics.receiptSummary.tdsAmount).toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-600 font-medium">Credit Note:</p>
+                        <p className="text-sm font-bold text-purple-600">
+                          ₹{parseFloat(analytics.receiptSummary.cnAmount).toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </div>
                     </div>
                     {analytics.receiptSummary.lastPaymentDate && (
                       <p className="text-sm text-gray-500 font-medium">

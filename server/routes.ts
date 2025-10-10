@@ -136,6 +136,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate receipt summary
       const receiptCount = customerReceipts.length;
       const receiptAmount = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+      
+      // Calculate TDS and Credit Note amounts
+      const tdsReceipts = customerReceipts.filter(rec => rec.voucherType === 'TDS');
+      const cnReceipts = customerReceipts.filter(rec => rec.voucherType === 'CN');
+      const tdsAmount = tdsReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+      const cnAmount = cnReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
 
       // Calculate interest amount for each invoice (sum of interest amounts)
       let totalInterestAmount = 0;
@@ -202,6 +208,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           count: receiptCount,
           totalAmount: receiptAmount.toFixed(2),
           lastPaymentDate: customerReceipts.length > 0 ? customerReceipts[0].date : null,
+          tdsAmount: tdsAmount.toFixed(2),
+          cnAmount: cnAmount.toFixed(2),
         },
         categoryInfo: {
           category: customer.category,
