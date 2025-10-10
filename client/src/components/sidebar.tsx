@@ -22,6 +22,10 @@ import {
   Wallet,
   BookOpen,
   BarChart3,
+  Activity,
+  Gauge,
+  TrendingDown,
+  Heart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -106,6 +110,28 @@ const navItems: NavItem[] = [
         name: "Items",
         path: "/masters/items",
         icon: <Package className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    name: "Risk Management",
+    path: "#",
+    icon: <Activity className="h-5 w-5" />,
+    subItems: [
+      {
+        name: "Client Risk Thermometer",
+        path: "/risk/client-thermometer",
+        icon: <Gauge className="h-4 w-4" />,
+      },
+      {
+        name: "Payment Risk Forecaster",
+        path: "/risk/payment-forecaster",
+        icon: <TrendingDown className="h-4 w-4" />,
+      },
+      {
+        name: "Recovery Health Test",
+        path: "/risk/recovery-health",
+        icon: <Heart className="h-4 w-4" />,
       },
     ],
   },
