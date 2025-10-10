@@ -739,7 +739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       allInvoices.forEach((invoice) => {
         const invoiceAge = Math.floor((today.getTime() - new Date(invoice.invoiceDate).getTime()) / (1000 * 60 * 60 * 24));
-        let bucket = '90+';
+        let bucket: '0-30' | '31-60' | '61-90' | '90+' = '90+';
         if (invoiceAge <= 30) bucket = '0-30';
         else if (invoiceAge <= 60) bucket = '31-60';
         else if (invoiceAge <= 90) bucket = '61-90';

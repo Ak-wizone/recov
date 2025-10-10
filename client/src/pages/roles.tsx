@@ -92,6 +92,18 @@ const MODULES_WITH_PERMISSIONS = [
     operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
   },
   {
+    module: "Risk Management - Client Risk Thermometer",
+    operations: ["View"]
+  },
+  {
+    module: "Risk Management - Payment Risk Forecaster",
+    operations: ["View"]
+  },
+  {
+    module: "Risk Management - Recovery Health Test",
+    operations: ["View"]
+  },
+  {
     module: "Company Settings",
     operations: ["View", "Edit"]
   },

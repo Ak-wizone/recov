@@ -31,6 +31,9 @@ import RinggConfig from "@/pages/ringg-config";
 import RinggScriptMappings from "@/pages/ringg-script-mappings";
 import RinggCallHistory from "@/pages/ringg-call-history";
 import CommunicationSchedules from "@/pages/communication-schedules";
+import ClientRiskThermometer from "@/pages/client-risk-thermometer";
+import PaymentRiskForecaster from "@/pages/payment-risk-forecaster";
+import RecoveryHealthTest from "@/pages/recovery-health-test";
 
 function Router() {
   return (
@@ -57,6 +60,9 @@ function Router() {
               <Route path="/ledger" component={Ledger} />
               <Route path="/masters/customers" component={MasterCustomers} />
               <Route path="/masters/items" component={MasterItems} />
+              <Route path="/risk/client-thermometer" component={ClientRiskThermometer} />
+              <Route path="/risk/payment-forecaster" component={PaymentRiskForecaster} />
+              <Route path="/risk/recovery-health" component={RecoveryHealthTest} />
               <Route path="/company-settings" component={CompanySettings} />
               <Route path="/email-config" component={EmailConfig} />
               <Route path="/email-templates" component={EmailTemplates} />
