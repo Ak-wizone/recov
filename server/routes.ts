@@ -107,100 +107,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dashboard statistics
-  app.get("/api/dashboard/stats", async (_req, res) => {
+  // Customer Dashboard Analytics
+  app.get("/api/customers/:id/dashboard-analytics", async (req, res) => {
     try {
-      const [
-        leads,
-        quotations,
-        proformaInvoices,
-        invoices,
-        receipts,
-        customers,
-        masterCustomers,
-        masterItems,
-        users,
-        roles
-      ] = await Promise.all([
-        storage.getLeads(),
-        storage.getQuotations(),
-        storage.getProformaInvoices(),
+      const customerId = req.params.id;
+      
+      // Get customer details
+      const customer = await storage.getMasterCustomer(customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      // Get all invoices, receipts, and master customers for calculations
+      const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
         storage.getInvoices(),
         storage.getReceipts(),
-        storage.getCustomers(),
-        storage.getMasterCustomers(),
-        storage.getMasterItems(),
-        storage.getUsers(),
-        storage.getRoles()
+        storage.getMasterCustomers()
       ]);
 
-      // Calculate totals
-      const totalInvoiceAmount = invoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
-      const totalReceiptAmount = receipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
-      const totalDebtorAmount = customers.reduce((sum, cust) => sum + parseFloat(cust.amountOwed), 0);
-      const totalQuotationAmount = quotations.reduce((sum, quot) => sum + parseFloat(quot.grandTotal), 0);
+      // Filter customer's invoices and receipts
+      const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+      const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
 
-      // Get today's data
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      // Calculate invoice summary
+      const invoiceCount = customerInvoices.length;
+      const invoiceAmount = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
 
-      const todayLeads = leads.filter(l => {
-        const createdAt = new Date(l.createdAt);
-        return createdAt >= today && createdAt < tomorrow;
-      }).length;
+      // Calculate receipt summary
+      const receiptCount = customerReceipts.length;
+      const receiptAmount = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
 
-      const todayQuotations = quotations.filter(q => {
-        const createdAt = new Date(q.createdAt);
-        return createdAt >= today && createdAt < tomorrow;
-      }).length;
+      // Calculate interest amount (sum of net profit from invoices)
+      const interestAmount = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.netProfit), 0);
 
-      const todayInvoices = invoices.filter(i => {
-        const createdAt = new Date(i.createdAt);
-        return createdAt >= today && createdAt < tomorrow;
-      }).length;
+      // Calculate debtor amount for customer's category
+      const categoryCustomers = allMasterCustomers.filter(c => c.category === customer.category);
+      const categoryDebtorAmount = categoryCustomers.reduce((sum, c) => {
+        const custInvoices = allInvoices.filter(inv => inv.customerName === c.clientName);
+        const custReceipts = allReceipts.filter(rec => rec.customerName === c.clientName);
+        const custInvoiceTotal = custInvoices.reduce((s, inv) => s + parseFloat(inv.invoiceAmount), 0);
+        const custReceiptTotal = custReceipts.reduce((s, rec) => s + parseFloat(rec.amount), 0);
+        const openingBalance = parseFloat(c.openingBalance || "0");
+        return sum + (openingBalance + custInvoiceTotal - custReceiptTotal);
+      }, 0);
 
-      const todayReceipts = receipts.filter(r => {
-        const createdAt = new Date(r.createdAt);
-        return createdAt >= today && createdAt < tomorrow;
-      }).length;
-
-      // Recent activity (last 5 items)
-      const recentLeads = leads.slice(0, 5);
-      const recentQuotations = quotations.slice(0, 5);
-      const recentInvoices = invoices.slice(0, 5);
+      // Calculate credit details
+      const creditLimit = parseFloat(customer.creditLimit || "0");
+      const utilizedCredit = invoiceAmount - receiptAmount;
+      const availableCredit = creditLimit - utilizedCredit;
+      const utilizationPercentage = creditLimit > 0 ? (utilizedCredit / creditLimit) * 100 : 0;
 
       res.json({
-        totals: {
-          leads: leads.length,
-          quotations: quotations.length,
-          proformaInvoices: proformaInvoices.length,
-          invoices: invoices.length,
-          receipts: receipts.length,
-          customers: masterCustomers.length,
-          items: masterItems.length,
-          users: users.length,
-          roles: roles.length,
-          debtors: customers.length,
+        customer: {
+          id: customer.id,
+          clientName: customer.clientName,
+          category: customer.category,
+          status: customer.status,
+          primaryMobile: customer.primaryMobile,
+          primaryEmail: customer.primaryEmail,
+          createdAt: customer.createdAt,
         },
-        amounts: {
-          totalInvoices: totalInvoiceAmount,
-          totalReceipts: totalReceiptAmount,
-          totalDebtors: totalDebtorAmount,
-          totalQuotations: totalQuotationAmount,
-          outstandingBalance: totalInvoiceAmount - totalReceiptAmount,
+        invoiceSummary: {
+          count: invoiceCount,
+          totalAmount: invoiceAmount.toFixed(2),
+          avgAmount: invoiceCount > 0 ? (invoiceAmount / invoiceCount).toFixed(2) : "0.00",
         },
-        today: {
-          leads: todayLeads,
-          quotations: todayQuotations,
-          invoices: todayInvoices,
-          receipts: todayReceipts,
+        receiptSummary: {
+          count: receiptCount,
+          totalAmount: receiptAmount.toFixed(2),
+          lastPaymentDate: customerReceipts.length > 0 ? customerReceipts[0].date : null,
         },
-        recent: {
-          leads: recentLeads,
-          quotations: recentQuotations,
-          invoices: recentInvoices,
+        categoryInfo: {
+          category: customer.category,
+          totalDebtorAmount: categoryDebtorAmount.toFixed(2),
+        },
+        interestAmount: interestAmount.toFixed(2),
+        creditInfo: {
+          creditLimit: creditLimit.toFixed(2),
+          utilizedCredit: utilizedCredit.toFixed(2),
+          availableCredit: availableCredit.toFixed(2),
+          utilizationPercentage: utilizationPercentage.toFixed(2),
+        },
+        status: {
+          isActive: customer.status === "Active",
+          customerSince: customer.createdAt,
+          totalTransactions: invoiceCount + receiptCount,
         },
       });
     } catch (error: any) {
