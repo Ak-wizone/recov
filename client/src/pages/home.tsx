@@ -58,6 +58,7 @@ interface CustomerAnalytics {
     category: string;
     totalDebtorAmount: string;
   };
+  debtorAmount: string;
   interestAmount: string;
   creditInfo: {
     creditLimit: string;
@@ -219,31 +220,54 @@ export default function Home() {
               </Card>
             </div>
 
+            {/* Customer Debtor Amount - Prominent Card */}
+            <div className="mb-6">
+              <Card className="bg-gradient-to-r from-red-600 to-pink-600 text-white shadow-xl" data-testid="card-customer-debtor">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-white/80 mb-2">Customer Outstanding Amount</p>
+                      <h3 className="text-5xl font-bold tracking-tight">
+                        ₹{parseFloat(analytics.debtorAmount).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </h3>
+                      <p className="text-sm text-white/70 mt-2">Total amount to collect</p>
+                    </div>
+                    <div className="bg-white/20 p-5 rounded-full">
+                      <TrendingDown className="h-12 w-12" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Analytics Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {/* Invoice Summary Card */}
-              <Card className="border-l-4 border-l-blue-500" data-testid="card-invoice-summary">
+              <Card className="border-l-4 border-l-blue-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-invoice-summary">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
                     Invoice Summary
                   </CardTitle>
-                  <Receipt className="h-5 w-5 text-blue-500" />
+                  <Receipt className="h-6 w-6 text-blue-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                      <span className="text-4xl font-bold text-gray-900 dark:text-white">
                         {analytics.invoiceSummary.count}
                       </span>
-                      <span className="text-sm text-gray-500">invoices</span>
+                      <span className="text-base text-gray-500 font-medium">invoices</span>
                     </div>
-                    <div className="text-lg font-semibold text-blue-600">
+                    <div className="text-xl font-bold text-blue-600">
                       ₹{parseFloat(analytics.invoiceSummary.totalAmount).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm text-gray-500 font-medium">
                       Avg: ₹{parseFloat(analytics.invoiceSummary.avgAmount).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
@@ -254,29 +278,29 @@ export default function Home() {
               </Card>
 
               {/* Receipt Summary Card */}
-              <Card className="border-l-4 border-l-green-500" data-testid="card-receipt-summary">
+              <Card className="border-l-4 border-l-green-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-receipt-summary">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
                     Receipt Summary
                   </CardTitle>
-                  <DollarSign className="h-5 w-5 text-green-500" />
+                  <DollarSign className="h-6 w-6 text-green-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                      <span className="text-4xl font-bold text-gray-900 dark:text-white">
                         {analytics.receiptSummary.count}
                       </span>
-                      <span className="text-sm text-gray-500">receipts</span>
+                      <span className="text-base text-gray-500 font-medium">receipts</span>
                     </div>
-                    <div className="text-lg font-semibold text-green-600">
+                    <div className="text-xl font-bold text-green-600">
                       ₹{parseFloat(analytics.receiptSummary.totalAmount).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
                     </div>
                     {analytics.receiptSummary.lastPaymentDate && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm text-gray-500 font-medium">
                         Last payment: {format(new Date(analytics.receiptSummary.lastPaymentDate), "dd MMM yyyy")}
                       </p>
                     )}
@@ -285,63 +309,63 @@ export default function Home() {
               </Card>
 
               {/* Category Debtor Card */}
-              <Card className="border-l-4 border-l-purple-500" data-testid="card-category-debtor">
+              <Card className="border-l-4 border-l-purple-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-category-debtor">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
                     Category Debtor Amount
                   </CardTitle>
-                  <Users className="h-5 w-5 text-purple-500" />
+                  <Users className="h-6 w-6 text-purple-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <Badge className={getCategoryColor(analytics.categoryInfo.category)}>
+                    <Badge className={`${getCategoryColor(analytics.categoryInfo.category)} text-sm font-semibold`}>
                       {analytics.categoryInfo.category} Category
                     </Badge>
-                    <div className="text-3xl font-bold text-purple-600">
+                    <div className="text-4xl font-bold text-purple-600">
                       ₹{parseFloat(analytics.categoryInfo.totalDebtorAmount).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
                     </div>
-                    <p className="text-xs text-gray-500">Total outstanding in this category</p>
+                    <p className="text-sm text-gray-500 font-medium">Total outstanding in this category</p>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Interest Amount Card */}
-              <Card className="border-l-4 border-l-orange-500" data-testid="card-interest-amount">
+              <Card className="border-l-4 border-l-orange-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-interest-amount">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
                     Interest Amount
                   </CardTitle>
-                  <TrendingUp className="h-5 w-5 text-orange-500" />
+                  <TrendingUp className="h-6 w-6 text-orange-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <div className="text-3xl font-bold text-orange-600">
+                    <div className="text-4xl font-bold text-orange-600">
                       ₹{parseFloat(analytics.interestAmount).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
                     </div>
-                    <p className="text-xs text-gray-500">Sum of net profit from invoices</p>
+                    <p className="text-sm text-gray-500 font-medium">Sum of net profit from invoices</p>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Credit Limit Card */}
-              <Card className="border-l-4 border-l-red-500" data-testid="card-credit-limit">
+              <Card className="border-l-4 border-l-red-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-credit-limit">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
                     Credit Management
                   </CardTitle>
-                  <CreditCard className="h-5 w-5 text-red-500" />
+                  <CreditCard className="h-6 w-6 text-red-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Credit Limit:</span>
-                      <span className="text-lg font-semibold">
+                      <span className="text-sm text-gray-600 font-medium">Credit Limit:</span>
+                      <span className="text-xl font-bold">
                         ₹{parseFloat(analytics.creditInfo.creditLimit).toLocaleString("en-IN", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -349,8 +373,8 @@ export default function Home() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Utilized:</span>
-                      <span className="text-lg font-semibold text-red-600">
+                      <span className="text-sm text-gray-600 font-medium">Utilized:</span>
+                      <span className="text-xl font-bold text-red-600">
                         ₹{parseFloat(analytics.creditInfo.utilizedCredit).toLocaleString("en-IN", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -358,8 +382,8 @@ export default function Home() {
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Available:</span>
-                      <span className="text-lg font-semibold text-green-600">
+                      <span className="text-sm text-gray-600 font-medium">Available:</span>
+                      <span className="text-xl font-bold text-green-600">
                         ₹{parseFloat(analytics.creditInfo.availableCredit).toLocaleString("en-IN", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -367,9 +391,9 @@ export default function Home() {
                       </span>
                     </div>
                     <div className="space-y-1">
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">Utilization:</span>
-                        <span className="font-semibold">{parseFloat(analytics.creditInfo.utilizationPercentage).toFixed(1)}%</span>
+                      <div className="flex justify-between items-center text-base">
+                        <span className="text-gray-600 font-medium">Utilization:</span>
+                        <span className="font-bold">{parseFloat(analytics.creditInfo.utilizationPercentage).toFixed(1)}%</span>
                       </div>
                       <Progress 
                         value={parseFloat(analytics.creditInfo.utilizationPercentage)} 
@@ -381,40 +405,40 @@ export default function Home() {
               </Card>
 
               {/* Customer Status Card */}
-              <Card className="border-l-4 border-l-indigo-500" data-testid="card-customer-status">
+              <Card className="border-l-4 border-l-indigo-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-customer-status">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
                     Customer Status
                   </CardTitle>
-                  <Activity className="h-5 w-5 text-indigo-500" />
+                  <Activity className="h-6 w-6 text-indigo-500" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Badge variant={analytics.status.isActive ? "default" : "destructive"}>
+                      <Badge variant={analytics.status.isActive ? "default" : "destructive"} className="text-sm font-semibold">
                         {analytics.status.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">
+                        <Calendar className="h-5 w-5 text-gray-500" />
+                        <span className="text-gray-600 font-medium">
                           Since: {format(new Date(analytics.status.customerSince), "dd MMM yyyy")}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        <FileText className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">
+                        <FileText className="h-5 w-5 text-gray-500" />
+                        <span className="text-gray-600 font-medium">
                           Total Transactions: {analytics.status.totalTransactions}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        <Phone className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">{analytics.customer.primaryMobile || "N/A"}</span>
+                        <Phone className="h-5 w-5 text-gray-500" />
+                        <span className="text-gray-600 font-medium">{analytics.customer.primaryMobile || "N/A"}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        <Mail className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600 truncate">{analytics.customer.primaryEmail || "N/A"}</span>
+                        <Mail className="h-5 w-5 text-gray-500" />
+                        <span className="text-gray-600 truncate font-medium">{analytics.customer.primaryEmail || "N/A"}</span>
                       </div>
                     </div>
                   </div>

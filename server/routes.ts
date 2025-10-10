@@ -151,11 +151,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return sum + (openingBalance + custInvoiceTotal - custReceiptTotal);
       }, 0);
 
-      // Calculate credit details
+      // Calculate credit details - include opening balance in utilized credit
+      const openingBalance = parseFloat(customer.openingBalance || "0");
       const creditLimit = parseFloat(customer.creditLimit || "0");
-      const utilizedCredit = invoiceAmount - receiptAmount;
+      const utilizedCredit = openingBalance + invoiceAmount - receiptAmount;
       const availableCredit = creditLimit - utilizedCredit;
       const utilizationPercentage = creditLimit > 0 ? (utilizedCredit / creditLimit) * 100 : 0;
+
+      // Calculate customer's debtor amount
+      const customerDebtorAmount = openingBalance + invoiceAmount - receiptAmount;
 
       res.json({
         customer: {
@@ -181,6 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           category: customer.category,
           totalDebtorAmount: categoryDebtorAmount.toFixed(2),
         },
+        debtorAmount: customerDebtorAmount.toFixed(2),
         interestAmount: interestAmount.toFixed(2),
         creditInfo: {
           creditLimit: creditLimit.toFixed(2),
