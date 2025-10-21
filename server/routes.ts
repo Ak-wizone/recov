@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { tenantMiddleware } from "./middleware";
+import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { ringgService } from "./ringg-service";
@@ -11,7 +11,7 @@ import * as XLSX from "xlsx";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -87,8 +87,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all registration requests (admin only)
+  app.get("/api/registration-requests", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const requests = await db
+        .select()
+        .from(registrationRequests)
+        .orderBy(desc(registrationRequests.createdAt));
+
+      res.json(requests);
+    } catch (error: any) {
+      console.error("Failed to fetch registration requests:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Approve registration request and create tenant with first admin user
-  app.post("/api/registration-requests/:requestId/approve", async (req, res) => {
+  app.post("/api/registration-requests/:requestId/approve", adminOnlyMiddleware, async (req, res) => {
     try {
       const { requestId } = req.params;
 

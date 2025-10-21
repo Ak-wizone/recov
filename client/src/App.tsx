@@ -35,6 +35,7 @@ import ClientRiskThermometer from "@/pages/client-risk-thermometer";
 import PaymentRiskForecaster from "@/pages/payment-risk-forecaster";
 import RecoveryHealthTest from "@/pages/recovery-health-test";
 import RegisterTenant from "@/pages/register-tenant";
+import TenantRegistrations from "@/pages/tenant-registrations";
 
 function Router() {
   return (
@@ -76,6 +77,7 @@ function Router() {
               <Route path="/communication-schedules" component={CommunicationSchedules} />
               <Route path="/settings/roles" component={Roles} />
               <Route path="/settings/users" component={Users} />
+              <Route path="/admin/tenant-registrations" component={TenantRegistrations} />
               <Route component={NotFound} />
             </Switch>
           </Layout>
