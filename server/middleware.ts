@@ -10,13 +10,14 @@ declare global {
 }
 
 // Public routes that don't require tenant context
+// Note: These paths are without /api prefix since middleware is mounted at /api
 const PUBLIC_ROUTES = [
-  '/api/register-tenant',
-  '/api/registration-status',
-  '/api/tenant-by-email',
-  '/api/auth/login',
-  '/api/auth/logout',
-  '/api/auth/me',
+  '/register-tenant',
+  '/registration-status',
+  '/tenant-by-email',
+  '/auth/login',
+  '/auth/logout',
+  '/auth/me',
 ];
 
 // Check if a route is public
@@ -43,7 +44,7 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
 
   // Platform admins (no tenantId) can access admin routes but need special handling
   // Regular users must have a tenantId
-  if (!tenantId && !req.path.startsWith('/api/admin') && !req.path.includes('registration-request')) {
+  if (!tenantId && !req.path.startsWith('/admin') && !req.path.includes('registration-request')) {
     return res.status(403).json({ message: "No tenant associated with your account" });
   }
 
