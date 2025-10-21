@@ -38,6 +38,16 @@ interface NavItem {
   subItems?: NavItem[];
 }
 
+// Platform Admin navigation items
+const platformAdminNavItems: NavItem[] = [
+  {
+    name: "Tenant Registrations",
+    path: "/tenant-registrations",
+    icon: <Building2 className="h-5 w-5" />,
+  },
+];
+
+// Tenant User navigation items
 const navItems: NavItem[] = [
   {
     name: "Business Overview",
@@ -173,6 +183,10 @@ export default function Sidebar() {
   const [location] = useLocation();
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const { user, logout } = useAuth();
+  
+  // Determine which navigation to show based on user type
+  const isPlatformAdmin = user && !user.tenantId;
+  const currentNavItems = isPlatformAdmin ? platformAdminNavItems : navItems;
 
   const toggleExpanded = (name: string) => {
     setExpandedItems((prev) => {
@@ -203,7 +217,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-        {navItems.map((item) => (
+        {currentNavItems.map((item) => (
           <div key={item.name} className="group">
             {item.subItems ? (
               <div>
@@ -284,7 +298,7 @@ export default function Sidebar() {
                 {user?.name || "User"}
               </p>
               <p className="text-xs text-slate-400 truncate" data-testid="text-user-role">
-                {user?.roleName || "No Role"}
+                {isPlatformAdmin ? "Platform Admin" : (user?.roleName || "No Role")}
               </p>
             </div>
           </div>

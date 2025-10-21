@@ -10,6 +10,7 @@ interface User {
   mobile: string | null;
   roleId: string | null;
   roleName: string | null;
+  tenantId: string | null;
   status: string;
 }
 
