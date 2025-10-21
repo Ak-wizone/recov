@@ -30,12 +30,12 @@ export interface IStorage {
   deleteCustomers(ids: string[]): Promise<number>;
   
   // Master Customer operations
-  getMasterCustomers(): Promise<MasterCustomer[]>;
-  getMasterCustomer(id: string): Promise<MasterCustomer | undefined>;
-  createMasterCustomer(customer: InsertMasterCustomer): Promise<MasterCustomer>;
-  updateMasterCustomer(id: string, customer: Partial<InsertMasterCustomer>): Promise<MasterCustomer | undefined>;
-  deleteMasterCustomer(id: string): Promise<boolean>;
-  deleteMasterCustomers(ids: string[]): Promise<number>;
+  getMasterCustomers(tenantId: string): Promise<MasterCustomer[]>;
+  getMasterCustomer(tenantId: string, id: string): Promise<MasterCustomer | undefined>;
+  createMasterCustomer(tenantId: string, customer: InsertMasterCustomer): Promise<MasterCustomer>;
+  updateMasterCustomer(tenantId: string, id: string, customer: Partial<InsertMasterCustomer>): Promise<MasterCustomer | undefined>;
+  deleteMasterCustomer(tenantId: string, id: string): Promise<boolean>;
+  deleteMasterCustomers(tenantId: string, ids: string[]): Promise<number>;
   
   // Master Items operations
   getMasterItems(): Promise<MasterItem[]>;
@@ -423,46 +423,46 @@ export class DatabaseStorage implements IStorage {
     return count;
   }
 
-  async getMasterCustomers(): Promise<MasterCustomer[]> {
-    return await db.select().from(masterCustomers);
+  async getMasterCustomers(tenantId: string): Promise<MasterCustomer[]> {
+    return await db.select().from(masterCustomers).where(eq(masterCustomers.tenantId, tenantId));
   }
 
-  async getMasterCustomer(id: string): Promise<MasterCustomer | undefined> {
-    const [customer] = await db.select().from(masterCustomers).where(eq(masterCustomers.id, id));
+  async getMasterCustomer(tenantId: string, id: string): Promise<MasterCustomer | undefined> {
+    const [customer] = await db.select().from(masterCustomers).where(and(eq(masterCustomers.tenantId, tenantId), eq(masterCustomers.id, id)));
     return customer || undefined;
   }
 
-  async createMasterCustomer(insertCustomer: InsertMasterCustomer): Promise<MasterCustomer> {
+  async createMasterCustomer(tenantId: string, insertCustomer: InsertMasterCustomer): Promise<MasterCustomer> {
     const [customer] = await db
       .insert(masterCustomers)
-      .values(insertCustomer)
+      .values({ ...insertCustomer, tenantId })
       .returning();
     return customer;
   }
 
-  async updateMasterCustomer(id: string, updates: Partial<InsertMasterCustomer>): Promise<MasterCustomer | undefined> {
+  async updateMasterCustomer(tenantId: string, id: string, updates: Partial<InsertMasterCustomer>): Promise<MasterCustomer | undefined> {
     const [customer] = await db
       .update(masterCustomers)
       .set(updates)
-      .where(eq(masterCustomers.id, id))
+      .where(and(eq(masterCustomers.tenantId, tenantId), eq(masterCustomers.id, id)))
       .returning();
     return customer || undefined;
   }
 
-  async deleteMasterCustomer(id: string): Promise<boolean> {
+  async deleteMasterCustomer(tenantId: string, id: string): Promise<boolean> {
     const result = await db
       .delete(masterCustomers)
-      .where(eq(masterCustomers.id, id))
+      .where(and(eq(masterCustomers.tenantId, tenantId), eq(masterCustomers.id, id)))
       .returning();
     return result.length > 0;
   }
 
-  async deleteMasterCustomers(ids: string[]): Promise<number> {
+  async deleteMasterCustomers(tenantId: string, ids: string[]): Promise<number> {
     if (ids.length === 0) return 0;
     
     let count = 0;
     for (const id of ids) {
-      const deleted = await this.deleteMasterCustomer(id);
+      const deleted = await this.deleteMasterCustomer(tenantId, id);
       if (deleted) count++;
     }
     return count;
