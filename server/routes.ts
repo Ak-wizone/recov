@@ -395,13 +395,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      // Store user in session
+      // Store user and tenantId in session
       (req.session as any).user = {
         id: user.id,
         name: user.name,
         email: user.email,
         roleId: user.roleId,
         roleName: user.roleName,
+        tenantId: user.tenantId,
       };
 
       // Save session before responding
