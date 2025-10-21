@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { ringgService } from "./ringg-service";
 import { fromZodError } from "zod-validation-error";
@@ -80,6 +80,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Status check error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get tenant/company name by email for login page
+  app.get("/api/tenant-by-email", async (req, res) => {
+    try {
+      const { email } = req.query;
+
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // First check if user exists
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user || !user.tenantId) {
+        return res.json({ found: false });
+      }
+
+      // Get tenant details
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, user.tenantId));
+
+      if (!tenant) {
+        return res.json({ found: false });
+      }
+
+      res.json({
+        found: true,
+        companyName: tenant.businessName,
+        tenantId: tenant.id,
+      });
+    } catch (error: any) {
+      console.error("Tenant lookup error:", error);
       res.status(500).json({ message: error.message });
     }
   });

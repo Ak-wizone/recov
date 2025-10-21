@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,6 +23,8 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [emailCheckTimeout, setEmailCheckTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -31,6 +33,49 @@ export default function Login() {
       password: "",
     },
   });
+
+  // Watch email field changes
+  const emailValue = form.watch("email");
+
+  // Lookup company name when email changes
+  useEffect(() => {
+    // Clear previous timeout
+    if (emailCheckTimeout) {
+      clearTimeout(emailCheckTimeout);
+    }
+
+    // Reset company name
+    setCompanyName(null);
+
+    // Only check if email looks valid
+    if (emailValue && emailValue.includes("@")) {
+      // Capture the current email for validation
+      const currentEmail = emailValue;
+      
+      const timeout = setTimeout(async () => {
+        try {
+          const response = await fetch(`/api/tenant-by-email?email=${encodeURIComponent(currentEmail)}`);
+          const data = await response.json();
+          
+          // Only update if this email is still the current one
+          if (form.getValues("email") === currentEmail && data.found && data.companyName) {
+            setCompanyName(data.companyName);
+          }
+        } catch (error) {
+          // Silently fail - just don't show company name
+          console.error("Company lookup error:", error);
+        }
+      }, 500); // Debounce for 500ms
+
+      setEmailCheckTimeout(timeout);
+    }
+
+    return () => {
+      if (emailCheckTimeout) {
+        clearTimeout(emailCheckTimeout);
+      }
+    };
+  }, [emailValue]);
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginForm) => {
@@ -83,6 +128,11 @@ export default function Login() {
                         />
                       </div>
                     </FormControl>
+                    {companyName && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1" data-testid="text-company-name">
+                        {companyName}
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
