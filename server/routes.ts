@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { ringgService } from "./ringg-service";
 import { fromZodError } from "zod-validation-error";
@@ -80,6 +80,190 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Status check error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Approve registration request and create tenant with first admin user
+  app.post("/api/registration-requests/:requestId/approve", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+
+      // Get the registration request
+      const [request] = await db
+        .select()
+        .from(registrationRequests)
+        .where(eq(registrationRequests.id, requestId));
+
+      if (!request) {
+        return res.status(404).json({ message: "Registration request not found" });
+      }
+
+      if (request.status !== "pending") {
+        return res.status(400).json({ message: "Registration request has already been processed" });
+      }
+
+      // Generate slug from business name
+      const slug = request.businessName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+      // Check for duplicate tenant email
+      const existingTenantByEmail = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.email, request.email))
+        .limit(1);
+
+      if (existingTenantByEmail.length > 0) {
+        return res.status(400).json({ 
+          message: "A tenant with this email already exists" 
+        });
+      }
+
+      // Check for duplicate tenant slug
+      const existingTenantBySlug = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.slug, slug))
+        .limit(1);
+
+      if (existingTenantBySlug.length > 0) {
+        return res.status(400).json({ 
+          message: "A tenant with this business name already exists" 
+        });
+      }
+
+      // Check for duplicate user email
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, request.email))
+        .limit(1);
+
+      if (existingUser.length > 0) {
+        return res.status(400).json({ 
+          message: "A user with this email already exists" 
+        });
+      }
+
+      // Create default password (company name without spaces)
+      const defaultPassword = request.businessName.replace(/\s+/g, "");
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+      // Use transaction to ensure atomicity
+      const result = await db.transaction(async (tx) => {
+        // Create tenant
+        const [tenant] = await tx
+          .insert(tenants)
+          .values({
+            slug,
+            businessName: request.businessName,
+            email: request.email,
+            businessAddress: request.businessAddress,
+            city: request.city,
+            state: request.state,
+            pincode: request.pincode,
+            panNumber: request.panNumber,
+            gstNumber: request.gstNumber,
+            industryType: request.industryType,
+            planType: request.planType,
+            existingAccountingSoftware: request.existingAccountingSoftware,
+            status: "active",
+            isActive: true,
+            activatedAt: new Date(),
+          })
+          .returning();
+
+        // Create Admin role for this tenant with full permissions
+        const [adminRole] = await tx
+          .insert(roles)
+          .values({
+            tenantId: tenant.id,
+            name: "Admin",
+            description: "Full system access",
+            permissions: [
+              "customers.view", "customers.create", "customers.edit", "customers.delete",
+              "invoices.view", "invoices.create", "invoices.edit", "invoices.delete",
+              "receipts.view", "receipts.create", "receipts.edit", "receipts.delete",
+              "leads.view", "leads.create", "leads.edit", "leads.delete",
+              "quotations.view", "quotations.create", "quotations.edit", "quotations.delete",
+              "users.view", "users.create", "users.edit", "users.delete",
+              "roles.view", "roles.create", "roles.edit", "roles.delete",
+              "settings.view", "settings.edit",
+            ],
+          })
+          .returning();
+
+        // Create first admin user
+        const [user] = await tx
+          .insert(users)
+          .values({
+            tenantId: tenant.id,
+            name: request.businessName + " Admin",
+            email: request.email,
+            password: hashedPassword,
+            roleId: adminRole.id,
+            status: "Active",
+          })
+          .returning();
+
+        // Update registration request
+        await tx
+          .update(registrationRequests)
+          .set({
+            status: "approved",
+            tenantId: tenant.id,
+            reviewedAt: new Date(),
+          })
+          .where(eq(registrationRequests.id, requestId));
+
+        return { tenant, user, adminRole };
+      });
+
+      res.json({
+        success: true,
+        tenant: result.tenant,
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          defaultPassword,
+        },
+        message: "Registration approved successfully",
+      });
+    } catch (error: any) {
+      console.error("Approval error:", error);
+      
+      // Handle specific database errors
+      if (error.code === '23505') { // Unique constraint violation
+        const constraintName = error.constraint || "";
+        
+        if (constraintName.includes("email")) {
+          if (constraintName.includes("users")) {
+            return res.status(400).json({ 
+              message: "A user with this email already exists" 
+            });
+          } else if (constraintName.includes("tenants")) {
+            return res.status(400).json({ 
+              message: "A tenant with this email already exists" 
+            });
+          }
+        } else if (constraintName.includes("slug")) {
+          return res.status(400).json({ 
+            message: "A tenant with this business name already exists" 
+          });
+        } else if (constraintName.includes("role")) {
+          return res.status(400).json({ 
+            message: "Role conflict detected. Please try again." 
+          });
+        }
+        
+        return res.status(400).json({ 
+          message: "A duplicate record exists. Please check your input." 
+        });
+      }
+      
       res.status(500).json({ message: error.message });
     }
   });

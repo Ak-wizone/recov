@@ -1023,11 +1023,13 @@ export type DebtorsFollowUp = typeof debtorsFollowUps.$inferSelect;
 export const roles = pgTable("roles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(),
   description: text("description"),
   permissions: text("permissions").array().notNull().default(sql`ARRAY[]::text[]`),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  uniqueRolePerTenant: sql`CONSTRAINT unique_role_per_tenant UNIQUE (tenant_id, name)`,
+}));
 
 export const insertRoleSchema = createInsertSchema(roles).pick({
   name: true,
