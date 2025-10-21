@@ -82,8 +82,14 @@ export default function Login() {
       const response = await apiRequest("POST", "/api/auth/login", data);
       return response;
     },
-    onSuccess: () => {
-      window.location.href = "/";
+    onSuccess: (userData: any) => {
+      // Platform admins (no tenantId) go to tenant registrations page
+      // Regular tenant users go to dashboard
+      if (!userData.tenantId) {
+        window.location.href = "/tenant-registrations";
+      } else {
+        window.location.href = "/";
+      }
     },
     onError: (error: Error) => {
       toast({
