@@ -40,7 +40,7 @@ import TenantRegistrations from "@/pages/tenant-registrations";
 function Router() {
   return (
     <Switch>
-      <Route path="/register" component={RegisterTenant} />
+      <Route path="/register-tenant" component={RegisterTenant} />
       <Route path="/login" component={Login} />
       <Route path="/quotations/:id/print">
         <ProtectedRoute>
@@ -77,7 +77,7 @@ function Router() {
               <Route path="/communication-schedules" component={CommunicationSchedules} />
               <Route path="/settings/roles" component={Roles} />
               <Route path="/settings/users" component={Users} />
-              <Route path="/admin/tenant-registrations" component={TenantRegistrations} />
+              <Route path="/tenant-registrations" component={TenantRegistrations} />
               <Route component={NotFound} />
             </Switch>
           </Layout>
