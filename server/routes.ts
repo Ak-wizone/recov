@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { ringgService } from "./ringg-service";
 import { fromZodError } from "zod-validation-error";
@@ -15,6 +15,75 @@ import { eq } from "drizzle-orm";
 const upload = multer({ storage: multer.memoryStorage() });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Public tenant registration endpoint
+  app.post("/api/register-tenant", upload.single("paymentReceipt"), async (req, res) => {
+    try {
+      const registrationData = {
+        ...req.body,
+      };
+
+      const result = insertRegistrationRequestSchema.safeParse(registrationData);
+      if (!result.success) {
+        const error = fromZodError(result.error);
+        return res.status(400).json({ message: error.message });
+      }
+
+      // Store file upload if provided
+      let paymentReceiptUrl = null;
+      if (req.file) {
+        // In production, upload to object storage
+        // For now, we'll store base64 encoded data
+        paymentReceiptUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      }
+
+      // Create registration request
+      const [request] = await db
+        .insert(registrationRequests)
+        .values({
+          ...result.data,
+          paymentReceiptUrl,
+        })
+        .returning();
+
+      res.json({
+        success: true,
+        requestId: request.id,
+        message: "Registration request submitted successfully",
+      });
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: error.message || "Registration failed" });
+    }
+  });
+
+  // Get registration status
+  app.get("/api/registration-status/:requestId", async (req, res) => {
+    try {
+      const { requestId } = req.params;
+
+      const [request] = await db
+        .select()
+        .from(registrationRequests)
+        .where(eq(registrationRequests.id, requestId));
+
+      if (!request) {
+        return res.status(404).json({ message: "Registration request not found" });
+      }
+
+      res.json({
+        status: request.status,
+        businessName: request.businessName,
+        email: request.email,
+        createdAt: request.createdAt,
+        reviewedAt: request.reviewedAt,
+        rejectionReason: request.rejectionReason,
+      });
+    } catch (error: any) {
+      console.error("Status check error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Authentication endpoints
   app.post("/api/auth/login", async (req, res) => {
     try {

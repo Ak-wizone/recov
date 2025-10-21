@@ -34,10 +34,12 @@ import CommunicationSchedules from "@/pages/communication-schedules";
 import ClientRiskThermometer from "@/pages/client-risk-thermometer";
 import PaymentRiskForecaster from "@/pages/payment-risk-forecaster";
 import RecoveryHealthTest from "@/pages/recovery-health-test";
+import RegisterTenant from "@/pages/register-tenant";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/register" component={RegisterTenant} />
       <Route path="/login" component={Login} />
       <Route path="/quotations/:id/print">
         <ProtectedRoute>
