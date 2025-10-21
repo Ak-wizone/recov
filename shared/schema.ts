@@ -1,10 +1,140 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, decimal, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Multi-Tenant Tables
+
+export const tenants = pgTable("tenants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  slug: text("slug").notNull().unique(),
+  businessName: text("business_name").notNull(),
+  email: text("email").notNull().unique(),
+  businessAddress: text("business_address").notNull(),
+  city: text("city").notNull(),
+  state: text("state"),
+  pincode: text("pincode").notNull(),
+  panNumber: text("pan_number"),
+  gstNumber: text("gst_number"),
+  industryType: text("industry_type"),
+  planType: text("plan_type").notNull(),
+  existingAccountingSoftware: text("existing_accounting_software"),
+  status: text("status").notNull().default("pending"),
+  isActive: boolean("is_active").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  activatedAt: timestamp("activated_at"),
+});
+
+export const insertTenantSchema = createInsertSchema(tenants).pick({
+  slug: true,
+  businessName: true,
+  email: true,
+  businessAddress: true,
+  city: true,
+  state: true,
+  pincode: true,
+  panNumber: true,
+  gstNumber: true,
+  industryType: true,
+  planType: true,
+  existingAccountingSoftware: true,
+}).extend({
+  slug: z.string().min(3, "Slug must be at least 3 characters").regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
+  businessName: z.string().min(1, "Business name is required"),
+  email: z.string().email("Invalid email address"),
+  businessAddress: z.string().min(1, "Business address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().optional(),
+  pincode: z.string().min(1, "Pincode is required"),
+  panNumber: z.string().optional(),
+  gstNumber: z.string().optional(),
+  industryType: z.string().optional(),
+  planType: z.enum(["6_months_demo", "annual_subscription", "lifetime"], {
+    errorMap: () => ({ message: "Invalid plan type" }),
+  }),
+  existingAccountingSoftware: z.string().optional(),
+});
+
+export type InsertTenant = z.infer<typeof insertTenantSchema>;
+export type Tenant = typeof tenants.$inferSelect;
+
+export const tenantUsers = pgTable("tenant_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull(),
+  userEmail: text("user_email").notNull(),
+  userName: text("user_name"),
+  role: text("role").notNull().default("member"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type TenantUser = typeof tenantUsers.$inferSelect;
+
+export const registrationRequests = pgTable("registration_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  businessName: text("business_name").notNull(),
+  email: text("email").notNull(),
+  businessAddress: text("business_address").notNull(),
+  city: text("city").notNull(),
+  state: text("state"),
+  pincode: text("pincode").notNull(),
+  panNumber: text("pan_number"),
+  gstNumber: text("gst_number"),
+  industryType: text("industry_type"),
+  planType: text("plan_type").notNull(),
+  existingAccountingSoftware: text("existing_accounting_software"),
+  paymentMethod: text("payment_method").notNull(),
+  paymentReceiptUrl: text("payment_receipt_url"),
+  status: text("status").notNull().default("pending"),
+  tenantId: varchar("tenant_id").references(() => tenants.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: text("reviewed_by"),
+  rejectionReason: text("rejection_reason"),
+});
+
+export const insertRegistrationRequestSchema = createInsertSchema(registrationRequests).pick({
+  businessName: true,
+  email: true,
+  businessAddress: true,
+  city: true,
+  state: true,
+  pincode: true,
+  panNumber: true,
+  gstNumber: true,
+  industryType: true,
+  planType: true,
+  existingAccountingSoftware: true,
+  paymentMethod: true,
+  paymentReceiptUrl: true,
+}).extend({
+  businessName: z.string().min(1, "Business name is required"),
+  email: z.string().email("Invalid email address"),
+  businessAddress: z.string().min(1, "Business address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().optional(),
+  pincode: z.string().min(1, "Pincode is required"),
+  panNumber: z.string().optional(),
+  gstNumber: z.string().optional(),
+  industryType: z.string().optional(),
+  planType: z.enum(["6_months_demo", "annual_subscription", "lifetime"], {
+    errorMap: () => ({ message: "Invalid plan type" }),
+  }),
+  existingAccountingSoftware: z.string().optional(),
+  paymentMethod: z.enum(["qr_code", "payu", "bank_transfer"], {
+    errorMap: () => ({ message: "Invalid payment method" }),
+  }),
+  paymentReceiptUrl: z.string().optional(),
+});
+
+export type InsertRegistrationRequest = z.infer<typeof insertRegistrationRequestSchema>;
+export type RegistrationRequest = typeof registrationRequests.$inferSelect;
+
+// Legacy/Existing Tables (will be updated with tenantId)
+
 export const customers = pgTable("customers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   amountOwed: decimal("amount_owed", { precision: 10, scale: 2 }).notNull(),
   category: text("category").notNull(), // Alpha, Beta, Gamma, Delta
@@ -16,6 +146,7 @@ export const customers = pgTable("customers", {
 
 export const payments = pgTable("payments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   customerId: varchar("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   paymentMethod: text("payment_method").notNull(),
@@ -26,6 +157,7 @@ export const payments = pgTable("payments", {
 
 export const followUps = pgTable("follow_ups", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   customerId: varchar("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // Meeting, Call, WhatsApp, Email
   remarks: text("remarks").notNull(),
@@ -101,6 +233,7 @@ export type FollowUp = typeof followUps.$inferSelect;
 // Master Customers table with detailed company information
 export const masterCustomers = pgTable("master_customers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   // Company & Compliance
   clientName: text("client_name").notNull(),
   category: text("category").notNull(), // Alpha, Beta, Gamma, Delta
@@ -249,6 +382,7 @@ export type InsertMasterCustomerFlexible = z.infer<typeof insertMasterCustomerSc
 // Master Items table (Products & Services)
 export const masterItems = pgTable("master_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   // Type toggle
   itemType: text("item_type").notNull(), // 'product' or 'service'
   // Common fields
@@ -311,6 +445,7 @@ export type MasterItem = typeof masterItems.$inferSelect;
 // Invoices table
 export const invoices = pgTable("invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   invoiceNumber: text("invoice_number").notNull(),
   customerName: text("customer_name").notNull(),
   invoiceDate: timestamp("invoice_date").notNull(),
@@ -375,6 +510,7 @@ export type Invoice = typeof invoices.$inferSelect;
 // Receipts table
 export const receipts = pgTable("receipts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   voucherNumber: text("voucher_number").notNull(),
   voucherType: text("voucher_type"),
   customerName: text("customer_name").notNull(),
@@ -408,6 +544,7 @@ export type Receipt = typeof receipts.$inferSelect;
 // Leads table
 export const leads = pgTable("leads", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   companyName: text("company_name").notNull(),
   contactPerson: text("contact_person").notNull(),
   mobile: text("mobile").notNull(),
@@ -491,6 +628,7 @@ export type Lead = typeof leads.$inferSelect & {
 // Lead Follow-ups table
 export const leadFollowUps = pgTable("lead_follow_ups", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   leadId: varchar("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // Meeting, Call, WhatsApp, Email
   remarks: text("remarks").notNull(),
@@ -518,6 +656,7 @@ export type LeadFollowUp = typeof leadFollowUps.$inferSelect;
 // Company Profile table
 export const companyProfile = pgTable("company_profile", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   // Basic Information
   logo: text("logo"),
   legalName: text("legal_name").notNull(),
@@ -628,6 +767,7 @@ export type CompanyProfile = typeof companyProfile.$inferSelect;
 // Quotations table
 export const quotations = pgTable("quotations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   quotationNumber: text("quotation_number").notNull(),
   quotationDate: timestamp("quotation_date").notNull(),
   validUntil: timestamp("valid_until").notNull(),
@@ -677,6 +817,7 @@ export type Quotation = typeof quotations.$inferSelect;
 // Quotation Items table
 export const quotationItems = pgTable("quotation_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   quotationId: varchar("quotation_id").notNull().references(() => quotations.id, { onDelete: "cascade" }),
   itemId: varchar("item_id").references(() => masterItems.id),
   itemName: text("item_name").notNull(),
@@ -724,6 +865,7 @@ export type QuotationItem = typeof quotationItems.$inferSelect;
 // Quotation Settings table (for Terms & Conditions)
 export const quotationSettings = pgTable("quotation_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   termsAndConditions: text("terms_and_conditions").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -740,6 +882,7 @@ export type QuotationSettings = typeof quotationSettings.$inferSelect;
 // Proforma Invoices table
 export const proformaInvoices = pgTable("proforma_invoices", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   invoiceNumber: text("invoice_number").notNull(),
   invoiceDate: timestamp("invoice_date").notNull(),
   dueDate: timestamp("due_date").notNull(),
@@ -792,6 +935,7 @@ export type ProformaInvoice = typeof proformaInvoices.$inferSelect;
 // Proforma Invoice Items table
 export const proformaInvoiceItems = pgTable("proforma_invoice_items", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   invoiceId: varchar("invoice_id").notNull().references(() => proformaInvoices.id, { onDelete: "cascade" }),
   itemId: varchar("item_id").references(() => masterItems.id),
   itemName: text("item_name").notNull(),
@@ -839,6 +983,7 @@ export type ProformaInvoiceItem = typeof proformaInvoiceItems.$inferSelect;
 // Debtors Follow-ups table
 export const debtorsFollowUps = pgTable("debtors_follow_ups", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   customerId: varchar("customer_id").notNull().references(() => masterCustomers.id, { onDelete: "cascade" }),
   type: text("type").notNull(), // Meeting, Call, WhatsApp, Email
   remarks: text("remarks").notNull(),
@@ -877,6 +1022,7 @@ export type DebtorsFollowUp = typeof debtorsFollowUps.$inferSelect;
 // Roles table for RBAC
 export const roles = pgTable("roles", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   name: text("name").notNull().unique(),
   description: text("description"),
   permissions: text("permissions").array().notNull().default(sql`ARRAY[]::text[]`),
@@ -899,6 +1045,7 @@ export type Role = typeof roles.$inferSelect;
 // Users table for user management
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   mobile: text("mobile"),
@@ -932,6 +1079,7 @@ export type User = typeof users.$inferSelect & {
 // Email Configuration table
 export const emailConfigs = pgTable("email_configs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   provider: text("provider").notNull(), // gmail, smtp
   smtpHost: text("smtp_host"),
   smtpPort: integer("smtp_port"),
@@ -979,6 +1127,7 @@ export type EmailConfig = typeof emailConfigs.$inferSelect;
 // Email Templates table
 export const emailTemplates = pgTable("email_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   module: text("module").notNull(), // leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management
   name: text("name").notNull(),
   subject: text("subject").notNull(),
@@ -1011,6 +1160,7 @@ export type EmailTemplate = typeof emailTemplates.$inferSelect;
 // WhatsApp Configuration table
 export const whatsappConfigs = pgTable("whatsapp_configs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   provider: text("provider").notNull(), // twilio, wati, meta, interakt, aisensy
   apiKey: text("api_key").notNull(),
   apiSecret: text("api_secret"),
@@ -1052,6 +1202,7 @@ export type WhatsappConfig = typeof whatsappConfigs.$inferSelect;
 // WhatsApp Message Templates table
 export const whatsappTemplates = pgTable("whatsapp_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   module: text("module").notNull(), // leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management
   name: text("name").notNull(),
   message: text("message").notNull(),
@@ -1081,6 +1232,7 @@ export type WhatsappTemplate = typeof whatsappTemplates.$inferSelect;
 // Ringg.ai Configuration table
 export const ringgConfigs = pgTable("ringg_configs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   apiKey: text("api_key").notNull(),
   fromNumber: text("from_number").notNull(),
   webhookUrl: text("webhook_url"),
@@ -1107,6 +1259,7 @@ export type RinggConfig = typeof ringgConfigs.$inferSelect;
 // Call Script Mappings table
 export const callScriptMappings = pgTable("call_script_mappings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   module: text("module").notNull(), // leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management
   scriptName: text("script_name").notNull(),
   ringgScriptId: text("ringg_script_id").notNull(),
@@ -1136,6 +1289,7 @@ export type CallScriptMapping = typeof callScriptMappings.$inferSelect;
 // Call Logs table
 export const callLogs = pgTable("call_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   customerId: varchar("customer_id"),
   customerName: text("customer_name").notNull(),
   phoneNumber: text("phone_number").notNull(),
@@ -1193,6 +1347,7 @@ export type CallLog = typeof callLogs.$inferSelect;
 // Communication Schedules table
 export const communicationSchedules = pgTable("communication_schedules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   module: text("module").notNull(),
   communicationType: text("communication_type").notNull(),
   frequency: text("frequency").notNull(),
