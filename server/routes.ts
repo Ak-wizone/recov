@@ -3394,7 +3394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============ QUOTATION ROUTES ============
 
   // Get all quotations
-  app.get("/api/quotations", async (_req, res) => {
+  app.get("/api/quotations", async (req, res) => {
     try {
       const quotations = await storage.getQuotations(req.tenantId!);
       res.json(quotations);
@@ -3404,7 +3404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get next quotation number (must be before :id route)
-  app.get("/api/quotations/next-number", async (_req, res) => {
+  app.get("/api/quotations/next-number", async (req, res) => {
     try {
       const nextNumber = await storage.getNextQuotationNumber(req.tenantId!);
       res.json({ quotationNumber: nextNumber });
@@ -3414,7 +3414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export quotations to Excel
-  app.get("/api/quotations/export", async (_req, res) => {
+  app.get("/api/quotations/export", async (req, res) => {
     try {
       const quotations = await storage.getQuotations(req.tenantId!);
       
@@ -3674,7 +3674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all proforma invoices
-  app.get("/api/proforma-invoices", async (_req, res) => {
+  app.get("/api/proforma-invoices", async (req, res) => {
     try {
       const invoices = await storage.getProformaInvoices(req.tenantId!);
       res.json(invoices);
@@ -3684,7 +3684,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get next proforma invoice number
-  app.get("/api/proforma-invoices/next-number", async (_req, res) => {
+  app.get("/api/proforma-invoices/next-number", async (req, res) => {
     try {
       const nextNumber = await storage.getNextProformaInvoiceNumber(req.tenantId!);
       res.json({ invoiceNumber: nextNumber });
@@ -3744,7 +3744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export proforma invoices to Excel
-  app.get("/api/proforma-invoices/export", async (_req, res) => {
+  app.get("/api/proforma-invoices/export", async (req, res) => {
     try {
       const invoices = await storage.getProformaInvoices(req.tenantId!);
       
@@ -3777,7 +3777,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get debtors list with category-wise breakdown
-  app.get("/api/debtors", async (_req, res) => {
+  app.get("/api/debtors", async (req, res) => {
     try {
       const data = await storage.getDebtorsList(req.tenantId!);
       res.json(data);
@@ -3787,7 +3787,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get debtors follow-up statistics
-  app.get("/api/debtors/followup-stats", async (_req, res) => {
+  app.get("/api/debtors/followup-stats", async (req, res) => {
     try {
       const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
       res.json(stats);
@@ -3838,7 +3838,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============ CREDIT MANAGEMENT ROUTES ============
 
   // Get credit management data
-  app.get("/api/credit-management", async (_req, res) => {
+  app.get("/api/credit-management", async (req, res) => {
     try {
       const data = await storage.getCreditManagementData(req.tenantId!);
       res.json(data);
@@ -3848,7 +3848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export credit management data to Excel
-  app.get("/api/credit-management/export", async (_req, res) => {
+  app.get("/api/credit-management/export", async (req, res) => {
     try {
       const creditData = await storage.getCreditManagementData(req.tenantId!);
       
@@ -3878,7 +3878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============ ROLES ROUTES ============
   
   // Get all roles
-  app.get("/api/roles", async (_req, res) => {
+  app.get("/api/roles", async (req, res) => {
     try {
       const roles = await storage.getRoles(req.tenantId!);
       res.json(roles);
@@ -3918,7 +3918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export roles
-  app.get("/api/roles/export", async (_req, res) => {
+  app.get("/api/roles/export", async (req, res) => {
     try {
       const roles = await storage.getRoles(req.tenantId!);
       const exportData = roles.map(role => ({
@@ -4050,7 +4050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============ USERS ROUTES ============
   
   // Get all users
-  app.get("/api/users", async (_req, res) => {
+  app.get("/api/users", async (req, res) => {
     try {
       const users = await storage.getUsers(req.tenantId!);
       res.json(users);
@@ -4094,7 +4094,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export users
-  app.get("/api/users/export", async (_req, res) => {
+  app.get("/api/users/export", async (req, res) => {
     try {
       const users = await storage.getUsers(req.tenantId!);
       const exportData = users.map(user => ({
