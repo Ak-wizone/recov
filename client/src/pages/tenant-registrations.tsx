@@ -327,88 +327,93 @@ export default function TenantRegistrations() {
       cell: ({ row }) => {
         const tenant = row.original;
         
-        if (tenant.isRegistrationRequest && tenant.status === "pending") {
-          return (
-            <Button
-              size="sm"
-              onClick={() => approveMutation.mutate(tenant.id)}
-              disabled={approveMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
-              data-testid={`button-approve-${tenant.id}`}
-            >
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Approve
-            </Button>
-          );
-        }
-        
-        if (!tenant.isRegistrationRequest) {
-          return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="h-8 w-8 p-0"
-                  data-testid={`button-actions-${tenant.id}`}
-                >
-                  <span className="sr-only">Open menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => toggleStatusMutation.mutate(tenant.id)}
+        return (
+          <div className="flex gap-2" style={{ pointerEvents: 'auto', position: 'relative', zIndex: 10 }}>
+            {tenant.isRegistrationRequest && tenant.status === "pending" && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Approve clicked for:', tenant.id);
+                  approveMutation.mutate(tenant.id);
+                }}
+                disabled={approveMutation.isPending}
+                className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50"
+                data-testid={`button-approve-${tenant.id}`}
+                style={{ cursor: 'pointer' }}
+              >
+                ✓ Approve
+              </button>
+            )}
+            
+            {!tenant.isRegistrationRequest && (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Toggle clicked for:', tenant.id);
+                    toggleStatusMutation.mutate(tenant.id);
+                  }}
                   disabled={toggleStatusMutation.isPending}
-                  data-testid={`menu-toggle-${tenant.id}`}
+                  className="px-3 py-1.5 text-sm font-medium border rounded-md hover:bg-gray-100"
+                  data-testid={`button-toggle-${tenant.id}`}
+                  style={{ cursor: 'pointer' }}
                 >
-                  {tenant.isActive ? (
-                    <>
-                      <ToggleRight className="mr-2 h-4 w-4" />
-                      Deactivate
-                    </>
-                  ) : (
-                    <>
-                      <ToggleLeft className="mr-2 h-4 w-4" />
-                      Activate
-                    </>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => resetPasswordMutation.mutate(tenant.id)}
+                  {tenant.isActive ? '⏸ Deactivate' : '▶ Activate'}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Reset clicked for:', tenant.id);
+                    resetPasswordMutation.mutate(tenant.id);
+                  }}
                   disabled={resetPasswordMutation.isPending}
-                  data-testid={`menu-reset-${tenant.id}`}
+                  className="px-3 py-1.5 text-sm font-medium border rounded-md hover:bg-gray-100"
+                  data-testid={`button-reset-${tenant.id}`}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <KeyRound className="mr-2 h-4 w-4" />
-                  Reset Password
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => sendCredentialsMutation.mutate(tenant.id)}
+                  🔑 Reset
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Send clicked for:', tenant.id);
+                    sendCredentialsMutation.mutate(tenant.id);
+                  }}
                   disabled={sendCredentialsMutation.isPending}
-                  data-testid={`menu-send-${tenant.id}`}
+                  className="px-3 py-1.5 text-sm font-medium border rounded-md hover:bg-gray-100"
+                  data-testid={`button-send-${tenant.id}`}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <Mail className="mr-2 h-4 w-4" />
-                  Send Credentials
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => {
+                  ✉ Send
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Delete clicked for:', tenant.id);
                     setTenantToDelete(tenant);
                     setDeleteDialogOpen(true);
                   }}
-                  className="text-red-600 focus:text-red-600"
-                  data-testid={`menu-delete-${tenant.id}`}
+                  disabled={deleteTenantMutation.isPending}
+                  className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md disabled:opacity-50"
+                  data-testid={`button-delete-${tenant.id}`}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Tenant
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          );
-        }
-        
-        return null;
+                  🗑 Delete
+                </button>
+              </>
+            )}
+          </div>
+        );
       },
     },
   ];
