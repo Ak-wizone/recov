@@ -227,8 +227,8 @@ export default function TenantRegistrations() {
     setDeleteDialogOpen(true);
   }, []);
 
-  // Combine requests and tenants into unified data
-  const data: TenantRow[] = [
+  // Combine requests and tenants into unified data - memoize to prevent re-renders
+  const data = useMemo<TenantRow[]>(() => [
     ...(requests?.map(r => ({
       id: r.id,
       businessName: r.businessName,
@@ -250,7 +250,7 @@ export default function TenantRegistrations() {
       createdAt: t.createdAt,
       isRegistrationRequest: false,
     })) || []),
-  ];
+  ], [requests, tenants]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
