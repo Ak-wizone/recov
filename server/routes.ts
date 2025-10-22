@@ -368,6 +368,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete registration request (admin only)
+  app.delete("/api/registration-requests/:requestId", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { requestId } = req.params;
+
+      // Check if request exists
+      const [request] = await db
+        .select()
+        .from(registrationRequests)
+        .where(eq(registrationRequests.id, requestId));
+
+      if (!request) {
+        return res.status(404).json({ message: "Registration request not found" });
+      }
+
+      // Delete the registration request
+      await db
+        .delete(registrationRequests)
+        .where(eq(registrationRequests.id, requestId));
+
+      res.json({
+        success: true,
+        message: `Registration request deleted successfully`,
+      });
+    } catch (error: any) {
+      console.error("Failed to delete registration request:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Toggle tenant active status (admin only)
   app.post("/api/tenants/:tenantId/toggle-status", adminOnlyMiddleware, async (req, res) => {
     try {
