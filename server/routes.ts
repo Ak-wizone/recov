@@ -167,8 +167,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Create default password (company name without spaces)
-      const defaultPassword = request.businessName.replace(/\s+/g, "");
+      // Create default password (email prefix + @#$405)
+      const emailPrefix = request.email.split('@')[0];
+      const defaultPassword = `${emailPrefix}@#$405`;
       const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
       // Use transaction to ensure atomicity
