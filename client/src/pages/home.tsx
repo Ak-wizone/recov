@@ -431,10 +431,12 @@ export default function Home() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Need Customer-Specific Analytics?</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">View detailed analytics for individual customers</p>
             </div>
-            <Link href="/customer-analytics">
-              <a className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium" data-testid="link-customer-analytics">
-                View Customer Analytics
-              </a>
+            <Link 
+              href="/customer-analytics"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              data-testid="link-customer-analytics"
+            >
+              View Customer Analytics
             </Link>
           </div>
         </CardContent>

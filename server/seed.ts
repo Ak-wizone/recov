@@ -12,7 +12,7 @@ export async function seedDatabase() {
       console.log("Creating platform admin user...");
       const hashedPassword = await bcrypt.hash("platform123", 10);
       
-      await storage.createUser({
+      await storage.createUser(null, {
         name: "Platform Administrator",
         email: "platform@admin.com",
         mobile: "0000000000",
