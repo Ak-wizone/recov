@@ -79,6 +79,7 @@ export default function TenantRegistrations() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   // Individual column filters
   const [businessNameFilter, setBusinessNameFilter] = useState("");
@@ -251,7 +252,7 @@ export default function TenantRegistrations() {
 
   // Calculate dashboard stats (based on ALL requests and tenants, not just displayed data)
   const stats: DashboardStats = {
-    total: data.length + (requests?.filter(r => r.status !== 'pending').length || 0),
+    total: (requests?.length || 0) + (tenants?.length || 0),
     pending: requests?.filter(r => r.status === 'pending').length || 0,
     approved: requests?.filter(r => r.status === 'approved').length || 0,
     rejected: requests?.filter(r => r.status === 'rejected').length || 0,
@@ -633,7 +634,18 @@ export default function TenantRegistrations() {
 
       {/* Dashboard Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
-        <Card data-testid="card-total">
+        <Card 
+          data-testid="card-total" 
+          className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === null ? 'ring-2 ring-primary' : ''}`}
+          onClick={() => {
+            if (activeFilter === null) {
+              return;
+            }
+            setActiveFilter(null);
+            setStatusFilter("");
+            setColumnFilters([]);
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -644,7 +656,21 @@ export default function TenantRegistrations() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-pending">
+        <Card 
+          data-testid="card-pending" 
+          className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'pending' ? 'ring-2 ring-yellow-600' : ''}`}
+          onClick={() => {
+            if (activeFilter === 'pending') {
+              setActiveFilter(null);
+              setStatusFilter("");
+              setColumnFilters([]);
+            } else {
+              setActiveFilter('pending');
+              setStatusFilter('pending');
+              setColumnFilters([{ id: 'status', value: 'pending' }]);
+            }
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
             <Clock className="h-4 w-4 text-yellow-600" />
@@ -655,7 +681,21 @@ export default function TenantRegistrations() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-approved">
+        <Card 
+          data-testid="card-approved" 
+          className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'approved' ? 'ring-2 ring-green-600' : ''}`}
+          onClick={() => {
+            if (activeFilter === 'approved') {
+              setActiveFilter(null);
+              setStatusFilter("");
+              setColumnFilters([]);
+            } else {
+              setActiveFilter('approved');
+              setStatusFilter('approved');
+              setColumnFilters([{ id: 'status', value: 'approved' }]);
+            }
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Approved</CardTitle>
             <UserCheck className="h-4 w-4 text-green-600" />
@@ -666,7 +706,21 @@ export default function TenantRegistrations() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-rejected">
+        <Card 
+          data-testid="card-rejected" 
+          className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'rejected' ? 'ring-2 ring-red-600' : ''}`}
+          onClick={() => {
+            if (activeFilter === 'rejected') {
+              setActiveFilter(null);
+              setStatusFilter("");
+              setColumnFilters([]);
+            } else {
+              setActiveFilter('rejected');
+              setStatusFilter('rejected');
+              setColumnFilters([{ id: 'status', value: 'rejected' }]);
+            }
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Rejected</CardTitle>
             <UserX className="h-4 w-4 text-red-600" />
@@ -677,7 +731,21 @@ export default function TenantRegistrations() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-active">
+        <Card 
+          data-testid="card-active" 
+          className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'active' ? 'ring-2 ring-green-600' : ''}`}
+          onClick={() => {
+            if (activeFilter === 'active') {
+              setActiveFilter(null);
+              setStatusFilter("");
+              setColumnFilters([]);
+            } else {
+              setActiveFilter('active');
+              setStatusFilter('active');
+              setColumnFilters([{ id: 'status', value: 'active' }]);
+            }
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Active</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -688,7 +756,21 @@ export default function TenantRegistrations() {
           </CardContent>
         </Card>
 
-        <Card data-testid="card-inactive">
+        <Card 
+          data-testid="card-inactive" 
+          className={`cursor-pointer transition-all hover:shadow-md ${activeFilter === 'inactive' ? 'ring-2 ring-gray-600' : ''}`}
+          onClick={() => {
+            if (activeFilter === 'inactive') {
+              setActiveFilter(null);
+              setStatusFilter("");
+              setColumnFilters([]);
+            } else {
+              setActiveFilter('inactive');
+              setStatusFilter('inactive');
+              setColumnFilters([{ id: 'status', value: 'inactive' }]);
+            }
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Inactive</CardTitle>
             <XCircle className="h-4 w-4 text-gray-600" />
