@@ -368,6 +368,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reject registration request (admin only)
+  app.post("/api/registration-requests/:requestId/reject", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { requestId } = req.params;
+      const { reason } = req.body;
+
+      if (!reason || reason.trim() === "") {
+        return res.status(400).json({ message: "Rejection reason is required" });
+      }
+
+      // Get the registration request
+      const [request] = await db
+        .select()
+        .from(registrationRequests)
+        .where(eq(registrationRequests.id, requestId));
+
+      if (!request) {
+        return res.status(404).json({ message: "Registration request not found" });
+      }
+
+      if (request.status !== "pending") {
+        return res.status(400).json({ message: "Registration request has already been processed" });
+      }
+
+      // Update registration request to rejected
+      await db
+        .update(registrationRequests)
+        .set({
+          status: "rejected",
+          rejectionReason: reason,
+          reviewedAt: new Date(),
+        })
+        .where(eq(registrationRequests.id, requestId));
+
+      res.json({
+        success: true,
+        message: "Registration request rejected successfully",
+      });
+    } catch (error: any) {
+      console.error("Rejection error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete registration request (admin only)
+  app.delete("/api/registration-requests/:requestId", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { requestId } = req.params;
+
+      // Get the registration request
+      const [request] = await db
+        .select()
+        .from(registrationRequests)
+        .where(eq(registrationRequests.id, requestId));
+
+      if (!request) {
+        return res.status(404).json({ message: "Registration request not found" });
+      }
+
+      // Only allow deleting pending requests
+      if (request.status !== "pending") {
+        return res.status(400).json({ 
+          message: "Only pending registration requests can be deleted" 
+        });
+      }
+
+      // Delete the registration request
+      await db
+        .delete(registrationRequests)
+        .where(eq(registrationRequests.id, requestId));
+
+      res.json({
+        success: true,
+        message: "Registration request deleted successfully",
+      });
+    } catch (error: any) {
+      console.error("Delete error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Toggle tenant active status (admin only)
   app.post("/api/tenants/:tenantId/toggle-status", adminOnlyMiddleware, async (req, res) => {
     try {

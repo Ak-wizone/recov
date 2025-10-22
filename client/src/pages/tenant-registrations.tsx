@@ -44,6 +44,7 @@ import {
   UserCheck,
   UserX,
   Filter,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
@@ -180,9 +181,50 @@ export default function TenantRegistrations() {
     },
   });
 
-  // Combine requests and tenants into unified data
+  const deleteRegistrationMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return await apiRequest("DELETE", `/api/registration-requests/${requestId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Registration request deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/registration-requests'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Delete Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const rejectRegistrationMutation = useMutation({
+    mutationFn: async ({ requestId, reason }: { requestId: string, reason: string }) => {
+      return await apiRequest("POST", `/api/registration-requests/${requestId}/reject`, { reason });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Registration request rejected",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/registration-requests'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Rejection Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Combine ONLY PENDING requests and all tenants to avoid duplicates
+  // (approved/rejected requests are excluded since they're already converted to tenants)
   const data: TenantRow[] = [
-    ...(requests?.map(r => ({
+    ...(requests?.filter(r => r.status === 'pending').map(r => ({
       id: r.id,
       businessName: r.businessName,
       email: r.email,
@@ -206,14 +248,14 @@ export default function TenantRegistrations() {
     })) || []),
   ];
 
-  // Calculate dashboard stats
+  // Calculate dashboard stats (based on ALL requests and tenants, not just displayed data)
   const stats: DashboardStats = {
-    total: data.length,
-    pending: data.filter(d => d.status === 'pending').length,
-    approved: data.filter(d => d.status === 'approved').length,
-    rejected: data.filter(d => d.status === 'rejected').length,
-    active: data.filter(d => d.status === 'active').length,
-    inactive: data.filter(d => d.status === 'inactive').length,
+    total: data.length + (requests?.filter(r => r.status !== 'pending').length || 0),
+    pending: requests?.filter(r => r.status === 'pending').length || 0,
+    approved: requests?.filter(r => r.status === 'approved').length || 0,
+    rejected: requests?.filter(r => r.status === 'rejected').length || 0,
+    active: tenants?.filter(t => t.isActive).length || 0,
+    inactive: tenants?.filter(t => !t.isActive).length || 0,
   };
 
   const getStatusBadge = (status: string) => {
@@ -514,7 +556,7 @@ export default function TenantRegistrations() {
         
         if (tenant.isRegistrationRequest && tenant.status === "pending") {
           return (
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <Button
                 size="sm"
                 onClick={(e) => {
@@ -524,9 +566,44 @@ export default function TenantRegistrations() {
                 disabled={approveMutation.isPending}
                 className="bg-green-600 hover:bg-green-700 text-white"
                 data-testid={`button-approve-${tenant.id}`}
+                title="Approve and create tenant"
               >
                 <CheckCircle className="w-3 h-3 mr-1" />
                 Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const reason = prompt("Enter rejection reason:");
+                  if (reason) {
+                    rejectRegistrationMutation.mutate({ requestId: tenant.id, reason });
+                  }
+                }}
+                disabled={rejectRegistrationMutation.isPending}
+                className="border-red-300 text-red-600 hover:bg-red-50"
+                data-testid={`button-reject-${tenant.id}`}
+                title="Reject registration request"
+              >
+                <XCircle className="w-3 h-3 mr-1" />
+                Reject
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm(`Delete registration request for ${tenant.businessName}?`)) {
+                    deleteRegistrationMutation.mutate(tenant.id);
+                  }
+                }}
+                disabled={deleteRegistrationMutation.isPending}
+                className="border-gray-300 text-gray-600 hover:bg-gray-50"
+                data-testid={`button-delete-${tenant.id}`}
+                title="Delete registration request"
+              >
+                <Trash2 className="w-3 h-3" />
               </Button>
             </div>
           );
