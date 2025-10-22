@@ -34,8 +34,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import {
   CheckCircle,
@@ -49,6 +56,7 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  MoreHorizontal,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -69,6 +77,8 @@ export default function TenantRegistrations() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tenantToDelete, setTenantToDelete] = useState<TenantRow | null>(null);
 
   // Redirect tenant users to dashboard - only platform admins can access this page
   useEffect(() => {
@@ -176,6 +186,8 @@ export default function TenantRegistrations() {
         description: data.message,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/tenants'] });
+      setDeleteDialogOpen(false);
+      setTenantToDelete(null);
     },
     onError: (error: Error) => {
       toast({
@@ -185,6 +197,12 @@ export default function TenantRegistrations() {
       });
     },
   });
+
+  const handleDeleteTenant = () => {
+    if (tenantToDelete) {
+      deleteTenantMutation.mutate(tenantToDelete.id);
+    }
+  };
 
   // Combine requests and tenants into unified data
   const data: TenantRow[] = [
@@ -311,104 +329,82 @@ export default function TenantRegistrations() {
         
         if (tenant.isRegistrationRequest && tenant.status === "pending") {
           return (
-            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-              <Button
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  approveMutation.mutate(tenant.id);
-                }}
-                disabled={approveMutation.isPending}
-                className="bg-green-600 hover:bg-green-700"
-                data-testid={`button-approve-${tenant.id}`}
-              >
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Approve
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              onClick={() => approveMutation.mutate(tenant.id)}
+              disabled={approveMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+              data-testid={`button-approve-${tenant.id}`}
+            >
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Approve
+            </Button>
           );
         }
         
         if (!tenant.isRegistrationRequest) {
           return (
-            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleStatusMutation.mutate(tenant.id);
-                }}
-                disabled={toggleStatusMutation.isPending}
-                data-testid={`button-toggle-${tenant.id}`}
-              >
-                {tenant.isActive ? (
-                  <><ToggleRight className="w-3 h-3 mr-1" />Deactivate</>
-                ) : (
-                  <><ToggleLeft className="w-3 h-3 mr-1" />Activate</>
-                )}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  resetPasswordMutation.mutate(tenant.id);
-                }}
-                disabled={resetPasswordMutation.isPending}
-                data-testid={`button-reset-${tenant.id}`}
-              >
-                <KeyRound className="w-3 h-3 mr-1" />
-                Reset
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  sendCredentialsMutation.mutate(tenant.id);
-                }}
-                disabled={sendCredentialsMutation.isPending}
-                data-testid={`button-send-${tenant.id}`}
-              >
-                <Mail className="w-3 h-3 mr-1" />
-                Send
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={deleteTenantMutation.isPending}
-                    data-testid={`button-delete-${tenant.id}`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Trash2 className="w-3 h-3 mr-1" />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete tenant <strong>{tenant.businessName}</strong> and all their data including users, customers, invoices, receipts, and all other records. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteTenantMutation.mutate(tenant.id);
-                      }}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Delete Permanently
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="h-8 w-8 p-0"
+                  data-testid={`button-actions-${tenant.id}`}
+                >
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => toggleStatusMutation.mutate(tenant.id)}
+                  disabled={toggleStatusMutation.isPending}
+                  data-testid={`menu-toggle-${tenant.id}`}
+                >
+                  {tenant.isActive ? (
+                    <>
+                      <ToggleRight className="mr-2 h-4 w-4" />
+                      Deactivate
+                    </>
+                  ) : (
+                    <>
+                      <ToggleLeft className="mr-2 h-4 w-4" />
+                      Activate
+                    </>
+                  )}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => resetPasswordMutation.mutate(tenant.id)}
+                  disabled={resetPasswordMutation.isPending}
+                  data-testid={`menu-reset-${tenant.id}`}
+                >
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Reset Password
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => sendCredentialsMutation.mutate(tenant.id)}
+                  disabled={sendCredentialsMutation.isPending}
+                  data-testid={`menu-send-${tenant.id}`}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Send Credentials
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    setTenantToDelete(tenant);
+                    setDeleteDialogOpen(true);
+                  }}
+                  className="text-red-600 focus:text-red-600"
+                  data-testid={`menu-delete-${tenant.id}`}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Tenant
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         }
         
@@ -591,6 +587,30 @@ export default function TenantRegistrations() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete tenant{" "}
+              <strong>{tenantToDelete?.businessName}</strong> and all their data
+              including users, customers, invoices, receipts, and all other records.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTenant}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteTenantMutation.isPending ? "Deleting..." : "Delete Permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
