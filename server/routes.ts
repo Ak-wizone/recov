@@ -759,7 +759,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete tenant (admin only) - CASCADE deletes all related data
+  // Delete tenant (admin only) - Deletes tenant and all related data
   app.delete("/api/tenants/:tenantId", adminOnlyMiddleware, async (req, res) => {
     try {
       const { tenantId } = req.params;
@@ -774,12 +774,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Tenant not found" });
       }
 
-      // First, delete any registration requests linked to this tenant
+      // Explicitly delete users belonging to this tenant (makes email reusable)
+      await db
+        .delete(users)
+        .where(eq(users.tenantId, tenantId));
+
+      // Delete any registration requests linked to this tenant
       await db
         .delete(registrationRequests)
         .where(eq(registrationRequests.tenantId, tenantId));
 
-      // Delete tenant (CASCADE will delete all related data: users, roles, customers, etc.)
+      // Delete tenant (CASCADE will delete remaining related data: roles, customers, etc.)
       await db
         .delete(tenants)
         .where(eq(tenants.id, tenantId));
@@ -790,6 +795,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Failed to delete tenant:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Cleanup orphaned users (admin only) - Deletes users whose tenant no longer exists
+  app.post("/api/cleanup-orphaned-users", adminOnlyMiddleware, async (req, res) => {
+    try {
+      // Get all users with a tenantId (exclude platform admins who have null tenantId)
+      const allUsers = await db
+        .select()
+        .from(users)
+        .where(sql`${users.tenantId} IS NOT NULL`);
+
+      // Get all existing tenant IDs
+      const existingTenants = await db
+        .select({ id: tenants.id })
+        .from(tenants);
+      
+      const existingTenantIds = new Set(existingTenants.map(t => t.id));
+
+      // Find orphaned users (users whose tenantId doesn't exist in tenants table)
+      const orphanedUsers = allUsers.filter(user => !existingTenantIds.has(user.tenantId!));
+
+      if (orphanedUsers.length === 0) {
+        return res.json({ 
+          success: true,
+          message: "No orphaned users found",
+          deletedCount: 0
+        });
+      }
+
+      // Delete orphaned users
+      const orphanedUserIds = orphanedUsers.map(u => u.id);
+      await db
+        .delete(users)
+        .where(sql`${users.id} IN (${sql.join(orphanedUserIds.map(id => sql`${id}`), sql`, `)})`);
+
+      res.json({ 
+        success: true,
+        message: `Deleted ${orphanedUsers.length} orphaned user(s)`,
+        deletedCount: orphanedUsers.length,
+        deletedEmails: orphanedUsers.map(u => u.email)
+      });
+    } catch (error: any) {
+      console.error("Failed to cleanup orphaned users:", error);
       res.status(500).json({ message: error.message });
     }
   });
