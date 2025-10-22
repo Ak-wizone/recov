@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Link } from "wouter";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -183,6 +184,13 @@ export default function Login() {
               </Button>
             </form>
           </Form>
+          <div className="text-center mt-4">
+            <Link href="/forgot-password">
+              <Button variant="link" className="text-sm" data-testid="link-forgot-password">
+                Forgot your password?
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

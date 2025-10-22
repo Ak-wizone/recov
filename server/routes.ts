@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { ringgService } from "./ringg-service";
 import { fromZodError } from "zod-validation-error";
@@ -11,7 +11,8 @@ import * as XLSX from "xlsx";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
+import { nanoid } from "nanoid";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -343,6 +344,368 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Toggle tenant active status (admin only)
+  app.post("/api/tenants/:tenantId/toggle-status", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+
+      // Get current tenant
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, tenantId));
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // Toggle the status
+      const newStatus = !tenant.isActive;
+
+      // Update tenant status
+      await db
+        .update(tenants)
+        .set({ isActive: newStatus })
+        .where(eq(tenants.id, tenantId));
+
+      res.json({
+        success: true,
+        message: `Tenant ${newStatus ? 'activated' : 'deactivated'} successfully`,
+        isActive: newStatus,
+      });
+    } catch (error: any) {
+      console.error("Toggle status error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Reset tenant admin password (admin only)
+  app.post("/api/tenants/:tenantId/reset-password", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+
+      // Get tenant
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, tenantId));
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // Get tenant admin user
+      const [adminUser] = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.tenantId, tenantId),
+          eq(users.email, tenant.email)
+        ));
+
+      if (!adminUser) {
+        return res.status(404).json({ message: "Tenant admin user not found" });
+      }
+
+      // Create default password (company name without spaces)
+      const defaultPassword = tenant.businessName.replace(/\s+/g, "");
+      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+      // Update user password
+      await db
+        .update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.id, adminUser.id));
+
+      res.json({
+        success: true,
+        message: "Password reset successfully to default",
+      });
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Send credentials email to tenant admin (admin only)
+  app.post("/api/tenants/:tenantId/send-credentials", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+
+      // Get tenant
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, tenantId));
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // Get tenant admin user
+      const [adminUser] = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.tenantId, tenantId),
+          eq(users.email, tenant.email)
+        ));
+
+      if (!adminUser) {
+        return res.status(404).json({ message: "Tenant admin user not found" });
+      }
+
+      // Get default password
+      const defaultPassword = tenant.businessName.replace(/\s+/g, "");
+
+      // Try to get email config
+      const emailConfig = await storage.getEmailConfig(tenantId);
+
+      if (!emailConfig) {
+        return res.status(400).json({ 
+          message: "Email configuration not set for this tenant. Please configure email settings first." 
+        });
+      }
+
+      const loginUrl = `${req.protocol}://${req.get('host')}/login`;
+      const emailBody = renderTemplate(
+        `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Your Login Credentials</h2>
+          <p>Dear {companyName} Team,</p>
+          <p>Here are your login credentials for the CRM Platform:</p>
+          
+          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Email:</strong> {email}</p>
+            <p><strong>Password:</strong> {password}</p>
+            <p><strong>Login URL:</strong> <a href="{loginUrl}">{loginUrl}</a></p>
+          </div>
+          
+          <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+            <strong>Security Note:</strong> Please change your password after logging in for security purposes.
+          </div>
+          
+          <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+          
+          <p>Best regards,<br>CRM Platform Team</p>
+        </div>
+        `,
+        {
+          companyName: tenant.businessName,
+          email: adminUser.email,
+          password: defaultPassword,
+          loginUrl,
+        }
+      );
+
+      await sendEmail(
+        emailConfig,
+        adminUser.email,
+        "Your CRM Platform Login Credentials",
+        emailBody
+      );
+
+      res.json({
+        success: true,
+        message: "Credentials email sent successfully",
+      });
+    } catch (error: any) {
+      console.error("Send credentials error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Forgot password - send reset link
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+
+      if (!user) {
+        // Don't reveal whether email exists
+        return res.json({
+          success: true,
+          message: "If your email is registered, you will receive a password reset link shortly.",
+        });
+      }
+
+      // Generate reset token
+      const resetToken = nanoid(32);
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+      // Store reset token
+      await db.insert(passwordResetTokens).values({
+        email,
+        token: resetToken,
+        expiresAt,
+        used: false,
+      });
+
+      // Get tenant for email config
+      const emailConfig = user.tenantId ? await storage.getEmailConfig(user.tenantId) : null;
+
+      if (emailConfig) {
+        const resetUrl = `${req.protocol}://${req.get('host')}/reset-password/${resetToken}`;
+        const emailBody = renderTemplate(
+          `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Password Reset Request</h2>
+            <p>Hello,</p>
+            <p>We received a request to reset your password. Click the button below to set a new password:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="{resetUrl}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+            </div>
+            
+            <p>Or copy and paste this link into your browser:</p>
+            <p style="background-color: #f5f5f5; padding: 10px; word-break: break-all;">{resetUrl}</p>
+            
+            <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+              <strong>Important:</strong> This link will expire in 1 hour. If you didn't request this password reset, please ignore this email.
+            </div>
+            
+            <p>Best regards,<br>CRM Platform Team</p>
+          </div>
+          `,
+          {
+            resetUrl,
+          }
+        );
+
+        await sendEmail(
+          emailConfig,
+          email,
+          "Password Reset Request",
+          emailBody
+        );
+      }
+
+      res.json({
+        success: true,
+        message: "If your email is registered, you will receive a password reset link shortly.",
+      });
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Reset password with token
+  app.post("/api/auth/reset-password", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+
+      if (!token || !password) {
+        return res.status(400).json({ message: "Token and password are required" });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+
+      // Find the reset token
+      const [resetToken] = await db
+        .select()
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, token));
+
+      if (!resetToken) {
+        return res.status(400).json({ message: "Invalid or expired reset link" });
+      }
+
+      // Check if token is expired
+      if (new Date() > new Date(resetToken.expiresAt)) {
+        return res.status(400).json({ message: "Reset link has expired" });
+      }
+
+      // Check if token has been used
+      if (resetToken.used) {
+        return res.status(400).json({ message: "Reset link has already been used" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(resetToken.email);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Update password and mark token as used
+      await db.transaction(async (tx) => {
+        await tx
+          .update(users)
+          .set({ password: hashedPassword })
+          .where(eq(users.id, user.id));
+
+        await tx
+          .update(passwordResetTokens)
+          .set({ used: true })
+          .where(eq(passwordResetTokens.id, resetToken.id));
+      });
+
+      res.json({
+        success: true,
+        message: "Password reset successfully. You can now login with your new password.",
+      });
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Validate reset token
+  app.get("/api/auth/validate-reset-token/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+
+      const [resetToken] = await db
+        .select()
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, token));
+
+      if (!resetToken) {
+        return res.json({ valid: false, message: "Invalid reset link" });
+      }
+
+      if (new Date() > new Date(resetToken.expiresAt)) {
+        return res.json({ valid: false, message: "Reset link has expired" });
+      }
+
+      if (resetToken.used) {
+        return res.json({ valid: false, message: "Reset link has already been used" });
+      }
+
+      res.json({ valid: true });
+    } catch (error: any) {
+      console.error("Validate token error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get all tenants (admin only)
+  app.get("/api/tenants", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const allTenants = await db
+        .select()
+        .from(tenants)
+        .orderBy(desc(tenants.createdAt));
+
+      res.json(allTenants);
+    } catch (error: any) {
+      console.error("Failed to fetch tenants:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get tenant/company name by email for login page
   app.get("/api/tenant-by-email", async (req, res) => {
     try {
@@ -399,6 +762,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!user) {
         return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      // Check if tenant is active (if user has a tenant)
+      if (user.tenantId) {
+        const [tenant] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, user.tenantId));
+
+        if (!tenant) {
+          return res.status(401).json({ message: "Tenant not found" });
+        }
+
+        if (!tenant.isActive) {
+          return res.status(401).json({ message: "Your organization's account is inactive. Please contact support." });
+        }
       }
 
       if (user.status !== "Active") {

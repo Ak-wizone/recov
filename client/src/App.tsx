@@ -36,12 +36,16 @@ import PaymentRiskForecaster from "@/pages/payment-risk-forecaster";
 import RecoveryHealthTest from "@/pages/recovery-health-test";
 import RegisterTenant from "@/pages/register-tenant";
 import TenantRegistrations from "@/pages/tenant-registrations";
+import ForgotPassword from "@/pages/forgot-password";
+import ResetPassword from "@/pages/reset-password";
 
 function Router() {
   return (
     <Switch>
       <Route path="/register-tenant" component={RegisterTenant} />
       <Route path="/login" component={Login} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/reset-password/:token" component={ResetPassword} />
       <Route path="/quotations/:id/print">
         <ProtectedRoute>
           <QuotationPrint />
