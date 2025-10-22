@@ -205,21 +205,22 @@ export default function TenantRegistrations() {
   };
 
   // Create stable handler functions to prevent re-renders
+  // Mutation.mutate functions are stable, so no dependencies needed
   const handleApprove = useCallback((tenantId: string) => {
     approveMutation.mutate(tenantId);
-  }, [approveMutation]);
+  }, []);
 
   const handleToggleStatus = useCallback((tenantId: string) => {
     toggleStatusMutation.mutate(tenantId);
-  }, [toggleStatusMutation]);
+  }, []);
 
   const handleResetPassword = useCallback((tenantId: string) => {
     resetPasswordMutation.mutate(tenantId);
-  }, [resetPasswordMutation]);
+  }, []);
 
   const handleSendCredentials = useCallback((tenantId: string) => {
     sendCredentialsMutation.mutate(tenantId);
-  }, [sendCredentialsMutation]);
+  }, []);
 
   const handleOpenDeleteDialog = useCallback((tenant: TenantRow) => {
     setTenantToDelete(tenant);
@@ -277,7 +278,8 @@ export default function TenantRegistrations() {
     return planLabels[planType] || planType;
   };
 
-  const columns: ColumnDef<TenantRow>[] = [
+  // Wrap columns in useMemo to prevent re-creation on every render
+  const columns = useMemo<ColumnDef<TenantRow>[]>(() => [
     {
       accessorKey: "businessName",
       header: ({ column }) => (
@@ -415,7 +417,7 @@ export default function TenantRegistrations() {
         );
       },
     },
-  ];
+  ], [handleApprove, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, approveMutation.isPending, toggleStatusMutation.isPending, resetPasswordMutation.isPending, sendCredentialsMutation.isPending, deleteTenantMutation.isPending]);
 
   const table = useReactTable({
     data,
