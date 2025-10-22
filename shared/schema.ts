@@ -1396,3 +1396,15 @@ export const insertCommunicationScheduleSchema = createInsertSchema(communicatio
 export type InsertCommunicationSchedule = z.infer<typeof insertCommunicationScheduleSchema>;
 export type CommunicationSchedule = typeof communicationSchedules.$inferSelect;
 
+// Password Reset Tokens table
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+
