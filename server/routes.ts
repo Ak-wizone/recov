@@ -242,7 +242,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send welcome email with credentials
       try {
-        const emailConfig = await storage.getEmailConfig();
+        // Use the new tenant's email config (or null if none set yet)
+        const emailConfig = await storage.getEmailConfig(result.tenant.id);
         
         if (emailConfig) {
           const loginUrl = `${req.protocol}://${req.get('host')}/login`;
@@ -454,8 +455,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      // Fetch fresh user data
-      const user = await storage.getUser(sessionUser.id);
+      // Fetch fresh user data (tenantId can be null for platform admins)
+      const user = await storage.getUser(sessionUser.tenantId || null, sessionUser.id);
       if (!user) {
         return res.status(401).json({ message: "User not found" });
       }
@@ -478,16 +479,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerId = req.params.id;
       
       // Get customer details
-      const customer = await storage.getMasterCustomer(customerId);
+      const customer = await storage.getMasterCustomer(req.tenantId!, customerId);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
 
       // Get all invoices, receipts, and master customers for calculations
       const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
-        storage.getInvoices(),
-        storage.getReceipts(),
-        storage.getMasterCustomers()
+        storage.getInvoices(req.tenantId!),
+        storage.getReceipts(req.tenantId!),
+        storage.getMasterCustomers(req.tenantId!)
       ]);
 
       // Filter customer's invoices and receipts
@@ -627,12 +628,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Business Overview Dashboard Analytics
-  app.get("/api/dashboard/business-overview", async (_req, res) => {
+  app.get("/api/dashboard/business-overview", async (req, res) => {
     try {
       const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
-        storage.getInvoices(),
-        storage.getReceipts(),
-        storage.getMasterCustomers()
+        storage.getInvoices(req.tenantId!),
+        storage.getReceipts(req.tenantId!),
+        storage.getMasterCustomers(req.tenantId!)
       ]);
 
       // Financial Snapshot
@@ -855,12 +856,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Risk Management: Client Risk Thermometer
-  app.get("/api/risk/client-thermometer", async (_req, res) => {
+  app.get("/api/risk/client-thermometer", async (req, res) => {
     try {
       const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
-        storage.getInvoices(),
-        storage.getReceipts(),
-        storage.getMasterCustomers()
+        storage.getInvoices(req.tenantId!),
+        storage.getReceipts(req.tenantId!),
+        storage.getMasterCustomers(req.tenantId!)
       ]);
 
       const today = new Date();
@@ -952,12 +953,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Risk Management: Payment Risk Forecaster
-  app.get("/api/risk/payment-forecaster", async (_req, res) => {
+  app.get("/api/risk/payment-forecaster", async (req, res) => {
     try {
       const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
-        storage.getInvoices(),
-        storage.getReceipts(),
-        storage.getMasterCustomers()
+        storage.getInvoices(req.tenantId!),
+        storage.getReceipts(req.tenantId!),
+        storage.getMasterCustomers(req.tenantId!)
       ]);
 
       const today = new Date();
@@ -1059,12 +1060,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Risk Management: Recovery System Health Test
-  app.get("/api/risk/recovery-health", async (_req, res) => {
+  app.get("/api/risk/recovery-health", async (req, res) => {
     try {
       const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
-        storage.getInvoices(),
-        storage.getReceipts(),
-        storage.getMasterCustomers()
+        storage.getInvoices(req.tenantId!),
+        storage.getReceipts(req.tenantId!),
+        storage.getMasterCustomers(req.tenantId!)
       ]);
 
       const today = new Date();
@@ -1190,14 +1191,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all customers
-  app.get("/api/customers", async (_req, res) => {
+  app.get("/api/customers", async (req, res) => {
     try {
-      const customers = await storage.getCustomers();
+      const customers = await storage.getCustomers(req.tenantId!);
       
       // Fetch the most recent past and next future follow-ups for each customer
       const customersWithFollowUps = await Promise.all(
         customers.map(async (customer) => {
-          const followUps = await storage.getFollowUpsByCustomer(customer.id);
+          const followUps = await storage.getFollowUpsByCustomer(req.tenantId!, customer.id);
           const now = new Date();
           
           // Split follow-ups into past and future
@@ -1274,7 +1275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single customer
   app.get("/api/customers/:id", async (req, res) => {
     try {
-      const customer = await storage.getCustomer(req.params.id);
+      const customer = await storage.getCustomer(req.tenantId!, req.params.id);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -1292,7 +1293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
 
-      const customer = await storage.createCustomer(result.data);
+      const customer = await storage.createCustomer(req.tenantId!, result.data);
       res.status(201).json(customer);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1307,7 +1308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
 
-      const customer = await storage.updateCustomer(req.params.id, result.data);
+      const customer = await storage.updateCustomer(req.tenantId!, req.params.id, result.data);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -1320,7 +1321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete customer
   app.delete("/api/customers/:id", async (req, res) => {
     try {
-      const success = await storage.deleteCustomer(req.params.id);
+      const success = await storage.deleteCustomer(req.tenantId!, req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -1333,7 +1334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get payments for a customer
   app.get("/api/customers/:id/payments", async (req, res) => {
     try {
-      const payments = await storage.getPaymentsByCustomer(req.params.id);
+      const payments = await storage.getPaymentsByCustomer(req.tenantId!, req.params.id);
       res.json(payments);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1348,7 +1349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
 
-      const payment = await storage.createPayment(result.data);
+      const payment = await storage.createPayment(req.tenantId!, result.data);
       res.status(201).json(payment);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1363,7 +1364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
 
-      const payment = await storage.updatePayment(req.params.id, result.data);
+      const payment = await storage.updatePayment(req.tenantId!, req.params.id, result.data);
       if (!payment) {
         return res.status(404).json({ message: "Payment not found" });
       }
@@ -1376,7 +1377,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete payment
   app.delete("/api/payments/:id", async (req, res) => {
     try {
-      const success = await storage.deletePayment(req.params.id);
+      const success = await storage.deletePayment(req.tenantId!, req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Payment not found" });
       }
@@ -1389,7 +1390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get follow-ups for a customer
   app.get("/api/customers/:id/followups", async (req, res) => {
     try {
-      const followUps = await storage.getFollowUpsByCustomer(req.params.id);
+      const followUps = await storage.getFollowUpsByCustomer(req.tenantId!, req.params.id);
       res.json(followUps);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1404,7 +1405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
 
-      const followUp = await storage.createFollowUp(result.data);
+      const followUp = await storage.createFollowUp(req.tenantId!, result.data);
       res.status(201).json(followUp);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1419,7 +1420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
 
-      const followUp = await storage.updateFollowUp(req.params.id, result.data);
+      const followUp = await storage.updateFollowUp(req.tenantId!, req.params.id, result.data);
       if (!followUp) {
         return res.status(404).json({ message: "Follow-up not found" });
       }
@@ -1432,7 +1433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete follow-up
   app.delete("/api/followups/:id", async (req, res) => {
     try {
-      const success = await storage.deleteFollowUp(req.params.id);
+      const success = await storage.deleteFollowUp(req.tenantId!, req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Follow-up not found" });
       }
@@ -1450,7 +1451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid request: ids array required" });
       }
 
-      const count = await storage.deleteCustomers(ids);
+      const count = await storage.deleteCustomers(req.tenantId!, ids);
       res.json({ deleted: count });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1484,7 +1485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (let i = 0; i < customers.length; i++) {
         const result = insertCustomerSchema.safeParse(customers[i]);
         if (result.success) {
-          const customer = await storage.createCustomer(result.data);
+          const customer = await storage.createCustomer(req.tenantId!, result.data);
           results.push(customer);
         } else {
           errors.push({ row: i + 1, error: fromZodError(result.error).message });
@@ -1503,9 +1504,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Excel export
-  app.get("/api/customers/export", async (_req, res) => {
+  app.get("/api/customers/export", async (req, res) => {
     try {
-      const customers = await storage.getCustomers();
+      const customers = await storage.getCustomers(req.tenantId!);
       
       const data = customers.map(customer => ({
         Name: customer.name,
@@ -1534,9 +1535,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== MASTER CUSTOMERS ROUTES ====================
   
   // Get all master customers
-  app.get("/api/masters/customers", async (_req, res) => {
+  app.get("/api/masters/customers", async (req, res) => {
     try {
-      const customers = await storage.getMasterCustomers();
+      const customers = await storage.getMasterCustomers(req.tenantId!);
       res.json(customers);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1547,7 +1548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/masters/customers/by-name/:clientName", async (req, res) => {
     try {
       const clientName = decodeURIComponent(req.params.clientName);
-      const customers = await storage.getMasterCustomers();
+      const customers = await storage.getMasterCustomers(req.tenantId!);
       const customer = customers.find(c => c.clientName.toLowerCase().trim() === clientName.toLowerCase().trim());
       
       if (!customer) {
@@ -1647,9 +1648,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export all master customers to Excel (MUST BE BEFORE /:id)
-  app.get("/api/masters/customers/export", async (_req, res) => {
+  app.get("/api/masters/customers/export", async (req, res) => {
     try {
-      const customers = await storage.getMasterCustomers();
+      const customers = await storage.getMasterCustomers(req.tenantId!);
       
       const data = customers.map(customer => ({
         "CLIENT NAME": customer.clientName,
@@ -1738,7 +1739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const errors = [];
       
       // Get existing customers to check for duplicates
-      const existingCustomers = await storage.getMasterCustomers();
+      const existingCustomers = await storage.getMasterCustomers(req.tenantId!);
       const existingNames = new Set(
         existingCustomers.map(c => c.clientName.toLowerCase().trim())
       );
@@ -1772,7 +1773,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               interestRate: result.data.interestRate || "0",
             } : result.data;
             
-            const customer = await storage.createMasterCustomer(customerData);
+            const customer = await storage.createMasterCustomer(req.tenantId!, customerData);
             results.push(customer);
             // Add to existing names to prevent duplicates within the import batch
             existingNames.add(normalizedName);
@@ -1800,7 +1801,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Array.isArray(ids)) {
         return res.status(400).json({ message: "ids must be an array" });
       }
-      const deleted = await storage.deleteMasterCustomers(ids);
+      const deleted = await storage.deleteMasterCustomers(req.tenantId!, ids);
       res.json({ deleted });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1814,10 +1815,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (interestRate === undefined || interestRate === null) {
         return res.status(400).json({ message: "Interest rate is required" });
       }
-      const customers = await storage.getMasterCustomers();
+      const customers = await storage.getMasterCustomers(req.tenantId!);
       const updates = await Promise.all(
         customers.map(customer => 
-          storage.updateMasterCustomer(customer.id, { interestRate: interestRate.toString() })
+          storage.updateMasterCustomer(req.tenantId!, customer.id, { interestRate: interestRate.toString() })
         )
       );
       res.json({ updated: updates.length, message: "Interest rate updated for all customers" });
@@ -1835,7 +1836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check for duplicate customer name
-      const existingCustomers = await storage.getMasterCustomers();
+      const existingCustomers = await storage.getMasterCustomers(req.tenantId!);
       const normalizedName = result.data.clientName.toLowerCase().trim();
       const duplicate = existingCustomers.find(
         c => c.clientName.toLowerCase().trim() === normalizedName
@@ -1847,7 +1848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const customer = await storage.createMasterCustomer(result.data);
+      const customer = await storage.createMasterCustomer(req.tenantId!, result.data);
       res.json(customer);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1864,7 +1865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If updating clientName, check for duplicates
       if (result.data.clientName) {
-        const existingCustomers = await storage.getMasterCustomers();
+        const existingCustomers = await storage.getMasterCustomers(req.tenantId!);
         const normalizedName = result.data.clientName.toLowerCase().trim();
         const duplicate = existingCustomers.find(
           c => c.id !== req.params.id && c.clientName.toLowerCase().trim() === normalizedName
@@ -1877,7 +1878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const customer = await storage.updateMasterCustomer(req.params.id, result.data);
+      const customer = await storage.updateMasterCustomer(req.tenantId!, req.params.id, result.data);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -1890,7 +1891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete master customer
   app.delete("/api/masters/customers/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteMasterCustomer(req.params.id);
+      const deleted = await storage.deleteMasterCustomer(req.tenantId!, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -1903,7 +1904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single master customer (MUST BE AFTER specific routes)
   app.get("/api/masters/customers/:id", async (req, res) => {
     try {
-      const customer = await storage.getMasterCustomer(req.params.id);
+      const customer = await storage.getMasterCustomer(req.tenantId!, req.params.id);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -1916,9 +1917,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== MASTER ITEMS ROUTES =====
 
   // Get all master items
-  app.get("/api/masters/items", async (_req, res) => {
+  app.get("/api/masters/items", async (req, res) => {
     try {
-      const items = await storage.getMasterItems();
+      const items = await storage.getMasterItems(req.tenantId!);
       res.json(items);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -1972,9 +1973,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export master items (MUST BE BEFORE /:id)
-  app.get("/api/masters/items/export", async (_req, res) => {
+  app.get("/api/masters/items/export", async (req, res) => {
     try {
-      const items = await storage.getMasterItems();
+      const items = await storage.getMasterItems(req.tenantId!);
       
       const data = items.map(item => ({
         "Item Type": item.itemType,
@@ -2036,7 +2037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const errors = [];
       
       // Get existing items to check for duplicates
-      const existingItems = await storage.getMasterItems();
+      const existingItems = await storage.getMasterItems(req.tenantId!);
       const existingNames = new Set(
         existingItems.map(item => item.name.toLowerCase().trim())
       );
@@ -2052,7 +2053,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               error: `Duplicate item name: "${result.data.name}" already exists in database`
             });
           } else {
-            const item = await storage.createMasterItem(result.data);
+            const item = await storage.createMasterItem(req.tenantId!, result.data);
             results.push(item);
             // Add to existing names to prevent duplicates within the import batch
             existingNames.add(normalizedName);
@@ -2080,7 +2081,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Array.isArray(ids)) {
         return res.status(400).json({ message: "ids must be an array" });
       }
-      const deleted = await storage.deleteMasterItems(ids);
+      const deleted = await storage.deleteMasterItems(req.tenantId!, ids);
       res.json({ deleted });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2096,7 +2097,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check for duplicate item name
-      const existingItems = await storage.getMasterItems();
+      const existingItems = await storage.getMasterItems(req.tenantId!);
       const normalizedName = result.data.name.toLowerCase().trim();
       const duplicate = existingItems.find(
         item => item.name.toLowerCase().trim() === normalizedName
@@ -2108,7 +2109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const item = await storage.createMasterItem(result.data);
+      const item = await storage.createMasterItem(req.tenantId!, result.data);
       res.json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2125,7 +2126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If updating name, check for duplicates
       if (result.data.name) {
-        const existingItems = await storage.getMasterItems();
+        const existingItems = await storage.getMasterItems(req.tenantId!);
         const normalizedName = result.data.name.toLowerCase().trim();
         const duplicate = existingItems.find(
           item => item.id !== req.params.id && item.name.toLowerCase().trim() === normalizedName
@@ -2138,7 +2139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const item = await storage.updateMasterItem(req.params.id, result.data);
+      const item = await storage.updateMasterItem(req.tenantId!, req.params.id, result.data);
       if (!item) {
         return res.status(404).json({ message: "Item not found" });
       }
@@ -2151,7 +2152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete master item
   app.delete("/api/masters/items/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteMasterItem(req.params.id);
+      const deleted = await storage.deleteMasterItem(req.tenantId!, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Item not found" });
       }
@@ -2164,7 +2165,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single master item (MUST BE AFTER specific routes)
   app.get("/api/masters/items/:id", async (req, res) => {
     try {
-      const item = await storage.getMasterItem(req.params.id);
+      const item = await storage.getMasterItem(req.tenantId!, req.params.id);
       if (!item) {
         return res.status(404).json({ message: "Item not found" });
       }
@@ -2177,13 +2178,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ===== INVOICE ROUTES =====
 
   // FIFO Allocation Algorithm - Calculate invoice statuses based on receipt allocation
-  async function calculateInvoiceStatuses(customerName: string) {
+  async function calculateInvoiceStatuses(tenantId: string, customerName: string) {
     try {
       // Get all invoices for the customer (ordered by invoice date - oldest first)
-      const customerInvoices = await storage.getInvoicesByCustomerName(customerName);
+      const customerInvoices = await storage.getInvoicesByCustomerName(tenantId, customerName);
       
       // Get all receipts for the customer
-      const customerReceipts = await storage.getReceiptsByCustomerName(customerName);
+      const customerReceipts = await storage.getReceiptsByCustomerName(tenantId, customerName);
       
       // Calculate total receipt amount
       const totalReceiptAmount = customerReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
@@ -2221,9 +2222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Get all invoices
-  app.get("/api/invoices", async (_req, res) => {
+  app.get("/api/invoices", async (req, res) => {
     try {
-      const invoices = await storage.getInvoices();
+      const invoices = await storage.getInvoices(req.tenantId!);
       res.json(invoices);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2235,7 +2236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { dateFilterMode, selectedYear, selectedMonth, dateRangeFrom, dateRangeTo, globalFilter, columnFilters } = req.query;
       
-      let allInvoices = await storage.getInvoices();
+      let allInvoices = await storage.getInvoices(req.tenantId!);
       
       // Apply date filtering based on query parameters
       if (dateFilterMode === "month" && selectedYear && selectedMonth !== undefined) {
@@ -2309,7 +2310,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const invoices = allInvoices;
-      const receipts = await storage.getReceipts();
+      const receipts = await storage.getReceipts(req.tenantId!);
 
       // Group receipts by customer
       const receiptsByCustomer = new Map<string, typeof receipts>();
@@ -2418,9 +2419,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate debtors balance (opening balance + invoices - receipts)
-      const masterCustomers = await storage.getMasterCustomers();
-      const allInvoicesForDebtors = await storage.getInvoices();
-      const allReceiptsForDebtors = await storage.getReceipts();
+      const masterCustomers = await storage.getMasterCustomers(req.tenantId!);
+      const allInvoicesForDebtors = await storage.getInvoices(req.tenantId!);
+      const allReceiptsForDebtors = await storage.getReceipts(req.tenantId!);
       
       let debtorsBalance = 0;
       let debtorsCount = 0;
@@ -2505,9 +2506,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export invoices (MUST BE BEFORE /:id)
-  app.get("/api/invoices/export", async (_req, res) => {
+  app.get("/api/invoices/export", async (req, res) => {
     try {
-      const invoices = await storage.getInvoices();
+      const invoices = await storage.getInvoices(req.tenantId!);
       
       const data = invoices.map(invoice => ({
         "Invoice Number": invoice.invoiceNumber,
@@ -2575,7 +2576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Auto-populate customer details from master customers
         let customerDetails = {};
         if (customerName) {
-          const masterCustomers = await storage.getMasterCustomers();
+          const masterCustomers = await storage.getMasterCustomers(req.tenantId!);
           const customer = masterCustomers.find(c => c.clientName.toLowerCase().trim() === customerName.toLowerCase().trim());
           if (customer) {
             customerDetails = {
@@ -2604,7 +2605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = insertInvoiceSchema.safeParse(invoiceData);
         if (result.success) {
           // Check if invoice number already exists
-          const existingInvoice = await storage.getInvoiceByNumber(result.data.invoiceNumber);
+          const existingInvoice = await storage.getInvoiceByNumber(req.tenantId!, result.data.invoiceNumber);
           if (existingInvoice) {
             duplicates.push({ 
               row: i + 2, 
@@ -2612,7 +2613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               error: `Duplicate invoice number: ${result.data.invoiceNumber}` 
             });
           } else {
-            const invoice = await storage.createInvoice(result.data);
+            const invoice = await storage.createInvoice(req.tenantId!, result.data);
             results.push(invoice);
             // Track unique customer names for FIFO recalculation
             uniqueCustomers.add(invoice.customerName);
@@ -2647,7 +2648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Array.isArray(ids)) {
         return res.status(400).json({ message: "ids must be an array" });
       }
-      const deleted = await storage.deleteInvoices(ids);
+      const deleted = await storage.deleteInvoices(req.tenantId!, ids);
       res.json({ deleted });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2664,13 +2665,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Set initial status to Unpaid
       const invoiceData = { ...result.data, status: "Unpaid" as const };
-      const invoice = await storage.createInvoice(invoiceData);
+      const invoice = await storage.createInvoice(req.tenantId!, invoiceData);
       
       // Recalculate all invoice statuses for this customer using FIFO
       await calculateInvoiceStatuses(invoice.customerName);
       
       // Get the updated invoice with the calculated status
-      const updatedInvoice = await storage.getInvoice(invoice.id);
+      const updatedInvoice = await storage.getInvoice(req.tenantId!, invoice.id);
       
       res.json(updatedInvoice);
     } catch (error: any) {
@@ -2686,7 +2687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
       
-      const invoice = await storage.updateInvoice(req.params.id, result.data);
+      const invoice = await storage.updateInvoice(req.tenantId!, req.params.id, result.data);
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
@@ -2695,7 +2696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await calculateInvoiceStatuses(invoice.customerName);
       
       // Get the updated invoice with the calculated status
-      const updatedInvoice = await storage.getInvoice(invoice.id);
+      const updatedInvoice = await storage.getInvoice(req.tenantId!, invoice.id);
       
       res.json(updatedInvoice);
     } catch (error: any) {
@@ -2706,7 +2707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete invoice
   app.delete("/api/invoices/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteInvoice(req.params.id);
+      const deleted = await storage.deleteInvoice(req.tenantId!, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Invoice not found" });
       }
@@ -2719,7 +2720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single invoice (MUST BE AFTER specific routes)
   app.get("/api/invoices/:id", async (req, res) => {
     try {
-      const invoice = await storage.getInvoice(req.params.id);
+      const invoice = await storage.getInvoice(req.tenantId!, req.params.id);
       if (!invoice) {
         return res.status(404).json({ message: "Invoice not found" });
       }
@@ -2734,7 +2735,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all receipts
   app.get("/api/receipts", async (req, res) => {
     try {
-      const receipts = await storage.getReceipts();
+      const receipts = await storage.getReceipts(req.tenantId!);
       res.json(receipts);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2773,7 +2774,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export receipts to Excel (MUST BE BEFORE /:id)
   app.get("/api/receipts/export", async (req, res) => {
     try {
-      const receipts = await storage.getReceipts();
+      const receipts = await storage.getReceipts(req.tenantId!);
       
       const data = receipts.map((receipt) => ({
         "Voucher Number": receipt.voucherNumber,
@@ -2844,7 +2845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = insertReceiptSchema.safeParse(receiptData);
         if (result.success) {
           // Check if combination of voucherType and voucherNumber already exists
-          const existingReceipt = await storage.getReceiptByVoucherNumber(result.data.voucherType, result.data.voucherNumber);
+          const existingReceipt = await storage.getReceiptByVoucherNumber(req.tenantId!, result.data.voucherType, result.data.voucherNumber);
           if (existingReceipt) {
             duplicates.push({ 
               row: i + 2, 
@@ -2853,7 +2854,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               error: `Duplicate: ${result.data.voucherType} - ${result.data.voucherNumber}` 
             });
           } else {
-            const receipt = await storage.createReceipt(result.data);
+            const receipt = await storage.createReceipt(req.tenantId!, result.data);
             results.push(receipt);
           }
         } else {
@@ -2881,7 +2882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Array.isArray(ids)) {
         return res.status(400).json({ message: "ids must be an array" });
       }
-      const deleted = await storage.deleteReceipts(ids);
+      const deleted = await storage.deleteReceipts(req.tenantId!, ids);
       res.json({ deleted });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2895,7 +2896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const receipt = await storage.createReceipt(result.data);
+      const receipt = await storage.createReceipt(req.tenantId!, result.data);
       
       // Recalculate all invoice statuses for this customer using FIFO
       await calculateInvoiceStatuses(receipt.customerName);
@@ -2913,7 +2914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const receipt = await storage.updateReceipt(req.params.id, result.data);
+      const receipt = await storage.updateReceipt(req.tenantId!, req.params.id, result.data);
       if (!receipt) {
         return res.status(404).json({ message: "Receipt not found" });
       }
@@ -2931,13 +2932,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/receipts/:id", async (req, res) => {
     try {
       // Get the receipt first to know the customer name
-      const receipt = await storage.getReceipt(req.params.id);
+      const receipt = await storage.getReceipt(req.tenantId!, req.params.id);
       if (!receipt) {
         return res.status(404).json({ message: "Receipt not found" });
       }
       
       const customerName = receipt.customerName;
-      const deleted = await storage.deleteReceipt(req.params.id);
+      const deleted = await storage.deleteReceipt(req.tenantId!, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Receipt not found" });
       }
@@ -2954,7 +2955,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single receipt (MUST BE AFTER specific routes)
   app.get("/api/receipts/:id", async (req, res) => {
     try {
-      const receipt = await storage.getReceipt(req.params.id);
+      const receipt = await storage.getReceipt(req.tenantId!, req.params.id);
       if (!receipt) {
         return res.status(404).json({ message: "Receipt not found" });
       }
@@ -2969,7 +2970,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all leads
   app.get("/api/leads", async (req, res) => {
     try {
-      const leads = await storage.getLeads();
+      const leads = await storage.getLeads(req.tenantId!);
       res.json(leads);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3059,7 +3060,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export leads to Excel (MUST BE BEFORE /:id)
   app.get("/api/leads/export", async (req, res) => {
     try {
-      const leads = await storage.getLeads();
+      const leads = await storage.getLeads(req.tenantId!);
       
       const data = leads.map((lead) => ({
         "Company Name": lead.companyName,
@@ -3159,7 +3160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const result = insertLeadSchema.safeParse(leadData);
         if (result.success) {
           // Check for duplicate mobile or email
-          const existingLeads = await storage.getLeads();
+          const existingLeads = await storage.getLeads(req.tenantId!);
           const duplicateMobile = existingLeads.find(
             (existing) => existing.mobile === result.data.mobile
           );
@@ -3180,7 +3181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: `Duplicate entry: Email ${result.data.email} already exists for ${duplicateEmail.companyName}`
             });
           } else {
-            const lead = await storage.createLead(result.data);
+            const lead = await storage.createLead(req.tenantId!, result.data);
             results.push(lead);
           }
         } else {
@@ -3211,7 +3212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Array.isArray(ids)) {
         return res.status(400).json({ message: "ids must be an array" });
       }
-      const deleted = await storage.deleteLeads(ids);
+      const deleted = await storage.deleteLeads(req.tenantId!, ids);
       res.json({ deleted });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3225,7 +3226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const lead = await storage.createLead(result.data);
+      const lead = await storage.createLead(req.tenantId!, result.data);
       res.json(lead);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3239,7 +3240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const lead = await storage.updateLead(req.params.id, result.data);
+      const lead = await storage.updateLead(req.tenantId!, req.params.id, result.data);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -3256,7 +3257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const lead = await storage.updateLead(req.params.id, result.data);
+      const lead = await storage.updateLead(req.tenantId!, req.params.id, result.data);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -3269,7 +3270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete lead
   app.delete("/api/leads/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteLead(req.params.id);
+      const deleted = await storage.deleteLead(req.tenantId!, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -3282,7 +3283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single lead (MUST BE AFTER specific routes)
   app.get("/api/leads/:id", async (req, res) => {
     try {
-      const lead = await storage.getLead(req.params.id);
+      const lead = await storage.getLead(req.tenantId!, req.params.id);
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
@@ -3297,7 +3298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get follow-ups for a specific lead
   app.get("/api/leads/:id/followups", async (req, res) => {
     try {
-      const followUps = await storage.getLeadFollowUpsByLead(req.params.id);
+      const followUps = await storage.getLeadFollowUpsByLead(req.tenantId!, req.params.id);
       res.json(followUps);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3311,7 +3312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const followUp = await storage.createLeadFollowUp(result.data);
+      const followUp = await storage.createLeadFollowUp(req.tenantId!, result.data);
       res.json(followUp);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3325,7 +3326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const followUp = await storage.updateLeadFollowUp(req.params.id, result.data);
+      const followUp = await storage.updateLeadFollowUp(req.tenantId!, req.params.id, result.data);
       if (!followUp) {
         return res.status(404).json({ message: "Follow-up not found" });
       }
@@ -3338,7 +3339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete a lead follow-up
   app.delete("/api/leads/followups/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteLeadFollowUp(req.params.id);
+      const deleted = await storage.deleteLeadFollowUp(req.tenantId!, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Follow-up not found" });
       }
@@ -3367,9 +3368,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get company profile
-  app.get("/api/company-profile", async (_req, res) => {
+  app.get("/api/company-profile", async (req, res) => {
     try {
-      const profile = await storage.getCompanyProfile();
+      const profile = await storage.getCompanyProfile(req.tenantId!);
       res.json(profile || null);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3383,7 +3384,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const profile = await storage.updateCompanyProfile(result.data);
+      const profile = await storage.updateCompanyProfile(req.tenantId!, result.data);
       res.json(profile);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3395,7 +3396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all quotations
   app.get("/api/quotations", async (_req, res) => {
     try {
-      const quotations = await storage.getQuotations();
+      const quotations = await storage.getQuotations(req.tenantId!);
       res.json(quotations);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3405,7 +3406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get next quotation number (must be before :id route)
   app.get("/api/quotations/next-number", async (_req, res) => {
     try {
-      const nextNumber = await storage.getNextQuotationNumber();
+      const nextNumber = await storage.getNextQuotationNumber(req.tenantId!);
       res.json({ quotationNumber: nextNumber });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3415,7 +3416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export quotations to Excel
   app.get("/api/quotations/export", async (_req, res) => {
     try {
-      const quotations = await storage.getQuotations();
+      const quotations = await storage.getQuotations(req.tenantId!);
       
       const exportData = quotations.map((q: any) => ({
         "Quotation Number": q.quotationNumber,
@@ -3448,7 +3449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single quotation
   app.get("/api/quotations/:id", async (req, res) => {
     try {
-      const quotation = await storage.getQuotation(req.params.id);
+      const quotation = await storage.getQuotation(req.tenantId!, req.params.id);
       if (!quotation) {
         return res.status(404).json({ message: "Quotation not found" });
       }
@@ -3461,7 +3462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get quotation items
   app.get("/api/quotations/:id/items", async (req, res) => {
     try {
-      const items = await storage.getQuotationItems(req.params.id);
+      const items = await storage.getQuotationItems(req.tenantId!, req.params.id);
       res.json(items);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3475,7 +3476,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const quotation = await storage.createQuotation(result.data);
+      const quotation = await storage.createQuotation(req.tenantId!, result.data);
       res.status(201).json(quotation);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3492,7 +3493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const item = await storage.createQuotationItem(result.data);
+      const item = await storage.createQuotationItem(req.tenantId!, result.data);
       res.status(201).json(item);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3506,7 +3507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const quotation = await storage.updateQuotation(req.params.id, result.data);
+      const quotation = await storage.updateQuotation(req.tenantId!, req.params.id, result.data);
       if (!quotation) {
         return res.status(404).json({ message: "Quotation not found" });
       }
@@ -3519,7 +3520,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete quotation
   app.delete("/api/quotations/:id", async (req, res) => {
     try {
-      const success = await storage.deleteQuotation(req.params.id);
+      const success = await storage.deleteQuotation(req.tenantId!, req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Quotation not found" });
       }
@@ -3536,7 +3537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!ids || !Array.isArray(ids)) {
         return res.status(400).json({ message: "Invalid request: ids array required" });
       }
-      const count = await storage.deleteQuotations(ids);
+      const count = await storage.deleteQuotations(req.tenantId!, ids);
       res.json({ count });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3546,7 +3547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete all items for a quotation (bulk delete)
   app.delete("/api/quotations/:quotationId/items", async (req, res) => {
     try {
-      const count = await storage.deleteQuotationItems(req.params.quotationId);
+      const count = await storage.deleteQuotationItems(req.tenantId!, req.params.quotationId);
       res.json({ count });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3556,7 +3557,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete quotation item
   app.delete("/api/quotations/:quotationId/items/:itemId", async (req, res) => {
     try {
-      const success = await storage.deleteQuotationItem(req.params.itemId);
+      const success = await storage.deleteQuotationItem(req.tenantId!, req.params.itemId);
       if (!success) {
         return res.status(404).json({ message: "Item not found" });
       }
@@ -3567,9 +3568,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get quotation settings (Terms & Conditions)
-  app.get("/api/quotation-settings", async (_req, res) => {
+  app.get("/api/quotation-settings", async (req, res) => {
     try {
-      const settings = await storage.getQuotationSettings();
+      const settings = await storage.getQuotationSettings(req.tenantId!);
       res.json(settings || { termsAndConditions: "" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3583,7 +3584,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
-      const settings = await storage.updateQuotationSettings(result.data.termsAndConditions);
+      const settings = await storage.updateQuotationSettings(req.tenantId!, result.data.termsAndConditions);
       res.json(settings);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3596,13 +3597,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/quotations/:id/generate-pi", async (req, res) => {
     try {
       // Get the quotation
-      const quotation = await storage.getQuotation(req.params.id);
+      const quotation = await storage.getQuotation(req.tenantId!, req.params.id);
       if (!quotation) {
         return res.status(404).json({ message: "Quotation not found" });
       }
 
       // Check if a PI already exists for this quotation
-      const existingPI = await storage.getProformaInvoiceByQuotationId(req.params.id);
+      const existingPI = await storage.getProformaInvoiceByQuotationId(req.tenantId!, req.params.id);
       if (existingPI) {
         return res.status(400).json({ 
           message: "A Proforma Invoice already exists for this quotation",
@@ -3611,10 +3612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get quotation items
-      const quotationItems = await storage.getQuotationItems(req.params.id);
+      const quotationItems = await storage.getQuotationItems(req.tenantId!, req.params.id);
 
       // Get next PI number
-      const nextNumber = await storage.getNextProformaInvoiceNumber();
+      const nextNumber = await storage.getNextProformaInvoiceNumber(req.tenantId!);
 
       // Calculate due date (30 days from now by default)
       const invoiceDate = new Date();
@@ -3643,7 +3644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
 
-      const proformaInvoice = await storage.createProformaInvoice(result.data);
+      const proformaInvoice = await storage.createProformaInvoice(req.tenantId!, result.data);
 
       // Copy quotation items to proforma invoice items
       for (const item of quotationItems) {
@@ -3662,7 +3663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const itemResult = insertProformaInvoiceItemSchema.safeParse(itemData);
         if (itemResult.success) {
-          await storage.createProformaInvoiceItem(itemResult.data);
+          await storage.createProformaInvoiceItem(req.tenantId!, itemResult.data);
         }
       }
 
@@ -3675,7 +3676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all proforma invoices
   app.get("/api/proforma-invoices", async (_req, res) => {
     try {
-      const invoices = await storage.getProformaInvoices();
+      const invoices = await storage.getProformaInvoices(req.tenantId!);
       res.json(invoices);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3685,7 +3686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get next proforma invoice number
   app.get("/api/proforma-invoices/next-number", async (_req, res) => {
     try {
-      const nextNumber = await storage.getNextProformaInvoiceNumber();
+      const nextNumber = await storage.getNextProformaInvoiceNumber(req.tenantId!);
       res.json({ invoiceNumber: nextNumber });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3695,7 +3696,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single proforma invoice
   app.get("/api/proforma-invoices/:id", async (req, res) => {
     try {
-      const invoice = await storage.getProformaInvoice(req.params.id);
+      const invoice = await storage.getProformaInvoice(req.tenantId!, req.params.id);
       if (!invoice) {
         return res.status(404).json({ message: "Proforma invoice not found" });
       }
@@ -3708,7 +3709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get proforma invoice items
   app.get("/api/proforma-invoices/:id/items", async (req, res) => {
     try {
-      const items = await storage.getProformaInvoiceItems(req.params.id);
+      const items = await storage.getProformaInvoiceItems(req.tenantId!, req.params.id);
       res.json(items);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3718,7 +3719,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete proforma invoice
   app.delete("/api/proforma-invoices/:id", async (req, res) => {
     try {
-      const success = await storage.deleteProformaInvoice(req.params.id);
+      const success = await storage.deleteProformaInvoice(req.tenantId!, req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Proforma invoice not found" });
       }
@@ -3735,7 +3736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ message: "Invalid ids array" });
       }
-      const count = await storage.deleteProformaInvoices(ids);
+      const count = await storage.deleteProformaInvoices(req.tenantId!, ids);
       res.json({ count });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3745,7 +3746,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export proforma invoices to Excel
   app.get("/api/proforma-invoices/export", async (_req, res) => {
     try {
-      const invoices = await storage.getProformaInvoices();
+      const invoices = await storage.getProformaInvoices(req.tenantId!);
       
       const exportData = invoices.map((inv: any) => ({
         "PI Number": inv.invoiceNumber,
@@ -3778,7 +3779,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get debtors list with category-wise breakdown
   app.get("/api/debtors", async (_req, res) => {
     try {
-      const data = await storage.getDebtorsList();
+      const data = await storage.getDebtorsList(req.tenantId!);
       res.json(data);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3788,7 +3789,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get debtors follow-up statistics
   app.get("/api/debtors/followup-stats", async (_req, res) => {
     try {
-      const stats = await storage.getDebtorsFollowUpStats();
+      const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
       res.json(stats);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3799,7 +3800,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/debtors/followups/:customerId", async (req, res) => {
     try {
       const { customerId } = req.params;
-      const followUps = await storage.getDebtorsFollowUpsByCustomer(customerId);
+      const followUps = await storage.getDebtorsFollowUpsByCustomer(req.tenantId!, customerId);
       res.json(followUps);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3816,7 +3817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           errors: validation.error.errors 
         });
       }
-      const followUp = await storage.createDebtorsFollowUp(validation.data);
+      const followUp = await storage.createDebtorsFollowUp(req.tenantId!, validation.data);
       res.status(201).json(followUp);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3827,7 +3828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/debtors/followups/category/:category", async (req, res) => {
     try {
       const { category } = req.params;
-      const followUps = await storage.getDebtorsFollowUpsByCategory(category);
+      const followUps = await storage.getDebtorsFollowUpsByCategory(req.tenantId!, category);
       res.json(followUps);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3839,7 +3840,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get credit management data
   app.get("/api/credit-management", async (_req, res) => {
     try {
-      const data = await storage.getCreditManagementData();
+      const data = await storage.getCreditManagementData(req.tenantId!);
       res.json(data);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3849,7 +3850,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export credit management data to Excel
   app.get("/api/credit-management/export", async (_req, res) => {
     try {
-      const creditData = await storage.getCreditManagementData();
+      const creditData = await storage.getCreditManagementData(req.tenantId!);
       
       const exportData = creditData.map((item: any) => ({
         "Customer Name": item.customerName,
@@ -3879,7 +3880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all roles
   app.get("/api/roles", async (_req, res) => {
     try {
-      const roles = await storage.getRoles();
+      const roles = await storage.getRoles(req.tenantId!);
       res.json(roles);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3919,7 +3920,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export roles
   app.get("/api/roles/export", async (_req, res) => {
     try {
-      const roles = await storage.getRoles();
+      const roles = await storage.getRoles(req.tenantId!);
       const exportData = roles.map(role => ({
         Name: role.name,
         Description: role.description || "",
@@ -3975,7 +3976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single role
   app.get("/api/roles/:id", async (req, res) => {
     try {
-      const role = await storage.getRole(req.params.id);
+      const role = await storage.getRole(req.tenantId!, req.params.id);
       if (!role) {
         return res.status(404).json({ message: "Role not found" });
       }
@@ -3993,7 +3994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const role = await storage.createRole(validation.data);
+      const role = await storage.createRole(req.tenantId!, validation.data);
       res.status(201).json(role);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4008,7 +4009,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const role = await storage.updateRole(req.params.id, validation.data);
+      const role = await storage.updateRole(req.tenantId!, req.params.id, validation.data);
       if (!role) {
         return res.status(404).json({ message: "Role not found" });
       }
@@ -4021,7 +4022,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete role
   app.delete("/api/roles/:id", async (req, res) => {
     try {
-      const success = await storage.deleteRole(req.params.id);
+      const success = await storage.deleteRole(req.tenantId!, req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Role not found" });
       }
@@ -4039,7 +4040,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid IDs array" });
       }
 
-      const count = await storage.bulkDeleteRoles(ids);
+      const count = await storage.bulkDeleteRoles(req.tenantId!, ids);
       res.json({ message: `Successfully deleted ${count} roles`, count });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4051,7 +4052,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all users
   app.get("/api/users", async (_req, res) => {
     try {
-      const users = await storage.getUsers();
+      const users = await storage.getUsers(req.tenantId!);
       res.json(users);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4095,7 +4096,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export users
   app.get("/api/users/export", async (_req, res) => {
     try {
-      const users = await storage.getUsers();
+      const users = await storage.getUsers(req.tenantId!);
       const exportData = users.map(user => ({
         Name: user.name,
         Email: user.email,
@@ -4131,7 +4132,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const worksheet = workbook.Sheets[sheetName];
       const data = XLSX.utils.sheet_to_json(worksheet);
 
-      const allRoles = await storage.getRoles();
+      const allRoles = await storage.getRoles(req.tenantId!);
 
       const users = data.map((row: any) => {
         const roleName = row.Role || row.role;
@@ -4162,7 +4163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single user
   app.get("/api/users/:id", async (req, res) => {
     try {
-      const user = await storage.getUser(req.params.id);
+      const user = await storage.getUser(req.tenantId!, req.params.id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -4180,7 +4181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const user = await storage.createUser(validation.data);
+      const user = await storage.createUser(req.tenantId!, validation.data);
       res.status(201).json(user);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4195,7 +4196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const user = await storage.updateUser(req.params.id, validation.data);
+      const user = await storage.updateUser(req.tenantId!, req.params.id, validation.data);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -4208,7 +4209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete user
   app.delete("/api/users/:id", async (req, res) => {
     try {
-      const success = await storage.deleteUser(req.params.id);
+      const success = await storage.deleteUser(req.tenantId!, req.params.id);
       if (!success) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -4226,7 +4227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid IDs array" });
       }
 
-      const count = await storage.bulkDeleteUsers(ids);
+      const count = await storage.bulkDeleteUsers(req.tenantId!, ids);
       res.json({ message: `Successfully deleted ${count} users`, count });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4238,7 +4239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current email configuration (without sensitive data)
   app.get("/api/email-config", async (req, res) => {
     try {
-      const config = await storage.getEmailConfig();
+      const config = await storage.getEmailConfig(req.tenantId!);
       if (!config) {
         return res.json(null);
       }
@@ -4258,13 +4259,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const existingConfig = await storage.getEmailConfig();
+      const existingConfig = await storage.getEmailConfig(req.tenantId!);
       let config;
       
       if (existingConfig) {
-        config = await storage.updateEmailConfig(existingConfig.id, validation.data);
+        config = await storage.updateEmailConfig(req.tenantId!, existingConfig.id, validation.data);
       } else {
-        config = await storage.createEmailConfig(validation.data);
+        config = await storage.createEmailConfig(req.tenantId!, validation.data);
       }
 
       if (!config) {
@@ -4286,7 +4287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const config = await storage.updateEmailConfig(req.params.id, validation.data);
+      const config = await storage.updateEmailConfig(req.tenantId!, req.params.id, validation.data);
       if (!config) {
         return res.status(404).json({ message: "Email configuration not found" });
       }
@@ -4306,7 +4307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Test email address is required" });
       }
 
-      const config = await storage.getEmailConfig();
+      const config = await storage.getEmailConfig(req.tenantId!);
       if (!config) {
         return res.status(400).json({ message: "No email configuration found" });
       }
@@ -4362,7 +4363,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send('<html><body><h1>Error: Failed to get tokens</h1><p>Please close this window and try again.</p></body></html>');
       }
 
-      const existingConfig = await storage.getEmailConfig();
+      // For OAuth callback, we need to get tenantId from state or session
+      const sessionUser = (req.session as any).user;
+      const tenantId = sessionUser?.tenantId || null;
+      
+      const existingConfig = await storage.getEmailConfig(tenantId);
       const configData: any = {
         provider: "gmail" as const,
         fromEmail: existingConfig?.fromEmail || "",
@@ -4374,9 +4379,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       if (existingConfig) {
-        await storage.updateEmailConfig(existingConfig.id, configData);
+        await storage.updateEmailConfig(tenantId, existingConfig.id, configData);
       } else {
-        await storage.createEmailConfig(configData);
+        await storage.createEmailConfig(tenantId, configData);
       }
 
       res.send(`
@@ -4457,7 +4462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all email templates
   app.get("/api/email-templates", async (req, res) => {
     try {
-      const templates = await storage.getEmailTemplates();
+      const templates = await storage.getEmailTemplates(req.tenantId!);
       res.json(templates);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4467,7 +4472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get templates for specific module
   app.get("/api/email-templates/module/:module", async (req, res) => {
     try {
-      const templates = await storage.getEmailTemplatesByModule(req.params.module);
+      const templates = await storage.getEmailTemplatesByModule(req.tenantId!, req.params.module);
       res.json(templates);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4477,7 +4482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single template
   app.get("/api/email-templates/:id", async (req, res) => {
     try {
-      const template = await storage.getEmailTemplate(req.params.id);
+      const template = await storage.getEmailTemplate(req.tenantId!, req.params.id);
       if (!template) {
         return res.status(404).json({ message: "Email template not found" });
       }
@@ -4495,7 +4500,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const template = await storage.createEmailTemplate(validation.data);
+      const template = await storage.createEmailTemplate(req.tenantId!, validation.data);
       res.status(201).json(template);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4510,7 +4515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const template = await storage.updateEmailTemplate(req.params.id, validation.data);
+      const template = await storage.updateEmailTemplate(req.tenantId!, req.params.id, validation.data);
       if (!template) {
         return res.status(404).json({ message: "Email template not found" });
       }
@@ -4523,7 +4528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete template
   app.delete("/api/email-templates/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteEmailTemplate(req.params.id);
+      const deleted = await storage.deleteEmailTemplate(req.tenantId!, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Email template not found" });
       }
@@ -4544,7 +4549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Recipient email address is required" });
       }
 
-      const config = await storage.getEmailConfig();
+      const config = await storage.getEmailConfig(req.tenantId!);
       if (!config) {
         return res.status(400).json({ message: "No email configuration found. Please configure email settings first." });
       }
@@ -4557,14 +4562,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Enrich data for quotation emails
       if (quotationId) {
-        const quotation = await storage.getQuotation(quotationId);
+        const quotation = await storage.getQuotation(req.tenantId!, quotationId);
         if (!quotation) {
           return res.status(404).json({ message: "Quotation not found" });
         }
 
-        const items = await storage.getQuotationItems(quotationId);
-        const companyProfile = await storage.getCompanyProfile();
-        const quotationSettings = await storage.getQuotationSettings();
+        const items = await storage.getQuotationItems(req.tenantId!, quotationId);
+        const companyProfile = await storage.getCompanyProfile(req.tenantId!);
+        const quotationSettings = await storage.getQuotationSettings(req.tenantId!);
 
         // Format items table HTML
         const itemsHtml = items.map((item, index) => {
@@ -4643,13 +4648,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Enrich data for invoice emails
       if (invoiceId) {
-        const invoice = await storage.getInvoice(invoiceId);
+        const invoice = await storage.getInvoice(req.tenantId!, invoiceId);
         if (!invoice) {
           return res.status(404).json({ message: "Invoice not found" });
         }
 
-        const companyProfile = await storage.getCompanyProfile();
-        const quotationSettings = await storage.getQuotationSettings();
+        const companyProfile = await storage.getCompanyProfile(req.tenantId!);
+        const quotationSettings = await storage.getQuotationSettings(req.tenantId!);
 
         // Convert amount to words (simple implementation)
         const numberToWords = (num: number): string => {
@@ -4707,12 +4712,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Enrich data for receipt emails
       if (receiptId) {
-        const receipt = await storage.getReceipt(receiptId);
+        const receipt = await storage.getReceipt(req.tenantId!, receiptId);
         if (!receipt) {
           return res.status(404).json({ message: "Receipt not found" });
         }
 
-        const companyProfile = await storage.getCompanyProfile();
+        const companyProfile = await storage.getCompanyProfile(req.tenantId!);
 
         // Convert amount to words (simple implementation)
         const numberToWords = (num: number): string => {
@@ -4764,7 +4769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let emailBody: string;
 
       if (templateId) {
-        const template = await storage.getEmailTemplate(templateId);
+        const template = await storage.getEmailTemplate(req.tenantId!, templateId);
         if (!template) {
           return res.status(404).json({ message: "Email template not found" });
         }
@@ -4798,7 +4803,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get Ringg.ai configuration
   app.get("/api/ringg-config", async (req, res) => {
     try {
-      const config = await storage.getRinggConfig();
+      const config = await storage.getRinggConfig(req.tenantId!);
       if (!config) {
         return res.status(404).json({ message: "Ringg.ai configuration not found" });
       }
@@ -4816,7 +4821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const existingConfig = await storage.getRinggConfig();
+      const existingConfig = await storage.getRinggConfig(req.tenantId!);
       const webhookUrl = `${process.env.REPLIT_DOMAINS || 'localhost'}/api/calls/webhook`;
       
       const configData = {
@@ -4826,9 +4831,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let config;
       if (existingConfig) {
-        config = await storage.updateRinggConfig(existingConfig.id, configData);
+        config = await storage.updateRinggConfig(req.tenantId!, existingConfig.id, configData);
       } else {
-        config = await storage.createRinggConfig(configData);
+        config = await storage.createRinggConfig(req.tenantId!, configData);
       }
 
       res.json(config);
@@ -4852,7 +4857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         webhookUrl,
       };
 
-      const config = await storage.updateRinggConfig(req.params.id, configData);
+      const config = await storage.updateRinggConfig(req.tenantId!, req.params.id, configData);
       if (!config) {
         return res.status(404).json({ message: "Ringg.ai configuration not found" });
       }
@@ -4882,7 +4887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all call script mappings
   app.get("/api/ringg-scripts", async (req, res) => {
     try {
-      const mappings = await storage.getCallScriptMappings();
+      const mappings = await storage.getCallScriptMappings(req.tenantId!);
       res.json(mappings);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4892,7 +4897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get script mappings by module
   app.get("/api/ringg-scripts/module/:module", async (req, res) => {
     try {
-      const mappings = await storage.getCallScriptMappingsByModule(req.params.module);
+      const mappings = await storage.getCallScriptMappingsByModule(req.tenantId!, req.params.module);
       res.json(mappings);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4907,7 +4912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const mapping = await storage.createCallScriptMapping(validation.data);
+      const mapping = await storage.createCallScriptMapping(req.tenantId!, validation.data);
       res.status(201).json(mapping);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4922,7 +4927,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const mapping = await storage.updateCallScriptMapping(req.params.id, validation.data);
+      const mapping = await storage.updateCallScriptMapping(req.tenantId!, req.params.id, validation.data);
       if (!mapping) {
         return res.status(404).json({ message: "Script mapping not found" });
       }
@@ -4935,7 +4940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete script mapping
   app.delete("/api/ringg-scripts/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteCallScriptMapping(req.params.id);
+      const deleted = await storage.deleteCallScriptMapping(req.tenantId!, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Script mapping not found" });
       }
@@ -4956,14 +4961,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const config = await storage.getRinggConfig();
+      const config = await storage.getRinggConfig(req.tenantId!);
       if (!config) {
         return res.status(400).json({ 
           message: "Ringg.ai configuration not found. Please configure Ringg.ai settings first." 
         });
       }
 
-      const scriptMapping = await storage.getCallScriptMapping(scriptId);
+      const scriptMapping = await storage.getCallScriptMapping(req.tenantId!, scriptId);
       if (!scriptMapping) {
         return res.status(400).json({ 
           message: "Script mapping not found. Please check your script configuration." 
@@ -4980,7 +4985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      const callLog = await storage.createCallLog({
+      const callLog = await storage.createCallLog(req.tenantId!, {
         customerName,
         phoneNumber,
         module,
@@ -5004,7 +5009,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!callResult.success) {
-        await storage.updateCallLog(callLog.id, {
+        await storage.updateCallLog(req.tenantId!, callLog.id, {
           status: "failed",
           outcome: callResult.message || "Failed to trigger call",
         });
@@ -5013,7 +5018,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const updatedLog = await storage.updateCallLog(callLog.id, {
+      const updatedLog = await storage.updateCallLog(req.tenantId!, callLog.id, {
         ringgCallId: callResult.callId,
       });
 
@@ -5043,6 +5048,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (transcript) updateData.transcript = transcript;
       if (outcome) updateData.outcome = outcome;
 
+      // Webhook doesn't have req.tenantId, so we need to handle this differently
+      // For now, update by ringgCallId only (the method will need to handle cross-tenant lookup)
       const updatedLog = await storage.updateCallLogByRinggId(ringgCallId, updateData);
       
       if (!updatedLog) {
@@ -5062,11 +5069,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let logs;
       if (module) {
-        logs = await storage.getCallLogsByModule(module as string);
+        logs = await storage.getCallLogsByModule(req.tenantId!, module as string);
       } else if (customerId) {
-        logs = await storage.getCallLogsByCustomer(customerId as string);
+        logs = await storage.getCallLogsByCustomer(req.tenantId!, customerId as string);
       } else {
-        logs = await storage.getCallLogs();
+        logs = await storage.getCallLogs(req.tenantId!);
       }
 
       res.json(logs);
@@ -5078,7 +5085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single call log
   app.get("/api/calls/:id", async (req, res) => {
     try {
-      const log = await storage.getCallLog(req.params.id);
+      const log = await storage.getCallLog(req.tenantId!, req.params.id);
       if (!log) {
         return res.status(404).json({ message: "Call log not found" });
       }
@@ -5093,7 +5100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get WhatsApp configuration
   app.get("/api/whatsapp-config", async (req, res) => {
     try {
-      const config = await storage.getWhatsappConfig();
+      const config = await storage.getWhatsappConfig(req.tenantId!);
       res.json(config);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -5108,7 +5115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const config = await storage.saveWhatsappConfig(validation.data);
+      const config = await storage.saveWhatsappConfig(req.tenantId!, validation.data);
       res.json(config);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -5118,7 +5125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test WhatsApp connection
   app.post("/api/whatsapp-config/test", async (req, res) => {
     try {
-      const config = await storage.getWhatsappConfig();
+      const config = await storage.getWhatsappConfig(req.tenantId!);
       if (!config) {
         return res.status(400).json({ message: "No WhatsApp configuration found" });
       }
@@ -5145,9 +5152,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let templates;
       
       if (module) {
-        templates = await storage.getWhatsappTemplatesByModule(module as string);
+        templates = await storage.getWhatsappTemplatesByModule(req.tenantId!, module as string);
       } else {
-        templates = await storage.getWhatsappTemplates();
+        templates = await storage.getWhatsappTemplates(req.tenantId!);
       }
       
       res.json(templates);
@@ -5160,7 +5167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get single WhatsApp template
   app.get("/api/whatsapp-templates/:id", async (req, res) => {
     try {
-      const template = await storage.getWhatsappTemplate(req.params.id);
+      const template = await storage.getWhatsappTemplate(req.tenantId!, req.params.id);
       if (!template) {
         return res.status(404).json({ message: "WhatsApp template not found" });
       }
@@ -5178,7 +5185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const template = await storage.createWhatsappTemplate(validation.data);
+      const template = await storage.createWhatsappTemplate(req.tenantId!, validation.data);
       res.json(template);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -5193,7 +5200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const template = await storage.updateWhatsappTemplate(req.params.id, validation.data);
+      const template = await storage.updateWhatsappTemplate(req.tenantId!, req.params.id, validation.data);
       if (!template) {
         return res.status(404).json({ message: "WhatsApp template not found" });
       }
@@ -5206,7 +5213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete WhatsApp template
   app.delete("/api/whatsapp-templates/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteWhatsappTemplate(req.params.id);
+      const deleted = await storage.deleteWhatsappTemplate(req.tenantId!, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "WhatsApp template not found" });
       }
@@ -5227,7 +5234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Recipient phone number is required" });
       }
 
-      const config = await storage.getWhatsappConfig();
+      const config = await storage.getWhatsappConfig(req.tenantId!);
       if (!config) {
         return res.status(400).json({ message: "No WhatsApp configuration found. Please configure WhatsApp settings first." });
       }
@@ -5240,12 +5247,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Enrich data for quotation WhatsApp messages
       if (quotationId) {
-        const quotation = await storage.getQuotation(quotationId);
+        const quotation = await storage.getQuotation(req.tenantId!, quotationId);
         if (!quotation) {
           return res.status(404).json({ message: "Quotation not found" });
         }
 
-        const companyProfile = await storage.getCompanyProfile();
+        const companyProfile = await storage.getCompanyProfile(req.tenantId!);
         
         enrichedData = {
           ...enrichedData,
@@ -5259,12 +5266,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Enrich data for invoice WhatsApp messages
       if (invoiceId) {
-        const invoice = await storage.getInvoice(invoiceId);
+        const invoice = await storage.getInvoice(req.tenantId!, invoiceId);
         if (!invoice) {
           return res.status(404).json({ message: "Invoice not found" });
         }
 
-        const companyProfile = await storage.getCompanyProfile();
+        const companyProfile = await storage.getCompanyProfile(req.tenantId!);
         
         enrichedData = {
           ...enrichedData,
@@ -5278,12 +5285,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Enrich data for receipt WhatsApp messages
       if (receiptId) {
-        const receipt = await storage.getReceipt(receiptId);
+        const receipt = await storage.getReceipt(req.tenantId!, receiptId);
         if (!receipt) {
           return res.status(404).json({ message: "Receipt not found" });
         }
 
-        const companyProfile = await storage.getCompanyProfile();
+        const companyProfile = await storage.getCompanyProfile(req.tenantId!);
         
         enrichedData = {
           ...enrichedData,
@@ -5300,7 +5307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // If templateId is provided, get the template and render it
       if (templateId) {
-        const template = await storage.getWhatsappTemplate(templateId);
+        const template = await storage.getWhatsappTemplate(req.tenantId!, templateId);
         if (!template) {
           return res.status(404).json({ message: "WhatsApp template not found" });
         }
@@ -5337,9 +5344,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let schedules;
       
       if (module) {
-        schedules = await storage.getCommunicationSchedulesByModule(module as string);
+        schedules = await storage.getCommunicationSchedulesByModule(req.tenantId!, module as string);
       } else {
-        schedules = await storage.getCommunicationSchedules();
+        schedules = await storage.getCommunicationSchedules(req.tenantId!);
       }
       
       res.json(schedules);
@@ -5350,7 +5357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/schedules/:id", async (req, res) => {
     try {
-      const schedule = await storage.getCommunicationSchedule(req.params.id);
+      const schedule = await storage.getCommunicationSchedule(req.tenantId!, req.params.id);
       if (!schedule) {
         return res.status(404).json({ message: "Schedule not found" });
       }
@@ -5362,7 +5369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/schedules", async (req, res) => {
     try {
-      const schedule = await storage.createCommunicationSchedule(req.body);
+      const schedule = await storage.createCommunicationSchedule(req.tenantId!, req.body);
       res.status(201).json(schedule);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -5371,7 +5378,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/schedules/:id", async (req, res) => {
     try {
-      const schedule = await storage.updateCommunicationSchedule(req.params.id, req.body);
+      const schedule = await storage.updateCommunicationSchedule(req.tenantId!, req.params.id, req.body);
       if (!schedule) {
         return res.status(404).json({ message: "Schedule not found" });
       }
@@ -5383,7 +5390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/schedules/:id", async (req, res) => {
     try {
-      const deleted = await storage.deleteCommunicationSchedule(req.params.id);
+      const deleted = await storage.deleteCommunicationSchedule(req.tenantId!, req.params.id);
       if (!deleted) {
         return res.status(404).json({ message: "Schedule not found" });
       }
