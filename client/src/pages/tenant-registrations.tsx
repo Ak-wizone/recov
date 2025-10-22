@@ -417,7 +417,7 @@ export default function TenantRegistrations() {
         );
       },
     },
-  ], [handleApprove, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, approveMutation.isPending, toggleStatusMutation.isPending, resetPasswordMutation.isPending, sendCredentialsMutation.isPending, deleteTenantMutation.isPending]);
+  ], [handleApprove, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog]);
 
   const table = useReactTable({
     data,
