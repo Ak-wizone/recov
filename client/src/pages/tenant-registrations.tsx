@@ -287,27 +287,47 @@ export default function TenantRegistrations() {
   };
 
   // Export to Excel
-  const handleExport = () => {
-    const exportData = data.map(row => ({
-      "Business Name": row.businessName,
-      "Email": row.email,
-      "City": row.city,
-      "Plan Type": getPlanTypeLabel(row.planType),
-      "Status": row.status,
-      "Created Date": format(new Date(row.createdAt), "PPpp"),
-      "Reviewed Date": row.reviewedAt ? format(new Date(row.reviewedAt), "PPpp") : "N/A",
-      "Type": row.isRegistrationRequest ? "Registration Request" : "Active Tenant",
-    }));
+  const handleExport = async () => {
+    try {
+      toast({
+        title: "Preparing Export",
+        description: "Generating Excel file...",
+      });
 
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Registrations");
-    XLSX.writeFile(wb, `tenant-registrations-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+      // Use setTimeout to prevent UI blocking
+      await new Promise<void>((resolve) => {
+        setTimeout(() => {
+          const exportData = data.map(row => ({
+            "Business Name": row.businessName,
+            "Email": row.email,
+            "City": row.city,
+            "Plan Type": getPlanTypeLabel(row.planType),
+            "Status": row.status,
+            "Created Date": format(new Date(row.createdAt), "PPpp"),
+            "Reviewed Date": row.reviewedAt ? format(new Date(row.reviewedAt), "PPpp") : "N/A",
+            "Type": row.isRegistrationRequest ? "Registration Request" : "Active Tenant",
+          }));
 
-    toast({
-      title: "Export Successful",
-      description: "Tenant registrations exported to Excel",
-    });
+          const ws = XLSX.utils.json_to_sheet(exportData);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Registrations");
+          XLSX.writeFile(wb, `tenant-registrations-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+          
+          resolve();
+        }, 100);
+      });
+
+      toast({
+        title: "Export Successful",
+        description: "Tenant registrations exported to Excel",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Failed to export data to Excel",
+        variant: "destructive",
+      });
+    }
   };
 
   const columns: ColumnDef<TenantRow>[] = [
