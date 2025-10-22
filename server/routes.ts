@@ -32,6 +32,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
 
+      // Check for duplicate email in registration requests
+      const [existingRequest] = await db
+        .select()
+        .from(registrationRequests)
+        .where(eq(registrationRequests.email, result.data.email));
+
+      if (existingRequest) {
+        return res.status(400).json({ 
+          message: `A registration request with email ${result.data.email} already exists` 
+        });
+      }
+
+      // Check for duplicate email in tenants
+      const [existingTenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.email, result.data.email));
+
+      if (existingTenant) {
+        return res.status(400).json({ 
+          message: `A tenant with email ${result.data.email} already exists` 
+        });
+      }
+
       // Store file upload if provided
       let paymentReceiptUrl = null;
       if (req.file) {
@@ -702,6 +726,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(allTenants);
     } catch (error: any) {
       console.error("Failed to fetch tenants:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk import tenant registrations (admin only)
+  app.post("/api/registration-requests/bulk-import", adminOnlyMiddleware, upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      const results = {
+        success: [] as any[],
+        errors: [] as any[],
+      };
+
+      for (const [index, row] of jsonData.entries()) {
+        try {
+          const rowData: any = row;
+          const registrationData = {
+            businessName: rowData["Business Name"],
+            email: rowData["Email"],
+            businessAddress: rowData["Business Address"],
+            city: rowData["City"],
+            state: rowData["State"],
+            pincode: rowData["Pincode"],
+            panNumber: rowData["PAN Number"],
+            gstNumber: rowData["GST Number"],
+            industryType: rowData["Industry Type"],
+            planType: rowData["Plan Type"],
+            existingAccountingSoftware: rowData["Existing Accounting Software"],
+            paymentMethod: rowData["Payment Method"],
+          };
+
+          // Validate data
+          const result = insertRegistrationRequestSchema.safeParse(registrationData);
+          if (!result.success) {
+            const error = fromZodError(result.error);
+            results.errors.push({
+              row: index + 2, // Excel row number (1-indexed + header)
+              email: registrationData.email,
+              error: error.message,
+            });
+            continue;
+          }
+
+          // Check for duplicate email in registration requests
+          const [existingRequest] = await db
+            .select()
+            .from(registrationRequests)
+            .where(eq(registrationRequests.email, result.data.email));
+
+          if (existingRequest) {
+            results.errors.push({
+              row: index + 2,
+              email: result.data.email,
+              error: `Duplicate email: Registration request already exists`,
+            });
+            continue;
+          }
+
+          // Check for duplicate email in tenants
+          const [existingTenant] = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.email, result.data.email));
+
+          if (existingTenant) {
+            results.errors.push({
+              row: index + 2,
+              email: result.data.email,
+              error: `Duplicate email: Tenant already exists`,
+            });
+            continue;
+          }
+
+          // Create registration request
+          const [request] = await db
+            .insert(registrationRequests)
+            .values(result.data)
+            .returning();
+
+          results.success.push({
+            row: index + 2,
+            email: result.data.email,
+            id: request.id,
+          });
+        } catch (error: any) {
+          results.errors.push({
+            row: index + 2,
+            email: (row as any)["Email"] || "Unknown",
+            error: error.message,
+          });
+        }
+      }
+
+      res.json({
+        totalRows: jsonData.length,
+        successCount: results.success.length,
+        errorCount: results.errors.length,
+        success: results.success,
+        errors: results.errors,
+      });
+    } catch (error: any) {
+      console.error("Bulk import error:", error);
       res.status(500).json({ message: error.message });
     }
   });
