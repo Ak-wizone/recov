@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
+import { ImportModal } from "@/components/import-modal";
 
 interface TenantRow {
   id: string;
@@ -77,7 +78,7 @@ export default function TenantRegistrations() {
   const [, setLocation] = useLocation();
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [isImporting, setIsImporting] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 
   // Individual column filters
   const [businessNameFilter, setBusinessNameFilter] = useState("");
@@ -306,94 +307,6 @@ export default function TenantRegistrations() {
       title: "Export Successful",
       description: "Tenant registrations exported to Excel",
     });
-  };
-
-  // Download sample template
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        "Business Name": "Example Company Ltd",
-        "Email": "example@company.com",
-        "Business Address": "123 Main Street",
-        "City": "Mumbai",
-        "State": "Maharashtra",
-        "Pincode": "400001",
-        "PAN Number": "ABCDE1234F",
-        "GST Number": "27ABCDE1234F1Z5",
-        "Industry Type": "IT Services",
-        "Plan Type": "6_months_demo",
-        "Existing Accounting Software": "Tally",
-        "Payment Method": "qr_code",
-      },
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
-    XLSX.writeFile(wb, "tenant-registration-template.xlsx");
-
-    toast({
-      title: "Template Downloaded",
-      description: "Fill the template and upload to import registrations",
-    });
-  };
-
-  // Handle Excel import
-  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsImporting(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/registration-requests/bulk-import", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || "Import failed");
-      }
-
-      // Show detailed results
-      toast({
-        title: "Import Complete",
-        description: `Successfully imported ${result.successCount} of ${result.totalRows} registrations. ${result.errorCount} errors.`,
-        variant: result.errorCount > 0 ? "destructive" : "default",
-      });
-
-      // If there are errors, show them in a detailed toast
-      if (result.errorCount > 0) {
-        const errorDetails = result.errors.slice(0, 5).map((e: any) => 
-          `Row ${e.row} (${e.email}): ${e.error}`
-        ).join("\n");
-        
-        toast({
-          title: "Import Errors",
-          description: errorDetails + (result.errors.length > 5 ? `\n...and ${result.errors.length - 5} more errors` : ""),
-          variant: "destructive",
-        });
-      }
-
-      // Refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/registration-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tenants'] });
-    } catch (error: any) {
-      toast({
-        title: "Import Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsImporting(false);
-      // Reset file input
-      event.target.value = "";
-    }
   };
 
   const columns: ColumnDef<TenantRow>[] = [
@@ -701,28 +614,12 @@ export default function TenantRegistrations() {
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={handleDownloadTemplate}
-            data-testid="button-download-template"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Download Template
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => document.getElementById('import-file-input')?.click()}
-            disabled={isImporting}
+            onClick={() => setIsImportDialogOpen(true)}
             data-testid="button-import"
           >
             <Upload className="w-4 h-4 mr-2" />
-            {isImporting ? "Importing..." : "Import from Excel"}
+            Import from Excel
           </Button>
-          <input
-            id="import-file-input"
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={handleImport}
-            className="hidden"
-          />
           <Button
             variant="outline"
             onClick={handleExport}
@@ -893,6 +790,13 @@ export default function TenantRegistrations() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Import Modal */}
+      <ImportModal
+        open={isImportDialogOpen}
+        onOpenChange={setIsImportDialogOpen}
+        module="registrations"
+      />
     </div>
   );
 }

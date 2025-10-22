@@ -811,6 +811,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Download tenant registration template (admin only)
+  app.get("/api/registration-requests/template", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const XLSX = await import('xlsx');
+      
+      const templateData = [
+        {
+          "Business Name": "Example Company Ltd",
+          "Email": "example@company.com",
+          "Business Address": "123 Main Street",
+          "City": "Mumbai",
+          "State": "Maharashtra",
+          "Pincode": "400001",
+          "PAN Number": "ABCDE1234F",
+          "GST Number": "27ABCDE1234F1Z5",
+          "Industry Type": "IT Services",
+          "Plan Type": "6_months_demo",
+          "Existing Accounting Software": "Tally",
+          "Payment Method": "qr_code",
+        },
+      ];
+
+      const worksheet = XLSX.utils.json_to_sheet(templateData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
+
+      const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+      res.setHeader('Content-Disposition', 'attachment; filename=tenant-registration-template.xlsx');
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.send(excelBuffer);
+    } catch (error: any) {
+      console.error("Failed to generate template:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Bulk import tenant registrations (admin only)
   app.post("/api/registration-requests/bulk-import", adminOnlyMiddleware, upload.single("file"), async (req, res) => {
     try {
