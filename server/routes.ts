@@ -231,6 +231,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .returning();
 
+        // Create company profile with registration data
+        await tx
+          .insert(companyProfile)
+          .values({
+            tenantId: tenant.id,
+            legalName: request.businessName,
+            entityType: "Private Limited", // Default
+            gstin: request.gstNumber || null,
+            pan: request.panNumber || null,
+            regAddressLine1: request.businessAddress,
+            regCity: request.city,
+            regState: request.state || "",
+            regPincode: request.pincode,
+            primaryContactName: request.businessName + " Admin",
+            primaryContactEmail: request.email,
+            primaryContactMobile: "0000000000", // Placeholder
+            email: request.email,
+            industryType: request.industryType || null,
+            planType: request.planType,
+          });
+
         // Update registration request
         await tx
           .update(registrationRequests)
@@ -705,6 +726,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(allTenants);
     } catch (error: any) {
       console.error("Failed to fetch tenants:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete tenant (admin only) - CASCADE deletes all related data
+  app.delete("/api/tenants/:tenantId", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+
+      // Check if tenant exists
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, tenantId));
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // Delete tenant (CASCADE will delete all related data: users, roles, customers, etc.)
+      await db
+        .delete(tenants)
+        .where(eq(tenants.id, tenantId));
+
+      res.json({ 
+        success: true,
+        message: `Tenant "${tenant.businessName}" and all associated data deleted successfully` 
+      });
+    } catch (error: any) {
+      console.error("Failed to delete tenant:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Check if email exists (for duplicate validation on registration form)
+  app.get("/api/check-email-exists", async (req, res) => {
+    try {
+      const { email } = req.query;
+
+      if (!email || typeof email !== 'string') {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check in users table
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      // Check in tenants table
+      const existingTenant = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.email, email))
+        .limit(1);
+
+      // Check in pending registration requests
+      const existingRequest = await db
+        .select()
+        .from(registrationRequests)
+        .where(eq(registrationRequests.email, email))
+        .limit(1);
+
+      const exists = existingUser.length > 0 || existingTenant.length > 0 || existingRequest.length > 0;
+
+      res.json({ exists });
+    } catch (error: any) {
+      console.error("Email check error:", error);
       res.status(500).json({ message: error.message });
     }
   });

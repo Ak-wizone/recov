@@ -25,6 +25,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   CheckCircle,
@@ -34,6 +45,7 @@ import {
   ToggleRight,
   KeyRound,
   Mail,
+  Trash2,
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
@@ -148,6 +160,26 @@ export default function TenantRegistrations() {
     onError: (error: Error) => {
       toast({
         title: "Failed to send credentials",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTenantMutation = useMutation({
+    mutationFn: async (tenantId: string) => {
+      return await apiRequest("DELETE", `/api/tenants/${tenantId}`);
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Success",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/tenants'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete tenant",
         description: error.message,
         variant: "destructive",
       });
@@ -330,6 +362,36 @@ export default function TenantRegistrations() {
                 <Mail className="w-3 h-3 mr-1" />
                 Send
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={deleteTenantMutation.isPending}
+                    data-testid={`button-delete-${tenant.id}`}
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete tenant <strong>{tenant.businessName}</strong> and all their data including users, customers, invoices, receipts, and all other records. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => deleteTenantMutation.mutate(tenant.id)}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Delete Permanently
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           );
         }

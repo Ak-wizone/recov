@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,8 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, MapPin, FileText, CreditCard, Upload } from "lucide-react";
+import { Building2, Mail, MapPin, FileText, CreditCard, Upload, AlertCircle } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const registrationSchema = z.object({
   businessName: z.string().min(1, "Business name is required"),
@@ -34,6 +35,8 @@ export default function RegisterTenant() {
   const { toast } = useToast();
   const [paymentReceipt, setPaymentReceipt] = useState<File | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
 
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
@@ -52,6 +55,34 @@ export default function RegisterTenant() {
       paymentMethod: "qr_code",
     },
   });
+
+  // Watch email field for changes
+  const emailValue = form.watch("email");
+
+  // Check if email exists when it changes
+  useEffect(() => {
+    const checkEmail = async () => {
+      if (!emailValue || !emailValue.includes("@")) {
+        setEmailExists(false);
+        return;
+      }
+
+      setCheckingEmail(true);
+      try {
+        const response = await fetch(`/api/check-email-exists?email=${encodeURIComponent(emailValue)}`);
+        const data = await response.json();
+        setEmailExists(data.exists);
+      } catch (error) {
+        console.error("Email check error:", error);
+      } finally {
+        setCheckingEmail(false);
+      }
+    };
+
+    // Debounce the check
+    const timer = setTimeout(checkEmail, 500);
+    return () => clearTimeout(timer);
+  }, [emailValue]);
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegistrationFormValues) => {
@@ -162,6 +193,7 @@ export default function RegisterTenant() {
                       <FormLabel className="flex items-center gap-2">
                         <Mail className="w-4 h-4" />
                         Email Address
+                        {checkingEmail && <span className="text-xs text-gray-500">(checking...)</span>}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -169,8 +201,17 @@ export default function RegisterTenant() {
                           placeholder="enter your email"
                           {...field}
                           data-testid="input-email"
+                          className={emailExists ? "border-red-500" : ""}
                         />
                       </FormControl>
+                      {emailExists && (
+                        <Alert variant="destructive" className="mt-2">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            This email is already registered. Please use a different email or contact support.
+                          </AlertDescription>
+                        </Alert>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -438,7 +479,7 @@ export default function RegisterTenant() {
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={registerMutation.isPending}
+                disabled={registerMutation.isPending || emailExists}
                 data-testid="button-complete-registration"
               >
                 {registerMutation.isPending ? "Submitting..." : "Complete Registration"}
