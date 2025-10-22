@@ -745,6 +745,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Tenant not found" });
       }
 
+      // First, delete any registration requests linked to this tenant
+      await db
+        .delete(registrationRequests)
+        .where(eq(registrationRequests.tenantId, tenantId));
+
       // Delete tenant (CASCADE will delete all related data: users, roles, customers, etc.)
       await db
         .delete(tenants)
