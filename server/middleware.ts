@@ -18,6 +18,9 @@ const PUBLIC_ROUTES = [
   '/auth/login',
   '/auth/logout',
   '/auth/me',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+  '/auth/validate-reset-token',
 ];
 
 // Check if a route is public
