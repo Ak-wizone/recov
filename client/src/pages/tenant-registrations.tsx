@@ -198,9 +198,35 @@ export default function TenantRegistrations() {
     },
   });
 
+  const deleteRegistrationRequestMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return await apiRequest("DELETE", `/api/registration-requests/${requestId}`);
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Success",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/registration-requests'] });
+      setDeleteDialogOpen(false);
+      setTenantToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete registration request",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteTenant = () => {
     if (tenantToDelete) {
-      deleteTenantMutation.mutate(tenantToDelete.id);
+      if (tenantToDelete.isRegistrationRequest) {
+        deleteRegistrationRequestMutation.mutate(tenantToDelete.id);
+      } else {
+        deleteTenantMutation.mutate(tenantToDelete.id);
+      }
     }
   };
 
@@ -353,6 +379,7 @@ export default function TenantRegistrations() {
         
         return (
           <div className="flex gap-2">
+            {/* Pending registration request - show Approve button */}
             {tenant.isRegistrationRequest && tenant.status === "pending" && (
               <Button
                 size="sm"
@@ -365,7 +392,22 @@ export default function TenantRegistrations() {
                 Approve
               </Button>
             )}
+
+            {/* Approved/Rejected registration request - show Delete button */}
+            {tenant.isRegistrationRequest && tenant.status !== "pending" && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleOpenDeleteDialog(tenant)}
+                disabled={deleteRegistrationRequestMutation.isPending}
+                data-testid={`button-delete-request-${tenant.id}`}
+              >
+                <Trash2 className="w-3 h-3 mr-1" />
+                Delete Request
+              </Button>
+            )}
             
+            {/* Active/Inactive tenants - show full management buttons */}
             {!tenant.isRegistrationRequest && (
               <>
                 <Button
@@ -600,10 +642,21 @@ export default function TenantRegistrations() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete tenant{" "}
-              <strong>{tenantToDelete?.businessName}</strong> and all their data
-              including users, customers, invoices, receipts, and all other records.
-              This action cannot be undone.
+              {tenantToDelete?.isRegistrationRequest ? (
+                <>
+                  This will permanently delete the registration request from{" "}
+                  <strong>{tenantToDelete?.businessName}</strong>. 
+                  The email <strong>{tenantToDelete?.email}</strong> will become available for new registrations.
+                  This action cannot be undone.
+                </>
+              ) : (
+                <>
+                  This will permanently delete tenant{" "}
+                  <strong>{tenantToDelete?.businessName}</strong> and all their data
+                  including users, customers, invoices, receipts, and all other records.
+                  This action cannot be undone.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -612,7 +665,9 @@ export default function TenantRegistrations() {
               onClick={handleDeleteTenant}
               className="bg-red-600 hover:bg-red-700"
             >
-              {deleteTenantMutation.isPending ? "Deleting..." : "Delete Permanently"}
+              {(deleteTenantMutation.isPending || deleteRegistrationRequestMutation.isPending) 
+                ? "Deleting..." 
+                : "Delete Permanently"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
