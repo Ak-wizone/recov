@@ -88,12 +88,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get all registration requests (admin only)
+  // Get all PENDING registration requests (admin only)
+  // Approved requests are shown in the tenants list
   app.get("/api/registration-requests", adminOnlyMiddleware, async (req, res) => {
     try {
       const requests = await db
         .select()
         .from(registrationRequests)
+        .where(eq(registrationRequests.status, 'pending'))
         .orderBy(desc(registrationRequests.createdAt));
 
       res.json(requests);
