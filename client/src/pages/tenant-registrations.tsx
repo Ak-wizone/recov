@@ -311,10 +311,13 @@ export default function TenantRegistrations() {
         
         if (tenant.isRegistrationRequest && tenant.status === "pending") {
           return (
-            <div className="flex gap-2">
+            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
               <Button
                 size="sm"
-                onClick={() => approveMutation.mutate(tenant.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  approveMutation.mutate(tenant.id);
+                }}
                 disabled={approveMutation.isPending}
                 className="bg-green-600 hover:bg-green-700"
                 data-testid={`button-approve-${tenant.id}`}
@@ -328,11 +331,14 @@ export default function TenantRegistrations() {
         
         if (!tenant.isRegistrationRequest) {
           return (
-            <div className="flex gap-2">
+            <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => toggleStatusMutation.mutate(tenant.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleStatusMutation.mutate(tenant.id);
+                }}
                 disabled={toggleStatusMutation.isPending}
                 data-testid={`button-toggle-${tenant.id}`}
               >
@@ -345,7 +351,10 @@ export default function TenantRegistrations() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => resetPasswordMutation.mutate(tenant.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  resetPasswordMutation.mutate(tenant.id);
+                }}
                 disabled={resetPasswordMutation.isPending}
                 data-testid={`button-reset-${tenant.id}`}
               >
@@ -355,7 +364,10 @@ export default function TenantRegistrations() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => sendCredentialsMutation.mutate(tenant.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  sendCredentialsMutation.mutate(tenant.id);
+                }}
                 disabled={sendCredentialsMutation.isPending}
                 data-testid={`button-send-${tenant.id}`}
               >
@@ -369,12 +381,13 @@ export default function TenantRegistrations() {
                     variant="destructive"
                     disabled={deleteTenantMutation.isPending}
                     data-testid={`button-delete-${tenant.id}`}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <Trash2 className="w-3 h-3 mr-1" />
                     Delete
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
@@ -382,9 +395,12 @@ export default function TenantRegistrations() {
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={() => deleteTenantMutation.mutate(tenant.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteTenantMutation.mutate(tenant.id);
+                      }}
                       className="bg-red-600 hover:bg-red-700"
                     >
                       Delete Permanently
