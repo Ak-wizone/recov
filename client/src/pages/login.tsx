@@ -185,10 +185,8 @@ export default function Login() {
             </form>
           </Form>
           <div className="text-center mt-4">
-            <Link href="/forgot-password">
-              <Button variant="link" className="text-sm" data-testid="link-forgot-password">
-                Forgot your password?
-              </Button>
+            <Link href="/forgot-password" className="text-sm text-primary hover:underline" data-testid="link-forgot-password">
+              Forgot your password?
             </Link>
           </div>
         </CardContent>

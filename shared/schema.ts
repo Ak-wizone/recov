@@ -1047,7 +1047,7 @@ export type Role = typeof roles.$inferSelect;
 // Users table for user management
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "cascade" }), // Nullable for platform admins
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   mobile: text("mobile"),

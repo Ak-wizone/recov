@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
 import {
   useReactTable,
   getCoreRowModel,
@@ -52,7 +54,16 @@ interface TenantRow {
 
 export default function TenantRegistrations() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  // Redirect tenant users to dashboard - only platform admins can access this page
+  useEffect(() => {
+    if (user && user.tenantId) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   // Fetch registration requests
   const { data: requests } = useQuery<any[]>({
