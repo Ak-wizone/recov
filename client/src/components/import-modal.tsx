@@ -14,19 +14,16 @@ import {
   parseItemsFile,
   parseInvoicesFile,
   parseReceiptsFile,
-  parseTenantRegistrationsFile,
   validateMasterCustomerRow,
   validateMasterCustomerRowFlexible,
   validateItemRow,
   validateInvoiceRow,
   validateReceiptRow,
-  validateTenantRegistrationRow,
   detectDuplicatesInBatch,
   type ImportRow,
   type ImportItemRow,
   type ImportInvoiceRow,
   type ImportReceiptRow,
-  type ImportTenantRegistrationRow,
   type ValidationError,
   type DuplicateInfo
 } from "@/lib/import-utils";
@@ -37,7 +34,7 @@ import { cn } from "@/lib/utils";
 interface ImportModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  module?: 'customers' | 'items' | 'invoices' | 'receipts' | 'registrations';
+  module?: 'customers' | 'items' | 'invoices' | 'receipts';
 }
 
 export function ImportModal({ open, onOpenChange, module = 'customers' }: ImportModalProps) {
@@ -61,9 +58,6 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     if (module === 'receipts') {
       return `/api/receipts/import`;
     }
-    if (module === 'registrations') {
-      return `/api/registration-requests/bulk-import`;
-    }
     return `/api/masters/${module}/import`;
   };
 
@@ -73,9 +67,6 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     }
     if (module === 'receipts') {
       return `/api/receipts`;
-    }
-    if (module === 'registrations') {
-      return `/api/registration-requests`;
     }
     return `/api/masters/${module}`;
   };
@@ -126,9 +117,6 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
     if (module === 'receipts') {
       return `/api/receipts/template`;
     }
-    if (module === 'registrations') {
-      return `/api/registration-requests/template`;
-    }
     return `/api/masters/${module}/template`;
   };
 
@@ -140,13 +128,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      if (module === 'invoices' || module === 'receipts') {
-        a.download = `${module}_template.xlsx`;
-      } else if (module === 'registrations') {
-        a.download = `tenant_registration_template.xlsx`;
-      } else {
-        a.download = `master_${module}_template.xlsx`;
-      }
+      a.download = (module === 'invoices' || module === 'receipts') ? `${module}_template.xlsx` : `master_${module}_template.xlsx`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -245,8 +227,6 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
         rows = await parseInvoicesFile(selectedFile);
       } else if (module === 'receipts') {
         rows = await parseReceiptsFile(selectedFile);
-      } else if (module === 'registrations') {
-        rows = await parseTenantRegistrationsFile(selectedFile);
       }
       
       setUploadProgress(60);
@@ -274,11 +254,6 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
       } else if (module === 'receipts') {
         rows.forEach((row: ImportReceiptRow, index: number) => {
           const rowErrors = validateReceiptRow(row, index + 2);
-          errors.push(...rowErrors);
-        });
-      } else if (module === 'registrations') {
-        rows.forEach((row: ImportTenantRegistrationRow, index: number) => {
-          const rowErrors = validateTenantRegistrationRow(row, index + 2);
           errors.push(...rowErrors);
         });
       }
@@ -333,8 +308,6 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
       rowErrors = validateInvoiceRow(updatedData[rowIndex], rowNumber);
     } else if (module === 'receipts') {
       rowErrors = validateReceiptRow(updatedData[rowIndex], rowNumber);
-    } else if (module === 'registrations') {
-      rowErrors = validateTenantRegistrationRow(updatedData[rowIndex], rowNumber);
     }
     
     // Update cell errors map
@@ -447,22 +420,6 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
             "Remarks": row.remarks || "",
           })));
           sheetName = "Receipts";
-        } else if (module === 'registrations') {
-          worksheet = XLSX.utils.json_to_sheet(previewData.map(row => ({
-            "Business Name": row.businessName || "",
-            "Email": row.email || "",
-            "Business Address": row.businessAddress || "",
-            "City": row.city || "",
-            "State": row.state || "",
-            "Pincode": row.pincode || "",
-            "PAN Number": row.panNumber || "",
-            "GST Number": row.gstNumber || "",
-            "Industry Type": row.industryType || "",
-            "Plan Type": row.planType || "",
-            "Existing Accounting Software": row.existingAccountingSoftware || "",
-            "Payment Method": row.paymentMethod || "",
-          })));
-          sheetName = "Registrations";
         }
         
         const workbook = XLSX.utils.book_new();
