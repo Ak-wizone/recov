@@ -332,16 +332,23 @@ export default function TenantRegistrations() {
             {tenant.isRegistrationRequest && tenant.status === "pending" && (
               <button
                 type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log('Approve clicked for:', tenant.id);
-                  approveMutation.mutate(tenant.id);
+                onMouseDown={(e) => {
+                  if (e.button !== 0) return; // Only left click
+                  try {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!approveMutation.isPending) {
+                      console.log('Approve clicked for:', tenant.id);
+                      approveMutation.mutate(tenant.id);
+                    }
+                  } catch (error) {
+                    console.error('Button click error:', error);
+                  }
                 }}
                 disabled={approveMutation.isPending}
                 className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md disabled:opacity-50"
                 data-testid={`button-approve-${tenant.id}`}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
               >
                 ✓ Approve
               </button>
@@ -351,62 +358,90 @@ export default function TenantRegistrations() {
               <>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Toggle clicked for:', tenant.id);
-                    toggleStatusMutation.mutate(tenant.id);
+                  onMouseDown={(e) => {
+                    if (e.button !== 0) return; // Only left click
+                    try {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!toggleStatusMutation.isPending) {
+                        console.log('Toggle clicked for:', tenant.id);
+                        toggleStatusMutation.mutate(tenant.id);
+                      }
+                    } catch (error) {
+                      console.error('Button click error:', error);
+                    }
                   }}
                   disabled={toggleStatusMutation.isPending}
                   className="px-3 py-1.5 text-sm font-medium border rounded-md hover:bg-gray-100"
                   data-testid={`button-toggle-${tenant.id}`}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
                 >
                   {tenant.isActive ? '⏸ Deactivate' : '▶ Activate'}
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Reset clicked for:', tenant.id);
-                    resetPasswordMutation.mutate(tenant.id);
+                  onMouseDown={(e) => {
+                    if (e.button !== 0) return; // Only left click
+                    try {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!resetPasswordMutation.isPending) {
+                        console.log('Reset clicked for:', tenant.id);
+                        resetPasswordMutation.mutate(tenant.id);
+                      }
+                    } catch (error) {
+                      console.error('Button click error:', error);
+                    }
                   }}
                   disabled={resetPasswordMutation.isPending}
                   className="px-3 py-1.5 text-sm font-medium border rounded-md hover:bg-gray-100"
                   data-testid={`button-reset-${tenant.id}`}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
                 >
                   🔑 Reset
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Send clicked for:', tenant.id);
-                    sendCredentialsMutation.mutate(tenant.id);
+                  onMouseDown={(e) => {
+                    if (e.button !== 0) return; // Only left click
+                    try {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!sendCredentialsMutation.isPending) {
+                        console.log('Send clicked for:', tenant.id);
+                        sendCredentialsMutation.mutate(tenant.id);
+                      }
+                    } catch (error) {
+                      console.error('Button click error:', error);
+                    }
                   }}
                   disabled={sendCredentialsMutation.isPending}
                   className="px-3 py-1.5 text-sm font-medium border rounded-md hover:bg-gray-100"
                   data-testid={`button-send-${tenant.id}`}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
                 >
                   ✉ Send
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Delete clicked for:', tenant.id);
-                    setTenantToDelete(tenant);
-                    setDeleteDialogOpen(true);
+                  onMouseDown={(e) => {
+                    if (e.button !== 0) return; // Only left click
+                    try {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!deleteTenantMutation.isPending) {
+                        console.log('Delete clicked for:', tenant.id);
+                        setTenantToDelete(tenant);
+                        setDeleteDialogOpen(true);
+                      }
+                    } catch (error) {
+                      console.error('Button click error:', error);
+                    }
                   }}
                   disabled={deleteTenantMutation.isPending}
                   className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md disabled:opacity-50"
                   data-testid={`button-delete-${tenant.id}`}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
                 >
                   🗑 Delete
                 </button>
