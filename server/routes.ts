@@ -27,7 +27,7 @@ const CREDENTIAL_EMAIL_TEMPLATE = `
     <h3 style="margin-top: 0; color: #333; font-size: 18px;">Login Credentials</h3>
     <p style="margin: 10px 0; color: #444;"><strong>Email:</strong> {email}</p>
     <p style="margin: 10px 0; color: #444;"><strong>Temporary Password:</strong> {password}</p>
-    <p style="margin: 10px 0; color: #444;"><strong>Login URL:</strong> <a href="https://recov.wizoneit.com" style="color: #007bff; text-decoration: none;">https://recov.wizoneit.com</a></p>
+    <p style="margin: 10px 0; color: #444;"><strong>Login URL:</strong> <a href="{loginUrl}" style="color: #007bff; text-decoration: none;">{loginUrl}</a></p>
   </div>
   
   <h3 style="color: #333; font-size: 18px; margin-top: 30px;">Next Steps:</h3>
@@ -54,7 +54,8 @@ const CREDENTIAL_EMAIL_TEMPLATE = `
 async function sendTenantCredentials(
   tenantBusinessName: string,
   tenantEmail: string,
-  defaultPassword: string
+  defaultPassword: string,
+  loginUrl: string
 ): Promise<{ success: boolean; message: string }> {
   try {
     // Get platform admin's email configuration (tenantId = null)
@@ -72,6 +73,7 @@ async function sendTenantCredentials(
       companyName: tenantBusinessName,
       email: tenantEmail,
       password: defaultPassword,
+      loginUrl,
     });
 
     // Send the email
@@ -344,10 +346,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Send welcome email with credentials automatically (non-blocking)
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://recov.wizoneit.com'
+        : `${req.protocol}://${req.get('host')}`;
       const emailResult = await sendTenantCredentials(
         result.tenant.businessName,
         result.user.email,
-        defaultPassword
+        defaultPassword,
+        baseUrl
       );
 
       res.json({
@@ -530,10 +536,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const defaultPassword = `${emailPrefix}@#$405`;
 
       // Send credentials email using platform admin's email config
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://recov.wizoneit.com'
+        : `${req.protocol}://${req.get('host')}`;
       const emailResult = await sendTenantCredentials(
         tenant.businessName,
         tenant.email,
-        defaultPassword
+        defaultPassword,
+        baseUrl
       );
 
       if (!emailResult.success) {
@@ -592,7 +602,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.warn("⚠️  Please configure platform email at /email-config with tenantId = null");
       } else {
         try {
-          const resetUrl = `https://recov.wizoneit.com/reset-password/${resetToken}`;
+          // Use production URL in production, development URL otherwise
+          const baseUrl = process.env.NODE_ENV === 'production' 
+            ? 'https://recov.wizoneit.com'
+            : `${req.protocol}://${req.get('host')}`;
+          const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
           const emailBody = renderTemplate(
             `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
