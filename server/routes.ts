@@ -3513,9 +3513,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             previousDate = applicableDate;
           }
           
-          // Calculate days in period (between previous date and this receipt)
-          const diffTime = receiptDate.getTime() - previousDate.getTime();
-          const daysInPeriod = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          // Calculate cumulative days from due date (not period between receipts)
+          const diffTime = receiptDate.getTime() - applicableDate.getTime();
+          const daysFromDueDate = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
           
           // Calculate interest on current balance (balance BEFORE this receipt)
           let interestAmount = 0;
@@ -3523,8 +3523,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Interest only applies after applicable date
           if (receiptDate > applicableDate && invoice.interestRate && currentBalance > 0) {
             const interestRate = parseFloat(invoice.interestRate.toString());
-            // Interest on balance for the period before this receipt
-            interestAmount = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
+            // Interest on balance using cumulative days from due date
+            interestAmount = (currentBalance * interestRate * daysFromDueDate) / (100 * 365);
           }
 
           totalInterest += interestAmount;
@@ -3550,7 +3550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             receiptAmount: receiptAmount,
             balanceAmount: newBalance, // Show balance AFTER this receipt (remaining balance)
             balanceBeforeReceipt: currentBalance, // Track balance used for interest calculation
-            daysInPeriod: receiptDate <= applicableDate ? 0 : daysInPeriod,
+            daysFromDueDate: daysFromDueDate, // Cumulative days from due date
             interestRate: invoice.interestRate ? parseFloat(invoice.interestRate.toString()) : 0,
             interestAmount: interestAmount,
             status: receiptStatus,
