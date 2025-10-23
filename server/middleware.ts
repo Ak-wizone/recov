@@ -47,7 +47,7 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
 
   // Platform admins (no tenantId) can access admin routes but need special handling
   // Regular users must have a tenantId
-  if (!tenantId && !req.path.startsWith('/admin') && !req.path.includes('registration-request') && !req.path.startsWith('/tenants')) {
+  if (!tenantId && !req.path.startsWith('/admin') && !req.path.includes('registration-request') && !req.path.startsWith('/tenants') && !req.path.startsWith('/email-config')) {
     return res.status(403).json({ message: "No tenant associated with your account" });
   }
 
