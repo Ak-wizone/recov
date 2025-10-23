@@ -4783,7 +4783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current email configuration (without sensitive data)
   app.get("/api/email-config", async (req, res) => {
     try {
-      const config = await storage.getEmailConfig(req.tenantId!);
+      const config = await storage.getEmailConfig(req.tenantId ?? null);
       if (!config) {
         return res.json(null);
       }
@@ -4803,13 +4803,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const existingConfig = await storage.getEmailConfig(req.tenantId!);
+      const tenantId = req.tenantId ?? null;
+      const existingConfig = await storage.getEmailConfig(tenantId);
       let config;
       
       if (existingConfig) {
-        config = await storage.updateEmailConfig(req.tenantId!, existingConfig.id, validation.data);
+        config = await storage.updateEmailConfig(tenantId, existingConfig.id, validation.data);
       } else {
-        config = await storage.createEmailConfig(req.tenantId!, validation.data);
+        config = await storage.createEmailConfig(tenantId, validation.data);
       }
 
       if (!config) {
@@ -4831,7 +4832,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const config = await storage.updateEmailConfig(req.tenantId!, req.params.id, validation.data);
+      const config = await storage.updateEmailConfig(req.tenantId ?? null, req.params.id, validation.data);
       if (!config) {
         return res.status(404).json({ message: "Email configuration not found" });
       }
@@ -4851,7 +4852,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Test email address is required" });
       }
 
-      const config = await storage.getEmailConfig(req.tenantId!);
+      const config = await storage.getEmailConfig(req.tenantId ?? null);
       if (!config) {
         return res.status(400).json({ message: "No email configuration found" });
       }
