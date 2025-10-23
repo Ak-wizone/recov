@@ -16,6 +16,85 @@ import { nanoid } from "nanoid";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Centralized credential email template
+const CREDENTIAL_EMAIL_TEMPLATE = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h2 style="color: #333;">Welcome to CRM Platform!</h2>
+  <p>Dear {companyName} Team,</p>
+  <p>Your account is now active and ready to use. Here are your login credentials:</p>
+  
+  <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
+    <h3 style="margin-top: 0;">Login Credentials</h3>
+    <p><strong>Email:</strong> {email}</p>
+    <p><strong>Temporary Password:</strong> {password}</p>
+    <p><strong>Login URL:</strong> <a href="{loginUrl}" style="color: #007bff;">{loginUrl}</a></p>
+  </div>
+  
+  <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+    <strong>⚠️ Security Note:</strong> Please change your password immediately after your first login for security purposes.
+  </div>
+  
+  <h3>Next Steps:</h3>
+  <ol style="line-height: 1.8;">
+    <li>Click the login link above</li>
+    <li>Enter your email and temporary password</li>
+    <li>Change your password in profile settings</li>
+    <li>Start managing your business with our CRM platform</li>
+  </ol>
+  
+  <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+  
+  <p>Best regards,<br><strong>CRM Platform Team</strong></p>
+</div>
+`;
+
+// Helper function to send tenant credentials email
+async function sendTenantCredentials(
+  tenantBusinessName: string,
+  tenantEmail: string,
+  defaultPassword: string,
+  loginUrl: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // Get platform admin's email configuration (tenantId = null)
+    const platformEmailConfig = await storage.getEmailConfig(null);
+    
+    if (!platformEmailConfig) {
+      return {
+        success: false,
+        message: "Platform email configuration not found. Please set up platform admin email config first."
+      };
+    }
+
+    // Render the email template
+    const emailBody = renderTemplate(CREDENTIAL_EMAIL_TEMPLATE, {
+      companyName: tenantBusinessName,
+      email: tenantEmail,
+      password: defaultPassword,
+      loginUrl,
+    });
+
+    // Send the email
+    await sendEmail(
+      platformEmailConfig,
+      tenantEmail,
+      "Welcome to CRM Platform - Your Login Credentials",
+      emailBody
+    );
+
+    return {
+      success: true,
+      message: "Credentials email sent successfully"
+    };
+  } catch (error: any) {
+    console.error("Failed to send tenant credentials email:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to send credentials email"
+    };
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply tenant-aware middleware to all API routes
   app.use('/api', tenantMiddleware);
@@ -264,63 +343,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return { tenant, user, adminRole };
       });
 
-      // Send welcome email with credentials
-      try {
-        // Use the new tenant's email config (or null if none set yet)
-        const emailConfig = await storage.getEmailConfig(result.tenant.id);
-        
-        if (emailConfig) {
-          const loginUrl = `${req.protocol}://${req.get('host')}/login`;
-          const emailBody = renderTemplate(
-            `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #333;">Welcome to CRM Platform!</h2>
-              <p>Dear {companyName} Team,</p>
-              <p>Your registration has been approved! Your account is now active and ready to use.</p>
-              
-              <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                <h3 style="margin-top: 0;">Your Login Credentials</h3>
-                <p><strong>Email:</strong> {email}</p>
-                <p><strong>Temporary Password:</strong> {password}</p>
-                <p><strong>Login URL:</strong> <a href="{loginUrl}">{loginUrl}</a></p>
-              </div>
-              
-              <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
-                <strong>Important:</strong> Please change your password after your first login for security purposes.
-              </div>
-              
-              <h3>Next Steps:</h3>
-              <ol>
-                <li>Click the login link above or visit {loginUrl}</li>
-                <li>Enter your email and temporary password</li>
-                <li>Change your password in your profile settings</li>
-                <li>Start managing your business with our CRM platform</li>
-              </ol>
-              
-              <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-              
-              <p>Best regards,<br>CRM Platform Team</p>
-            </div>
-            `,
-            {
-              companyName: result.tenant.businessName,
-              email: result.user.email,
-              password: defaultPassword,
-              loginUrl,
-            }
-          );
-
-          await sendEmail(
-            emailConfig,
-            result.user.email,
-            "Welcome to CRM Platform - Your Account is Active",
-            emailBody
-          );
-        }
-      } catch (emailError) {
-        // Log the error but don't fail the approval
-        console.error("Failed to send welcome email:", emailError);
-      }
+      // Send welcome email with credentials automatically (non-blocking)
+      const loginUrl = `${req.protocol}://${req.get('host')}/login`;
+      const emailResult = await sendTenantCredentials(
+        result.tenant.businessName,
+        result.user.email,
+        defaultPassword,
+        loginUrl
+      );
 
       res.json({
         success: true,
@@ -329,7 +359,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: result.user.id,
           email: result.user.email,
         },
-        message: "Registration approved successfully. Welcome email sent to the tenant.",
+        message: emailResult.success 
+          ? "Registration approved successfully. Welcome email sent to the tenant." 
+          : `Registration approved successfully. ${emailResult.message}`,
       });
     } catch (error: any) {
       console.error("Approval error:", error);
