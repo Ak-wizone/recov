@@ -3,6 +3,7 @@ import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
+import { wsManager } from "./websocket";
 
 const app = express();
 
@@ -68,6 +69,9 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Initialize WebSocket server
+  wsManager.initialize(server);
 
   await seedDatabase();
 
