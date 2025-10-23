@@ -179,35 +179,12 @@ export function InvoiceTable({
         cell: ({ row }) => {
           const invoice = row.original;
           
-          if (!invoice.interestRate || parseFloat(invoice.interestRate) <= 0) {
+          // Use the interest amount calculated by backend (from Interest Calculator report logic)
+          if (!invoice.interestAmount || parseFloat(invoice.interestAmount) <= 0) {
             return <div className="text-right" data-testid={`text-interest-amount-${invoice.id}`}>—</div>;
           }
           
-          const invoiceDate = new Date(invoice.invoiceDate);
-          const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
-          const dueDate = new Date(invoiceDate);
-          dueDate.setDate(dueDate.getDate() + paymentTerms);
-          
-          let applicableDate: Date;
-          if (invoice.interestApplicableFrom === "Due Date") {
-            applicableDate = dueDate;
-          } else if (invoice.interestApplicableFrom === "Invoice Date") {
-            applicableDate = invoiceDate;
-          } else {
-            return <div className="text-right" data-testid={`text-interest-amount-${invoice.id}`}>—</div>;
-          }
-          
-          const today = new Date();
-          const diffTime = today.getTime() - applicableDate.getTime();
-          const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-          
-          if (daysOverdue <= 0) {
-            return <div className="text-right" data-testid={`text-interest-amount-${invoice.id}`}>—</div>;
-          }
-          
-          const invoiceAmount = parseFloat(invoice.invoiceAmount);
-          const interestRate = parseFloat(invoice.interestRate);
-          const interestAmount = (invoiceAmount * interestRate * daysOverdue) / (100 * 365);
+          const interestAmount = parseFloat(invoice.interestAmount);
           
           return (
             <div className="text-right font-semibold text-orange-600 dark:text-orange-400" data-testid={`text-interest-amount-${invoice.id}`}>
