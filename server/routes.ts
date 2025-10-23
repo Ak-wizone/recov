@@ -3043,21 +3043,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Customer Name": "ABC Corporation Pvt Ltd",
           "Invoice Date": "2025-01-15",
           "Invoice Amount": "150000",
-          "Net Profit": "45000"
+          "Gross Profit": "45000"
         },
         {
           "Invoice Number": "INV-2025-002",
           "Customer Name": "XYZ Industries Limited",
           "Invoice Date": "2025-01-20",
           "Invoice Amount": "250000",
-          "Net Profit": "75000"
+          "Gross Profit": "75000"
         },
         {
           "Invoice Number": "INV-2025-003",
           "Customer Name": "Tech Solutions India",
           "Invoice Date": "2025-01-25",
           "Invoice Amount": "180000",
-          "Net Profit": ""
+          "Gross Profit": ""
         }
       ];
 
@@ -3085,7 +3085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Customer Name": invoice.customerName,
         "Invoice Date": invoice.invoiceDate.toISOString().split('T')[0],
         "Invoice Amount": invoice.invoiceAmount,
-        "Net Profit": invoice.netProfit,
+        "Gross Profit": invoice.grossProfit,
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
@@ -3137,9 +3137,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedDate = String(dateValue).trim();
         }
         
-        // Get net profit value, default to "0" if empty or not provided
-        const netProfitValue = String((row as any)["Net Profit"] || "").trim();
-        const netProfit = netProfitValue === "" ? "0" : netProfitValue;
+        // Get gross profit value, default to "0" if empty or not provided
+        const grossProfitValue = String((row as any)["Gross Profit"] || (row as any)["Net Profit"] || "").trim();
+        const grossProfit = grossProfitValue === "" ? "0" : grossProfitValue;
         
         const customerName = String((row as any)["Customer Name"] || "").trim();
         
@@ -3168,7 +3168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerName: customerName,
           invoiceDate: parsedDate,
           invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
-          netProfit: netProfit,
+          grossProfit: grossProfit,
           ...customerDetails,
         };
 
@@ -5255,7 +5255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerCity: invoice.city || 'N/A',
           customerPincode: invoice.pincode || 'N/A',
           invoiceAmount: parseFloat(invoice.invoiceAmount).toFixed(2),
-          netProfit: parseFloat(invoice.netProfit).toFixed(2),
+          grossProfit: parseFloat(invoice.grossProfit).toFixed(2),
           status: invoice.status,
           category: invoice.category || 'N/A',
           paymentTerms: invoice.paymentTerms?.toString() || 'N/A',
