@@ -40,6 +40,14 @@ Preferred communication style: Simple, everyday language.
 
 *   **Analytics Dashboard**: Replaces debtors management as the home page, offering real-time statistics, financial overviews, module statistics, and recent activity feeds.
 *   **Debtors Module**: Outstanding balance calculation includes opening balance from Master Customers. Formula: Balance = Opening Balance + Total Invoices - Total Receipts.
+*   **Invoice Module with Auto-Calculated Final G.P.**: Uses "G.P." terminology throughout. Features:
+    - Manual input: Invoice Amount, G.P. (base profit before interest deduction)
+    - Auto-calculated fields: Final G.P. and Final G.P. % (visible in grid, not editable)
+    - Automatic calculation triggers: When receipts are created/updated/deleted
+    - FIFO allocation logic: Receipts allocated to oldest unpaid invoices first, tracking cumulative allocation across all invoices to determine exact payment date per invoice
+    - Interest calculation: Based on payment date (from FIFO), interest rate, and days overdue from applicable date (Invoice Date or Due Date)
+    - Formulas: FINAL G.P. = G.P. - INTEREST AMOUNT, G.P. % = (FINAL G.P. / INVOICE AMOUNT) × 100
+    - Multi-invoice support: Correctly handles scenarios where multiple receipts pay multiple invoices, ensuring each invoice's interest is calculated from the receipt(s) that actually cleared it
 *   **Receipt Module**: Customer dropdown populated from Master Customers module (active only). Voucher Type dropdown with Receipt, CN, TDS options plus ability to add custom voucher types via localStorage. Duplicate checking based on Voucher Type + Voucher Number combination.
 *   **Proforma Invoice Module**: Full CRUD operations for PIs, including grid features (pagination, filters, sorting), dashboard cards, date filtering, and print/export. Enforces one PI per quotation.
 *   **Enhanced Import System**: Universal editable import preview for Customers, Items, Invoices, Receipts. Features inline error correction, smart data parsing, and template downloads. Includes duplicate detection for both customer and item imports with visual indicators and normalization.
