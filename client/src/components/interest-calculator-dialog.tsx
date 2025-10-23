@@ -38,21 +38,24 @@ interface InterestBreakdown {
     paidAmount: number;
     unpaidAmount: number;
     receiptAllocations: Array<{
-      receiptId: string;
-      voucherNumber: string;
+      isDueDateRow?: boolean;
+      message?: string;
+      receiptId?: string;
+      voucherNumber?: string;
       receiptDate: string;
-      receiptAmount: number;
-      allocatedAmount: number;
-      daysFromDue: number;
-      interestRate: number;
-      interestAmount: number;
+      receiptAmount?: number;
+      balanceAmount: number;
+      balanceBeforeReceipt?: number;
+      daysInPeriod?: number;
+      interestRate?: number;
+      interestAmount?: number;
+      status?: string;
     }>;
-    unpaidInterest: number;
+    totalReceiptAmount: number;
+    totalInterest: number;
   };
   calculation: {
     baseGp: number;
-    totalInterestFromReceipts: number;
-    totalInterestFromUnpaid: number;
     totalInterest: number;
     finalGp: number;
     finalGpPercentage: number;
@@ -85,18 +88,17 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
   const isLoading = profileLoading || breakdownLoading;
   const brandColor = profile?.brandColor || "#2563eb";
 
-  const getStatusColor = (daysFromDue: number) => {
-    if (daysFromDue < 0) return "text-green-600 dark:text-green-400";
-    if (daysFromDue <= 30) return "text-yellow-600 dark:text-yellow-400";
-    if (daysFromDue <= 60) return "text-orange-600 dark:text-orange-400";
-    return "text-red-600 dark:text-red-400";
-  };
-
-  const getStatusBadge = (daysFromDue: number) => {
-    if (daysFromDue < 0) return { label: "Early", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" };
-    if (daysFromDue <= 30) return { label: "On Time", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" };
-    if (daysFromDue <= 60) return { label: "Delayed", className: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300" };
-    return { label: "Overdue", className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" };
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "On Time":
+        return { label: "On Time", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" };
+      case "Delayed":
+        return { label: "Delayed", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" };
+      case "Overdue":
+        return { label: "Overdue", className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" };
+      default:
+        return { label: status, className: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300" };
+    }
   };
 
   return (
@@ -221,12 +223,13 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
               </p>
             </div>
 
-            {/* Receipt Allocation Table */}
+            {/* Receipt Allocation & Balance Based Interest */}
             <div className="border rounded-lg overflow-hidden">
               <div className="p-4" style={{ backgroundColor: brandColor + "15" }}>
-                <h3 className="font-semibold text-lg" style={{ color: brandColor }}>Receipt Allocation Breakdown (FIFO)</h3>
+                <h3 className="font-semibold text-lg" style={{ color: brandColor }}>Receipt Allocation & Balance Based Interest</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  First-In-First-Out allocation showing how each receipt contributes to this invoice
+                  Interest is calculated on outstanding balance between payment dates after {breakdown.invoice.interestApplicableFrom === "Due Date" ? "due date" : "invoice date"}.
+                  Balance Amount shows remaining balance after each receipt. Interest is charged on the balance BEFORE the receipt for the period since last payment.
                 </p>
               </div>
               
@@ -236,22 +239,40 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                     <tr>
                       <th className="px-4 py-3 text-left font-medium">Receipt Date</th>
                       <th className="px-4 py-3 text-right font-medium">Receipt Amount</th>
-                      <th className="px-4 py-3 text-right font-medium">Allocated Amount</th>
-                      <th className="px-4 py-3 text-center font-medium">Days from Due</th>
+                      <th className="px-4 py-3 text-right font-medium">Balance Amount</th>
+                      <th className="px-4 py-3 text-center font-medium">Days in Period</th>
                       <th className="px-4 py-3 text-center font-medium">Status</th>
-                      <th className="px-4 py-3 text-right font-medium">Interest Calculated</th>
+                      <th className="px-4 py-3 text-right font-medium">Interest on Balance</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {breakdown.allocation.receiptAllocations.map((allocation, index) => {
-                      const status = getStatusBadge(allocation.daysFromDue);
+                      // Handle DUE DATE row
+                      if (allocation.isDueDateRow) {
+                        return (
+                          <tr key={`due-date-${index}`} className="bg-yellow-50 dark:bg-yellow-900/20 font-medium">
+                            <td className="px-4 py-3">
+                              <span className="font-bold">{format(new Date(allocation.receiptDate), "MMM dd, yyyy")}</span>
+                            </td>
+                            <td className="px-4 py-3 text-right">—</td>
+                            <td className="px-4 py-3 text-right font-bold">₹{allocation.balanceAmount.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-center font-bold">DUE DATE</td>
+                            <td className="px-4 py-3 text-center" colSpan={2}>
+                              <span className="text-red-600 dark:text-red-400 font-bold">{allocation.message}</span>
+                            </td>
+                          </tr>
+                        );
+                      }
+                      
+                      // Regular receipt row
+                      const status = getStatusBadge(allocation.status || "On Time");
                       return (
-                        <tr key={allocation.receiptId} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                        <tr key={allocation.receiptId || index} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                           <td className="px-4 py-3">{format(new Date(allocation.receiptDate), "MMM dd, yyyy")}</td>
-                          <td className="px-4 py-3 text-right">₹{allocation.receiptAmount.toFixed(2)}</td>
-                          <td className="px-4 py-3 text-right font-medium">₹{allocation.allocatedAmount.toFixed(2)}</td>
-                          <td className={`px-4 py-3 text-center font-medium ${getStatusColor(allocation.daysFromDue)}`}>
-                            {allocation.daysFromDue > 0 ? `+${allocation.daysFromDue}` : allocation.daysFromDue} days
+                          <td className="px-4 py-3 text-right">₹{(allocation.receiptAmount || 0).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-right font-medium">₹{allocation.balanceAmount.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-center font-medium">
+                            {(allocation.daysInPeriod || 0) === 0 ? "—" : `${allocation.daysInPeriod} days`}
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.className}`}>
@@ -259,35 +280,21 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right font-semibold text-orange-600 dark:text-orange-400">
-                            ₹{allocation.interestAmount.toFixed(2)}
+                            ₹{(allocation.interestAmount || 0).toFixed(2)}
                           </td>
                         </tr>
                       );
                     })}
                     
-                    {/* Unpaid Balance Row */}
-                    {breakdown.allocation.unpaidAmount > 0 && (
-                      <tr className="bg-red-50 dark:bg-red-900/20 font-medium">
-                        <td className="px-4 py-3">
-                          <span className="text-red-600 dark:text-red-400">UNPAID BALANCE</span>
-                        </td>
-                        <td className="px-4 py-3 text-right">—</td>
-                        <td className="px-4 py-3 text-right text-red-600 dark:text-red-400">
-                          ₹{breakdown.allocation.unpaidAmount.toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-center text-red-600 dark:text-red-400">
-                          +{Math.floor((new Date().getTime() - new Date(breakdown.invoice.applicableDate).getTime()) / (1000 * 60 * 60 * 24))} days
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
-                            Overdue
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold text-red-600 dark:text-red-400">
-                          ₹{breakdown.allocation.unpaidInterest.toFixed(2)}
-                        </td>
-                      </tr>
-                    )}
+                    {/* TOTAL Row */}
+                    <tr className="bg-gray-800 dark:bg-gray-700 text-white font-bold">
+                      <td className="px-4 py-3">TOTAL</td>
+                      <td className="px-4 py-3 text-right">₹{breakdown.allocation.totalReceiptAmount.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right">₹{breakdown.allocation.unpaidAmount.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-center">—</td>
+                      <td className="px-4 py-3 text-center">—</td>
+                      <td className="px-4 py-3 text-right">₹{breakdown.allocation.totalInterest.toFixed(2)}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -305,27 +312,9 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                   <span className="text-lg font-semibold">₹{breakdown.calculation.baseGp.toFixed(2)}</span>
                 </div>
                 
-                {breakdown.calculation.totalInterestFromReceipts > 0 && (
-                  <div className="flex justify-between items-center py-2 text-orange-600 dark:text-orange-400">
-                    <span>Less: Interest on Paid Amount</span>
-                    <span className="text-lg font-semibold">- ₹{breakdown.calculation.totalInterestFromReceipts.toFixed(2)}</span>
-                  </div>
-                )}
-                
-                {breakdown.calculation.totalInterestFromUnpaid > 0 && (
-                  <div className="flex justify-between items-center py-2 text-red-600 dark:text-red-400">
-                    <span>Less: Interest on Unpaid Amount</span>
-                    <span className="text-lg font-semibold">- ₹{breakdown.calculation.totalInterestFromUnpaid.toFixed(2)}</span>
-                  </div>
-                )}
-                
-                <div className="border-t-2 pt-3 mt-3" style={{ borderColor: brandColor }}>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-gray-600 dark:text-gray-400">Total Interest Deducted</span>
-                    <span className="text-lg font-semibold text-red-600 dark:text-red-400">
-                      ₹{breakdown.calculation.totalInterest.toFixed(2)}
-                    </span>
-                  </div>
+                <div className="flex justify-between items-center py-2 text-red-600 dark:text-red-400">
+                  <span>Less: Total Interest (Balance-Based)</span>
+                  <span className="text-lg font-semibold">- ₹{breakdown.calculation.totalInterest.toFixed(2)}</span>
                 </div>
                 
                 <div className="border-t-2 pt-3" style={{ borderColor: brandColor, borderWidth: '3px' }}>
@@ -347,14 +336,27 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
 
             {/* Formula Explanation */}
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-sm">
-              <h4 className="font-semibold mb-2">Calculation Formula:</h4>
-              <p className="text-gray-600 dark:text-gray-400 font-mono">
-                Interest = (Amount × Rate × Days) / (100 × 365)
+              <h4 className="font-semibold mb-2">Interest Calculation Method:</h4>
+              <p className="text-gray-600 dark:text-gray-400 mb-3">
+                <span className="font-semibold">Balance-Based Interest:</span> For each payment period, interest accrues on the outstanding balance.
+                When a receipt is received, it reduces the balance. The interest shown on each receipt row is calculated on the balance that existed 
+                BEFORE that receipt was applied (i.e., the balance from the previous payment period).
               </p>
-              <p className="text-gray-600 dark:text-gray-400 font-mono mt-1">
+              <p className="text-gray-600 dark:text-gray-400 mb-2">
+                <span className="font-semibold">Example:</span> If balance is ₹60,000 from July 31 to Aug 25 (25 days), and a ₹10,000 receipt comes on Aug 25:
+              </p>
+              <ul className="text-gray-600 dark:text-gray-400 text-xs space-y-1 ml-4 mb-3">
+                <li>• Interest = (₹60,000 × 18% × 25 days) / (100 × 365) = ₹739.73</li>
+                <li>• Balance After Receipt = ₹60,000 - ₹10,000 = ₹50,000</li>
+                <li>• Table shows: Balance ₹50,000, Interest ₹739.73</li>
+              </ul>
+              <p className="text-gray-600 dark:text-gray-400 font-mono text-xs">
+                Interest = (Previous Balance × Rate × Days) / (100 × 365)
+              </p>
+              <p className="text-gray-600 dark:text-gray-400 font-mono text-xs mt-1">
                 Final G.P. = Base G.P. - Total Interest
               </p>
-              <p className="text-gray-600 dark:text-gray-400 font-mono mt-1">
+              <p className="text-gray-600 dark:text-gray-400 font-mono text-xs mt-1">
                 Final G.P. % = (Final G.P. / Invoice Amount) × 100
               </p>
             </div>

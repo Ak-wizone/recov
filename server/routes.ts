@@ -3478,10 +3478,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Build receipt allocation breakdown
+      // Build receipt allocation breakdown with balance-based interest
       const receiptAllocations: any[] = [];
       let receiptCumulative = 0;
       let totalInterest = 0;
+      let currentBalance = invoiceAmount;
+      let previousDate = applicableDate; // Start from applicable date
+      let dueDateRowAdded = false;
 
       for (const receipt of sortedReceipts) {
         const receiptAmount = parseFloat(receipt.amount.toString());
@@ -3496,48 +3499,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
           );
 
           const receiptDate = new Date(receipt.date);
-          const diffTime = receiptDate.getTime() - applicableDate.getTime();
-          const daysFromDue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
           
+          // Add DUE DATE row if this is the first receipt after due date and it hasn't been added
+          if (!dueDateRowAdded && receiptDate > applicableDate) {
+            receiptAllocations.push({
+              isDueDateRow: true,
+              receiptDate: applicableDate.toISOString(),
+              balanceAmount: currentBalance,
+              message: "Interest Starts from Here",
+            });
+            dueDateRowAdded = true;
+            // Reset previous date to applicable date so days are calculated from due date
+            previousDate = applicableDate;
+          }
+          
+          // Calculate days in period (between previous date and this receipt)
+          const diffTime = receiptDate.getTime() - previousDate.getTime();
+          const daysInPeriod = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          
+          // Calculate interest on current balance (balance BEFORE this receipt)
           let interestAmount = 0;
-          if (daysFromDue > 0 && invoice.interestRate) {
+          
+          // Interest only applies after applicable date
+          if (receiptDate > applicableDate && invoice.interestRate && currentBalance > 0) {
             const interestRate = parseFloat(invoice.interestRate.toString());
-            interestAmount = (allocatedAmount * interestRate * daysFromDue) / (100 * 365);
+            // Interest on balance for the period before this receipt
+            interestAmount = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
           }
 
           totalInterest += interestAmount;
+
+          // Determine status based on receipt date vs applicable date
+          let receiptStatus = "On Time";
+          if (receiptDate > applicableDate) {
+            const delayDays = Math.floor((receiptDate.getTime() - applicableDate.getTime()) / (1000 * 60 * 60 * 24));
+            if (delayDays <= 30) {
+              receiptStatus = "Delayed";
+            } else {
+              receiptStatus = "Overdue";
+            }
+          }
+
+          // Calculate new balance after this receipt
+          const newBalance = Math.max(currentBalance - allocatedAmount, 0);
 
           receiptAllocations.push({
             receiptId: receipt.id,
             voucherNumber: receipt.voucherNumber,
             receiptDate: receipt.date,
             receiptAmount: receiptAmount,
-            allocatedAmount: allocatedAmount,
-            daysFromDue: daysFromDue,
+            balanceAmount: newBalance, // Show balance AFTER this receipt (remaining balance)
+            balanceBeforeReceipt: currentBalance, // Track balance used for interest calculation
+            daysInPeriod: receiptDate <= applicableDate ? 0 : daysInPeriod,
             interestRate: invoice.interestRate ? parseFloat(invoice.interestRate.toString()) : 0,
             interestAmount: interestAmount,
+            status: receiptStatus,
           });
+
+          // Update balance for next iteration
+          currentBalance = newBalance;
+          previousDate = receiptDate;
         }
       }
 
-      // Calculate unpaid balance interest
+      // If there's unpaid balance, calculate interest from last receipt (or applicable date) till today
       const unpaidAmount = invoiceAmount - paidAmount;
       let unpaidInterest = 0;
 
-      if (unpaidAmount > 0 && invoice.interestRate) {
+      if (unpaidAmount > 0 && invoice.interestRate && currentBalance > 0) {
         const today = new Date();
-        const diffTime = today.getTime() - applicableDate.getTime();
+        
+        // Add DUE DATE row if no receipts were after due date
+        if (!dueDateRowAdded && previousDate.getTime() === applicableDate.getTime()) {
+          receiptAllocations.push({
+            isDueDateRow: true,
+            receiptDate: applicableDate.toISOString(),
+            balanceAmount: currentBalance,
+            message: "Interest Starts from Here",
+          });
+        }
+        
+        // Calculate days from last payment (or applicable date) to today
+        const diffTime = today.getTime() - previousDate.getTime();
         const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-        if (daysOverdue > 0) {
+        if (daysOverdue > 0 && today > applicableDate) {
           const interestRate = parseFloat(invoice.interestRate.toString());
-          unpaidInterest = (unpaidAmount * interestRate * daysOverdue) / (100 * 365);
+          unpaidInterest = (currentBalance * interestRate * daysOverdue) / (100 * 365);
         }
+        
+        totalInterest += unpaidInterest;
       }
 
       const gp = parseFloat(invoice.gp.toString());
-      const finalGp = gp - (totalInterest + unpaidInterest);
+      const finalGp = gp - totalInterest;
       const finalGpPercentage = invoiceAmount > 0 ? (finalGp * 100) / invoiceAmount : 0;
+
+      // Calculate total receipt amount that went to this invoice
+      const totalReceiptAmountForInvoice = receiptAllocations
+        .filter(r => !r.isDueDateRow)
+        .reduce((sum, r) => sum + (r.receiptAmount || 0), 0);
 
       res.json({
         invoice: {
@@ -3558,13 +3619,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paidAmount: paidAmount,
           unpaidAmount: unpaidAmount,
           receiptAllocations: receiptAllocations,
-          unpaidInterest: unpaidInterest,
+          totalReceiptAmount: totalReceiptAmountForInvoice,
+          totalInterest: totalInterest,
         },
         calculation: {
           baseGp: gp,
-          totalInterestFromReceipts: totalInterest,
-          totalInterestFromUnpaid: unpaidInterest,
-          totalInterest: totalInterest + unpaidInterest,
+          totalInterest: totalInterest,
           finalGp: finalGp,
           finalGpPercentage: finalGpPercentage,
         },
