@@ -43,7 +43,7 @@ export interface ImportInvoiceRow {
   customerName?: string;
   invoiceDate?: string;
   invoiceAmount?: string;
-  netProfit?: string;
+  grossProfit?: string;
   status?: string;
   assignedUser?: string;
   remarks?: string;
@@ -238,7 +238,7 @@ export async function parseInvoicesFile(file: File): Promise<ImportInvoiceRow[]>
           customerName: String(row["Customer Name"] || row.customerName || row.CustomerName || "").trim(),
           invoiceDate: String(row["Invoice Date"] || row.invoiceDate || row.InvoiceDate || row.Date || "").trim(),
           invoiceAmount: String(row["Invoice Amount"] || row.invoiceAmount || row.InvoiceAmount || row.Amount || "").trim(),
-          netProfit: String(row["Net Profit"] || row.netProfit || row.NetProfit || "").trim(),
+          grossProfit: String(row["Gross Profit"] || row.grossProfit || row.GrossProfit || row["Net Profit"] || row.netProfit || row.NetProfit || "").trim(),
           status: String(row["Status"] || row.status || "Unpaid").trim(),
           assignedUser: String(row["Assigned User"] || row.assignedUser || row.AssignedUser || "").trim(),
           remarks: String(row["Remarks"] || row.remarks || row.Notes || row.notes || "").trim(),
@@ -644,19 +644,19 @@ export function validateInvoiceRow(row: ImportInvoiceRow, rowNumber: number): Va
     }
   }
 
-  if (!row.netProfit || row.netProfit === "") {
+  if (!row.grossProfit || row.grossProfit === "") {
     errors.push({
       row: rowNumber,
-      message: "Net Profit is required",
-      field: "netProfit",
+      message: "Gross Profit is required",
+      field: "grossProfit",
     });
   } else {
-    const profit = parseFloat(row.netProfit);
+    const profit = parseFloat(row.grossProfit);
     if (isNaN(profit)) {
       errors.push({
         row: rowNumber,
         message: "Must be a valid number",
-        field: "netProfit",
+        field: "grossProfit",
       });
     }
   }

@@ -404,7 +404,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
             "Customer Name": row.customerName || "",
             "Invoice Date": row.invoiceDate || "",
             "Invoice Amount": row.invoiceAmount || "",
-            "Net Profit": row.netProfit || "",
+            "Gross Profit": row.grossProfit || "",
             "Status": row.status || "Unpaid",
             "Assigned User": row.assignedUser || "",
             "Remarks": row.remarks || "",
@@ -1039,7 +1039,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                           <TableHead>Customer Name *</TableHead>
                           <TableHead>Invoice Date *</TableHead>
                           <TableHead>Invoice Amount *</TableHead>
-                          <TableHead>Net Profit *</TableHead>
+                          <TableHead>Gross Profit *</TableHead>
                           <TableHead>Status</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -1116,16 +1116,16 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                               </TableCell>
                               <TableCell>
                                 <Input
-                                  value={row.netProfit || ""}
-                                  onChange={(e) => handleCellEdit(index, "netProfit", e.target.value)}
+                                  value={row.grossProfit || ""}
+                                  onChange={(e) => handleCellEdit(index, "grossProfit", e.target.value)}
                                   className={cn(
                                     "h-8 text-sm",
-                                    cellErrors.has(`${rowNumber}-netProfit`) && "border-red-500 focus-visible:ring-red-500"
+                                    cellErrors.has(`${rowNumber}-grossProfit`) && "border-red-500 focus-visible:ring-red-500"
                                   )}
-                                  data-testid={`input-netprofit-${index}`}
+                                  data-testid={`input-grossprofit-${index}`}
                                 />
-                                {cellErrors.has(`${rowNumber}-netProfit`) && (
-                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-netProfit`)}</p>
+                                {cellErrors.has(`${rowNumber}-grossProfit`) && (
+                                  <p className="text-xs text-red-600 mt-1">{cellErrors.get(`${rowNumber}-grossProfit`)}</p>
                                 )}
                               </TableCell>
                               <TableCell>

@@ -243,10 +243,10 @@ export function InvoiceTable({
         enableColumnFilter: true,
       },
       {
-        accessorKey: "netProfit",
-        header: "Net Profit",
+        accessorKey: "grossProfit",
+        header: "Gross Profit",
         cell: ({ row }) => {
-          const profit = parseFloat(row.original.netProfit);
+          const profit = parseFloat(row.original.grossProfit);
           const isPositive = profit >= 0;
           return (
             <div 
