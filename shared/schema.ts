@@ -451,6 +451,7 @@ export const invoices = pgTable("invoices", {
   invoiceDate: timestamp("invoice_date").notNull(),
   invoiceAmount: decimal("invoice_amount", { precision: 15, scale: 2 }).notNull(),
   gp: decimal("gp", { precision: 15, scale: 2 }).notNull(),
+  interestAmount: decimal("interest_amount", { precision: 15, scale: 2 }),
   finalGp: decimal("final_gp", { precision: 15, scale: 2 }),
   finalGpPercentage: decimal("final_gp_percentage", { precision: 5, scale: 2 }),
   status: text("status").notNull().default("Unpaid"), // Paid, Unpaid, Partial

@@ -2793,14 +2793,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paidAmount = 0;
         }
         
-        // Calculate Final G.P. for ALL invoices (Paid, Partial, and Unpaid)
+        // Calculate Final G.P. using the same logic as interest breakdown report
         let finalGp: number | null = null;
         let finalGpPercentage: number | null = null;
-        let interestAmount = 0;
+        let totalInterest = 0;
         
         // Calculate interest if interest rate is set
         if (invoice.interestRate && parseFloat(invoice.interestRate.toString()) > 0) {
-          
           const invoiceDate = new Date(invoice.invoiceDate);
           const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
           const dueDate = new Date(invoiceDate);
@@ -2813,66 +2812,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } else if (invoice.interestApplicableFrom === "Invoice Date") {
             applicableDate = invoiceDate;
           } else {
-            applicableDate = dueDate; // Default to due date
+            applicableDate = dueDate;
           }
           
-          // Determine the reference date for interest calculation
-          let referenceDate: Date;
-          let amountForInterest: number;
+          const invoiceEndAllocation = invoiceStartAllocation + paidAmount;
+          let receiptCumulative = 0;
+          let currentBalance = invoiceAmount;
           
-          if (status === "Paid" || status === "Partial") {
-            // For paid/partial invoices: Find the payment date from FIFO allocation
-            let receiptCumulative = 0;
-            referenceDate = new Date(); // Default to today
-            const invoiceEndAllocation = invoiceStartAllocation + paidAmount;
+          // Calculate interest for each receipt that contributes to this invoice
+          for (const receipt of sortedReceipts) {
+            const receiptAmount = parseFloat(receipt.amount.toString());
+            const prevCumulative = receiptCumulative;
+            receiptCumulative += receiptAmount;
             
-            for (const receipt of sortedReceipts) {
-              const receiptAmount = parseFloat(receipt.amount.toString());
-              const prevCumulative = receiptCumulative;
-              receiptCumulative += receiptAmount;
+            // Check if this receipt contributes to this invoice
+            if (receiptCumulative > invoiceStartAllocation && prevCumulative < invoiceEndAllocation) {
+              const allocatedAmount = Math.min(
+                receiptAmount,
+                invoiceEndAllocation - Math.max(prevCumulative, invoiceStartAllocation)
+              );
               
-              // Check if this receipt contributes to paying this invoice
-              if (receiptCumulative > invoiceStartAllocation && prevCumulative < invoiceEndAllocation) {
-                // This receipt contributes to this invoice
-                referenceDate = new Date(receipt.date);
-                
-                // If this receipt fully covers the invoice, use this receipt's date
-                if (receiptCumulative >= invoiceEndAllocation) {
-                  break;
-                }
+              const receiptDate = new Date(receipt.date);
+              
+              // Calculate cumulative days from due date
+              const diffTime = receiptDate.getTime() - applicableDate.getTime();
+              const daysFromDueDate = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+              
+              // Calculate interest on current balance (before this receipt)
+              if (receiptDate > applicableDate && currentBalance > 0) {
+                const interestRate = parseFloat(invoice.interestRate.toString());
+                const interestAmount = (currentBalance * interestRate * daysFromDueDate) / (100 * 365);
+                totalInterest += interestAmount;
               }
+              
+              // Update balance for next iteration
+              currentBalance = Math.max(currentBalance - allocatedAmount, 0);
             }
-            amountForInterest = paidAmount;
-          } else {
-            // For unpaid invoices: Use TODAY's date and full invoice amount
-            referenceDate = new Date();
-            amountForInterest = invoiceAmount;
           }
           
-          // Calculate days from applicable date to reference date
-          const diffTime = referenceDate.getTime() - applicableDate.getTime();
-          const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-          
-          // Calculate interest only if overdue
-          if (daysOverdue > 0) {
-            const interestRate = parseFloat(invoice.interestRate.toString());
-            interestAmount = (amountForInterest * interestRate * daysOverdue) / (100 * 365);
+          // If there's unpaid balance, calculate interest from applicable date till today
+          if (currentBalance > 0) {
+            const today = new Date();
+            const diffTime = today.getTime() - applicableDate.getTime();
+            const daysFromDueDate = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+            
+            if (today > applicableDate) {
+              const interestRate = parseFloat(invoice.interestRate.toString());
+              const unpaidInterest = (currentBalance * interestRate * daysFromDueDate) / (100 * 365);
+              totalInterest += unpaidInterest;
+            }
           }
           
-          // Final G.P. = G.P. - Interest Amount
+          // Final G.P. = G.P. - Total Interest
           const gp = parseFloat(invoice.gp.toString());
-          finalGp = gp - interestAmount;
+          finalGp = gp - totalInterest;
           
           // Final G.P. % = Final G.P. * 100 / Invoice Amount
           if (invoiceAmount > 0) {
             finalGpPercentage = (finalGp * 100) / invoiceAmount;
           }
           
-          // Debug logging for Final G.P. calculation
+          // Debug logging
           console.log(`\n=== Final G.P. Calculation ===`);
           console.log(`Invoice: ${invoice.invoiceNumber} | Customer: ${invoice.customerName}`);
-          console.log(`Status: ${status} | G.P.: ₹${gp} | Interest: ₹${interestAmount}`);
-          console.log(`Formula: ${gp} - ${interestAmount} = ${finalGp}`);
+          console.log(`Status: ${status} | G.P.: ₹${gp} | Interest: ₹${totalInterest}`);
+          console.log(`Formula: ${gp} - ${totalInterest} = ${finalGp}`);
           console.log(`Final G.P.: ₹${finalGp} | Final G.P. %: ${finalGpPercentage}%`);
           console.log(`================================\n`);
         } else {
@@ -2884,13 +2888,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // Update invoice if status or Final G.P. changed
+        // Update invoice if status, interest, or Final G.P. changed
         const needsUpdate = invoice.status !== status || 
+                          (totalInterest !== null && invoice.interestAmount !== totalInterest.toString()) ||
                           (finalGp !== null && invoice.finalGp !== finalGp.toString()) ||
                           (finalGpPercentage !== null && invoice.finalGpPercentage !== finalGpPercentage.toString());
         
         if (needsUpdate) {
           const updateData: any = { status };
+          if (totalInterest !== null) {
+            updateData.interestAmount = totalInterest.toFixed(2);
+          }
           if (finalGp !== null) {
             updateData.finalGp = finalGp.toFixed(2);
           }
