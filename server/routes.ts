@@ -2747,42 +2747,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== INVOICE ROUTES =====
 
-  // FIFO Allocation Algorithm - Calculate invoice statuses based on receipt allocation
+  // FIFO Allocation Algorithm - Calculate invoice statuses and Final G.P. based on receipt allocation
   async function calculateInvoiceStatuses(tenantId: string, customerName: string) {
     try {
       // Get all invoices for the customer (ordered by invoice date - oldest first)
       const customerInvoices = await storage.getInvoicesByCustomerName(tenantId, customerName);
       
-      // Get all receipts for the customer
+      // Get all receipts for the customer (sorted by date - oldest first)
       const customerReceipts = await storage.getReceiptsByCustomerName(tenantId, customerName);
+      const sortedReceipts = customerReceipts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       
       // Calculate total receipt amount
-      const totalReceiptAmount = customerReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
+      const totalReceiptAmount = sortedReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
       
-      // Allocate receipt amount to invoices using FIFO
+      // Track cumulative allocation across all invoices for proper FIFO
+      let cumulativeAllocated = 0;
       let remainingReceiptAmount = totalReceiptAmount;
       
       for (const invoice of customerInvoices) {
         const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
         let status: "Paid" | "Unpaid" | "Partial";
+        let paidAmount = 0;
+        const invoiceStartAllocation = cumulativeAllocated;
         
         if (remainingReceiptAmount >= invoiceAmount) {
           // Fully paid
           status = "Paid";
+          paidAmount = invoiceAmount;
+          cumulativeAllocated += invoiceAmount;
           remainingReceiptAmount -= invoiceAmount;
         } else if (remainingReceiptAmount > 0 && remainingReceiptAmount < invoiceAmount) {
           // Partially paid
           status = "Partial";
+          paidAmount = remainingReceiptAmount;
+          cumulativeAllocated += remainingReceiptAmount;
           remainingReceiptAmount = 0;
         } else {
           // Unpaid
           status = "Unpaid";
+          paidAmount = 0;
         }
         
-        // Update invoice status if it changed
-        if (invoice.status !== status) {
-          // Update status directly in database (bypassing schema validation)
-          await db.update(invoices).set({ status }).where(eq(invoices.id, invoice.id));
+        // Calculate Final G.P. when invoice is paid or partially paid
+        let finalGp: number | null = null;
+        let finalGpPercentage: number | null = null;
+        
+        if (status === "Paid" || status === "Partial") {
+          // Calculate interest amount based on payment date
+          let interestAmount = 0;
+          
+          if (invoice.interestRate && parseFloat(invoice.interestRate.toString()) > 0) {
+            const invoiceDate = new Date(invoice.invoiceDate);
+            const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+            const dueDate = new Date(invoiceDate);
+            dueDate.setDate(dueDate.getDate() + paymentTerms);
+            
+            // Determine interest applicable date
+            let applicableDate: Date;
+            if (invoice.interestApplicableFrom === "Due Date") {
+              applicableDate = dueDate;
+            } else if (invoice.interestApplicableFrom === "Invoice Date") {
+              applicableDate = invoiceDate;
+            } else {
+              applicableDate = dueDate; // Default to due date
+            }
+            
+            // Find the payment date: the date of the receipt that completes payment for this invoice
+            // Track allocation from where this invoice's allocation started
+            let receiptCumulative = 0;
+            let paymentDate = new Date();
+            const invoiceEndAllocation = invoiceStartAllocation + paidAmount;
+            
+            for (const receipt of sortedReceipts) {
+              const receiptAmount = parseFloat(receipt.amount.toString());
+              const prevCumulative = receiptCumulative;
+              receiptCumulative += receiptAmount;
+              
+              // Check if this receipt contributes to paying this invoice
+              if (receiptCumulative > invoiceStartAllocation && prevCumulative < invoiceEndAllocation) {
+                // This receipt contributes to this invoice
+                paymentDate = new Date(receipt.date);
+                
+                // If this receipt fully covers the invoice, use this receipt's date
+                if (receiptCumulative >= invoiceEndAllocation) {
+                  break;
+                }
+              }
+            }
+            
+            // Calculate days from applicable date to payment date
+            const diffTime = paymentDate.getTime() - applicableDate.getTime();
+            const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            // Calculate interest only if overdue
+            if (daysOverdue > 0) {
+              const interestRate = parseFloat(invoice.interestRate.toString());
+              interestAmount = (paidAmount * interestRate * daysOverdue) / (100 * 365);
+            }
+          }
+          
+          // Calculate Final G.P. = G.P. - Interest Amount
+          const gp = parseFloat(invoice.gp.toString());
+          finalGp = gp - interestAmount;
+          
+          // Calculate G.P. % = (Final G.P. / Invoice Amount) × 100
+          if (invoiceAmount > 0) {
+            finalGpPercentage = (finalGp / invoiceAmount) * 100;
+          }
+        }
+        
+        // Update invoice if status or Final G.P. changed
+        const needsUpdate = invoice.status !== status || 
+                          (finalGp !== null && invoice.finalGp !== finalGp.toString()) ||
+                          (finalGpPercentage !== null && invoice.finalGpPercentage !== finalGpPercentage.toString());
+        
+        if (needsUpdate) {
+          const updateData: any = { status };
+          if (finalGp !== null) {
+            updateData.finalGp = finalGp.toFixed(2);
+          }
+          if (finalGpPercentage !== null) {
+            updateData.finalGpPercentage = finalGpPercentage.toFixed(2);
+          }
+          
+          // Update directly in database
+          await db.update(invoices).set(updateData).where(eq(invoices.id, invoice.id));
         }
       }
     } catch (error) {
@@ -3195,7 +3284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Recalculate invoice statuses using FIFO for all affected customers
       for (const customerName of Array.from(uniqueCustomers)) {
-        await calculateInvoiceStatuses(customerName);
+        await calculateInvoiceStatuses(req.tenantId!, customerName);
       }
 
       res.json({ 
@@ -3238,7 +3327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const invoice = await storage.createInvoice(req.tenantId!, invoiceData);
       
       // Recalculate all invoice statuses for this customer using FIFO
-      await calculateInvoiceStatuses(invoice.customerName);
+      await calculateInvoiceStatuses(req.tenantId!, invoice.customerName);
       
       // Get the updated invoice with the calculated status
       const updatedInvoice = await storage.getInvoice(req.tenantId!, invoice.id);
@@ -3263,7 +3352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Recalculate all invoice statuses for this customer using FIFO
-      await calculateInvoiceStatuses(invoice.customerName);
+      await calculateInvoiceStatuses(req.tenantId!, invoice.customerName);
       
       // Get the updated invoice with the calculated status
       const updatedInvoice = await storage.getInvoice(req.tenantId!, invoice.id);
@@ -3469,7 +3558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const receipt = await storage.createReceipt(req.tenantId!, result.data);
       
       // Recalculate all invoice statuses for this customer using FIFO
-      await calculateInvoiceStatuses(receipt.customerName);
+      await calculateInvoiceStatuses(req.tenantId!, receipt.customerName);
       
       res.json(receipt);
     } catch (error: any) {
@@ -3490,7 +3579,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Recalculate all invoice statuses for this customer using FIFO
-      await calculateInvoiceStatuses(receipt.customerName);
+      await calculateInvoiceStatuses(req.tenantId!, receipt.customerName);
       
       res.json(receipt);
     } catch (error: any) {
@@ -3514,7 +3603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Recalculate all invoice statuses for this customer using FIFO
-      await calculateInvoiceStatuses(customerName);
+      await calculateInvoiceStatuses(req.tenantId!, customerName);
       
       res.json({ message: "Receipt deleted successfully" });
     } catch (error: any) {
@@ -4531,7 +4620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }));
 
       const createdRoles = await Promise.all(
-        roles.map(role => storage.createRole(role))
+        roles.map(role => storage.createRole(req.tenantId!, role))
       );
 
       res.status(201).json({ 
@@ -4718,7 +4807,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const createdUsers = await Promise.all(
-        users.map(user => storage.createUser(user))
+        users.map(user => storage.createUser(req.tenantId!, user))
       );
 
       res.status(201).json({ 

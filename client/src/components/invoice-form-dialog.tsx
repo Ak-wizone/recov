@@ -36,8 +36,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
       invoiceDate: invoice?.invoiceDate ? format(new Date(invoice.invoiceDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       invoiceAmount: invoice?.invoiceAmount || "",
       gp: invoice?.gp || "",
-      finalGp: invoice?.finalGp || "",
-      finalGpPercentage: invoice?.finalGpPercentage || "",
       remarks: invoice?.remarks || "",
       category: invoice?.category || "",
       primaryMobile: invoice?.primaryMobile || "",
@@ -124,8 +122,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         invoiceDate: format(new Date(invoice.invoiceDate), "yyyy-MM-dd"),
         invoiceAmount: invoice.invoiceAmount || "",
         gp: invoice.gp || "",
-        finalGp: invoice.finalGp || "",
-        finalGpPercentage: invoice.finalGpPercentage || "",
         remarks: invoice.remarks || "",
         category: invoice.category || "",
         primaryMobile: invoice.primaryMobile || "",
@@ -144,8 +140,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         invoiceDate: format(new Date(), "yyyy-MM-dd"),
         invoiceAmount: "",
         gp: "",
-        finalGp: "",
-        finalGpPercentage: "",
         remarks: "",
         category: "",
         primaryMobile: "",
@@ -295,46 +289,6 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
                           step="0.01" 
                           placeholder="0.00" 
                           data-testid="input-gp" 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="finalGp"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>FINAL G.P. (₹)</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          type="number" 
-                          step="0.01" 
-                          placeholder="0.00" 
-                          data-testid="input-final-gp" 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="finalGpPercentage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>FINAL G.P. %</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          type="number" 
-                          step="0.01" 
-                          placeholder="0.00" 
-                          data-testid="input-final-gp-percentage" 
                         />
                       </FormControl>
                       <FormMessage />

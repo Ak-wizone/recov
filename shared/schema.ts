@@ -474,8 +474,6 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   invoiceDate: true,
   invoiceAmount: true,
   gp: true,
-  finalGp: true,
-  finalGpPercentage: true,
   remarks: true,
   category: true,
   primaryMobile: true,
@@ -496,12 +494,6 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   gp: z.string().refine((val) => !isNaN(parseFloat(val)), {
     message: "G.P. must be a valid number",
   }),
-  finalGp: z.string().refine((val) => val === "" || !isNaN(parseFloat(val)), {
-    message: "FINAL G.P. must be a valid number",
-  }).optional(),
-  finalGpPercentage: z.string().refine((val) => val === "" || !isNaN(parseFloat(val)), {
-    message: "FINAL G.P. % must be a valid number",
-  }).optional(),
   remarks: z.string().optional(),
   category: z.string().optional(),
   primaryMobile: z.string().optional(),
