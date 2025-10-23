@@ -4,7 +4,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, MessageSquare, Mail, Phone } from "lucide-react";
+import { Pencil, Trash2, MessageSquare, Mail, Phone, Calculator } from "lucide-react";
 import { format } from "date-fns";
 
 interface InvoiceTableProps {
@@ -12,6 +12,7 @@ interface InvoiceTableProps {
   isLoading: boolean;
   onEdit: (invoice: Invoice) => void;
   onDelete: (invoice: Invoice) => void;
+  onCalculator?: (invoice: Invoice) => void;
   onWhatsApp?: (invoice: Invoice) => void;
   onEmail?: (invoice: Invoice) => void;
   onCall?: (invoice: Invoice) => void;
@@ -24,6 +25,7 @@ export function InvoiceTable({
   isLoading,
   onEdit,
   onDelete,
+  onCalculator,
   onWhatsApp,
   onEmail,
   onCall,
@@ -350,6 +352,15 @@ export function InvoiceTable({
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => onCalculator?.(row.original)}
+              data-testid={`button-calculator-${row.original.id}`}
+              title="Interest Calculator"
+            >
+              <Calculator className="h-4 w-4 text-indigo-500" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => onWhatsApp?.(row.original)}
               data-testid={`button-whatsapp-${row.original.id}`}
             >
@@ -392,7 +403,7 @@ export function InvoiceTable({
         enableHiding: false,
       },
     ],
-    [onEdit, onDelete, onWhatsApp, onEmail, onCall]
+    [onEdit, onDelete, onCalculator, onWhatsApp, onEmail, onCall]
   );
 
   const handleBulkDelete = async (rows: Invoice[]) => {

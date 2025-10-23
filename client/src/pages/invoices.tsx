@@ -8,6 +8,7 @@ import InvoiceFormDialog from "@/components/invoice-form-dialog";
 import { ImportModal } from "@/components/import-modal";
 import { EmailDialog } from "@/components/email-dialog";
 import { CallDialog } from "@/components/call-dialog";
+import { InterestCalculatorDialog } from "@/components/interest-calculator-dialog";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,6 +47,7 @@ export default function Invoices() {
   const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<Invoice | null>(null);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [selectedInvoiceForCall, setSelectedInvoiceForCall] = useState<Invoice | null>(null);
+  const [selectedInvoiceIdForCalculator, setSelectedInvoiceIdForCalculator] = useState<string | null>(null);
   
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -322,6 +324,10 @@ export default function Invoices() {
     }
     setSelectedInvoiceForCall(invoice);
     setIsCallDialogOpen(true);
+  };
+
+  const handleCalculator = (invoice: Invoice) => {
+    setSelectedInvoiceIdForCalculator(invoice.id);
   };
 
   return (
@@ -711,6 +717,7 @@ export default function Invoices() {
           isLoading={isLoading}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onCalculator={handleCalculator}
           onWhatsApp={handleWhatsApp}
           onEmail={handleEmail}
           onCall={handleCall}
@@ -815,6 +822,12 @@ export default function Invoices() {
             ? new Date(new Date(selectedInvoiceForCall.invoiceDate).getTime() + selectedInvoiceForCall.paymentTerms * 24 * 60 * 60 * 1000).toISOString()
             : new Date(selectedInvoiceForCall?.invoiceDate || new Date()).toISOString(),
         }}
+      />
+
+      {/* Interest Calculator Dialog */}
+      <InterestCalculatorDialog
+        invoiceId={selectedInvoiceIdForCalculator}
+        onClose={() => setSelectedInvoiceIdForCalculator(null)}
       />
     </div>
   );

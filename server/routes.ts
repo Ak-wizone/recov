@@ -3404,6 +3404,176 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get interest breakdown for an invoice (MUST BE BEFORE /:id)
+  app.get("/api/invoices/:id/interest-breakdown", async (req, res) => {
+    try {
+      const invoice = await storage.getInvoice(req.tenantId!, req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Get all receipts for this customer
+      const customerReceipts = await storage.getReceiptsByCustomerName(req.tenantId!, invoice.customerName);
+      const sortedReceipts = customerReceipts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      // Get all invoices for this customer to calculate FIFO allocation
+      const customerInvoices = await storage.getInvoicesByCustomerName(req.tenantId!, invoice.customerName);
+
+      // Calculate FIFO allocation for the target invoice
+      const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+      const invoiceDate = new Date(invoice.invoiceDate);
+      const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+      const dueDate = new Date(invoiceDate);
+      dueDate.setDate(dueDate.getDate() + paymentTerms);
+
+      // Determine interest applicable date
+      let applicableDate: Date;
+      if (invoice.interestApplicableFrom === "Due Date") {
+        applicableDate = dueDate;
+      } else if (invoice.interestApplicableFrom === "Invoice Date") {
+        applicableDate = invoiceDate;
+      } else {
+        applicableDate = dueDate;
+      }
+
+      // Calculate total receipt amount
+      const totalReceiptAmount = sortedReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
+
+      // Find this invoice's position in FIFO queue
+      let cumulativeAllocated = 0;
+      let invoiceStartAllocation = 0;
+      let invoiceEndAllocation = 0;
+      let paidAmount = 0;
+      let status: "Paid" | "Unpaid" | "Partial" = "Unpaid";
+
+      for (const inv of customerInvoices) {
+        const invAmount = parseFloat(inv.invoiceAmount.toString());
+        const remainingReceipt = totalReceiptAmount - cumulativeAllocated;
+
+        if (inv.id === invoice.id) {
+          // This is our target invoice
+          invoiceStartAllocation = cumulativeAllocated;
+
+          if (remainingReceipt >= invAmount) {
+            status = "Paid";
+            paidAmount = invAmount;
+            invoiceEndAllocation = cumulativeAllocated + invAmount;
+          } else if (remainingReceipt > 0) {
+            status = "Partial";
+            paidAmount = remainingReceipt;
+            invoiceEndAllocation = cumulativeAllocated + remainingReceipt;
+          } else {
+            status = "Unpaid";
+            paidAmount = 0;
+            invoiceEndAllocation = cumulativeAllocated;
+          }
+          break;
+        }
+
+        // Allocate receipts to earlier invoices
+        if (remainingReceipt >= invAmount) {
+          cumulativeAllocated += invAmount;
+        } else if (remainingReceipt > 0) {
+          cumulativeAllocated += remainingReceipt;
+        }
+      }
+
+      // Build receipt allocation breakdown
+      const receiptAllocations: any[] = [];
+      let receiptCumulative = 0;
+      let totalInterest = 0;
+
+      for (const receipt of sortedReceipts) {
+        const receiptAmount = parseFloat(receipt.amount.toString());
+        const prevCumulative = receiptCumulative;
+        receiptCumulative += receiptAmount;
+
+        // Check if this receipt contributes to this invoice
+        if (receiptCumulative > invoiceStartAllocation && prevCumulative < invoiceEndAllocation) {
+          const allocatedAmount = Math.min(
+            receiptAmount,
+            invoiceEndAllocation - Math.max(prevCumulative, invoiceStartAllocation)
+          );
+
+          const receiptDate = new Date(receipt.date);
+          const diffTime = receiptDate.getTime() - applicableDate.getTime();
+          const daysFromDue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          
+          let interestAmount = 0;
+          if (daysFromDue > 0 && invoice.interestRate) {
+            const interestRate = parseFloat(invoice.interestRate.toString());
+            interestAmount = (allocatedAmount * interestRate * daysFromDue) / (100 * 365);
+          }
+
+          totalInterest += interestAmount;
+
+          receiptAllocations.push({
+            receiptId: receipt.id,
+            voucherNumber: receipt.voucherNumber,
+            receiptDate: receipt.date,
+            receiptAmount: receiptAmount,
+            allocatedAmount: allocatedAmount,
+            daysFromDue: daysFromDue,
+            interestRate: invoice.interestRate ? parseFloat(invoice.interestRate.toString()) : 0,
+            interestAmount: interestAmount,
+          });
+        }
+      }
+
+      // Calculate unpaid balance interest
+      const unpaidAmount = invoiceAmount - paidAmount;
+      let unpaidInterest = 0;
+
+      if (unpaidAmount > 0 && invoice.interestRate) {
+        const today = new Date();
+        const diffTime = today.getTime() - applicableDate.getTime();
+        const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (daysOverdue > 0) {
+          const interestRate = parseFloat(invoice.interestRate.toString());
+          unpaidInterest = (unpaidAmount * interestRate * daysOverdue) / (100 * 365);
+        }
+      }
+
+      const gp = parseFloat(invoice.gp.toString());
+      const finalGp = gp - (totalInterest + unpaidInterest);
+      const finalGpPercentage = invoiceAmount > 0 ? (finalGp * 100) / invoiceAmount : 0;
+
+      res.json({
+        invoice: {
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          customerName: invoice.customerName,
+          invoiceDate: invoice.invoiceDate,
+          invoiceAmount: invoiceAmount,
+          gp: gp,
+          interestRate: invoice.interestRate ? parseFloat(invoice.interestRate.toString()) : 0,
+          interestApplicableFrom: invoice.interestApplicableFrom,
+          paymentTerms: paymentTerms,
+          dueDate: dueDate,
+          applicableDate: applicableDate,
+          status: status,
+        },
+        allocation: {
+          paidAmount: paidAmount,
+          unpaidAmount: unpaidAmount,
+          receiptAllocations: receiptAllocations,
+          unpaidInterest: unpaidInterest,
+        },
+        calculation: {
+          baseGp: gp,
+          totalInterestFromReceipts: totalInterest,
+          totalInterestFromUnpaid: unpaidInterest,
+          totalInterest: totalInterest + unpaidInterest,
+          finalGp: finalGp,
+          finalGpPercentage: finalGpPercentage,
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get single invoice (MUST BE AFTER specific routes)
   app.get("/api/invoices/:id", async (req, res) => {
     try {
