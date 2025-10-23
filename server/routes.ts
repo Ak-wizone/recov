@@ -3225,6 +3225,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get interest calculation details for an invoice (MUST BE BEFORE /:id)
+  app.get("/api/invoices/:id/interest-details", async (req, res) => {
+    try {
+      const invoice = await storage.getInvoice(req.tenantId!, req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Calculate due date (invoice date + payment terms)
+      const invoiceDate = new Date(invoice.invoiceDate);
+      const paymentTermsDays = invoice.paymentTerms || 0;
+      const dueDate = new Date(invoiceDate);
+      dueDate.setDate(dueDate.getDate() + paymentTermsDays);
+
+      // Get all payments for this invoice from invoice_payments table
+      const invoicePayments = await storage.getInvoicePayments(req.tenantId!, invoice.id);
+
+      // Calculate interest for each payment
+      const paymentBreakdown = invoicePayments.map((payment) => {
+        const paymentDate = new Date(payment.paymentDate);
+        const daysOverdue = Math.max(0, Math.floor((paymentDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+        
+        const paymentAmount = parseFloat(payment.paymentAmount.toString());
+        const annualInterestRate = parseFloat(invoice.interestRate || "0") / 100; // Convert percentage to decimal
+        const dailyRate = annualInterestRate / 365;
+        const interestAmount = daysOverdue > 0 ? paymentAmount * dailyRate * daysOverdue : 0;
+
+        return {
+          paymentId: payment.id,
+          receiptId: payment.receiptId,
+          paymentAmount: paymentAmount.toFixed(2),
+          paymentDate: paymentDate.toISOString().split('T')[0],
+          daysOverdue,
+          interestAmount: interestAmount.toFixed(2),
+        };
+      });
+
+      // Calculate totals
+      const totalInterest = paymentBreakdown.reduce((sum, p) => sum + parseFloat(p.interestAmount), 0);
+      const grossProfit = parseFloat(invoice.grossProfit.toString());
+      const finalGrossProfit = grossProfit - totalInterest;
+      const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+      const grossProfitPercentage = invoiceAmount > 0 ? (finalGrossProfit / invoiceAmount) * 100 : 0;
+
+      res.json({
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        invoiceDate: invoiceDate.toISOString().split('T')[0],
+        dueDate: dueDate.toISOString().split('T')[0],
+        invoiceAmount: invoiceAmount.toFixed(2),
+        grossProfit: grossProfit.toFixed(2),
+        interestRate: invoice.interestRate || "0",
+        paymentBreakdown,
+        totalInterest: totalInterest.toFixed(2),
+        finalGrossProfit: finalGrossProfit.toFixed(2),
+        grossProfitPercentage: grossProfitPercentage.toFixed(2),
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Create invoice
   app.post("/api/invoices", async (req, res) => {
     try {
