@@ -450,7 +450,9 @@ export const invoices = pgTable("invoices", {
   customerName: text("customer_name").notNull(),
   invoiceDate: timestamp("invoice_date").notNull(),
   invoiceAmount: decimal("invoice_amount", { precision: 15, scale: 2 }).notNull(),
-  netProfit: decimal("net_profit", { precision: 15, scale: 2 }).notNull(),
+  grossProfit: decimal("gross_profit", { precision: 15, scale: 2 }).notNull(),
+  finalGrossProfit: decimal("final_gross_profit", { precision: 15, scale: 2 }),
+  grossProfitPercentage: decimal("gross_profit_percentage", { precision: 5, scale: 2 }),
   status: text("status").notNull().default("Unpaid"), // Paid, Unpaid, Partial
   remarks: text("remarks"),
   // Customer-related fields (auto-populated from customer selection)
@@ -471,7 +473,7 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   customerName: true,
   invoiceDate: true,
   invoiceAmount: true,
-  netProfit: true,
+  grossProfit: true,
   remarks: true,
   category: true,
   primaryMobile: true,
@@ -489,8 +491,8 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   invoiceAmount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
     message: "Invoice amount must be a valid positive number",
   }),
-  netProfit: z.string().refine((val) => !isNaN(parseFloat(val)), {
-    message: "Net profit must be a valid number",
+  grossProfit: z.string().refine((val) => !isNaN(parseFloat(val)), {
+    message: "Gross profit must be a valid number",
   }),
   remarks: z.string().optional(),
   category: z.string().optional(),
@@ -540,6 +542,34 @@ export const insertReceiptSchema = createInsertSchema(receipts).pick({
 
 export type InsertReceipt = z.infer<typeof insertReceiptSchema>;
 export type Receipt = typeof receipts.$inferSelect;
+
+// Invoice Payments (Junction table to track receipt allocations to invoices)
+export const invoicePayments = pgTable("invoice_payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  invoiceId: varchar("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+  receiptId: varchar("receipt_id").notNull().references(() => receipts.id, { onDelete: "cascade" }),
+  paymentAmount: decimal("payment_amount", { precision: 15, scale: 2 }).notNull(),
+  paymentDate: timestamp("payment_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertInvoicePaymentSchema = createInsertSchema(invoicePayments).pick({
+  invoiceId: true,
+  receiptId: true,
+  paymentAmount: true,
+  paymentDate: true,
+}).extend({
+  invoiceId: z.string().min(1, "Invoice ID is required"),
+  receiptId: z.string().min(1, "Receipt ID is required"),
+  paymentAmount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: "Payment amount must be a valid positive number",
+  }),
+  paymentDate: z.string().min(1, "Payment date is required"),
+});
+
+export type InsertInvoicePayment = z.infer<typeof insertInvoicePaymentSchema>;
+export type InvoicePayment = typeof invoicePayments.$inferSelect;
 
 // Leads table
 export const leads = pgTable("leads", {
