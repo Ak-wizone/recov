@@ -2850,9 +2850,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const gp = parseFloat(invoice.gp.toString());
           finalGp = gp - interestAmount;
           
-          // Calculate G.P. % = (Final G.P. / Invoice Amount) × 100
+          // Calculate Final G.P. % = Final G.P. * 100 / Invoice Amount
           if (invoiceAmount > 0) {
-            finalGpPercentage = (finalGp / invoiceAmount) * 100;
+            finalGpPercentage = (finalGp * 100) / invoiceAmount;
           }
         }
         
