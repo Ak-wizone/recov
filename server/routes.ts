@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
+import { wsManager } from "./websocket";
 import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { ringgService } from "./ringg-service";
@@ -2372,6 +2373,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ids must be an array" });
       }
       const deleted = await storage.deleteMasterCustomers(req.tenantId!, ids);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'customers',
+        action: 'delete',
+        data: { ids }
+      });
+      
       res.json({ deleted });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2391,6 +2401,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           storage.updateMasterCustomer(req.tenantId!, customer.id, { interestRate: interestRate.toString() })
         )
       );
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'customers',
+        action: 'update',
+        data: { bulkUpdate: true }
+      });
+      
       res.json({ updated: updates.length, message: "Interest rate updated for all customers" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2419,6 +2438,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const customer = await storage.createMasterCustomer(req.tenantId!, result.data);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'customers',
+        action: 'create',
+        data: { id: customer.id }
+      });
+      
       res.json(customer);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2452,6 +2480,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'customers',
+        action: 'update',
+        data: { id: customer.id }
+      });
+      
       res.json(customer);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -2465,6 +2502,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deleted) {
         return res.status(404).json({ message: "Customer not found" });
       }
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'customers',
+        action: 'delete',
+        data: { id: req.params.id }
+      });
+      
       res.json({ message: "Customer deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3344,6 +3390,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ids must be an array" });
       }
       const deleted = await storage.deleteInvoices(req.tenantId!, ids);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'invoices',
+        action: 'delete',
+        data: { ids }
+      });
+      
       res.json({ deleted });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3367,6 +3422,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get the updated invoice with the calculated status
       const updatedInvoice = await storage.getInvoice(req.tenantId!, invoice.id);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'invoices',
+        action: 'create',
+        data: { id: updatedInvoice.id }
+      });
       
       res.json(updatedInvoice);
     } catch (error: any) {
@@ -3393,6 +3456,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get the updated invoice with the calculated status
       const updatedInvoice = await storage.getInvoice(req.tenantId!, invoice.id);
       
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'invoices',
+        action: 'update',
+        data: { id: updatedInvoice.id }
+      });
+      
       res.json(updatedInvoice);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3406,6 +3477,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deleted) {
         return res.status(404).json({ message: "Invoice not found" });
       }
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'invoices',
+        action: 'delete',
+        data: { id: req.params.id }
+      });
+      
       res.json({ message: "Invoice deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3808,6 +3888,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ids must be an array" });
       }
       const deleted = await storage.deleteReceipts(req.tenantId!, ids);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'receipts',
+        action: 'delete',
+        data: { ids }
+      });
+      
       res.json({ deleted });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3825,6 +3914,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Recalculate all invoice statuses for this customer using FIFO
       await calculateInvoiceStatuses(req.tenantId!, receipt.customerName);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'receipts',
+        action: 'create',
+        data: { id: receipt.id }
+      });
       
       res.json(receipt);
     } catch (error: any) {
@@ -3846,6 +3943,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Recalculate all invoice statuses for this customer using FIFO
       await calculateInvoiceStatuses(req.tenantId!, receipt.customerName);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'receipts',
+        action: 'update',
+        data: { id: receipt.id }
+      });
       
       res.json(receipt);
     } catch (error: any) {
@@ -3870,6 +3975,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Recalculate all invoice statuses for this customer using FIFO
       await calculateInvoiceStatuses(req.tenantId!, customerName);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'receipts',
+        action: 'delete',
+        data: { id: req.params.id }
+      });
       
       res.json({ message: "Receipt deleted successfully" });
     } catch (error: any) {
@@ -4138,6 +4251,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "ids must be an array" });
       }
       const deleted = await storage.deleteLeads(req.tenantId!, ids);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'leads',
+        action: 'delete',
+        data: { ids }
+      });
+      
       res.json({ deleted });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4152,6 +4274,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
       const lead = await storage.createLead(req.tenantId!, result.data);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'leads',
+        action: 'create',
+        data: { id: lead.id }
+      });
+      
       res.json(lead);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4169,6 +4300,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'leads',
+        action: 'update',
+        data: { id: lead.id }
+      });
+      
       res.json(lead);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4186,6 +4326,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!lead) {
         return res.status(404).json({ message: "Lead not found" });
       }
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'leads',
+        action: 'update',
+        data: { id: lead.id }
+      });
+      
       res.json(lead);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4199,6 +4348,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!deleted) {
         return res.status(404).json({ message: "Lead not found" });
       }
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'leads',
+        action: 'delete',
+        data: { id: req.params.id }
+      });
+      
       res.json({ message: "Lead deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4402,6 +4560,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: fromZodError(result.error).message });
       }
       const quotation = await storage.createQuotation(req.tenantId!, result.data);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'quotations',
+        action: 'create',
+        data: { id: quotation.id }
+      });
+      
       res.status(201).json(quotation);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4436,6 +4603,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!quotation) {
         return res.status(404).json({ message: "Quotation not found" });
       }
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'quotations',
+        action: 'update',
+        data: { id: quotation.id }
+      });
+      
       res.json(quotation);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4449,6 +4625,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!success) {
         return res.status(404).json({ message: "Quotation not found" });
       }
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'quotations',
+        action: 'delete',
+        data: { id: req.params.id }
+      });
+      
       res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4463,6 +4648,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid request: ids array required" });
       }
       const count = await storage.deleteQuotations(req.tenantId!, ids);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'quotations',
+        action: 'delete',
+        data: { ids }
+      });
+      
       res.json({ count });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4592,6 +4786,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'proforma_invoices',
+        action: 'create',
+        data: { id: proformaInvoice.id }
+      });
+      
       res.status(201).json(proformaInvoice);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4648,6 +4850,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!success) {
         return res.status(404).json({ message: "Proforma invoice not found" });
       }
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'proforma_invoices',
+        action: 'delete',
+        data: { id: req.params.id }
+      });
+      
       res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -4662,6 +4873,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid ids array" });
       }
       const count = await storage.deleteProformaInvoices(req.tenantId!, ids);
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'proforma_invoices',
+        action: 'delete',
+        data: { ids }
+      });
+      
       res.json({ count });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
