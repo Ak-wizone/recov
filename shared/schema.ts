@@ -1079,9 +1079,10 @@ export type User = typeof users.$inferSelect & {
 };
 
 // Email Configuration table
+// Note: tenantId is nullable to allow platform-level email config (null = platform admin)
 export const emailConfigs = pgTable("email_configs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  tenantId: varchar("tenant_id").references(() => tenants.id, { onDelete: "cascade" }),
   provider: text("provider").notNull(), // gmail, smtp
   smtpHost: text("smtp_host"),
   smtpPort: integer("smtp_port"),
