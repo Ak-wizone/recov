@@ -587,47 +587,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get platform admin's email configuration (tenantId = null)
       const platformEmailConfig = await storage.getEmailConfig(null);
 
-      if (platformEmailConfig) {
-        const resetUrl = `https://recov.wizoneit.com/reset-password/${resetToken}`;
-        const emailBody = renderTemplate(
-          `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
-            <h2 style="color: #333; margin-bottom: 20px;">Password Reset Request</h2>
-            <p style="color: #666; font-size: 16px;">Hello,</p>
-            <p style="color: #666; font-size: 16px;">We received a request to reset your password. Click the button below to set a new password:</p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="{resetUrl}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+      if (!platformEmailConfig) {
+        console.warn("⚠️  Platform email configuration not found. Password reset email cannot be sent.");
+        console.warn("⚠️  Please configure platform email at /email-config with tenantId = null");
+      } else {
+        try {
+          const resetUrl = `https://recov.wizoneit.com/reset-password/${resetToken}`;
+          const emailBody = renderTemplate(
+            `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+              <h2 style="color: #333; margin-bottom: 20px;">Password Reset Request</h2>
+              <p style="color: #666; font-size: 16px;">Hello,</p>
+              <p style="color: #666; font-size: 16px;">We received a request to reset your password. Click the button below to set a new password:</p>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="{resetUrl}" style="background-color: #007bff; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Password</a>
+              </div>
+              
+              <p style="color: #666; font-size: 16px;">Or copy and paste this link into your browser:</p>
+              <p style="background-color: #f5f5f5; padding: 10px; word-break: break-all; color: #444;">{resetUrl}</p>
+              
+              <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+                <strong>Important:</strong> This link will expire in 1 hour. If you didn't request this password reset, please ignore this email.
+              </div>
+              
+              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+                <p style="margin: 5px 0; color: #333;">Best regards,</p>
+                <p style="margin: 5px 0; color: #333;"><strong>Team RECOV.</strong></p>
+                <p style="margin: 15px 0; color: #666;"><strong>WIZONE IT NETWORK INDIA PVT LTD</strong></p>
+                <p style="margin: 5px 0; color: #666;">📞 7500 22 33 55</p>
+                <p style="margin: 5px 0; color: #666;">📞 9258 299 527</p>
+                <p style="margin: 5px 0; color: #666;">📞 9258 299 518</p>
+              </div>
             </div>
-            
-            <p style="color: #666; font-size: 16px;">Or copy and paste this link into your browser:</p>
-            <p style="background-color: #f5f5f5; padding: 10px; word-break: break-all; color: #444;">{resetUrl}</p>
-            
-            <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
-              <strong>Important:</strong> This link will expire in 1 hour. If you didn't request this password reset, please ignore this email.
-            </div>
-            
-            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
-              <p style="margin: 5px 0; color: #333;">Best regards,</p>
-              <p style="margin: 5px 0; color: #333;"><strong>Team RECOV.</strong></p>
-              <p style="margin: 15px 0; color: #666;"><strong>WIZONE IT NETWORK INDIA PVT LTD</strong></p>
-              <p style="margin: 5px 0; color: #666;">📞 7500 22 33 55</p>
-              <p style="margin: 5px 0; color: #666;">📞 9258 299 527</p>
-              <p style="margin: 5px 0; color: #666;">📞 9258 299 518</p>
-            </div>
-          </div>
-          `,
-          {
-            resetUrl,
-          }
-        );
+            `,
+            {
+              resetUrl,
+            }
+          );
 
-        await sendEmail(
-          platformEmailConfig,
-          email,
-          "Password Reset Request - RECOV.",
-          emailBody
-        );
+          await sendEmail(
+            platformEmailConfig,
+            email,
+            "Password Reset Request - RECOV.",
+            emailBody
+          );
+          
+          console.log(`✓ Password reset email sent to ${email}`);
+        } catch (emailError: any) {
+          console.error("Failed to send password reset email:", emailError.message);
+        }
       }
 
       res.json({
