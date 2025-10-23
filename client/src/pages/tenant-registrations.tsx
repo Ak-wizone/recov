@@ -527,9 +527,18 @@ export default function TenantRegistrations() {
 
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Tenant Management</h1>
-        <p className="text-muted-foreground mt-2">Manage tenant registrations and access control</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Tenant Management</h1>
+          <p className="text-muted-foreground mt-2">Manage tenant registrations and access control</p>
+        </div>
+        <Button
+          onClick={() => setLocation("/email-config")}
+          data-testid="button-email-config"
+        >
+          <Mail className="w-4 h-4 mr-2" />
+          Email Configuration
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
