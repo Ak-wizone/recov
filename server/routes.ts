@@ -54,8 +54,7 @@ const CREDENTIAL_EMAIL_TEMPLATE = `
 async function sendTenantCredentials(
   tenantBusinessName: string,
   tenantEmail: string,
-  defaultPassword: string,
-  loginUrl: string
+  defaultPassword: string
 ): Promise<{ success: boolean; message: string }> {
   try {
     // Get platform admin's email configuration (tenantId = null)
@@ -73,7 +72,6 @@ async function sendTenantCredentials(
       companyName: tenantBusinessName,
       email: tenantEmail,
       password: defaultPassword,
-      loginUrl,
     });
 
     // Send the email
@@ -346,12 +344,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Send welcome email with credentials automatically (non-blocking)
-      const loginUrl = `${req.protocol}://${req.get('host')}/login`;
       const emailResult = await sendTenantCredentials(
         result.tenant.businessName,
         result.user.email,
-        defaultPassword,
-        loginUrl
+        defaultPassword
       );
 
       res.json({
@@ -534,12 +530,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const defaultPassword = `${emailPrefix}@#$405`;
 
       // Send credentials email using platform admin's email config
-      const loginUrl = `${req.protocol}://${req.get('host')}/login`;
       const emailResult = await sendTenantCredentials(
         tenant.businessName,
         tenant.email,
-        defaultPassword,
-        loginUrl
+        defaultPassword
       );
 
       if (!emailResult.success) {
