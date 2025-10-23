@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
+import { getSalesPersons } from "@/lib/salesPersonStorage";
 
 interface MasterCustomerFormDialogProps {
   open: boolean;
@@ -603,25 +604,29 @@ export function MasterCustomerFormDialog({
                     <FormField
                       control={form.control}
                       name="salesPerson"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Assigned Sales Person</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                              <SelectTrigger data-testid="select-salesPerson">
-                                <SelectValue placeholder="Select sales person" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
-                              <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
-                              <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
-                              <SelectItem value="Princi Soni">Princi Soni</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const salesPersons = getSalesPersons();
+                        return (
+                          <FormItem>
+                            <FormLabel>Assigned Sales Person</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-salesPerson">
+                                  <SelectValue placeholder="Select sales person" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {salesPersons.map((person) => (
+                                  <SelectItem key={person} value={person}>
+                                    {person}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
 
                     <FormField

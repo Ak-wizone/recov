@@ -404,7 +404,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
             "Customer Name": row.customerName || "",
             "Invoice Date": row.invoiceDate || "",
             "Invoice Amount": row.invoiceAmount || "",
-            "Net Profit": row.netProfit || "",
+            "G.P.": row.netProfit || "",
             "Status": row.status || "Unpaid",
             "Assigned User": row.assignedUser || "",
             "Remarks": row.remarks || "",
@@ -1039,7 +1039,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                           <TableHead>Customer Name *</TableHead>
                           <TableHead>Invoice Date *</TableHead>
                           <TableHead>Invoice Amount *</TableHead>
-                          <TableHead>Net Profit *</TableHead>
+                          <TableHead>G.P. *</TableHead>
                           <TableHead>Status</TableHead>
                         </TableRow>
                       </TableHeader>

@@ -450,7 +450,9 @@ export const invoices = pgTable("invoices", {
   customerName: text("customer_name").notNull(),
   invoiceDate: timestamp("invoice_date").notNull(),
   invoiceAmount: decimal("invoice_amount", { precision: 15, scale: 2 }).notNull(),
-  netProfit: decimal("net_profit", { precision: 15, scale: 2 }).notNull(),
+  gp: decimal("gp", { precision: 15, scale: 2 }).notNull(),
+  finalGp: decimal("final_gp", { precision: 15, scale: 2 }),
+  finalGpPercentage: decimal("final_gp_percentage", { precision: 5, scale: 2 }),
   status: text("status").notNull().default("Unpaid"), // Paid, Unpaid, Partial
   remarks: text("remarks"),
   // Customer-related fields (auto-populated from customer selection)
@@ -471,7 +473,9 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   customerName: true,
   invoiceDate: true,
   invoiceAmount: true,
-  netProfit: true,
+  gp: true,
+  finalGp: true,
+  finalGpPercentage: true,
   remarks: true,
   category: true,
   primaryMobile: true,
@@ -489,9 +493,15 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   invoiceAmount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
     message: "Invoice amount must be a valid positive number",
   }),
-  netProfit: z.string().refine((val) => !isNaN(parseFloat(val)), {
-    message: "Net profit must be a valid number",
+  gp: z.string().refine((val) => !isNaN(parseFloat(val)), {
+    message: "G.P. must be a valid number",
   }),
+  finalGp: z.string().refine((val) => val === "" || !isNaN(parseFloat(val)), {
+    message: "FINAL G.P. must be a valid number",
+  }).optional(),
+  finalGpPercentage: z.string().refine((val) => val === "" || !isNaN(parseFloat(val)), {
+    message: "FINAL G.P. % must be a valid number",
+  }).optional(),
   remarks: z.string().optional(),
   category: z.string().optional(),
   primaryMobile: z.string().optional(),

@@ -35,7 +35,9 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
       customerName: invoice?.customerName || "",
       invoiceDate: invoice?.invoiceDate ? format(new Date(invoice.invoiceDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       invoiceAmount: invoice?.invoiceAmount || "",
-      netProfit: invoice?.netProfit || "",
+      gp: invoice?.gp || "",
+      finalGp: invoice?.finalGp || "",
+      finalGpPercentage: invoice?.finalGpPercentage || "",
       remarks: invoice?.remarks || "",
       category: invoice?.category || "",
       primaryMobile: invoice?.primaryMobile || "",
@@ -121,7 +123,9 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         customerName: invoice.customerName,
         invoiceDate: format(new Date(invoice.invoiceDate), "yyyy-MM-dd"),
         invoiceAmount: invoice.invoiceAmount || "",
-        netProfit: invoice.netProfit || "",
+        gp: invoice.gp || "",
+        finalGp: invoice.finalGp || "",
+        finalGpPercentage: invoice.finalGpPercentage || "",
         remarks: invoice.remarks || "",
         category: invoice.category || "",
         primaryMobile: invoice.primaryMobile || "",
@@ -139,7 +143,9 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         customerName: "",
         invoiceDate: format(new Date(), "yyyy-MM-dd"),
         invoiceAmount: "",
-        netProfit: "",
+        gp: "",
+        finalGp: "",
+        finalGpPercentage: "",
         remarks: "",
         category: "",
         primaryMobile: "",
@@ -278,17 +284,57 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
 
                 <FormField
                   control={form.control}
-                  name="netProfit"
+                  name="gp"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Net Profit (₹) *</FormLabel>
+                      <FormLabel>G.P. (₹) *</FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
                           type="number" 
                           step="0.01" 
                           placeholder="0.00" 
-                          data-testid="input-net-profit" 
+                          data-testid="input-gp" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="finalGp"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>FINAL G.P. (₹)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="0.00" 
+                          data-testid="input-final-gp" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="finalGpPercentage"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>FINAL G.P. %</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="0.00" 
+                          data-testid="input-final-gp-percentage" 
                         />
                       </FormControl>
                       <FormMessage />

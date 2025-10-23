@@ -243,17 +243,55 @@ export function InvoiceTable({
         enableColumnFilter: true,
       },
       {
-        accessorKey: "netProfit",
-        header: "Net Profit",
+        accessorKey: "gp",
+        header: "G.P.",
         cell: ({ row }) => {
-          const profit = parseFloat(row.original.netProfit);
+          const profit = parseFloat(row.original.gp);
           const isPositive = profit >= 0;
           return (
             <div 
               className={`text-lg font-semibold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} 
-              data-testid={`text-profit-${row.original.id}`}
+              data-testid={`text-gp-${row.original.id}`}
             >
               ₹{profit.toFixed(2)}
+            </div>
+          );
+        },
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
+        accessorKey: "finalGp",
+        header: "FINAL G.P.",
+        cell: ({ row }) => {
+          const finalGp = row.original.finalGp ? parseFloat(row.original.finalGp) : null;
+          if (finalGp === null) return <div className="text-gray-400">-</div>;
+          const isPositive = finalGp >= 0;
+          return (
+            <div 
+              className={`text-lg font-semibold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} 
+              data-testid={`text-final-gp-${row.original.id}`}
+            >
+              ₹{finalGp.toFixed(2)}
+            </div>
+          );
+        },
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
+        accessorKey: "finalGpPercentage",
+        header: "FINAL G.P. %",
+        cell: ({ row }) => {
+          const finalGpPct = row.original.finalGpPercentage ? parseFloat(row.original.finalGpPercentage) : null;
+          if (finalGpPct === null) return <div className="text-gray-400">-</div>;
+          const isPositive = finalGpPct >= 0;
+          return (
+            <div 
+              className={`text-lg font-semibold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} 
+              data-testid={`text-final-gp-percentage-${row.original.id}`}
+            >
+              {finalGpPct.toFixed(2)}%
             </div>
           );
         },

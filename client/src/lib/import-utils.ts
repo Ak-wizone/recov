@@ -238,7 +238,7 @@ export async function parseInvoicesFile(file: File): Promise<ImportInvoiceRow[]>
           customerName: String(row["Customer Name"] || row.customerName || row.CustomerName || "").trim(),
           invoiceDate: String(row["Invoice Date"] || row.invoiceDate || row.InvoiceDate || row.Date || "").trim(),
           invoiceAmount: String(row["Invoice Amount"] || row.invoiceAmount || row.InvoiceAmount || row.Amount || "").trim(),
-          netProfit: String(row["Net Profit"] || row.netProfit || row.NetProfit || "").trim(),
+          netProfit: String(row["G.P."] || row["GP"] || row.gp || row.netProfit || row.NetProfit || "").trim(),
           status: String(row["Status"] || row.status || "Unpaid").trim(),
           assignedUser: String(row["Assigned User"] || row.assignedUser || row.AssignedUser || "").trim(),
           remarks: String(row["Remarks"] || row.remarks || row.Notes || row.notes || "").trim(),
@@ -647,7 +647,7 @@ export function validateInvoiceRow(row: ImportInvoiceRow, rowNumber: number): Va
   if (!row.netProfit || row.netProfit === "") {
     errors.push({
       row: rowNumber,
-      message: "Net Profit is required",
+      message: "G.P. is required",
       field: "netProfit",
     });
   } else {
@@ -855,7 +855,7 @@ export function generateInvoicesTemplate(): any[] {
       "Customer Name": "ABC Corporation Pvt Ltd",
       "Invoice Date": "2025-01-15",
       "Invoice Amount": "125000",
-      "Net Profit": "25000",
+      "G.P.": "25000",
       "Status": "Unpaid",
       "Assigned User": "Manpreet Bedi",
       "Remarks": "Q1 software licensing fees",
@@ -865,7 +865,7 @@ export function generateInvoicesTemplate(): any[] {
       "Customer Name": "XYZ Industries Limited",
       "Invoice Date": "2025-01-20",
       "Invoice Amount": "75000",
-      "Net Profit": "15000",
+      "G.P.": "15000",
       "Status": "Paid",
       "Assigned User": "Bilal Ahamad",
       "Remarks": "Hardware supplies - January batch",
@@ -875,7 +875,7 @@ export function generateInvoicesTemplate(): any[] {
       "Customer Name": "Tech Solutions India",
       "Invoice Date": "2025-02-01",
       "Invoice Amount": "200000",
-      "Net Profit": "50000",
+      "G.P.": "50000",
       "Status": "Partial",
       "Assigned User": "Anjali Dhiman",
       "Remarks": "Annual maintenance contract - paid 50%",

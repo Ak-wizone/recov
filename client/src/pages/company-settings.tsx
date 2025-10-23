@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, Upload, Building2, Mail, FileText, ArrowRight, Phone, ListOrdered, History, MessageSquare } from "lucide-react";
 import { Link } from "wouter";
+import { SalesPersonManagement } from "@/components/sales-person-management";
 
 export default function CompanySettings() {
   const { toast } = useToast();
@@ -370,6 +371,9 @@ export default function CompanySettings() {
           </Card>
         </div>
       </div>
+
+      {/* Sales Person Management */}
+      <SalesPersonManagement />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
