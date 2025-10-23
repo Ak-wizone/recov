@@ -2750,15 +2750,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // FIFO Allocation Algorithm - Calculate invoice statuses and Final G.P. based on receipt allocation
   async function calculateInvoiceStatuses(tenantId: string, customerName: string) {
     try {
+      console.log(`\n***** STARTING CALCULATION for ${customerName} *****`);
+      
       // Get all invoices for the customer (ordered by invoice date - oldest first)
       const customerInvoices = await storage.getInvoicesByCustomerName(tenantId, customerName);
+      console.log(`Found ${customerInvoices.length} invoices`);
       
       // Get all receipts for the customer (sorted by date - oldest first)
       const customerReceipts = await storage.getReceiptsByCustomerName(tenantId, customerName);
       const sortedReceipts = customerReceipts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      console.log(`Found ${sortedReceipts.length} receipts`);
       
       // Calculate total receipt amount
       const totalReceiptAmount = sortedReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
+      console.log(`Total Receipt Amount: ₹${totalReceiptAmount}`);
       
       // Track cumulative allocation across all invoices for proper FIFO
       let cumulativeAllocated = 0;
