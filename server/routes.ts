@@ -2793,34 +2793,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paidAmount = 0;
         }
         
-        // Calculate Final G.P. when invoice is paid or partially paid
+        // Calculate Final G.P. for ALL invoices (Paid, Partial, and Unpaid)
         let finalGp: number | null = null;
         let finalGpPercentage: number | null = null;
+        let interestAmount = 0;
         
-        if (status === "Paid" || status === "Partial") {
-          // Calculate interest amount based on payment date
-          let interestAmount = 0;
+        // Calculate interest if interest rate is set
+        if (invoice.interestRate && parseFloat(invoice.interestRate.toString()) > 0) {
           
-          if (invoice.interestRate && parseFloat(invoice.interestRate.toString()) > 0) {
-            const invoiceDate = new Date(invoice.invoiceDate);
-            const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
-            const dueDate = new Date(invoiceDate);
-            dueDate.setDate(dueDate.getDate() + paymentTerms);
-            
-            // Determine interest applicable date
-            let applicableDate: Date;
-            if (invoice.interestApplicableFrom === "Due Date") {
-              applicableDate = dueDate;
-            } else if (invoice.interestApplicableFrom === "Invoice Date") {
-              applicableDate = invoiceDate;
-            } else {
-              applicableDate = dueDate; // Default to due date
-            }
-            
-            // Find the payment date: the date of the receipt that completes payment for this invoice
-            // Track allocation from where this invoice's allocation started
+          const invoiceDate = new Date(invoice.invoiceDate);
+          const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+          const dueDate = new Date(invoiceDate);
+          dueDate.setDate(dueDate.getDate() + paymentTerms);
+          
+          // Determine interest applicable date
+          let applicableDate: Date;
+          if (invoice.interestApplicableFrom === "Due Date") {
+            applicableDate = dueDate;
+          } else if (invoice.interestApplicableFrom === "Invoice Date") {
+            applicableDate = invoiceDate;
+          } else {
+            applicableDate = dueDate; // Default to due date
+          }
+          
+          // Determine the reference date for interest calculation
+          let referenceDate: Date;
+          let amountForInterest: number;
+          
+          if (status === "Paid" || status === "Partial") {
+            // For paid/partial invoices: Find the payment date from FIFO allocation
             let receiptCumulative = 0;
-            let paymentDate = new Date();
+            referenceDate = new Date(); // Default to today
             const invoiceEndAllocation = invoiceStartAllocation + paidAmount;
             
             for (const receipt of sortedReceipts) {
@@ -2831,7 +2834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Check if this receipt contributes to paying this invoice
               if (receiptCumulative > invoiceStartAllocation && prevCumulative < invoiceEndAllocation) {
                 // This receipt contributes to this invoice
-                paymentDate = new Date(receipt.date);
+                referenceDate = new Date(receipt.date);
                 
                 // If this receipt fully covers the invoice, use this receipt's date
                 if (receiptCumulative >= invoiceEndAllocation) {
@@ -2839,16 +2842,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               }
             }
-            
-            // Calculate days from applicable date to payment date
-            const diffTime = paymentDate.getTime() - applicableDate.getTime();
-            const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
-            // Calculate interest only if overdue
-            if (daysOverdue > 0) {
-              const interestRate = parseFloat(invoice.interestRate.toString());
-              interestAmount = (paidAmount * interestRate * daysOverdue) / (100 * 365);
-            }
+            amountForInterest = paidAmount;
+          } else {
+            // For unpaid invoices: Use TODAY's date and full invoice amount
+            referenceDate = new Date();
+            amountForInterest = invoiceAmount;
+          }
+          
+          // Calculate days from applicable date to reference date
+          const diffTime = referenceDate.getTime() - applicableDate.getTime();
+          const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          
+          // Calculate interest only if overdue
+          if (daysOverdue > 0) {
+            const interestRate = parseFloat(invoice.interestRate.toString());
+            interestAmount = (amountForInterest * interestRate * daysOverdue) / (100 * 365);
           }
           
           // Final G.P. = G.P. - Interest Amount
@@ -2863,10 +2871,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Debug logging for Final G.P. calculation
           console.log(`\n=== Final G.P. Calculation ===`);
           console.log(`Invoice: ${invoice.invoiceNumber} | Customer: ${invoice.customerName}`);
-          console.log(`G.P.: ₹${gp} | Interest: ₹${interestAmount}`);
+          console.log(`Status: ${status} | G.P.: ₹${gp} | Interest: ₹${interestAmount}`);
           console.log(`Formula: ${gp} - ${interestAmount} = ${finalGp}`);
           console.log(`Final G.P.: ₹${finalGp} | Final G.P. %: ${finalGpPercentage}%`);
           console.log(`================================\n`);
+        } else {
+          // No interest rate set, Final G.P. = G.P.
+          const gp = parseFloat(invoice.gp.toString());
+          finalGp = gp;
+          if (invoiceAmount > 0) {
+            finalGpPercentage = (finalGp * 100) / invoiceAmount;
+          }
         }
         
         // Update invoice if status or Final G.P. changed
