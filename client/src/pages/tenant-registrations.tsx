@@ -79,6 +79,8 @@ export default function TenantRegistrations() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tenantToDelete, setTenantToDelete] = useState<TenantRow | null>(null);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [requestToReject, setRequestToReject] = useState<TenantRow | null>(null);
 
   // Redirect tenant users to dashboard - only platform admins can access this page
   useEffect(() => {
@@ -220,6 +222,28 @@ export default function TenantRegistrations() {
     },
   });
 
+  const rejectRegistrationMutation = useMutation({
+    mutationFn: async (requestId: string) => {
+      return await apiRequest("DELETE", `/api/registration-requests/${requestId}`);
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Request Rejected",
+        description: "Registration request has been rejected and removed",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/registration-requests'] });
+      setRejectDialogOpen(false);
+      setRequestToReject(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to reject request",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteTenant = () => {
     if (tenantToDelete) {
       if (tenantToDelete.isRegistrationRequest) {
@@ -252,6 +276,17 @@ export default function TenantRegistrations() {
     setTenantToDelete(tenant);
     setDeleteDialogOpen(true);
   }, []);
+
+  const handleOpenRejectDialog = useCallback((request: TenantRow) => {
+    setRequestToReject(request);
+    setRejectDialogOpen(true);
+  }, []);
+
+  const handleRejectRequest = () => {
+    if (requestToReject) {
+      rejectRegistrationMutation.mutate(requestToReject.id);
+    }
+  };
 
   // Combine requests and tenants into unified data - memoize to prevent re-renders
   const data = useMemo<TenantRow[]>(() => [
@@ -379,18 +414,30 @@ export default function TenantRegistrations() {
         
         return (
           <div className="flex gap-2">
-            {/* Pending registration request - show Approve button */}
+            {/* Pending registration request - show Approve and Reject buttons */}
             {tenant.isRegistrationRequest && tenant.status === "pending" && (
-              <Button
-                size="sm"
-                onClick={() => handleApprove(tenant.id)}
-                disabled={approveMutation.isPending}
-                className="bg-green-600 hover:bg-green-700"
-                data-testid={`button-approve-${tenant.id}`}
-              >
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Approve
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  onClick={() => handleApprove(tenant.id)}
+                  disabled={approveMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700"
+                  data-testid={`button-approve-${tenant.id}`}
+                >
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleOpenRejectDialog(tenant)}
+                  disabled={rejectRegistrationMutation.isPending}
+                  data-testid={`button-reject-${tenant.id}`}
+                >
+                  <XCircle className="w-3 h-3 mr-1" />
+                  Reject
+                </Button>
+              </>
             )}
 
             {/* Approved/Rejected registration request - show Delete button */}
@@ -459,7 +506,7 @@ export default function TenantRegistrations() {
         );
       },
     },
-  ], [handleApprove, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog]);
+  ], [handleApprove, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, handleOpenRejectDialog]);
 
   const table = useReactTable({
     data,
@@ -668,6 +715,33 @@ export default function TenantRegistrations() {
               {(deleteTenantMutation.isPending || deleteRegistrationRequestMutation.isPending) 
                 ? "Deleting..." 
                 : "Delete Permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject Confirmation Dialog */}
+      <AlertDialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject Registration Request?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reject and permanently delete the registration request from{" "}
+              <strong>{requestToReject?.businessName}</strong>. 
+              The email <strong>{requestToReject?.email}</strong> will become available for new registrations.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRejectRequest}
+              className="bg-red-600 hover:bg-red-700"
+              data-testid="button-confirm-reject"
+            >
+              {rejectRegistrationMutation.isPending 
+                ? "Rejecting..." 
+                : "Reject Request"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
