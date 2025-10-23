@@ -27,7 +27,7 @@ const CREDENTIAL_EMAIL_TEMPLATE = `
     <h3 style="margin-top: 0; color: #333; font-size: 18px;">Login Credentials</h3>
     <p style="margin: 10px 0; color: #444;"><strong>Email:</strong> {email}</p>
     <p style="margin: 10px 0; color: #444;"><strong>Temporary Password:</strong> {password}</p>
-    <p style="margin: 10px 0; color: #444;"><strong>Login URL:</strong> <a href="{loginUrl}" style="color: #007bff; text-decoration: none;">{loginUrl}</a></p>
+    <p style="margin: 10px 0; color: #444;"><strong>Login URL:</strong> <a href="https://recov.wizoneit.com" style="color: #007bff; text-decoration: none;">https://recov.wizoneit.com</a></p>
   </div>
   
   <h3 style="color: #333; font-size: 18px; margin-top: 30px;">Next Steps:</h3>
