@@ -211,9 +211,9 @@ export default function Sidebar() {
     <div className="w-72 bg-gradient-to-br from-slate-700 via-slate-600 to-slate-700 h-screen flex flex-col shadow-xl" data-testid="sidebar">
       <div className="p-8 border-b border-slate-500/30">
         <h1 className="text-2xl font-bold text-white" data-testid="text-app-title">
-          Business Manager
+          RECOV.
         </h1>
-        <p className="text-slate-300 text-sm mt-1.5">Complete Business Solution</p>
+        <p className="text-slate-300 text-sm mt-1.5">GET PAYMENTS FASTER</p>
       </div>
 
       <nav className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
