@@ -46,7 +46,7 @@ Preferred communication style: Simple, everyday language.
 *   **Duplicate Detection**: Strict duplicate prevention for both Customers (by name) and Items (by name) during create, update, and import operations. Uses case-insensitive, normalized comparison and provides clear error messages.
 *   **Bulk Operations**: Checkbox-based selection system with bulk delete functionality available for Items and other modules. Includes confirmation dialogs and visual feedback.
 *   **User Management & RBAC**: Comprehensive system for managing users and roles. Granular, module-specific permissions (View, Create, Edit, Delete, Export, Import, Print) across 13 modules.
-*   **Authentication System**: Secure login with email/password, bcrypt hashing, session-based authentication, and protected routes.
+*   **Authentication System**: Secure login with email/password, bcrypt hashing, session-based authentication, and protected routes. Password reset functionality via email with time-limited tokens (1 hour expiry), using platform-level email configuration for all users.
 *   **Customer Inline Editing**: Quick-edit dropdowns for Category, Interest Rate, and Status directly within the customer grid.
 *   **Master Items Enhancements**: 21 standardized UOMs (NOS, KGS, MTR, SQM, LTR, etc.) with custom UOM functionality via localStorage. SKU field removed from UI. Interest rate bulk update capability.
 *   **Email Integration**: Complete email communication system integrated across all 7 modules. Features:
