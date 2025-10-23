@@ -2854,6 +2854,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (invoiceAmount > 0) {
             finalGpPercentage = (finalGp * 100) / invoiceAmount;
           }
+          
+          // Debug logging
+          console.log(`[Final G.P. Calculation] Invoice: ${invoice.invoiceNumber}`);
+          console.log(`  G.P.: ${gp}, Interest: ${interestAmount}`);
+          console.log(`  Final G.P.: ${finalGp}, Final G.P. %: ${finalGpPercentage}`);
+          console.log(`  Invoice Amount: ${invoiceAmount}, Paid: ${paidAmount}`);
+          console.log(`  Formula: ${gp} - ${interestAmount} = ${finalGp}`);
         }
         
         // Update invoice if status or Final G.P. changed
