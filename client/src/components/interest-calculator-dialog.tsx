@@ -228,8 +228,8 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
               <div className="p-4" style={{ backgroundColor: brandColor + "15" }}>
                 <h3 className="font-semibold text-lg" style={{ color: brandColor }}>Receipt Allocation & Balance Based Interest</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Interest is calculated on outstanding balance between payment dates after {breakdown.invoice.interestApplicableFrom === "Due Date" ? "due date" : "invoice date"}.
-                  Balance Amount shows remaining balance after each receipt. Interest is charged on the balance BEFORE the receipt for the period since last payment.
+                  Interest is calculated based on cumulative days from {breakdown.invoice.interestApplicableFrom === "Due Date" ? "due date" : "invoice date"}.
+                  Balance Amount shows remaining balance after each receipt. Interest is charged on the balance BEFORE the receipt using total days from due date to receipt date.
                 </p>
               </div>
               
@@ -338,20 +338,21 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-sm">
               <h4 className="font-semibold mb-2">Interest Calculation Method:</h4>
               <p className="text-gray-600 dark:text-gray-400 mb-3">
-                <span className="font-semibold">Balance-Based Interest:</span> For each payment period, interest accrues on the outstanding balance.
-                When a receipt is received, it reduces the balance. The interest shown on each receipt row is calculated on the balance that existed 
-                BEFORE that receipt was applied (i.e., the balance from the previous payment period).
+                <span className="font-semibold">Cumulative Days from Due Date:</span> Interest is calculated using the total number of days from the due date to each receipt date.
+                Each receipt reduces the outstanding balance, and the next receipt's interest is calculated on the reduced balance for the cumulative days from due date.
               </p>
               <p className="text-gray-600 dark:text-gray-400 mb-2">
-                <span className="font-semibold">Example:</span> If balance is ₹60,000 from July 31 to Aug 25 (25 days), and a ₹10,000 receipt comes on Aug 25:
+                <span className="font-semibold">Example:</span> Invoice ₹1,00,000, Due Date: 30 Apr 2025, Interest Rate: 18%
               </p>
               <ul className="text-gray-600 dark:text-gray-400 text-xs space-y-1 ml-4 mb-3">
-                <li>• Interest = (₹60,000 × 18% × 25 days) / (100 × 365) = ₹739.73</li>
-                <li>• Balance After Receipt = ₹60,000 - ₹10,000 = ₹50,000</li>
-                <li>• Table shows: Balance ₹50,000, Interest ₹739.73</li>
+                <li>• Receipt on 15 May (15 days from due date): Balance ₹90,000</li>
+                <li>• Interest = (₹90,000 × 18% × 15 days) / 36,500 = ₹665.75</li>
+                <li>• After ₹10,000 receipt: Balance becomes ₹80,000</li>
+                <li>• Next receipt on 18 Jun (49 days from due date): Balance ₹80,000</li>
+                <li>• Interest = (₹80,000 × 18% × 49 days) / 36,500 = ₹1,936.44</li>
               </ul>
               <p className="text-gray-600 dark:text-gray-400 font-mono text-xs">
-                Interest = (Previous Balance × Rate × Days) / (100 × 365)
+                Interest = (Balance Before Receipt × Rate × Days from Due Date) / (100 × 365)
               </p>
               <p className="text-gray-600 dark:text-gray-400 font-mono text-xs mt-1">
                 Final G.P. = Base G.P. - Total Interest
