@@ -527,72 +527,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Tenant not found" });
       }
 
-      // Get tenant admin user
-      const [adminUser] = await db
-        .select()
-        .from(users)
-        .where(and(
-          eq(users.tenantId, tenantId),
-          eq(users.email, tenant.email)
-        ));
+      // Generate default password using standard format: emailPrefix@#$405
+      const emailPrefix = tenant.email.split('@')[0];
+      const defaultPassword = `${emailPrefix}@#$405`;
 
-      if (!adminUser) {
-        return res.status(404).json({ message: "Tenant admin user not found" });
-      }
+      // Send credentials email using platform admin's email config
+      const loginUrl = `${req.protocol}://${req.get('host')}/login`;
+      const emailResult = await sendTenantCredentials(
+        tenant.businessName,
+        tenant.email,
+        defaultPassword,
+        loginUrl
+      );
 
-      // Get default password
-      const defaultPassword = tenant.businessName.replace(/\s+/g, "");
-
-      // Try to get email config
-      const emailConfig = await storage.getEmailConfig(tenantId);
-
-      if (!emailConfig) {
+      if (!emailResult.success) {
         return res.status(400).json({ 
-          message: "Email configuration not set for this tenant. Please configure email settings first." 
+          message: emailResult.message 
         });
       }
 
-      const loginUrl = `${req.protocol}://${req.get('host')}/login`;
-      const emailBody = renderTemplate(
-        `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Your Login Credentials</h2>
-          <p>Dear {companyName} Team,</p>
-          <p>Here are your login credentials for the CRM Platform:</p>
-          
-          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>Email:</strong> {email}</p>
-            <p><strong>Password:</strong> {password}</p>
-            <p><strong>Login URL:</strong> <a href="{loginUrl}">{loginUrl}</a></p>
-          </div>
-          
-          <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
-            <strong>Security Note:</strong> Please change your password after logging in for security purposes.
-          </div>
-          
-          <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-          
-          <p>Best regards,<br>CRM Platform Team</p>
-        </div>
-        `,
-        {
-          companyName: tenant.businessName,
-          email: adminUser.email,
-          password: defaultPassword,
-          loginUrl,
-        }
-      );
-
-      await sendEmail(
-        emailConfig,
-        adminUser.email,
-        "Your CRM Platform Login Credentials",
-        emailBody
-      );
-
       res.json({
         success: true,
-        message: "Credentials email sent successfully",
+        message: emailResult.message,
       });
     } catch (error: any) {
       console.error("Send credentials error:", error);
