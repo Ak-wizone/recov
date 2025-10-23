@@ -46,7 +46,7 @@ interface InterestBreakdown {
       receiptAmount?: number;
       balanceAmount: number;
       balanceBeforeReceipt?: number;
-      daysInPeriod?: number;
+      daysFromDueDate?: number;
       interestRate?: number;
       interestAmount?: number;
       status?: string;
@@ -240,7 +240,7 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                       <th className="px-4 py-3 text-left font-medium">Receipt Date</th>
                       <th className="px-4 py-3 text-right font-medium">Receipt Amount</th>
                       <th className="px-4 py-3 text-right font-medium">Balance Amount</th>
-                      <th className="px-4 py-3 text-center font-medium">Days in Period</th>
+                      <th className="px-4 py-3 text-center font-medium">Days from Due Date</th>
                       <th className="px-4 py-3 text-center font-medium">Status</th>
                       <th className="px-4 py-3 text-right font-medium">Interest on Balance</th>
                     </tr>
@@ -272,7 +272,7 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                           <td className="px-4 py-3 text-right">₹{(allocation.receiptAmount || 0).toFixed(2)}</td>
                           <td className="px-4 py-3 text-right font-medium">₹{allocation.balanceAmount.toFixed(2)}</td>
                           <td className="px-4 py-3 text-center font-medium">
-                            {(allocation.daysInPeriod || 0) === 0 ? "—" : `${allocation.daysInPeriod} days`}
+                            {(allocation.daysFromDueDate || 0) === 0 ? "—" : `${allocation.daysFromDueDate} days`}
                           </td>
                           <td className="px-4 py-3 text-center">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.className}`}>
