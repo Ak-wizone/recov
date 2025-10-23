@@ -77,6 +77,7 @@ export default function Invoices() {
     unpaidInvoicesAmount: number;
     totalPaidAmount: number;
     totalInterestAmount: number;
+    interestApplicableInvoicesCount: number;
     debtorsBalance: number;
     totalInvoicesCount: number;
     paidInvoicesCount: number;
@@ -680,7 +681,7 @@ export default function Invoices() {
                   ₹{(dashboardStats?.totalInterestAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Calculated interest amount
+                  {dashboardStats?.interestApplicableInvoicesCount || 0} invoice{(dashboardStats?.interestApplicableInvoicesCount || 0) !== 1 ? 's' : ''} with interest
                 </p>
               </div>
             </div>

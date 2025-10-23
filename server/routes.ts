@@ -3076,6 +3076,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let unpaidInvoicesAmount = 0;
       let totalPaidAmount = 0;
       let totalInterestAmount = 0;
+      let interestApplicableInvoicesCount = 0;
       
       // Add counts
       let totalInvoicesCount = 0;
@@ -3130,30 +3131,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             unpaidInvoicesCount++;
           }
 
-          // Calculate interest amount using same logic as frontend
-          const interestRate = invoice.interestRate ? parseFloat(invoice.interestRate.toString()) : 0;
-          if (interestRate > 0) {
-            const invoiceDate = new Date(invoice.invoiceDate);
-            const paymentTerms = invoice.paymentTerms || 0;
-            const dueDate = new Date(invoiceDate);
-            dueDate.setDate(dueDate.getDate() + paymentTerms);
-
-            let applicableDate: Date | null = null;
-            if (invoice.interestApplicableFrom === "Due Date") {
-              applicableDate = dueDate;
-            } else if (invoice.interestApplicableFrom === "Invoice Date") {
-              applicableDate = invoiceDate;
-            }
-
-            if (applicableDate) {
-              const today = new Date();
-              const diffTime = today.getTime() - applicableDate.getTime();
-              const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-              if (daysOverdue > 0) {
-                const interestAmount = (invoiceAmount * interestRate * daysOverdue) / (100 * 365);
-                totalInterestAmount += interestAmount;
-              }
+          // Use stored interest amount from invoice (calculated with cumulative days methodology)
+          if (invoice.interestAmount) {
+            const interestAmount = parseFloat(invoice.interestAmount.toString());
+            if (interestAmount > 0) {
+              totalInterestAmount += interestAmount;
+              interestApplicableInvoicesCount++;
             }
           }
         }
@@ -3193,6 +3176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         unpaidInvoicesAmount,
         totalPaidAmount,
         totalInterestAmount,
+        interestApplicableInvoicesCount,
         debtorsBalance,
         totalInvoicesCount,
         paidInvoicesCount,
