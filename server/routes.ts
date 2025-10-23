@@ -3043,21 +3043,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Customer Name": "ABC Corporation Pvt Ltd",
           "Invoice Date": "2025-01-15",
           "Invoice Amount": "150000",
-          "Gross Profit": "45000"
+          "Net Profit": "45000"
         },
         {
           "Invoice Number": "INV-2025-002",
           "Customer Name": "XYZ Industries Limited",
           "Invoice Date": "2025-01-20",
           "Invoice Amount": "250000",
-          "Gross Profit": "75000"
+          "Net Profit": "75000"
         },
         {
           "Invoice Number": "INV-2025-003",
           "Customer Name": "Tech Solutions India",
           "Invoice Date": "2025-01-25",
           "Invoice Amount": "180000",
-          "Gross Profit": ""
+          "Net Profit": ""
         }
       ];
 
@@ -3085,7 +3085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Customer Name": invoice.customerName,
         "Invoice Date": invoice.invoiceDate.toISOString().split('T')[0],
         "Invoice Amount": invoice.invoiceAmount,
-        "Gross Profit": invoice.grossProfit,
+        "Net Profit": invoice.netProfit,
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
@@ -3137,9 +3137,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedDate = String(dateValue).trim();
         }
         
-        // Get gross profit value, default to "0" if empty or not provided
-        const grossProfitValue = String((row as any)["Gross Profit"] || (row as any)["Net Profit"] || "").trim();
-        const grossProfit = grossProfitValue === "" ? "0" : grossProfitValue;
+        // Get net profit value, default to "0" if empty or not provided
+        const netProfitValue = String((row as any)["Net Profit"] || "").trim();
+        const netProfit = netProfitValue === "" ? "0" : netProfitValue;
         
         const customerName = String((row as any)["Customer Name"] || "").trim();
         
@@ -3168,7 +3168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerName: customerName,
           invoiceDate: parsedDate,
           invoiceAmount: String((row as any)["Invoice Amount"] || "0").trim(),
-          grossProfit: grossProfit,
+          netProfit: netProfit,
           ...customerDetails,
         };
 
@@ -3220,68 +3220,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const deleted = await storage.deleteInvoices(req.tenantId!, ids);
       res.json({ deleted });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Get interest calculation details for an invoice (MUST BE BEFORE /:id)
-  app.get("/api/invoices/:id/interest-details", async (req, res) => {
-    try {
-      const invoice = await storage.getInvoice(req.tenantId!, req.params.id);
-      if (!invoice) {
-        return res.status(404).json({ message: "Invoice not found" });
-      }
-
-      // Calculate due date (invoice date + payment terms)
-      const invoiceDate = new Date(invoice.invoiceDate);
-      const paymentTermsDays = invoice.paymentTerms || 0;
-      const dueDate = new Date(invoiceDate);
-      dueDate.setDate(dueDate.getDate() + paymentTermsDays);
-
-      // Get all payments for this invoice from invoice_payments table
-      const invoicePayments = await storage.getInvoicePayments(req.tenantId!, invoice.id);
-
-      // Calculate interest for each payment
-      const paymentBreakdown = invoicePayments.map((payment) => {
-        const paymentDate = new Date(payment.paymentDate);
-        const daysOverdue = Math.max(0, Math.floor((paymentDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
-        
-        const paymentAmount = parseFloat(payment.paymentAmount.toString());
-        const annualInterestRate = parseFloat(invoice.interestRate || "0") / 100; // Convert percentage to decimal
-        const dailyRate = annualInterestRate / 365;
-        const interestAmount = daysOverdue > 0 ? paymentAmount * dailyRate * daysOverdue : 0;
-
-        return {
-          paymentId: payment.id,
-          receiptId: payment.receiptId,
-          paymentAmount: paymentAmount.toFixed(2),
-          paymentDate: paymentDate.toISOString().split('T')[0],
-          daysOverdue,
-          interestAmount: interestAmount.toFixed(2),
-        };
-      });
-
-      // Calculate totals
-      const totalInterest = paymentBreakdown.reduce((sum, p) => sum + parseFloat(p.interestAmount), 0);
-      const grossProfit = parseFloat(invoice.grossProfit.toString());
-      const finalGrossProfit = grossProfit - totalInterest;
-      const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
-      const grossProfitPercentage = invoiceAmount > 0 ? (finalGrossProfit / invoiceAmount) * 100 : 0;
-
-      res.json({
-        invoiceId: invoice.id,
-        invoiceNumber: invoice.invoiceNumber,
-        invoiceDate: invoiceDate.toISOString().split('T')[0],
-        dueDate: dueDate.toISOString().split('T')[0],
-        invoiceAmount: invoiceAmount.toFixed(2),
-        grossProfit: grossProfit.toFixed(2),
-        interestRate: invoice.interestRate || "0",
-        paymentBreakdown,
-        totalInterest: totalInterest.toFixed(2),
-        finalGrossProfit: finalGrossProfit.toFixed(2),
-        grossProfitPercentage: grossProfitPercentage.toFixed(2),
-      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -5317,7 +5255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerCity: invoice.city || 'N/A',
           customerPincode: invoice.pincode || 'N/A',
           invoiceAmount: parseFloat(invoice.invoiceAmount).toFixed(2),
-          grossProfit: parseFloat(invoice.grossProfit).toFixed(2),
+          netProfit: parseFloat(invoice.netProfit).toFixed(2),
           status: invoice.status,
           category: invoice.category || 'N/A',
           paymentTerms: invoice.paymentTerms?.toString() || 'N/A',

@@ -4,7 +4,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, MessageSquare, Mail, Phone, Calculator } from "lucide-react";
+import { Pencil, Trash2, MessageSquare, Mail, Phone } from "lucide-react";
 import { format } from "date-fns";
 
 interface InvoiceTableProps {
@@ -15,7 +15,6 @@ interface InvoiceTableProps {
   onWhatsApp?: (invoice: Invoice) => void;
   onEmail?: (invoice: Invoice) => void;
   onCall?: (invoice: Invoice) => void;
-  onViewInterest?: (invoice: Invoice) => void;
   onBulkDelete?: (ids: string[]) => void;
   onFiltersChange?: (filters: { globalFilter: string; columnFilters: any[] }) => void;
 }
@@ -28,7 +27,6 @@ export function InvoiceTable({
   onWhatsApp,
   onEmail,
   onCall,
-  onViewInterest,
   onBulkDelete,
   onFiltersChange,
 }: InvoiceTableProps) {
@@ -245,10 +243,10 @@ export function InvoiceTable({
         enableColumnFilter: true,
       },
       {
-        accessorKey: "grossProfit",
-        header: "Gross Profit",
+        accessorKey: "netProfit",
+        header: "Net Profit",
         cell: ({ row }) => {
-          const profit = parseFloat(row.original.grossProfit);
+          const profit = parseFloat(row.original.netProfit);
           const isPositive = profit >= 0;
           return (
             <div 
@@ -314,15 +312,6 @@ export function InvoiceTable({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onViewInterest?.(row.original)}
-              data-testid={`button-interest-${row.original.id}`}
-              title="View Interest Details"
-            >
-              <Calculator className="h-4 w-4 text-indigo-500" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
               onClick={() => onWhatsApp?.(row.original)}
               data-testid={`button-whatsapp-${row.original.id}`}
             >
@@ -365,7 +354,7 @@ export function InvoiceTable({
         enableHiding: false,
       },
     ],
-    [onEdit, onDelete, onWhatsApp, onEmail, onCall, onViewInterest]
+    [onEdit, onDelete, onWhatsApp, onEmail, onCall]
   );
 
   const handleBulkDelete = async (rows: Invoice[]) => {

@@ -5,7 +5,6 @@ import { Invoice } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { InvoiceTable } from "@/components/invoice-table";
 import InvoiceFormDialog from "@/components/invoice-form-dialog";
-import InvoiceInterestDialog from "@/components/invoice-interest-dialog";
 import { ImportModal } from "@/components/import-modal";
 import { EmailDialog } from "@/components/email-dialog";
 import { CallDialog } from "@/components/call-dialog";
@@ -47,8 +46,6 @@ export default function Invoices() {
   const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = useState<Invoice | null>(null);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [selectedInvoiceForCall, setSelectedInvoiceForCall] = useState<Invoice | null>(null);
-  const [isInterestDialogOpen, setIsInterestDialogOpen] = useState(false);
-  const [selectedInvoiceForInterest, setSelectedInvoiceForInterest] = useState<Invoice | null>(null);
   
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -325,11 +322,6 @@ export default function Invoices() {
     }
     setSelectedInvoiceForCall(invoice);
     setIsCallDialogOpen(true);
-  };
-
-  const handleViewInterest = (invoice: Invoice) => {
-    setSelectedInvoiceForInterest(invoice);
-    setIsInterestDialogOpen(true);
   };
 
   return (
@@ -722,7 +714,6 @@ export default function Invoices() {
           onWhatsApp={handleWhatsApp}
           onEmail={handleEmail}
           onCall={handleCall}
-          onViewInterest={handleViewInterest}
           onBulkDelete={handleBulkDelete}
           onFiltersChange={setTableFilters}
         />
@@ -824,13 +815,6 @@ export default function Invoices() {
             ? new Date(new Date(selectedInvoiceForCall.invoiceDate).getTime() + selectedInvoiceForCall.paymentTerms * 24 * 60 * 60 * 1000).toISOString()
             : new Date(selectedInvoiceForCall?.invoiceDate || new Date()).toISOString(),
         }}
-      />
-
-      {/* Interest Details Dialog */}
-      <InvoiceInterestDialog
-        open={isInterestDialogOpen}
-        onOpenChange={setIsInterestDialogOpen}
-        invoice={selectedInvoiceForInterest || undefined}
       />
     </div>
   );

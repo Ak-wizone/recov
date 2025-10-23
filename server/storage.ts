@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type InvoicePayment, type InsertInvoicePayment, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, customers, payments, followUps, masterCustomers, masterItems, invoices, invoicePayments, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -54,13 +54,6 @@ export interface IStorage {
   updateInvoice(tenantId: string, id: string, invoice: Partial<InsertInvoice>): Promise<Invoice | undefined>;
   deleteInvoice(tenantId: string, id: string): Promise<boolean>;
   deleteInvoices(tenantId: string, ids: string[]): Promise<number>;
-  
-  // Invoice Payment operations
-  getInvoicePayments(tenantId: string, invoiceId: string): Promise<InvoicePayment[]>;
-  createInvoicePayment(tenantId: string, payment: InsertInvoicePayment): Promise<InvoicePayment>;
-  deleteInvoicePayment(tenantId: string, id: string): Promise<boolean>;
-  deleteInvoicePaymentsByInvoice(tenantId: string, invoiceId: string): Promise<number>;
-  deleteInvoicePaymentsByReceipt(tenantId: string, receiptId: string): Promise<number>;
   
   // Receipt operations
   getReceipts(tenantId: string): Promise<Receipt[]>;
@@ -581,49 +574,6 @@ export class DatabaseStorage implements IStorage {
       if (deleted) count++;
     }
     return count;
-  }
-
-  // Invoice Payment operations
-  async getInvoicePayments(tenantId: string, invoiceId: string): Promise<InvoicePayment[]> {
-    return await db.select().from(invoicePayments)
-      .where(and(eq(invoicePayments.tenantId, tenantId), eq(invoicePayments.invoiceId, invoiceId)))
-      .orderBy(invoicePayments.paymentDate);
-  }
-
-  async createInvoicePayment(tenantId: string, payment: InsertInvoicePayment): Promise<InvoicePayment> {
-    const [invoicePayment] = await db
-      .insert(invoicePayments)
-      .values({
-        ...payment,
-        tenantId,
-        paymentDate: new Date(payment.paymentDate),
-      })
-      .returning();
-    return invoicePayment;
-  }
-
-  async deleteInvoicePayment(tenantId: string, id: string): Promise<boolean> {
-    const result = await db
-      .delete(invoicePayments)
-      .where(and(eq(invoicePayments.tenantId, tenantId), eq(invoicePayments.id, id)))
-      .returning();
-    return result.length > 0;
-  }
-
-  async deleteInvoicePaymentsByInvoice(tenantId: string, invoiceId: string): Promise<number> {
-    const result = await db
-      .delete(invoicePayments)
-      .where(and(eq(invoicePayments.tenantId, tenantId), eq(invoicePayments.invoiceId, invoiceId)))
-      .returning();
-    return result.length;
-  }
-
-  async deleteInvoicePaymentsByReceipt(tenantId: string, receiptId: string): Promise<number> {
-    const result = await db
-      .delete(invoicePayments)
-      .where(and(eq(invoicePayments.tenantId, tenantId), eq(invoicePayments.receiptId, receiptId)))
-      .returning();
-    return result.length;
   }
 
   async getReceipts(tenantId: string): Promise<Receipt[]> {

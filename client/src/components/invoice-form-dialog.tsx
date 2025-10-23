@@ -35,7 +35,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
       customerName: invoice?.customerName || "",
       invoiceDate: invoice?.invoiceDate ? format(new Date(invoice.invoiceDate), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       invoiceAmount: invoice?.invoiceAmount || "",
-      grossProfit: invoice?.grossProfit || "",
+      netProfit: invoice?.netProfit || "",
       remarks: invoice?.remarks || "",
       category: invoice?.category || "",
       primaryMobile: invoice?.primaryMobile || "",
@@ -121,7 +121,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         customerName: invoice.customerName,
         invoiceDate: format(new Date(invoice.invoiceDate), "yyyy-MM-dd"),
         invoiceAmount: invoice.invoiceAmount || "",
-        grossProfit: invoice.grossProfit || "",
+        netProfit: invoice.netProfit || "",
         remarks: invoice.remarks || "",
         category: invoice.category || "",
         primaryMobile: invoice.primaryMobile || "",
@@ -139,7 +139,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         customerName: "",
         invoiceDate: format(new Date(), "yyyy-MM-dd"),
         invoiceAmount: "",
-        grossProfit: "",
+        netProfit: "",
         remarks: "",
         category: "",
         primaryMobile: "",
@@ -278,17 +278,17 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
 
                 <FormField
                   control={form.control}
-                  name="grossProfit"
+                  name="netProfit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Gross Profit (₹) *</FormLabel>
+                      <FormLabel>Net Profit (₹) *</FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
                           type="number" 
                           step="0.01" 
                           placeholder="0.00" 
-                          data-testid="input-gross-profit" 
+                          data-testid="input-net-profit" 
                         />
                       </FormControl>
                       <FormMessage />
