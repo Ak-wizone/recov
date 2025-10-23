@@ -56,7 +56,8 @@ Preferred communication style: Simple, everyday language.
     - Quick-access email buttons in all module grids
     - Professional email templates (Quotation, Invoice, Receipt) with automatic data enrichment
     - Nodemailer integration for reliable email delivery
-    - Database tables: email_configs, email_templates
+    - Database tables: email_configs (supports both tenant-level and platform-level configs), email_templates
+    - **Platform Email Configuration**: Platform admins can set up a system-wide email config (tenantId = null) for sending tenant credentials during registration approval and manual credential resend operations
 *   **WhatsApp API Integration**: Enterprise-grade WhatsApp messaging system for automated business communications. Features:
     - Multi-provider support: Twilio, WATI, Meta WhatsApp Business API, Interakt, AiSensy, and custom API providers
     - Comprehensive configuration interface with provider-specific settings (Account SID, Phone Number ID, Business Account ID, etc.)
@@ -86,6 +87,14 @@ Preferred communication style: Simple, everyday language.
     - Active/Inactive status toggle for easy management
     - Complete CRUD interface accessible from Company Settings
     - Database table: communication_schedules
+*   **Tenant Credential Emails**: Automated system for sending login credentials to newly approved tenants:
+    - Automatic email sending when platform admin approves a registration request
+    - Manual resend capability via "Send" button in Tenant Management page
+    - Uses platform-level email configuration (tenantId = null) to send from admin's email
+    - Centralized professional email template with security warnings
+    - Default password format: emailPrefix@#$405 (e.g., for admin@company.com, password is admin@#$405)
+    - **Setup Requirement**: Platform admin must configure email settings with tenantId = null before approving tenants
+    - Graceful error handling: approval succeeds even if email fails, with clear error messages to admin
 
 # External Dependencies
 
