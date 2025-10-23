@@ -18,33 +18,35 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // Centralized credential email template
 const CREDENTIAL_EMAIL_TEMPLATE = `
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <h2 style="color: #333;">Welcome to CRM Platform!</h2>
-  <p>Dear {companyName} Team,</p>
-  <p>Your account is now active and ready to use. Here are your login credentials:</p>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+  <h2 style="color: #333; margin-bottom: 20px;">Welcome to RECOV.</h2>
+  <p style="color: #666; font-size: 16px;">Dear {companyName} Team,</p>
+  <p style="color: #666; font-size: 16px;">Your account is now active and ready to use. Here are your login credentials:</p>
   
-  <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0;">
-    <h3 style="margin-top: 0;">Login Credentials</h3>
-    <p><strong>Email:</strong> {email}</p>
-    <p><strong>Temporary Password:</strong> {password}</p>
-    <p><strong>Login URL:</strong> <a href="{loginUrl}" style="color: #007bff;">{loginUrl}</a></p>
+  <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #007bff;">
+    <h3 style="margin-top: 0; color: #333; font-size: 18px;">Login Credentials</h3>
+    <p style="margin: 10px 0; color: #444;"><strong>Email:</strong> {email}</p>
+    <p style="margin: 10px 0; color: #444;"><strong>Temporary Password:</strong> {password}</p>
+    <p style="margin: 10px 0; color: #444;"><strong>Login URL:</strong> <a href="{loginUrl}" style="color: #007bff; text-decoration: none;">{loginUrl}</a></p>
   </div>
   
-  <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
-    <strong>⚠️ Security Note:</strong> Please change your password immediately after your first login for security purposes.
-  </div>
-  
-  <h3>Next Steps:</h3>
-  <ol style="line-height: 1.8;">
+  <h3 style="color: #333; font-size: 18px; margin-top: 30px;">Next Steps:</h3>
+  <ol style="line-height: 2; color: #666; font-size: 16px; padding-left: 20px;">
     <li>Click the login link above</li>
     <li>Enter your email and temporary password</li>
-    <li>Change your password in profile settings</li>
-    <li>Start managing your business with our CRM platform</li>
+    <li>Start managing your business with RECOV.</li>
   </ol>
   
-  <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+  <p style="color: #666; font-size: 16px; margin-top: 30px;">If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
   
-  <p>Best regards,<br><strong>CRM Platform Team</strong></p>
+  <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+    <p style="margin: 5px 0; color: #333;">Best regards,</p>
+    <p style="margin: 5px 0; color: #333;"><strong>Team RECOV.</strong></p>
+    <p style="margin: 15px 0; color: #666;"><strong>WIZONE IT NETWORK INDIA PVT LTD</strong></p>
+    <p style="margin: 5px 0; color: #666;">📞 7500 22 33 55</p>
+    <p style="margin: 5px 0; color: #666;">📞 9258 299 527</p>
+    <p style="margin: 5px 0; color: #666;">📞 9258 299 518</p>
+  </div>
 </div>
 `;
 
@@ -78,7 +80,7 @@ async function sendTenantCredentials(
     await sendEmail(
       platformEmailConfig,
       tenantEmail,
-      "Welcome to CRM Platform - Your Login Credentials",
+      "Welcome to RECOV. - Your Login Credentials",
       emailBody
     );
 

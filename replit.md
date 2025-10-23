@@ -1,6 +1,6 @@
 # Overview
 
-This is a comprehensive business management application built with a full-stack TypeScript architecture. It provides modules for managing leads, quotations, proforma invoices, invoices, receipts, and customer debts. The application features dashboard analytics, supports bulk operations via Excel uploads with inline editing, and generates professional print formats for all business documents. Key capabilities include robust user and role-based access control, a secure authentication system, and duplicate detection for master data imports. The project aims to streamline business operations, provide critical insights, and enhance productivity.
+RECOV. is a comprehensive business management application built with a full-stack TypeScript architecture. It provides modules for managing leads, quotations, proforma invoices, invoices, receipts, and customer debts. The application features dashboard analytics, supports bulk operations via Excel uploads with inline editing, and generates professional print formats for all business documents. Key capabilities include robust user and role-based access control, a secure authentication system, and duplicate detection for master data imports. The project aims to streamline business operations, provide critical insights, and enhance productivity.
 
 # User Preferences
 
