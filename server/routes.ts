@@ -2882,11 +2882,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const receiptDate = new Date(receipt.date);
               
               // Calculate PERIOD days (days between previous date and current receipt)
-              const diffTime = receiptDate.getTime() - previousDate.getTime();
+              // IMPORTANT: Clamp period start to applicable date to handle early receipts correctly
+              const periodStartDate = previousDate.getTime() > applicableDate.getTime() 
+                ? previousDate 
+                : applicableDate;
+              
+              const diffTime = receiptDate.getTime() - periodStartDate.getTime();
               const daysInPeriod = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
               
-              // Calculate interest on current balance for THIS PERIOD ONLY
-              if (receiptDate > applicableDate && currentBalance > 0) {
+              // Calculate interest on current balance for THIS PERIOD ONLY (including first period from applicable date)
+              if (receiptDate > applicableDate && currentBalance > 0 && daysInPeriod > 0) {
                 const interestRate = parseFloat(invoice.interestRate.toString());
                 // Period-based interest: Balance × Rate × Days in Period / (100 × 365)
                 const interestAmount = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
@@ -2899,17 +2904,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // If there's unpaid balance, calculate interest for the final period (last payment to today)
+          // Calculate final period interest for unpaid balance (from last receipt or applicable date to today)
           if (currentBalance > 0) {
             const today = new Date();
-            const diffTime = today.getTime() - previousDate.getTime();
-            const daysInPeriod = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
             
-            if (today > applicableDate && daysInPeriod > 0) {
-              const interestRate = parseFloat(invoice.interestRate.toString());
-              // Period-based interest for unpaid balance
-              const unpaidInterest = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
-              totalInterest += unpaidInterest;
+            // Only calculate if we're past the applicable date
+            if (today > applicableDate) {
+              // IMPORTANT: Clamp start date to applicable date to handle early receipts correctly
+              const periodStartDate = previousDate.getTime() > applicableDate.getTime() 
+                ? previousDate 
+                : applicableDate;
+              
+              const diffTime = today.getTime() - periodStartDate.getTime();
+              const daysInPeriod = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+              
+              if (daysInPeriod > 0) {
+                const interestRate = parseFloat(invoice.interestRate.toString());
+                // Period-based interest for unpaid balance
+                const unpaidInterest = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
+                totalInterest += unpaidInterest;
+              }
             }
           }
           
@@ -3561,6 +3575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let currentBalance = invoiceAmount;
       let previousDate = applicableDate; // Start from applicable date (due date or invoice date)
       let dueDateRowAdded = false;
+      let firstReceiptProcessed = false;
 
       for (const receipt of sortedReceipts) {
         const receiptAmount = parseFloat(receipt.amount.toString());
@@ -3576,8 +3591,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const receiptDate = new Date(receipt.date);
           
-          // Add DUE DATE row if this is the first receipt after due date and it hasn't been added
-          if (!dueDateRowAdded && receiptDate > applicableDate) {
+          // Add DUE DATE row ONCE before first receipt (if after applicable date)
+          if (!dueDateRowAdded) {
             receiptAllocations.push({
               isDueDateRow: true,
               receiptDate: applicableDate.toISOString(),
@@ -3585,19 +3600,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: "Interest Starts from Here",
             });
             dueDateRowAdded = true;
-            // Set previous date to applicable date for period calculation
-            previousDate = applicableDate;
+            previousDate = applicableDate; // Start period from applicable date
           }
           
           // Calculate PERIOD days (days between previous date and current receipt date)
-          const diffTime = receiptDate.getTime() - previousDate.getTime();
+          // IMPORTANT: Clamp period start to applicable date to handle early receipts correctly
+          const periodStartDate = previousDate.getTime() > applicableDate.getTime() 
+            ? previousDate 
+            : applicableDate;
+          
+          const diffTime = receiptDate.getTime() - periodStartDate.getTime();
           const daysInPeriod = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
           
           // Calculate interest on current balance for THIS PERIOD ONLY
           let interestAmount = 0;
           
           // Interest only applies after applicable date
-          if (receiptDate > applicableDate && invoice.interestRate && currentBalance > 0) {
+          if (receiptDate > applicableDate && invoice.interestRate && currentBalance > 0 && daysInPeriod > 0) {
             const interestRate = parseFloat(invoice.interestRate.toString());
             // Period-based interest: Balance × Rate × Days in Period / (100 × 365)
             interestAmount = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
@@ -3635,37 +3654,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Update for next iteration
           currentBalance = newBalance;
           previousDate = receiptDate; // Next period starts from this receipt date
+          firstReceiptProcessed = true;
         }
       }
 
-      // If there's unpaid balance, calculate interest from last payment (or applicable date) till today
+      // Handle unpaid balance - calculate interest from last date to today
       const unpaidAmount = invoiceAmount - paidAmount;
-      let unpaidInterest = 0;
 
-      if (unpaidAmount > 0 && invoice.interestRate && currentBalance > 0) {
+      if (unpaidAmount > 0 && invoice.interestRate) {
         const today = new Date();
         
-        // Add DUE DATE row if no receipts were after due date
-        if (!dueDateRowAdded && previousDate.getTime() === applicableDate.getTime()) {
+        // Add DUE DATE row if no receipts were processed at all
+        if (!dueDateRowAdded) {
           receiptAllocations.push({
             isDueDateRow: true,
             receiptDate: applicableDate.toISOString(),
             balanceAmount: currentBalance,
             message: "Interest Starts from Here",
           });
+          dueDateRowAdded = true;
+          previousDate = applicableDate;
         }
         
-        // Calculate days in this final period (from last payment to today)
-        const diffTime = today.getTime() - previousDate.getTime();
-        const daysInPeriod = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        // Calculate final period interest (from last receipt or applicable date to today)
+        // IMPORTANT: Clamp start date to applicable date to handle early receipts correctly
+        if (today > applicableDate && currentBalance > 0) {
+          const periodStartDate = previousDate.getTime() > applicableDate.getTime() 
+            ? previousDate 
+            : applicableDate;
+          
+          const diffTime = today.getTime() - periodStartDate.getTime();
+          const daysInPeriod = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-        if (daysInPeriod > 0 && today > applicableDate) {
-          const interestRate = parseFloat(invoice.interestRate.toString());
-          // Period-based interest for unpaid balance
-          unpaidInterest = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
+          if (daysInPeriod > 0) {
+            const interestRate = parseFloat(invoice.interestRate.toString());
+            // Period-based interest for unpaid balance
+            const unpaidInterest = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
+            totalInterest += unpaidInterest;
+          }
         }
-        
-        totalInterest += unpaidInterest;
       }
 
       const gp = parseFloat(invoice.gp.toString());
