@@ -267,6 +267,7 @@ export function DataTable<TData, TValue>({
         key={row.id}
         data-state={row.getIsSelected() && "selected"}
         data-testid={`row-${row.id}`}
+        className="hover:bg-muted/50 transition-colors duration-150 cursor-pointer"
       >
         {row.getVisibleCells().map((cell) => (
           <TableCell key={cell.id} data-testid={`cell-${row.id}-${cell.column.id}`}>
@@ -359,11 +360,11 @@ export function DataTable<TData, TValue>({
       )}
 
       <div className="rounded-md border bg-card overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto relative">
           <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="bg-[#F1F5F9] border-b-2 border-gray-300">
+                  <TableRow key={headerGroup.id} className="bg-[#F1F5F9] dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600">
                     {headerGroup.headers.map((header) => {
                     const canSort = header.column.getCanSort();
                     const sortDirection = header.column.getIsSorted();
@@ -373,7 +374,7 @@ export function DataTable<TData, TValue>({
                         key={header.id}
                         className={cn(
                           canSort && "cursor-pointer select-none",
-                          "whitespace-nowrap font-semibold py-4"
+                          "whitespace-nowrap font-semibold py-4 bg-[#F1F5F9] dark:bg-gray-800"
                         )}
                         onClick={
                           canSort
@@ -414,13 +415,13 @@ export function DataTable<TData, TValue>({
                 ))}
                 {/* Column Filter Row */}
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={`filter-${headerGroup.id}`} className="bg-white border-b">
+                  <TableRow key={`filter-${headerGroup.id}`} className="bg-white dark:bg-gray-900 border-b">
                     {headerGroup.headers.map((header) => {
                       const canFilter = header.column.getCanFilter();
                       const columnFilterValue = header.column.getFilterValue();
 
                       return (
-                        <TableHead key={`filter-${header.id}`} className="py-3">
+                        <TableHead key={`filter-${header.id}`} className="py-3 bg-white dark:bg-gray-900">
                           {canFilter && header.column.id !== "select" ? (
                             <Input
                               type="text"

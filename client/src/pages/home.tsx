@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { SkeletonDashboard } from "@/components/ui/skeleton";
 
 interface BusinessOverviewData {
   financialSnapshot: {
@@ -89,8 +90,12 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="container mx-auto p-6">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Business Overview</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Complete view of your business operations</p>
+        </div>
+        <SkeletonDashboard />
       </div>
     );
   }
@@ -115,113 +120,161 @@ export default function Home() {
 
       {/* Financial Snapshot Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-l-4 border-l-green-500" data-testid="card-total-revenue">
+        <Card 
+          className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+          data-testid="card-total-revenue"
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Revenue</CardTitle>
-            <TrendingUp className="h-5 w-5 text-green-500" />
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <TrendingUp className="h-5 w-5 text-green-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
               ₹{parseFloat(dashboardData.financialSnapshot.totalRevenue).toLocaleString("en-IN", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
             </div>
-            <p className="text-xs text-gray-500 mt-1">From {dashboardData.moduleStats.invoices.count} invoices</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {dashboardData.moduleStats.invoices.count} invoices</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-500" data-testid="card-total-collections">
+        <Card 
+          className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+          data-testid="card-total-collections"
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Collections</CardTitle>
-            <DollarSign className="h-5 w-5 text-blue-500" />
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <DollarSign className="h-5 w-5 text-blue-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
               ₹{parseFloat(dashboardData.financialSnapshot.totalCollections).toLocaleString("en-IN", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
             </div>
-            <p className="text-xs text-gray-500 mt-1">From {dashboardData.moduleStats.receipts.count} receipts</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {dashboardData.moduleStats.receipts.count} receipts</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-orange-500" data-testid="card-total-outstanding">
+        <Card 
+          className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+          data-testid="card-total-outstanding"
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Outstanding</CardTitle>
-            <TrendingDown className="h-5 w-5 text-orange-500" />
+            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+              <TrendingDown className="h-5 w-5 text-orange-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-600">
+            <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
               ₹{parseFloat(dashboardData.financialSnapshot.totalOutstanding).toLocaleString("en-IN", {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
               })}
             </div>
-            <p className="text-xs text-gray-500 mt-1">{dashboardData.moduleStats.debtors.count} debtors</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{dashboardData.moduleStats.debtors.count} debtors</p>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500" data-testid="card-collection-efficiency">
+        <Card 
+          className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+          data-testid="card-collection-efficiency"
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Collection Efficiency</CardTitle>
-            <Percent className="h-5 w-5 text-purple-500" />
+            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+              <Percent className="h-5 w-5 text-purple-500" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-600">
+            <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
               {parseFloat(dashboardData.financialSnapshot.collectionEfficiency).toFixed(1)}%
             </div>
-            <p className="text-xs text-gray-500 mt-1">Interest: ₹{parseFloat(dashboardData.financialSnapshot.totalInterest).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Interest: ₹{parseFloat(dashboardData.financialSnapshot.totalInterest).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Module Statistics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card data-testid="card-invoices-stat">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Invoices</CardTitle>
-            <FileText className="h-5 w-5 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.moduleStats.invoices.count}</div>
-            <p className="text-xs text-gray-500">₹{parseFloat(dashboardData.moduleStats.invoices.totalAmount).toLocaleString("en-IN")}</p>
-          </CardContent>
-        </Card>
+        <Link href="/invoices">
+          <Card 
+            className="hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-105" 
+            data-testid="card-invoices-stat"
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Invoices</CardTitle>
+              <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <FileText className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{dashboardData.moduleStats.invoices.count}</div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">₹{parseFloat(dashboardData.moduleStats.invoices.totalAmount).toLocaleString("en-IN")}</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card data-testid="card-receipts-stat">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Receipts</CardTitle>
-            <ReceiptIcon className="h-5 w-5 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.moduleStats.receipts.count}</div>
-            <p className="text-xs text-gray-500">₹{parseFloat(dashboardData.moduleStats.receipts.totalAmount).toLocaleString("en-IN")}</p>
-          </CardContent>
-        </Card>
+        <Link href="/receipts">
+          <Card 
+            className="hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-105" 
+            data-testid="card-receipts-stat"
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Receipts</CardTitle>
+              <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <ReceiptIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{dashboardData.moduleStats.receipts.count}</div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">₹{parseFloat(dashboardData.moduleStats.receipts.totalAmount).toLocaleString("en-IN")}</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card data-testid="card-customers-stat">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Customers</CardTitle>
-            <Users className="h-5 w-5 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.moduleStats.customers.active}</div>
-            <p className="text-xs text-gray-500">Active of {dashboardData.moduleStats.customers.total} total</p>
-          </CardContent>
-        </Card>
+        <Link href="/masters/customers">
+          <Card 
+            className="hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-105" 
+            data-testid="card-customers-stat"
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Customers</CardTitle>
+              <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <Users className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{dashboardData.moduleStats.customers.active}</div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Active of {dashboardData.moduleStats.customers.total} total</p>
+            </CardContent>
+          </Card>
+        </Link>
 
-        <Card data-testid="card-debtors-stat">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Debtors</CardTitle>
-            <AlertCircle className="h-5 w-5 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.moduleStats.debtors.count}</div>
-            <p className="text-xs text-gray-500">₹{parseFloat(dashboardData.moduleStats.debtors.totalOutstanding).toLocaleString("en-IN")}</p>
-          </CardContent>
-        </Card>
+        <Link href="/debtors">
+          <Card 
+            className="hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-105" 
+            data-testid="card-debtors-stat"
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Debtors</CardTitle>
+              <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <AlertCircle className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{dashboardData.moduleStats.debtors.count}</div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">₹{parseFloat(dashboardData.moduleStats.debtors.totalOutstanding).toLocaleString("en-IN")}</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Charts Section */}
