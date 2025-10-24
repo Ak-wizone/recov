@@ -37,6 +37,7 @@ interface ProformaInvoiceTableProps {
   onDownloadPDF?: (invoice: ProformaInvoice) => void;
   onEmail?: (invoice: ProformaInvoice) => void;
   onWhatsApp?: (invoice: ProformaInvoice) => void;
+  onCall?: (invoice: ProformaInvoice) => void;
 }
 
 export function ProformaInvoiceTable({
@@ -48,6 +49,7 @@ export function ProformaInvoiceTable({
   onDownloadPDF,
   onEmail,
   onWhatsApp,
+  onCall,
 }: ProformaInvoiceTableProps) {
   const [sortField, setSortField] = useState<keyof ProformaInvoice | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");

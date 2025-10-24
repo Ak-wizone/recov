@@ -476,7 +476,7 @@ export default function ProformaInvoices() {
                 openWhatsApp(invoice.leadMobile, message);
               }}
               onCall={(invoice: ProformaInvoice) => {
-                if (!invoice.mobile) {
+                if (!invoice.leadMobile) {
                   toast({
                     title: "Error",
                     description: "Mobile number is not available for this proforma invoice",
@@ -558,7 +558,7 @@ export default function ProformaInvoices() {
         moduleType="proforma_invoices"
         recordData={{
           customerName: selectedInvoiceForCall?.leadName || "",
-          phoneNumber: selectedInvoiceForCall?.mobile || "",
+          phoneNumber: selectedInvoiceForCall?.leadMobile || "",
           piNumber: selectedInvoiceForCall?.invoiceNumber || "",
           amount: selectedInvoiceForCall?.grandTotal || "",
           customerId: selectedInvoiceForCall?.leadId || "",

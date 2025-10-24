@@ -13,6 +13,7 @@ interface ReceiptTableProps {
   onDelete: (receipt: Receipt) => void;
   onWhatsApp?: (receipt: Receipt) => void;
   onEmail?: (receipt: Receipt) => void;
+  onCall?: (receipt: Receipt) => void;
   onBulkDelete?: (ids: string[]) => void;
 }
 
@@ -23,6 +24,7 @@ export function ReceiptTable({
   onDelete,
   onWhatsApp,
   onEmail,
+  onCall,
   onBulkDelete,
 }: ReceiptTableProps) {
   

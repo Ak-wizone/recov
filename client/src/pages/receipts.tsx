@@ -775,7 +775,7 @@ export default function Receipts() {
           recordData={{
             customerName: selectedReceiptForEmail.customerName,
             customerEmail: "",
-            voucherType: selectedReceiptForEmail.voucherType,
+            voucherType: selectedReceiptForEmail.voucherType ?? undefined,
             voucherNumber: selectedReceiptForEmail.voucherNumber,
             receiptId: selectedReceiptForEmail.id,
             amount: selectedReceiptForEmail.amount,
