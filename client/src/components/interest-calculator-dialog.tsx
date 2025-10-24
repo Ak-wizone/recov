@@ -247,38 +247,38 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
               <div className="grid grid-cols-4 gap-2 print:gap-1">
                 {/* Invoice Amount */}
                 <div className="text-center p-3 print:p-1 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-400 dark:border-blue-700 rounded shadow-md">
-                  <p className="text-[10px] print:text-[7px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-1 print:mb-0">Invoice Amount</p>
-                  <p className="text-lg print:text-[9px] font-extrabold text-blue-900 dark:text-blue-100">
+                  <p className="text-xs print:text-[7px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-2 print:mb-0">Invoice Amount</p>
+                  <p className="text-2xl print:text-[9px] font-extrabold text-blue-900 dark:text-blue-100">
                     ₹{breakdown.invoice.invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
                 
                 {/* Base G.P. */}
                 <div className="text-center p-3 print:p-1 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-400 dark:border-green-700 rounded shadow-md">
-                  <p className="text-[10px] print:text-[7px] font-bold text-green-700 dark:text-green-300 uppercase tracking-wide mb-1 print:mb-0">Base G.P.</p>
-                  <p className="text-lg print:text-[9px] font-extrabold text-green-900 dark:text-green-100">
+                  <p className="text-xs print:text-[7px] font-bold text-green-700 dark:text-green-300 uppercase tracking-wide mb-2 print:mb-0">Base G.P.</p>
+                  <p className="text-2xl print:text-[9px] font-extrabold text-green-900 dark:text-green-100">
                     ₹{breakdown.calculation.baseGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
                 
-                {/* Interest Rate + Total Interest */}
+                {/* Total Interest + Interest Rate */}
                 <div className="text-center p-3 print:p-1 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 border-2 border-orange-400 dark:border-orange-700 rounded shadow-md">
-                  <p className="text-[10px] print:text-[7px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-wide mb-1 print:mb-0">Interest Rate</p>
-                  <p className="text-base print:text-[8px] font-extrabold text-orange-900 dark:text-orange-100">
-                    {breakdown.invoice.interestRate}% p.a.
+                  <p className="text-xs print:text-[7px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-wide mb-2 print:mb-0">Total Interest</p>
+                  <p className="text-2xl print:text-[9px] font-extrabold text-orange-900 dark:text-orange-100">
+                    ₹{breakdown.calculation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
-                  <p className="text-[9px] print:text-[6px] font-semibold text-red-700 dark:text-red-400 mt-1 print:mt-0 border-t border-orange-300 dark:border-orange-600 pt-1 print:pt-0">
-                    Total Interest: ₹{breakdown.calculation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <p className="text-xs print:text-[6px] font-bold text-red-700 dark:text-red-400 mt-2 print:mt-0 border-t border-orange-300 dark:border-orange-600 pt-2 print:pt-0">
+                    Interest Rate: {breakdown.invoice.interestRate}% p.a.
                   </p>
                 </div>
                 
                 {/* Final G.P. + Final G.P. % */}
                 <div className="text-center p-3 print:p-1 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-800 dark:to-teal-800 border-4 print:border-2 border-emerald-500 dark:border-emerald-600 rounded shadow-lg">
-                  <p className="text-[10px] print:text-[7px] font-extrabold text-emerald-800 dark:text-emerald-200 uppercase tracking-wide mb-1 print:mb-0">FINAL G.P.</p>
-                  <p className="text-xl print:text-[10px] font-extrabold text-emerald-900 dark:text-emerald-100">
+                  <p className="text-xs print:text-[7px] font-extrabold text-emerald-800 dark:text-emerald-200 uppercase tracking-wide mb-2 print:mb-0">FINAL G.P.</p>
+                  <p className="text-2xl print:text-[10px] font-extrabold text-emerald-900 dark:text-emerald-100">
                     ₹{breakdown.calculation.finalGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
-                  <p className="text-base print:text-[8px] font-extrabold text-teal-700 dark:text-teal-300 mt-1 print:mt-0 border-t border-emerald-400 dark:border-emerald-600 pt-1 print:pt-0">
+                  <p className="text-lg print:text-[8px] font-extrabold text-teal-700 dark:text-teal-300 mt-2 print:mt-0 border-t border-emerald-400 dark:border-emerald-600 pt-2 print:pt-0">
                     {breakdown.calculation.finalGpPercentage.toFixed(2)}%
                   </p>
                 </div>
