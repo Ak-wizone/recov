@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { wsManager } from "./websocket";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
 import { whatsappWebService } from "./whatsapp-web-service";
@@ -7088,6 +7088,60 @@ ${profile?.legalName || 'Company'}`;
       }
       const settings = await storage.updateFollowupAutomationSettings(req.tenantId!, result.data);
       res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get All Follow-up Schedules
+  app.get("/api/recovery/followup-schedules", async (req, res) => {
+    try {
+      const schedules = await storage.getFollowupSchedules(req.tenantId!);
+      res.json(schedules);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create Follow-up Schedule
+  app.post("/api/recovery/followup-schedules", async (req, res) => {
+    try {
+      const result = insertFollowupScheduleSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid followup schedule", errors: result.error.flatten() });
+      }
+      const schedule = await storage.createFollowupSchedule(req.tenantId!, result.data);
+      res.json(schedule);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update Follow-up Schedule
+  app.put("/api/recovery/followup-schedules/:id", async (req, res) => {
+    try {
+      const result = insertFollowupScheduleSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid followup schedule", errors: result.error.flatten() });
+      }
+      const schedule = await storage.updateFollowupSchedule(req.tenantId!, req.params.id, result.data);
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      res.json(schedule);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete Follow-up Schedule
+  app.delete("/api/recovery/followup-schedules/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteFollowupSchedule(req.tenantId!, req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

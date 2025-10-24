@@ -1652,3 +1652,68 @@ export const insertFollowupAutomationSettingsSchema = createInsertSchema(followu
 export type InsertFollowupAutomationSettings = z.infer<typeof insertFollowupAutomationSettingsSchema>;
 export type FollowupAutomationSettings = typeof followupAutomationSettings.$inferSelect;
 
+// Follow-up Schedules - Multiple follow-up configurations
+export const followupSchedules = pgTable("followup_schedules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  
+  // Schedule name/description
+  name: text("name").notNull(),
+  description: text("description"),
+  
+  // Trigger type: days_before_due, days_after_due, fixed_weekly, fixed_monthly
+  triggerType: text("trigger_type").notNull().default("days_before_due"),
+  
+  // Timing value (e.g., 7 for "7 days before due", or 3 for "Day 3 of month")
+  timingValue: integer("timing_value").notNull(),
+  
+  // For weekly: day of week (0-6, 0 = Sunday)
+  weeklyDay: integer("weekly_day"),
+  
+  // Communication channels
+  enableWhatsapp: boolean("enable_whatsapp").notNull().default(false),
+  enableEmail: boolean("enable_email").notNull().default(false),
+  enableIvr: boolean("enable_ivr").notNull().default(false),
+  
+  // Category filter (comma-separated: "alpha,beta" or "all")
+  categoryFilter: text("category_filter").default("all"),
+  
+  // Is this schedule active?
+  isActive: boolean("is_active").notNull().default(true),
+  
+  // Order for display
+  displayOrder: integer("display_order").default(0),
+  
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertFollowupScheduleSchema = createInsertSchema(followupSchedules).pick({
+  name: true,
+  description: true,
+  triggerType: true,
+  timingValue: true,
+  weeklyDay: true,
+  enableWhatsapp: true,
+  enableEmail: true,
+  enableIvr: true,
+  categoryFilter: true,
+  isActive: true,
+  displayOrder: true,
+}).extend({
+  name: z.string().min(1, "Schedule name is required"),
+  description: z.string().optional(),
+  triggerType: z.enum(["days_before_due", "days_after_due", "fixed_weekly", "fixed_monthly"]),
+  timingValue: z.number().min(1),
+  weeklyDay: z.number().min(0).max(6).optional(),
+  enableWhatsapp: z.boolean(),
+  enableEmail: z.boolean(),
+  enableIvr: z.boolean(),
+  categoryFilter: z.string().optional(),
+  isActive: z.boolean().optional(),
+  displayOrder: z.number().optional(),
+});
+
+export type InsertFollowupSchedule = z.infer<typeof insertFollowupScheduleSchema>;
+export type FollowupSchedule = typeof followupSchedules.$inferSelect;
+

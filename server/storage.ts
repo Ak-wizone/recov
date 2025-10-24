@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type CategoryChangeLog, type InsertCategoryChangeLog, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, categoryChangeLog, legalNoticeTemplates, legalNoticesSent } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, legalNoticeTemplates, legalNoticesSent } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -1709,6 +1709,34 @@ export class DatabaseStorage implements IStorage {
       const [created] = await db.insert(followupAutomationSettings).values({ ...settings, tenantId }).returning();
       return created;
     }
+  }
+
+  async getFollowupSchedules(tenantId: string): Promise<FollowupSchedule[]> {
+    return await db.select().from(followupSchedules).where(eq(followupSchedules.tenantId, tenantId)).orderBy(followupSchedules.displayOrder);
+  }
+
+  async getFollowupSchedule(tenantId: string, id: string): Promise<FollowupSchedule | undefined> {
+    const [schedule] = await db.select().from(followupSchedules).where(and(eq(followupSchedules.tenantId, tenantId), eq(followupSchedules.id, id)));
+    return schedule;
+  }
+
+  async createFollowupSchedule(tenantId: string, schedule: InsertFollowupSchedule): Promise<FollowupSchedule> {
+    const [created] = await db.insert(followupSchedules).values({ ...schedule, tenantId }).returning();
+    return created;
+  }
+
+  async updateFollowupSchedule(tenantId: string, id: string, schedule: Partial<InsertFollowupSchedule>): Promise<FollowupSchedule | undefined> {
+    const [updated] = await db
+      .update(followupSchedules)
+      .set({ ...schedule, updatedAt: new Date() })
+      .where(and(eq(followupSchedules.tenantId, tenantId), eq(followupSchedules.id, id)))
+      .returning();
+    return updated;
+  }
+
+  async deleteFollowupSchedule(tenantId: string, id: string): Promise<boolean> {
+    const result = await db.delete(followupSchedules).where(and(eq(followupSchedules.tenantId, tenantId), eq(followupSchedules.id, id)));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   async getCategoryChangeLogs(tenantId: string): Promise<CategoryChangeLog[]> {
