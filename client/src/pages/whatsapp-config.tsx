@@ -153,8 +153,8 @@ export default function WhatsAppConfig() {
       const data = await response.json();
       setWhatsappWebStatus(data);
 
-      // Continue polling if waiting for QR or connecting
-      if (data.status === "qr" || data.status === "disconnected") {
+      // Continue polling until status is ready (poll while qr, disconnected, or connected)
+      if (data.status === "qr" || data.status === "disconnected" || data.status === "connected") {
         setTimeout(pollWhatsAppWebStatus, 2000);
       }
     } catch (error) {
