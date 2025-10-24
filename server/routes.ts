@@ -2864,8 +2864,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const invoiceEndAllocation = invoiceStartAllocation + paidAmount;
           let receiptCumulative = 0;
           let currentBalance = invoiceAmount;
+          let previousDate = applicableDate; // Start from applicable date for period calculation
           
-          // Calculate interest for each receipt that contributes to this invoice
+          // Calculate PERIOD-BASED interest for each receipt that contributes to this invoice
           for (const receipt of sortedReceipts) {
             const receiptAmount = parseFloat(receipt.amount.toString());
             const prevCumulative = receiptCumulative;
@@ -2880,31 +2881,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               const receiptDate = new Date(receipt.date);
               
-              // Calculate cumulative days from due date
-              const diffTime = receiptDate.getTime() - applicableDate.getTime();
-              const daysFromDueDate = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+              // Calculate PERIOD days (days between previous date and current receipt)
+              const diffTime = receiptDate.getTime() - previousDate.getTime();
+              const daysInPeriod = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
               
-              // Calculate interest on current balance (before this receipt)
+              // Calculate interest on current balance for THIS PERIOD ONLY
               if (receiptDate > applicableDate && currentBalance > 0) {
                 const interestRate = parseFloat(invoice.interestRate.toString());
-                const interestAmount = (currentBalance * interestRate * daysFromDueDate) / (100 * 365);
+                // Period-based interest: Balance × Rate × Days in Period / (100 × 365)
+                const interestAmount = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
                 totalInterest += interestAmount;
               }
               
-              // Update balance for next iteration
+              // Update for next iteration
               currentBalance = Math.max(currentBalance - allocatedAmount, 0);
+              previousDate = receiptDate; // Next period starts from this receipt date
             }
           }
           
-          // If there's unpaid balance, calculate interest from applicable date till today
+          // If there's unpaid balance, calculate interest for the final period (last payment to today)
           if (currentBalance > 0) {
             const today = new Date();
-            const diffTime = today.getTime() - applicableDate.getTime();
-            const daysFromDueDate = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+            const diffTime = today.getTime() - previousDate.getTime();
+            const daysInPeriod = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
             
-            if (today > applicableDate) {
+            if (today > applicableDate && daysInPeriod > 0) {
               const interestRate = parseFloat(invoice.interestRate.toString());
-              const unpaidInterest = (currentBalance * interestRate * daysFromDueDate) / (100 * 365);
+              // Period-based interest for unpaid balance
+              const unpaidInterest = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
               totalInterest += unpaidInterest;
             }
           }
@@ -3550,12 +3554,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Build receipt allocation breakdown with balance-based interest
+      // Build receipt allocation breakdown with PERIOD-BASED interest
       const receiptAllocations: any[] = [];
       let receiptCumulative = 0;
       let totalInterest = 0;
       let currentBalance = invoiceAmount;
-      let previousDate = applicableDate; // Start from applicable date
+      let previousDate = applicableDate; // Start from applicable date (due date or invoice date)
       let dueDateRowAdded = false;
 
       for (const receipt of sortedReceipts) {
@@ -3581,22 +3585,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: "Interest Starts from Here",
             });
             dueDateRowAdded = true;
-            // Reset previous date to applicable date so days are calculated from due date
+            // Set previous date to applicable date for period calculation
             previousDate = applicableDate;
           }
           
-          // Calculate cumulative days from due date (not period between receipts)
-          const diffTime = receiptDate.getTime() - applicableDate.getTime();
-          const daysFromDueDate = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+          // Calculate PERIOD days (days between previous date and current receipt date)
+          const diffTime = receiptDate.getTime() - previousDate.getTime();
+          const daysInPeriod = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
           
-          // Calculate interest on current balance (balance BEFORE this receipt)
+          // Calculate interest on current balance for THIS PERIOD ONLY
           let interestAmount = 0;
           
           // Interest only applies after applicable date
           if (receiptDate > applicableDate && invoice.interestRate && currentBalance > 0) {
             const interestRate = parseFloat(invoice.interestRate.toString());
-            // Interest on balance using cumulative days from due date
-            interestAmount = (currentBalance * interestRate * daysFromDueDate) / (100 * 365);
+            // Period-based interest: Balance × Rate × Days in Period / (100 × 365)
+            interestAmount = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
           }
 
           totalInterest += interestAmount;
@@ -3621,20 +3625,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             receiptDate: receipt.date,
             receiptAmount: receiptAmount,
             balanceAmount: newBalance, // Show balance AFTER this receipt (remaining balance)
-            balanceBeforeReceipt: currentBalance, // Track balance used for interest calculation
-            daysFromDueDate: daysFromDueDate, // Cumulative days from due date
+            balanceBeforeReceipt: currentBalance, // Balance at start of period (used for interest calc)
+            daysInPeriod: daysInPeriod, // Days between previous date and this receipt
             interestRate: invoice.interestRate ? parseFloat(invoice.interestRate.toString()) : 0,
             interestAmount: interestAmount,
             status: receiptStatus,
           });
 
-          // Update balance for next iteration
+          // Update for next iteration
           currentBalance = newBalance;
-          previousDate = receiptDate;
+          previousDate = receiptDate; // Next period starts from this receipt date
         }
       }
 
-      // If there's unpaid balance, calculate interest from last receipt (or applicable date) till today
+      // If there's unpaid balance, calculate interest from last payment (or applicable date) till today
       const unpaidAmount = invoiceAmount - paidAmount;
       let unpaidInterest = 0;
 
@@ -3651,13 +3655,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        // Calculate days from last payment (or applicable date) to today
+        // Calculate days in this final period (from last payment to today)
         const diffTime = today.getTime() - previousDate.getTime();
-        const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const daysInPeriod = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-        if (daysOverdue > 0 && today > applicableDate) {
+        if (daysInPeriod > 0 && today > applicableDate) {
           const interestRate = parseFloat(invoice.interestRate.toString());
-          unpaidInterest = (currentBalance * interestRate * daysOverdue) / (100 * 365);
+          // Period-based interest for unpaid balance
+          unpaidInterest = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
         }
         
         totalInterest += unpaidInterest;
