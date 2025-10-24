@@ -40,6 +40,7 @@ import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
 import CategoryRules from "@/pages/category-rules";
 import UrgentActions from "@/pages/urgent-actions";
+import FollowupAutomation from "@/pages/followup-automation";
 
 function Router() {
   return (
@@ -74,6 +75,7 @@ function Router() {
               <Route path="/risk/recovery-health" component={RecoveryHealthTest} />
               <Route path="/credit-control/category-rules" component={CategoryRules} />
               <Route path="/credit-control/urgent-actions" component={UrgentActions} />
+              <Route path="/credit-control/followup-automation" component={FollowupAutomation} />
               <Route path="/company-settings" component={CompanySettings} />
               <Route path="/email-config" component={EmailConfig} />
               <Route path="/email-templates" component={EmailTemplates} />

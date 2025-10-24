@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type CategoryChangeLog, type InsertCategoryChangeLog, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, categoryChangeLog, legalNoticeTemplates, legalNoticesSent } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type CategoryChangeLog, type InsertCategoryChangeLog, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, categoryChangeLog, legalNoticeTemplates, legalNoticesSent } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -212,6 +212,8 @@ export interface IStorage {
   updateFollowupRules(tenantId: string, rules: any): Promise<any>;
   getRecoverySettings(tenantId: string): Promise<any | undefined>;
   updateRecoverySettings(tenantId: string, settings: any): Promise<any>;
+  getFollowupAutomationSettings(tenantId: string): Promise<any | undefined>;
+  updateFollowupAutomationSettings(tenantId: string, settings: any): Promise<any>;
   getCategoryChangeLogs(tenantId: string): Promise<any[]>;
   logCategoryChange(tenantId: string, log: any): Promise<any>;
   getLegalNoticeTemplates(tenantId: string): Promise<any[]>;
@@ -1685,6 +1687,26 @@ export class DatabaseStorage implements IStorage {
       return updated;
     } else {
       const [created] = await db.insert(recoverySettings).values({ ...settings, tenantId }).returning();
+      return created;
+    }
+  }
+
+  async getFollowupAutomationSettings(tenantId: string): Promise<FollowupAutomationSettings | undefined> {
+    const [settings] = await db.select().from(followupAutomationSettings).where(eq(followupAutomationSettings.tenantId, tenantId));
+    return settings;
+  }
+
+  async updateFollowupAutomationSettings(tenantId: string, settings: InsertFollowupAutomationSettings): Promise<FollowupAutomationSettings> {
+    const existing = await this.getFollowupAutomationSettings(tenantId);
+    if (existing) {
+      const [updated] = await db
+        .update(followupAutomationSettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(followupAutomationSettings.tenantId, tenantId))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(followupAutomationSettings).values({ ...settings, tenantId }).returning();
       return created;
     }
   }

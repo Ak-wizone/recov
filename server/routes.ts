@@ -7053,6 +7053,46 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Get Follow-up Automation Settings
+  app.get("/api/recovery/followup-automation", async (req, res) => {
+    try {
+      const settings = await storage.getFollowupAutomationSettings(req.tenantId!);
+      // Return defaults if not configured yet
+      if (!settings) {
+        return res.json({
+          schedulingMode: "after_due",
+          categoryActions: JSON.stringify({
+            alpha: { whatsapp: false, email: false, ivr: false },
+            beta: { whatsapp: true, email: true, ivr: false },
+            gamma: { whatsapp: true, email: true, ivr: true },
+            delta: { whatsapp: true, email: true, ivr: true }
+          }),
+          enableIvrCalling: false,
+          callingHoursStart: "09:00",
+          callingHoursEnd: "18:00",
+          maxRetriesPerDay: 3
+        });
+      }
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update Follow-up Automation Settings
+  app.put("/api/recovery/followup-automation", async (req, res) => {
+    try {
+      const result = insertFollowupAutomationSettingsSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid followup automation settings", errors: result.error.flatten() });
+      }
+      const settings = await storage.updateFollowupAutomationSettings(req.tenantId!, result.data);
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get Category Change Logs
   app.get("/api/recovery/category-logs", async (req, res) => {
     try {

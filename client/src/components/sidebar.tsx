@@ -161,6 +161,11 @@ const navItems: NavItem[] = [
         path: "/credit-control/urgent-actions",
         icon: <AlertTriangle className="h-4 w-4" />,
       },
+      {
+        name: "Follow-up Automation",
+        path: "/credit-control/followup-automation",
+        icon: <Settings className="h-4 w-4" />,
+      },
     ],
   },
   {
