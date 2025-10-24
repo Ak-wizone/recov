@@ -3748,15 +3748,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found" });
       }
 
-      // Get customer details
+      // Get customer details from master data
       const allCustomers = await storage.getCustomers(req.tenantId!);
       const customer = allCustomers.find(c => c.name === invoice.customerName);
+      
       if (!customer) {
-        return res.status(404).json({ message: "Customer not found" });
+        return res.status(404).json({ 
+          message: `Customer "${invoice.customerName}" not found in master data. Please create a customer record with email address in the Customers section.` 
+        });
       }
 
       if (!customer.email) {
-        return res.status(400).json({ message: "Customer email not found" });
+        return res.status(400).json({ 
+          message: `Customer "${invoice.customerName}" has no email address. Please add email in customer master data.` 
+        });
       }
 
       // Get email configuration
@@ -3934,15 +3939,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Invoice not found" });
       }
 
-      // Get customer details
-      const allCustomers = await storage.getCustomers(req.tenantId!);
-      const customer = allCustomers.find(c => c.name === invoice.customerName);
-      if (!customer) {
-        return res.status(404).json({ message: "Customer not found" });
+      // Get mobile number from invoice or customer master
+      let mobileNumber = invoice.primaryMobile;
+      
+      // If not in invoice, try to find in customer master
+      if (!mobileNumber) {
+        const allCustomers = await storage.getCustomers(req.tenantId!);
+        const customer = allCustomers.find(c => c.name === invoice.customerName);
+        mobileNumber = customer?.mobile;
       }
 
-      if (!customer.mobile) {
-        return res.status(400).json({ message: "Customer mobile number not found" });
+      if (!mobileNumber) {
+        return res.status(400).json({ 
+          message: "Customer mobile number not found. Please add mobile number in customer master data or invoice details." 
+        });
       }
 
       // Get company profile
@@ -4070,7 +4080,7 @@ Best regards,
 ${profile?.legalName || 'Company'}`;
 
       // Format phone number for WhatsApp (remove non-digits, add country code if needed)
-      let phoneNumber = customer.mobile.replace(/\D/g, "");
+      let phoneNumber = mobileNumber.replace(/\D/g, "");
       if (!phoneNumber.startsWith("91") && phoneNumber.length === 10) {
         phoneNumber = "91" + phoneNumber;
       }
