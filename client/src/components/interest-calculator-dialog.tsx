@@ -352,44 +352,6 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
               </div>
             </div>
 
-            {/* Final Calculation Summary - Dashboard Style */}
-            <div className="bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100 dark:from-emerald-900/30 dark:via-teal-900/30 dark:to-cyan-900/30 border-2 border-emerald-300 dark:border-emerald-700 rounded-lg p-3 print:p-2 shadow-sm print:shadow-none">
-              <h3 className="text-base print:text-sm font-extrabold text-center text-emerald-900 dark:text-emerald-100 mb-2 pb-1 border-b-2 border-emerald-400 dark:border-emerald-600">
-                💵 Final G.P. Calculation
-              </h3>
-              
-              <div className="space-y-2 print:space-y-1.5 max-w-3xl mx-auto">
-                <div className="flex justify-between items-center py-2 print:py-1.5 px-3 print:px-2 bg-white dark:bg-gray-800 rounded border border-emerald-200 dark:border-emerald-800">
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Base G.P.</span>
-                  <span className="text-base print:text-sm font-extrabold text-green-700 dark:text-green-300">
-                    ₹{breakdown.calculation.baseGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 print:py-1.5 px-3 print:px-2 bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 rounded border border-red-300 dark:border-red-700">
-                  <span className="text-sm font-bold text-red-800 dark:text-red-200">Less: Total Interest (Period-Based)</span>
-                  <span className="text-base print:text-sm font-extrabold text-red-700 dark:text-red-300">
-                    - ₹{breakdown.calculation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                </div>
-                
-                <div className="border-t-2 border-emerald-500 dark:border-emerald-400 pt-2 mt-2">
-                  <div className="flex justify-between items-center py-2 print:py-1.5 px-4 print:px-3 bg-gradient-to-r from-emerald-200 to-teal-200 dark:from-emerald-800 dark:to-teal-800 rounded border-2 border-emerald-400 dark:border-emerald-600 shadow-sm">
-                    <span className="text-lg print:text-base font-extrabold text-emerald-900 dark:text-emerald-100">FINAL G.P.</span>
-                    <span className="text-2xl print:text-xl font-extrabold text-emerald-900 dark:text-emerald-100">
-                      ₹{breakdown.calculation.finalGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center py-2 print:py-1.5 px-4 print:px-3 bg-gradient-to-r from-teal-100 to-cyan-100 dark:from-teal-800/50 dark:to-cyan-800/50 rounded border border-teal-300 dark:border-teal-600 mt-1.5">
-                    <span className="text-base print:text-sm font-extrabold text-teal-900 dark:text-teal-100">FINAL G.P. %</span>
-                    <span className="text-xl print:text-lg font-extrabold text-teal-900 dark:text-teal-100">
-                      {breakdown.calculation.finalGpPercentage.toFixed(2)}%
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
           </div>
         )}
       </DialogContent>
