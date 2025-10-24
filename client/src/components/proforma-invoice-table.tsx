@@ -208,7 +208,7 @@ export function ProformaInvoiceTable({
       <div className="rounded-md border bg-white dark:bg-gray-800">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-[#F1F5F9] dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600">
               <TableHead className="w-[50px]">
                 <Checkbox
                   checked={selectedIds.length === invoices.length && invoices.length > 0}

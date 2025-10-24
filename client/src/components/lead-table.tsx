@@ -344,7 +344,7 @@ export function LeadTable({
         <div className="overflow-x-auto">
           <Table className="min-w-full">
             <TableHeader>
-              <TableRow className="bg-[#F1F5F9] border-b-2 border-gray-300">
+              <TableRow className="bg-[#F1F5F9] dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600">
                 <TableHead className="w-[50px] py-4 font-semibold">
                   <Checkbox
                     checked={selectedIds.length === filteredLeads.length && filteredLeads.length > 0}
@@ -405,7 +405,7 @@ export function LeadTable({
                 {visibleColumns.nextFollowUp && <TableHead className="py-4 font-semibold">Next Follow Up</TableHead>}
                 <TableHead className="py-4 font-semibold">Actions</TableHead>
               </TableRow>
-              <TableRow className="bg-white border-b">
+              <TableRow className="bg-white dark:bg-gray-900 border-b dark:border-gray-700">
                 <TableHead className="py-3"></TableHead>
                 {visibleColumns.companyName && (
                   <TableHead className="py-3">
