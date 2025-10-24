@@ -129,119 +129,134 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             <Button variant="outline" onClick={onClose}>Close</Button>
           </div>
         ) : (
-          <div className="space-y-6" id="interest-calculator-content">
-            {/* Company Header */}
-            <div 
-              className="p-6 rounded-lg text-white print:rounded-none"
-              style={{ backgroundColor: brandColor }}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
+          <div className="space-y-6 print:space-y-4" id="interest-calculator-content">
+            {/* Dashboard-Style Header with Business Name */}
+            <div className="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30 p-8 print:p-6 rounded-xl print:rounded-lg shadow-sm print:shadow-none border-2 border-blue-200 dark:border-blue-800">
+              <div className="text-center">
+                <div className="flex justify-center items-center gap-3 mb-2">
                   {profile?.logoUrl && (
                     <img 
                       src={profile.logoUrl} 
                       alt="Company Logo" 
-                      className="h-16 w-16 bg-white rounded p-1 object-contain"
+                      className="h-20 w-20 print:h-16 print:w-16 bg-white rounded-lg p-2 shadow-md object-contain"
                     />
                   )}
                   <div>
-                    <h1 className="text-2xl font-bold">{profile?.companyName || "Interest Calculation"}</h1>
-                    {profile?.address && <p className="text-sm opacity-90 mt-1">{profile.address}</p>}
-                    <div className="flex gap-4 text-sm opacity-90 mt-1">
-                      {profile?.phone && <span>📞 {profile.phone}</span>}
-                      {profile?.email && <span>✉️ {profile.email}</span>}
-                    </div>
+                    <h1 className="text-4xl print:text-3xl font-extrabold text-blue-900 dark:text-blue-100">
+                      {profile?.companyName || "Company Name"}
+                    </h1>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{profile?.address || ""}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm opacity-90">Generated on</p>
-                  <p className="font-semibold">{format(new Date(), "MMM dd, yyyy hh:mm a")}</p>
+                <div className="flex justify-center gap-6 text-sm text-gray-700 dark:text-gray-300 mt-2">
+                  {profile?.phone && <span className="font-medium">📞 {profile.phone}</span>}
+                  {profile?.email && <span className="font-medium">✉️ {profile.email}</span>}
                 </div>
-              </div>
-            </div>
-
-            {/* Customer & Invoice Details */}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold text-lg mb-3" style={{ color: brandColor }}>Customer Details</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Customer Name:</span>
-                    <span className="font-medium">{breakdown.invoice.customerName}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border rounded-lg p-4">
-                <h3 className="font-semibold text-lg mb-3" style={{ color: brandColor }}>Invoice Details</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Invoice #:</span>
-                    <span className="font-medium">{breakdown.invoice.invoiceNumber}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Date:</span>
-                    <span className="font-medium">{format(new Date(breakdown.invoice.invoiceDate), "MMM dd, yyyy")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Due Date:</span>
-                    <span className="font-medium">{format(new Date(breakdown.invoice.dueDate), "MMM dd, yyyy")}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Payment Terms:</span>
-                    <span className="font-medium">{breakdown.invoice.paymentTerms} days</span>
-                  </div>
+                <div className="mt-4 pt-4 border-t-2 border-blue-300 dark:border-blue-700">
+                  <h2 className="text-2xl print:text-xl font-bold text-purple-800 dark:text-purple-300">Interest Calculation Report</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Generated on {format(new Date(), "MMM dd, yyyy hh:mm a")}</p>
                 </div>
               </div>
             </div>
 
-            {/* Invoice Summary */}
-            <div className="border rounded-lg p-4">
-              <h3 className="font-semibold text-lg mb-3" style={{ color: brandColor }}>Invoice Summary</h3>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Invoice Amount</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    ₹{breakdown.invoice.invoiceAmount.toFixed(2)}
+            {/* Customer & Invoice Details - Dashboard Style */}
+            <div className="grid grid-cols-2 gap-6 print:gap-4">
+              {/* Customer Card */}
+              <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 border-2 border-green-200 dark:border-green-800 rounded-xl print:rounded-lg p-6 print:p-4 shadow-md print:shadow-none">
+                <h3 className="text-xl print:text-lg font-bold text-green-800 dark:text-green-300 mb-4 pb-2 border-b-2 border-green-300 dark:border-green-700">
+                  👤 Customer Details
+                </h3>
+                <div className="space-y-3 print:space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-700 dark:text-gray-300 font-semibold">Name:</span>
+                    <span className="font-bold text-gray-900 dark:text-gray-100">{breakdown.invoice.customerName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700 dark:text-gray-300 font-semibold">Status:</span>
+                    <span className="font-bold text-green-700 dark:text-green-400">{breakdown.invoice.status}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Invoice Card */}
+              <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border-2 border-orange-200 dark:border-orange-800 rounded-xl print:rounded-lg p-6 print:p-4 shadow-md print:shadow-none">
+                <h3 className="text-xl print:text-lg font-bold text-orange-800 dark:text-orange-300 mb-4 pb-2 border-b-2 border-orange-300 dark:border-orange-700">
+                  📄 Invoice Details
+                </h3>
+                <div className="space-y-3 print:space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-700 dark:text-gray-300 font-semibold">Invoice #:</span>
+                    <span className="font-bold text-gray-900 dark:text-gray-100">{breakdown.invoice.invoiceNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700 dark:text-gray-300 font-semibold">Date:</span>
+                    <span className="font-bold text-gray-900 dark:text-gray-100">{format(new Date(breakdown.invoice.invoiceDate), "dd MMM yyyy")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700 dark:text-gray-300 font-semibold">Due Date:</span>
+                    <span className="font-bold text-red-700 dark:text-red-400">{format(new Date(breakdown.invoice.dueDate), "dd MMM yyyy")}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-700 dark:text-gray-300 font-semibold">Payment Terms:</span>
+                    <span className="font-bold text-gray-900 dark:text-gray-100">{breakdown.invoice.paymentTerms} days</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Invoice Summary - Dashboard Cards */}
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-800 rounded-xl print:rounded-lg p-6 print:p-4 shadow-md print:shadow-none">
+              <h3 className="text-xl print:text-lg font-bold text-purple-800 dark:text-purple-300 mb-4 pb-2 border-b-2 border-purple-300 dark:border-purple-700">
+                💰 Invoice Summary
+              </h3>
+              <div className="grid grid-cols-3 gap-4 print:gap-3">
+                <div className="text-center p-5 print:p-3 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-300 dark:border-blue-700 rounded-lg shadow-sm">
+                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-2">Invoice Amount</p>
+                  <p className="text-3xl print:text-2xl font-extrabold text-blue-900 dark:text-blue-100">
+                    ₹{breakdown.invoice.invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Base G.P.</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    ₹{breakdown.calculation.baseGp.toFixed(2)}
+                <div className="text-center p-5 print:p-3 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-300 dark:border-green-700 rounded-lg shadow-sm">
+                  <p className="text-xs font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide mb-2">Base G.P.</p>
+                  <p className="text-3xl print:text-2xl font-extrabold text-green-900 dark:text-green-100">
+                    ₹{breakdown.calculation.baseGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Interest Rate</p>
-                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                <div className="text-center p-5 print:p-3 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border-2 border-purple-300 dark:border-purple-700 rounded-lg shadow-sm">
+                  <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide mb-2">Interest Rate</p>
+                  <p className="text-3xl print:text-2xl font-extrabold text-purple-900 dark:text-purple-100">
                     {breakdown.invoice.interestRate}% p.a.
                   </p>
                 </div>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
-                Interest Applicable From: <span className="font-medium">{breakdown.invoice.interestApplicableFrom}</span>
-              </p>
+              <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg">
+                <p className="text-sm font-bold text-yellow-900 dark:text-yellow-100">
+                  📅 Interest Applicable From: <span className="font-extrabold">{breakdown.invoice.interestApplicableFrom}</span>
+                </p>
+              </div>
             </div>
 
-            {/* Receipt Allocation & Balance Based Interest */}
-            <div className="border rounded-lg overflow-hidden">
-              <div className="p-4" style={{ backgroundColor: brandColor + "15" }}>
-                <h3 className="font-semibold text-lg" style={{ color: brandColor }}>Receipt Allocation & Balance-Based Interest</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  <span className="font-semibold">Period-wise Interest Calculation:</span> Interest charged on outstanding balance for the days BETWEEN each payment (after due date)
+            {/* Receipt Allocation & Balance Based Interest - Dashboard Table */}
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border-2 border-indigo-200 dark:border-indigo-800 rounded-xl print:rounded-lg overflow-hidden shadow-md print:shadow-none">
+              <div className="p-6 print:p-4 bg-gradient-to-r from-indigo-100 to-blue-100 dark:from-indigo-900/40 dark:to-blue-900/40 border-b-2 border-indigo-300 dark:border-indigo-700">
+                <h3 className="text-xl print:text-lg font-bold text-indigo-900 dark:text-indigo-100">
+                  📊 Period-wise Interest Breakdown
+                </h3>
+                <p className="text-sm text-indigo-800 dark:text-indigo-200 mt-2 font-semibold">
+                  Interest charged on outstanding balance for the days BETWEEN each payment (after due date)
                 </p>
               </div>
               
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-[#2C5F7C] dark:bg-[#1e4a5f] text-white">
+                  <thead className="bg-gradient-to-r from-slate-700 to-slate-600 dark:from-slate-800 dark:to-slate-700 text-white">
                     <tr>
-                      <th className="px-4 py-3 text-left font-semibold">Receipt Date</th>
-                      <th className="px-4 py-3 text-right font-semibold">Receipt Amount</th>
-                      <th className="px-4 py-3 text-right font-semibold">Balance Amount</th>
-                      <th className="px-4 py-3 text-center font-semibold">Days in Period</th>
-                      <th className="px-4 py-3 text-center font-semibold">Status</th>
-                      <th className="px-4 py-3 text-right font-semibold">Interest for Period</th>
+                      <th className="px-4 py-4 print:py-3 text-left font-bold">Receipt Date</th>
+                      <th className="px-4 py-4 print:py-3 text-right font-bold">Receipt Amount</th>
+                      <th className="px-4 py-4 print:py-3 text-right font-bold">Balance Amount</th>
+                      <th className="px-4 py-4 print:py-3 text-center font-bold">Days in Period</th>
+                      <th className="px-4 py-4 print:py-3 text-center font-bold">Status</th>
+                      <th className="px-4 py-4 print:py-3 text-right font-bold">Interest for Period</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -249,36 +264,39 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                       // Handle DUE DATE row
                       if (allocation.isDueDateRow) {
                         return (
-                          <tr key={`due-date-${index}`} className="bg-red-50 dark:bg-red-900/20 font-medium">
-                            <td className="px-4 py-3">
-                              <span className="font-bold">{format(new Date(allocation.receiptDate), "dd MMM yyyy")}</span>
+                          <tr key={`due-date-${index}`} className="bg-gradient-to-r from-red-100 to-pink-100 dark:from-red-900/30 dark:to-pink-900/30 font-bold border-2 border-red-300 dark:border-red-700">
+                            <td className="px-4 py-4 print:py-3">
+                              <span className="font-extrabold text-red-900 dark:text-red-100">{format(new Date(allocation.receiptDate), "dd MMM yyyy")}</span>
                             </td>
-                            <td className="px-4 py-3 text-right">—</td>
-                            <td className="px-4 py-3 text-right font-bold">₹{allocation.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td className="px-4 py-3 text-center font-bold">DUE DATE</td>
-                            <td className="px-4 py-3 text-center" colSpan={2}>
-                              <span className="text-red-700 dark:text-red-400 font-bold">{allocation.message}</span>
+                            <td className="px-4 py-4 print:py-3 text-right text-gray-500">—</td>
+                            <td className="px-4 py-4 print:py-3 text-right font-extrabold text-red-900 dark:text-red-100">₹{allocation.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-4 py-4 print:py-3 text-center font-extrabold text-red-900 dark:text-red-100">DUE DATE</td>
+                            <td className="px-4 py-4 print:py-3 text-center" colSpan={2}>
+                              <span className="text-red-800 dark:text-red-200 font-extrabold">{allocation.message}</span>
                             </td>
                           </tr>
                         );
                       }
                       
-                      // Regular receipt row
+                      // Regular receipt row with alternating pastel colors
                       const status = getStatusBadge(allocation.status || "On Time");
+                      const rowBg = index % 2 === 0 
+                        ? "bg-blue-50 dark:bg-blue-900/10" 
+                        : "bg-green-50 dark:bg-green-900/10";
                       return (
-                        <tr key={allocation.receiptId || index} className="hover:bg-muted/50 transition-colors">
-                          <td className="px-4 py-3">{format(new Date(allocation.receiptDate), "dd MMM yyyy")}</td>
-                          <td className="px-4 py-3 text-right">₹{(allocation.receiptAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                          <td className="px-4 py-3 text-right font-medium">₹{allocation.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                          <td className="px-4 py-3 text-center font-medium">
+                        <tr key={allocation.receiptId || index} className={`${rowBg} hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-colors`}>
+                          <td className="px-4 py-4 print:py-3 font-bold text-gray-900 dark:text-gray-100">{format(new Date(allocation.receiptDate), "dd MMM yyyy")}</td>
+                          <td className="px-4 py-4 print:py-3 text-right font-bold text-gray-900 dark:text-gray-100">₹{(allocation.receiptAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="px-4 py-4 print:py-3 text-right font-extrabold text-blue-900 dark:text-blue-100">₹{allocation.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="px-4 py-4 print:py-3 text-center font-bold text-gray-900 dark:text-gray-100">
                             {(allocation.daysInPeriod || 0) === 0 ? "—" : `${allocation.daysInPeriod} days`}
                           </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.className}`}>
+                          <td className="px-4 py-4 print:py-3 text-center">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${status.className}`}>
                               {status.label}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-right font-semibold text-orange-600 dark:text-orange-400">
+                          <td className="px-4 py-4 print:py-3 text-right font-extrabold text-orange-700 dark:text-orange-300">
                             ₹{(allocation.interestAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                         </tr>
@@ -286,46 +304,50 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                     })}
                     
                     {/* TOTAL Row */}
-                    <tr className="bg-[#2C5F7C] dark:bg-[#1e4a5f] text-white font-bold">
-                      <td className="px-4 py-3">TOTAL</td>
-                      <td className="px-4 py-3 text-right">₹{breakdown.allocation.totalReceiptAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="px-4 py-3 text-right">₹{breakdown.allocation.unpaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="px-4 py-3 text-center">—</td>
-                      <td className="px-4 py-3 text-center">—</td>
-                      <td className="px-4 py-3 text-right">₹{breakdown.allocation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <tr className="bg-gradient-to-r from-slate-700 to-slate-600 dark:from-slate-800 dark:to-slate-700 text-white font-extrabold border-t-4 border-slate-900">
+                      <td className="px-4 py-5 print:py-4 text-lg">TOTAL</td>
+                      <td className="px-4 py-5 print:py-4 text-right text-lg">₹{breakdown.allocation.totalReceiptAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="px-4 py-5 print:py-4 text-right text-lg">₹{breakdown.allocation.unpaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="px-4 py-5 print:py-4 text-center">—</td>
+                      <td className="px-4 py-5 print:py-4 text-center">—</td>
+                      <td className="px-4 py-5 print:py-4 text-right text-lg">₹{breakdown.allocation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
-            {/* Final Calculation Summary */}
-            <div className="border-2 rounded-lg p-6" style={{ borderColor: brandColor }}>
-              <h3 className="font-semibold text-xl mb-4 text-center" style={{ color: brandColor }}>
-                Final G.P. Calculation
+            {/* Final Calculation Summary - Dashboard Style */}
+            <div className="bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100 dark:from-emerald-900/30 dark:via-teal-900/30 dark:to-cyan-900/30 border-4 border-emerald-300 dark:border-emerald-700 rounded-2xl print:rounded-xl p-8 print:p-6 shadow-xl print:shadow-lg">
+              <h3 className="text-3xl print:text-2xl font-extrabold text-center text-emerald-900 dark:text-emerald-100 mb-6 pb-3 border-b-4 border-emerald-400 dark:border-emerald-600">
+                💵 Final G.P. Calculation
               </h3>
               
-              <div className="space-y-3 max-w-2xl mx-auto">
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600 dark:text-gray-400">Base G.P.</span>
-                  <span className="text-lg font-semibold">₹{breakdown.calculation.baseGp.toFixed(2)}</span>
+              <div className="space-y-4 print:space-y-3 max-w-3xl mx-auto">
+                <div className="flex justify-between items-center py-4 print:py-3 px-6 print:px-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-emerald-200 dark:border-emerald-800">
+                  <span className="text-lg font-bold text-gray-700 dark:text-gray-300">Base G.P.</span>
+                  <span className="text-2xl print:text-xl font-extrabold text-green-700 dark:text-green-300">
+                    ₹{breakdown.calculation.baseGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </div>
                 
-                <div className="flex justify-between items-center py-2 text-red-600 dark:text-red-400">
-                  <span>Less: Total Interest (Balance-Based)</span>
-                  <span className="text-lg font-semibold">- ₹{breakdown.calculation.totalInterest.toFixed(2)}</span>
+                <div className="flex justify-between items-center py-4 print:py-3 px-6 print:px-4 bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 rounded-lg border-2 border-red-300 dark:border-red-700">
+                  <span className="text-lg font-bold text-red-800 dark:text-red-200">Less: Total Interest (Period-Based)</span>
+                  <span className="text-2xl print:text-xl font-extrabold text-red-700 dark:text-red-300">
+                    - ₹{breakdown.calculation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </div>
                 
-                <div className="border-t-2 pt-3" style={{ borderColor: brandColor, borderWidth: '3px' }}>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-xl font-bold" style={{ color: brandColor }}>FINAL G.P.</span>
-                    <span className="text-2xl font-bold" style={{ color: brandColor }}>
-                      ₹{breakdown.calculation.finalGp.toFixed(2)}
+                <div className="border-t-4 border-emerald-500 dark:border-emerald-400 pt-5 mt-6">
+                  <div className="flex justify-between items-center py-5 print:py-4 px-8 print:px-6 bg-gradient-to-r from-emerald-200 to-teal-200 dark:from-emerald-800 dark:to-teal-800 rounded-xl border-4 border-emerald-400 dark:border-emerald-600 shadow-lg">
+                    <span className="text-2xl print:text-xl font-extrabold text-emerald-900 dark:text-emerald-100">FINAL G.P.</span>
+                    <span className="text-4xl print:text-3xl font-extrabold text-emerald-900 dark:text-emerald-100">
+                      ₹{breakdown.calculation.finalGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center py-2">
-                    <span className="text-lg font-semibold" style={{ color: brandColor }}>FINAL G.P. %</span>
-                    <span className="text-xl font-bold" style={{ color: brandColor }}>
+                  <div className="flex justify-between items-center py-4 print:py-3 px-8 print:px-6 bg-gradient-to-r from-teal-100 to-cyan-100 dark:from-teal-800/50 dark:to-cyan-800/50 rounded-xl border-2 border-teal-300 dark:border-teal-600 mt-3">
+                    <span className="text-xl print:text-lg font-extrabold text-teal-900 dark:text-teal-100">FINAL G.P. %</span>
+                    <span className="text-3xl print:text-2xl font-extrabold text-teal-900 dark:text-teal-100">
                       {breakdown.calculation.finalGpPercentage.toFixed(2)}%
                     </span>
                   </div>
@@ -364,14 +386,15 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
         )}
       </DialogContent>
 
-      {/* Print Styles - A4 Format */}
+      {/* Print Styles - A4 Format with Dashboard Colors */}
       <style>{`
         @media print {
           @page {
             size: A4;
-            margin: 15mm 10mm;
+            margin: 12mm 10mm;
           }
           
+          /* Show only the interest calculator content */
           body * {
             visibility: hidden;
           }
@@ -387,25 +410,67 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             top: 0;
             width: 100%;
             max-width: 210mm;
-            font-size: 10pt;
           }
           
+          /* Hide dialog controls */
           .print\\:hidden {
             display: none !important;
           }
           
-          .print\\:rounded-none {
-            border-radius: 0 !important;
+          /* Enable color printing for all backgrounds and borders */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
           
-          /* Optimize table for print */
+          /* Ensure all gradient backgrounds print */
+          .bg-gradient-to-r,
+          .bg-gradient-to-br,
+          .bg-gradient-to-l,
+          [class*="bg-gradient"] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
+          /* Ensure pastel colors print */
+          [class*="bg-blue"],
+          [class*="bg-green"],
+          [class*="bg-purple"],
+          [class*="bg-pink"],
+          [class*="bg-orange"],
+          [class*="bg-yellow"],
+          [class*="bg-teal"],
+          [class*="bg-cyan"],
+          [class*="bg-emerald"],
+          [class*="bg-indigo"],
+          [class*="bg-red"],
+          [class*="bg-slate"] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
+          /* Ensure all borders print */
+          [class*="border"] {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
+          /* Table print optimization */
           table {
-            page-break-inside: avoid;
+            page-break-inside: auto;
             border-collapse: collapse;
+            width: 100%;
           }
           
           thead {
             display: table-header-group;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          
+          tbody {
+            display: table-row-group;
           }
           
           tr {
@@ -413,42 +478,128 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             page-break-after: auto;
           }
           
-          /* Ensure colors print correctly */
-          .bg-\\[\\#2C5F7C\\] {
-            background-color: #2C5F7C !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+          td, th {
+            page-break-inside: avoid;
           }
           
-          .text-white {
-            color: #000 !important;
+          /* Ensure table header colors print */
+          thead tr {
+            background: linear-gradient(to right, #475569, #64748b) !important;
+            color: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           
-          .bg-red-50 {
-            background-color: #fee !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+          thead th {
+            color: white !important;
           }
           
-          /* Print company header */
-          .rounded-lg {
-            border-radius: 0 !important;
+          /* Ensure alternating row colors print */
+          .bg-blue-50 {
+            background-color: #eff6ff !important;
+          }
+          
+          .bg-green-50 {
+            background-color: #f0fdf4 !important;
+          }
+          
+          /* Ensure shadows don't interfere */
+          .shadow-md,
+          .shadow-lg,
+          .shadow-xl {
+            box-shadow: none !important;
           }
           
           /* Optimize spacing for A4 */
-          .space-y-6 > * + * {
-            margin-top: 1rem !important;
+          .print\\:space-y-4 > * + * {
+            margin-top: 0.75rem !important;
           }
           
-          .p-6 {
+          .print\\:p-6 {
+            padding: 1rem !important;
+          }
+          
+          .print\\:p-4 {
             padding: 0.75rem !important;
           }
           
-          .p-4 {
+          .print\\:p-3 {
             padding: 0.5rem !important;
           }
           
-          /* Ensure table fits on one page if possible */
+          .print\\:py-4 {
+            padding-top: 0.75rem !important;
+            padding-bottom: 0.75rem !important;
+          }
+          
+          .print\\:py-3 {
+            padding-top: 0.5rem !important;
+            padding-bottom: 0.5rem !important;
+          }
+          
+          .print\\:px-6 {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+          }
+          
+          .print\\:px-4 {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+          }
+          
+          .print\\:gap-4 {
+            gap: 0.75rem !important;
+          }
+          
+          .print\\:gap-3 {
+            gap: 0.5rem !important;
+          }
+          
+          .print\\:rounded-lg {
+            border-radius: 0.5rem !important;
+          }
+          
+          .print\\:rounded-xl {
+            border-radius: 0.75rem !important;
+          }
+          
+          .print\\:text-3xl {
+            font-size: 1.5rem !important;
+            line-height: 2rem !important;
+          }
+          
+          .print\\:text-2xl {
+            font-size: 1.25rem !important;
+            line-height: 1.75rem !important;
+          }
+          
+          .print\\:text-xl {
+            font-size: 1.125rem !important;
+            line-height: 1.75rem !important;
+          }
+          
+          .print\\:text-lg {
+            font-size: 1rem !important;
+            line-height: 1.5rem !important;
+          }
+          
+          .print\\:h-16 {
+            height: 4rem !important;
+          }
+          
+          .print\\:w-16 {
+            width: 4rem !important;
+          }
+          
+          .print\\:shadow-none {
+            box-shadow: none !important;
+          }
+          
+          .print\\:shadow-lg {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+          }
+          
+          /* Ensure overflow is visible */
           .overflow-x-auto {
             overflow: visible !important;
           }
