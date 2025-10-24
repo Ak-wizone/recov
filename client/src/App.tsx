@@ -38,6 +38,8 @@ import RegisterTenant from "@/pages/register-tenant";
 import TenantRegistrations from "@/pages/tenant-registrations";
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
+import CategoryRules from "@/pages/category-rules";
+import UrgentActions from "@/pages/urgent-actions";
 
 function Router() {
   return (
@@ -70,6 +72,8 @@ function Router() {
               <Route path="/risk/client-thermometer" component={ClientRiskThermometer} />
               <Route path="/risk/payment-forecaster" component={PaymentRiskForecaster} />
               <Route path="/risk/recovery-health" component={RecoveryHealthTest} />
+              <Route path="/credit-control/category-rules" component={CategoryRules} />
+              <Route path="/credit-control/urgent-actions" component={UrgentActions} />
               <Route path="/company-settings" component={CompanySettings} />
               <Route path="/email-config" component={EmailConfig} />
               <Route path="/email-templates" component={EmailTemplates} />

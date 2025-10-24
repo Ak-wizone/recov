@@ -26,6 +26,7 @@ import {
   Gauge,
   TrendingDown,
   Heart,
+  AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -142,6 +143,23 @@ const navItems: NavItem[] = [
         name: "Recovery Health Test",
         path: "/risk/recovery-health",
         icon: <Heart className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    name: "Credit Control",
+    path: "#",
+    icon: <AlertTriangle className="h-5 w-5" />,
+    subItems: [
+      {
+        name: "Category Rules",
+        path: "/credit-control/category-rules",
+        icon: <Settings className="h-4 w-4" />,
+      },
+      {
+        name: "Urgent Actions",
+        path: "/credit-control/urgent-actions",
+        icon: <AlertTriangle className="h-4 w-4" />,
       },
     ],
   },
