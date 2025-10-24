@@ -2,6 +2,20 @@
 
 RECOV. is a comprehensive business management application built with a full-stack TypeScript architecture. It provides modules for managing leads, quotations, proforma invoices, invoices, receipts, and customer debts. The application features dashboard analytics, supports bulk operations via Excel uploads with inline editing, and generates professional print formats for all business documents. Key capabilities include robust user and role-based access control, a secure authentication system, and duplicate detection for master data imports. The project aims to streamline business operations, provide critical insights, and enhance productivity.
 
+## Recent UI/UX Improvements
+
+**Phase 3 - Responsive Design & Final Polish (October 2025):**
+- ✅ Enhanced table responsive design: Added overflow-x-auto wrappers to quotation and proforma invoice tables for horizontal scrolling on mobile devices
+- ✅ Verified dark mode consistency: All base UI components (Dialog, Select, Dropdown) use semantic color tokens for automatic dark mode adaptation
+- ✅ Confirmed loading state coverage: Skeleton loaders implemented in LeadTable, QuotationTable, and ProformaInvoiceTable
+- ✅ Validated responsive grid layouts: Dashboard cards properly stack on mobile (grid-cols-1 md:grid-cols-2 lg:grid-cols-4)
+- ✅ Type safety improvements: Fixed onCall prop definitions and null/undefined type compatibility across table components
+- 📝 Note: Sidebar uses desktop-first design (288px fixed width), appropriate for business CRM target audience
+
+**Previous Phases:**
+- Phase 1: Design system tokens, skeleton loaders, enhanced dashboard cards with hover effects
+- Phase 2: Consistent hover effects and dark mode styling across all table modules (Leads, Quotations, PI, Receipts, Customers, Debtors, Credit Management)
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
