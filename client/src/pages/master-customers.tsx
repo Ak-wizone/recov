@@ -31,6 +31,10 @@ export default function MasterCustomers() {
     queryKey: ["/api/masters/customers"],
   });
 
+  const { data: recoverySettings } = useQuery<{ autoUpgradeEnabled: boolean } | null>({
+    queryKey: ["/api/recovery/settings"],
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/masters/customers/${id}`, {
@@ -59,6 +63,20 @@ export default function MasterCustomers() {
 
   const updateFieldMutation = useMutation({
     mutationFn: async ({ id, field, value }: { id: string; field: string; value: string }) => {
+      // If updating category, use the manual category change endpoint
+      if (field === "category") {
+        const customer = customers.find(c => c.id === id);
+        if (!customer) throw new Error("Customer not found");
+
+        const response = await apiRequest("POST", "/api/recovery/manual-category-change", {
+          customerId: id,
+          newCategory: value,
+          reason: "Manual category change from Customer Master",
+        });
+        return response;
+      }
+
+      // For other fields, use the standard update endpoint
       const response = await fetch(`/api/masters/customers/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -67,8 +85,11 @@ export default function MasterCustomers() {
       if (!response.ok) throw new Error("Failed to update customer");
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
+      if (variables.field === "category") {
+        queryClient.invalidateQueries({ queryKey: ["/api/recovery/category-logs"] });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -174,31 +195,43 @@ export default function MasterCustomers() {
       {
         accessorKey: "category",
         header: "CATEGORY",
-        cell: ({ row }) => (
-          <Select
-            value={row.original.category}
-            onValueChange={(value) => {
-              updateFieldMutation.mutate({
-                id: row.original.id,
-                field: "category",
-                value: value,
-              });
-            }}
-          >
-            <SelectTrigger
-              className={`h-8 w-32 ${categoryColors[row.original.category as keyof typeof categoryColors]}`}
-              data-testid={`select-category-${row.original.id}`}
+        cell: ({ row }) => {
+          const autoUpgradeEnabled = recoverySettings?.autoUpgradeEnabled ?? false;
+          return (
+            <Select
+              value={row.original.category}
+              onValueChange={(value) => {
+                if (autoUpgradeEnabled) {
+                  toast({
+                    title: "Auto-Upgrade Enabled",
+                    description: "Category changes are automatic. Disable auto-upgrade in Category Rules to manually change categories.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                updateFieldMutation.mutate({
+                  id: row.original.id,
+                  field: "category",
+                  value: value,
+                });
+              }}
+              disabled={autoUpgradeEnabled}
             >
-              <SelectValue>{row.original.category}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Alpha">Alpha</SelectItem>
-              <SelectItem value="Beta">Beta</SelectItem>
-              <SelectItem value="Gamma">Gamma</SelectItem>
-              <SelectItem value="Delta">Delta</SelectItem>
-            </SelectContent>
-          </Select>
-        ),
+              <SelectTrigger
+                className={`h-8 w-32 ${categoryColors[row.original.category as keyof typeof categoryColors]} ${autoUpgradeEnabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                data-testid={`select-category-${row.original.id}`}
+              >
+                <SelectValue>{row.original.category}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Alpha">Alpha</SelectItem>
+                <SelectItem value="Beta">Beta</SelectItem>
+                <SelectItem value="Gamma">Gamma</SelectItem>
+                <SelectItem value="Delta">Delta</SelectItem>
+              </SelectContent>
+            </Select>
+          );
+        },
         enableSorting: true,
         enableHiding: false,
       },
