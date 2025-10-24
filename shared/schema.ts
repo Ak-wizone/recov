@@ -1412,3 +1412,183 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
 
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 
+// ==================== CREDIT CONTROL / RECOVERY MANAGEMENT TABLES ====================
+
+// Category Rules - Payment delay thresholds for auto-upgrade
+export const categoryRules = pgTable("category_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  alphaDays: integer("alpha_days").notNull().default(0), // On-time
+  betaDays: integer("beta_days").notNull().default(15), // 15 days overdue
+  gammaDays: integer("gamma_days").notNull().default(45), // 45 days overdue
+  deltaDays: integer("delta_days").notNull().default(100), // 100 days overdue
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCategoryRulesSchema = createInsertSchema(categoryRules).pick({
+  alphaDays: true,
+  betaDays: true,
+  gammaDays: true,
+  deltaDays: true,
+}).extend({
+  alphaDays: z.number().min(0).max(1000),
+  betaDays: z.number().min(0).max(1000),
+  gammaDays: z.number().min(0).max(1000),
+  deltaDays: z.number().min(0).max(1000),
+});
+
+export type InsertCategoryRules = z.infer<typeof insertCategoryRulesSchema>;
+export type CategoryRules = typeof categoryRules.$inferSelect;
+
+// Follow-up Rules - Follow-up thresholds per category
+export const followupRules = pgTable("followup_rules", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  betaDays: integer("beta_days").notNull().default(4), // Beta: follow up after 4 days
+  gammaDays: integer("gamma_days").notNull().default(8), // Gamma: follow up after 8 days
+  deltaDays: integer("delta_days").notNull().default(12), // Delta: follow up after 12 days
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertFollowupRulesSchema = createInsertSchema(followupRules).pick({
+  betaDays: true,
+  gammaDays: true,
+  deltaDays: true,
+}).extend({
+  betaDays: z.number().min(0).max(365),
+  gammaDays: z.number().min(0).max(365),
+  deltaDays: z.number().min(0).max(365),
+});
+
+export type InsertFollowupRules = z.infer<typeof insertFollowupRulesSchema>;
+export type FollowupRules = typeof followupRules.$inferSelect;
+
+// Recovery Settings - Auto/manual mode toggle
+export const recoverySettings = pgTable("recovery_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  autoUpgradeEnabled: boolean("auto_upgrade_enabled").notNull().default(false),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertRecoverySettingsSchema = createInsertSchema(recoverySettings).pick({
+  autoUpgradeEnabled: true,
+}).extend({
+  autoUpgradeEnabled: z.boolean(),
+});
+
+export type InsertRecoverySettings = z.infer<typeof insertRecoverySettingsSchema>;
+export type RecoverySettings = typeof recoverySettings.$inferSelect;
+
+// Category Change Log - Audit trail of category changes
+export const categoryChangeLog = pgTable("category_change_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  customerId: varchar("customer_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  oldCategory: text("old_category").notNull(), // Alpha, Beta, Gamma, Delta
+  newCategory: text("new_category").notNull(),
+  changeType: text("change_type").notNull(), // auto, manual
+  changedBy: varchar("changed_by"), // user ID if manual, null if auto
+  reason: text("reason"), // e.g., "Overdue 15 days", "Manual override by admin"
+  daysOverdue: integer("days_overdue"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCategoryChangeLogSchema = createInsertSchema(categoryChangeLog).pick({
+  customerId: true,
+  customerName: true,
+  oldCategory: true,
+  newCategory: true,
+  changeType: true,
+  changedBy: true,
+  reason: true,
+  daysOverdue: true,
+}).extend({
+  customerId: z.string().min(1, "Customer ID is required"),
+  customerName: z.string().min(1, "Customer name is required"),
+  oldCategory: z.enum(["Alpha", "Beta", "Gamma", "Delta"]),
+  newCategory: z.enum(["Alpha", "Beta", "Gamma", "Delta"]),
+  changeType: z.enum(["auto", "manual"]),
+  changedBy: z.string().optional(),
+  reason: z.string().optional(),
+  daysOverdue: z.number().optional(),
+});
+
+export type InsertCategoryChangeLog = z.infer<typeof insertCategoryChangeLogSchema>;
+export type CategoryChangeLog = typeof categoryChangeLog.$inferSelect;
+
+// Legal Notice Templates - 5 template types with variable support
+export const legalNoticeTemplates = pgTable("legal_notice_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  noticeNumber: integer("notice_number").notNull(), // 1-5
+  title: text("title").notNull(), // e.g., "First Reminder", "Final Warning"
+  subject: text("subject").notNull(), // Email subject with variables
+  body: text("body").notNull(), // Template content with {{variables}}
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertLegalNoticeTemplateSchema = createInsertSchema(legalNoticeTemplates).pick({
+  noticeNumber: true,
+  title: true,
+  subject: true,
+  body: true,
+}).extend({
+  noticeNumber: z.number().min(1).max(5),
+  title: z.string().min(1, "Title is required"),
+  subject: z.string().min(1, "Subject is required"),
+  body: z.string().min(1, "Body is required"),
+});
+
+export type InsertLegalNoticeTemplate = z.infer<typeof insertLegalNoticeTemplateSchema>;
+export type LegalNoticeTemplate = typeof legalNoticeTemplates.$inferSelect;
+
+// Legal Notices Sent - History of sent notices
+export const legalNoticesSent = pgTable("legal_notices_sent", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  templateId: varchar("template_id").notNull().references(() => legalNoticeTemplates.id),
+  customerId: varchar("customer_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  invoiceId: varchar("invoice_id"),
+  invoiceNumber: text("invoice_number"),
+  sentVia: text("sent_via").notNull(), // email, whatsapp, both
+  recipientEmail: text("recipient_email"),
+  recipientMobile: text("recipient_mobile"),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  sentBy: varchar("sent_by").notNull(), // user ID
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
+});
+
+export const insertLegalNoticeSentSchema = createInsertSchema(legalNoticesSent).pick({
+  templateId: true,
+  customerId: true,
+  customerName: true,
+  invoiceId: true,
+  invoiceNumber: true,
+  sentVia: true,
+  recipientEmail: true,
+  recipientMobile: true,
+  subject: true,
+  body: true,
+  sentBy: true,
+}).extend({
+  templateId: z.string().min(1, "Template ID is required"),
+  customerId: z.string().min(1, "Customer ID is required"),
+  customerName: z.string().min(1, "Customer name is required"),
+  invoiceId: z.string().optional(),
+  invoiceNumber: z.string().optional(),
+  sentVia: z.enum(["email", "whatsapp", "both"]),
+  recipientEmail: z.string().email().optional(),
+  recipientMobile: z.string().optional(),
+  subject: z.string().min(1, "Subject is required"),
+  body: z.string().min(1, "Body is required"),
+  sentBy: z.string().min(1, "Sender ID is required"),
+});
+
+export type InsertLegalNoticeSent = z.infer<typeof insertLegalNoticeSentSchema>;
+export type LegalNoticeSent = typeof legalNoticesSent.$inferSelect;
+

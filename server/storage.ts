@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type CategoryChangeLog, type InsertCategoryChangeLog, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, categoryChangeLog, legalNoticeTemplates, legalNoticesSent } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -204,6 +204,23 @@ export interface IStorage {
   createCommunicationSchedule(tenantId: string, schedule: any): Promise<any>;
   updateCommunicationSchedule(tenantId: string, id: string, schedule: any): Promise<any | undefined>;
   deleteCommunicationSchedule(tenantId: string, id: string): Promise<boolean>;
+  
+  // Credit Control / Recovery Management operations
+  getCategoryRules(tenantId: string): Promise<any | undefined>;
+  updateCategoryRules(tenantId: string, rules: any): Promise<any>;
+  getFollowupRules(tenantId: string): Promise<any | undefined>;
+  updateFollowupRules(tenantId: string, rules: any): Promise<any>;
+  getRecoverySettings(tenantId: string): Promise<any | undefined>;
+  updateRecoverySettings(tenantId: string, settings: any): Promise<any>;
+  getCategoryChangeLogs(tenantId: string): Promise<any[]>;
+  logCategoryChange(tenantId: string, log: any): Promise<any>;
+  getLegalNoticeTemplates(tenantId: string): Promise<any[]>;
+  getLegalNoticeTemplate(tenantId: string, id: string): Promise<any | undefined>;
+  createLegalNoticeTemplate(tenantId: string, template: any): Promise<any>;
+  updateLegalNoticeTemplate(tenantId: string, id: string, template: any): Promise<any | undefined>;
+  deleteLegalNoticeTemplate(tenantId: string, id: string): Promise<boolean>;
+  getLegalNoticesSent(tenantId: string, customerId?: string): Promise<any[]>;
+  createLegalNoticeSent(tenantId: string, notice: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1609,6 +1626,116 @@ export class DatabaseStorage implements IStorage {
   async deleteCommunicationSchedule(tenantId: string, id: string): Promise<boolean> {
     const result = await db.delete(communicationSchedules).where(and(eq(communicationSchedules.tenantId, tenantId), eq(communicationSchedules.id, id))).returning();
     return result.length > 0;
+  }
+
+  // Credit Control / Recovery Management operations
+  async getCategoryRules(tenantId: string): Promise<CategoryRules | undefined> {
+    const [rules] = await db.select().from(categoryRules).where(eq(categoryRules.tenantId, tenantId));
+    return rules;
+  }
+
+  async updateCategoryRules(tenantId: string, rules: InsertCategoryRules): Promise<CategoryRules> {
+    const existing = await this.getCategoryRules(tenantId);
+    if (existing) {
+      const [updated] = await db
+        .update(categoryRules)
+        .set({ ...rules, updatedAt: new Date() })
+        .where(eq(categoryRules.tenantId, tenantId))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(categoryRules).values({ ...rules, tenantId }).returning();
+      return created;
+    }
+  }
+
+  async getFollowupRules(tenantId: string): Promise<FollowupRules | undefined> {
+    const [rules] = await db.select().from(followupRules).where(eq(followupRules.tenantId, tenantId));
+    return rules;
+  }
+
+  async updateFollowupRules(tenantId: string, rules: InsertFollowupRules): Promise<FollowupRules> {
+    const existing = await this.getFollowupRules(tenantId);
+    if (existing) {
+      const [updated] = await db
+        .update(followupRules)
+        .set({ ...rules, updatedAt: new Date() })
+        .where(eq(followupRules.tenantId, tenantId))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(followupRules).values({ ...rules, tenantId }).returning();
+      return created;
+    }
+  }
+
+  async getRecoverySettings(tenantId: string): Promise<RecoverySettings | undefined> {
+    const [settings] = await db.select().from(recoverySettings).where(eq(recoverySettings.tenantId, tenantId));
+    return settings;
+  }
+
+  async updateRecoverySettings(tenantId: string, settings: InsertRecoverySettings): Promise<RecoverySettings> {
+    const existing = await this.getRecoverySettings(tenantId);
+    if (existing) {
+      const [updated] = await db
+        .update(recoverySettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(recoverySettings.tenantId, tenantId))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(recoverySettings).values({ ...settings, tenantId }).returning();
+      return created;
+    }
+  }
+
+  async getCategoryChangeLogs(tenantId: string): Promise<CategoryChangeLog[]> {
+    return await db.select().from(categoryChangeLog).where(eq(categoryChangeLog.tenantId, tenantId)).orderBy(desc(categoryChangeLog.createdAt));
+  }
+
+  async logCategoryChange(tenantId: string, log: InsertCategoryChangeLog): Promise<CategoryChangeLog> {
+    const [created] = await db.insert(categoryChangeLog).values({ ...log, tenantId }).returning();
+    return created;
+  }
+
+  async getLegalNoticeTemplates(tenantId: string): Promise<LegalNoticeTemplate[]> {
+    return await db.select().from(legalNoticeTemplates).where(eq(legalNoticeTemplates.tenantId, tenantId)).orderBy(legalNoticeTemplates.noticeNumber);
+  }
+
+  async getLegalNoticeTemplate(tenantId: string, id: string): Promise<LegalNoticeTemplate | undefined> {
+    const [template] = await db.select().from(legalNoticeTemplates).where(and(eq(legalNoticeTemplates.tenantId, tenantId), eq(legalNoticeTemplates.id, id)));
+    return template;
+  }
+
+  async createLegalNoticeTemplate(tenantId: string, template: InsertLegalNoticeTemplate): Promise<LegalNoticeTemplate> {
+    const [created] = await db.insert(legalNoticeTemplates).values({ ...template, tenantId }).returning();
+    return created;
+  }
+
+  async updateLegalNoticeTemplate(tenantId: string, id: string, template: Partial<InsertLegalNoticeTemplate>): Promise<LegalNoticeTemplate | undefined> {
+    const [updated] = await db
+      .update(legalNoticeTemplates)
+      .set({ ...template, updatedAt: new Date() })
+      .where(and(eq(legalNoticeTemplates.tenantId, tenantId), eq(legalNoticeTemplates.id, id)))
+      .returning();
+    return updated;
+  }
+
+  async deleteLegalNoticeTemplate(tenantId: string, id: string): Promise<boolean> {
+    const result = await db.delete(legalNoticeTemplates).where(and(eq(legalNoticeTemplates.tenantId, tenantId), eq(legalNoticeTemplates.id, id))).returning();
+    return result.length > 0;
+  }
+
+  async getLegalNoticesSent(tenantId: string, customerId?: string): Promise<LegalNoticeSent[]> {
+    if (customerId) {
+      return await db.select().from(legalNoticesSent).where(and(eq(legalNoticesSent.tenantId, tenantId), eq(legalNoticesSent.customerId, customerId))).orderBy(desc(legalNoticesSent.sentAt));
+    }
+    return await db.select().from(legalNoticesSent).where(eq(legalNoticesSent.tenantId, tenantId)).orderBy(desc(legalNoticesSent.sentAt));
+  }
+
+  async createLegalNoticeSent(tenantId: string, notice: InsertLegalNoticeSent): Promise<LegalNoticeSent> {
+    const [created] = await db.insert(legalNoticesSent).values({ ...notice, tenantId }).returning();
+    return created;
   }
 }
 

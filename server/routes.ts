@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { wsManager } from "./websocket";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
 import { whatsappWebService } from "./whatsapp-web-service";
@@ -6952,6 +6952,615 @@ ${profile?.legalName || 'Company'}`;
       }
       res.json({ success: true });
     } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== CREDIT CONTROL / RECOVERY MANAGEMENT ROUTES ====================
+  
+  // Get Category Rules (Payment Delay Thresholds)
+  app.get("/api/recovery/category-rules", async (req, res) => {
+    try {
+      const rules = await storage.getCategoryRules(req.tenantId!);
+      // Return defaults if not configured yet
+      if (!rules) {
+        return res.json({
+          alphaDays: 0,
+          betaDays: 15,
+          gammaDays: 45,
+          deltaDays: 100
+        });
+      }
+      res.json(rules);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update Category Rules
+  app.put("/api/recovery/category-rules", async (req, res) => {
+    try {
+      const result = insertCategoryRulesSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid category rules", errors: result.error.flatten() });
+      }
+      const rules = await storage.updateCategoryRules(req.tenantId!, result.data);
+      res.json(rules);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get Follow-up Rules
+  app.get("/api/recovery/followup-rules", async (req, res) => {
+    try {
+      const rules = await storage.getFollowupRules(req.tenantId!);
+      // Return defaults if not configured yet
+      if (!rules) {
+        return res.json({
+          betaDays: 4,
+          gammaDays: 8,
+          deltaDays: 12
+        });
+      }
+      res.json(rules);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update Follow-up Rules
+  app.put("/api/recovery/followup-rules", async (req, res) => {
+    try {
+      const result = insertFollowupRulesSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid followup rules", errors: result.error.flatten() });
+      }
+      const rules = await storage.updateFollowupRules(req.tenantId!, result.data);
+      res.json(rules);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get Recovery Settings (Auto/Manual toggle)
+  app.get("/api/recovery/settings", async (req, res) => {
+    try {
+      const settings = await storage.getRecoverySettings(req.tenantId!);
+      // Return defaults if not configured yet
+      if (!settings) {
+        return res.json({
+          autoUpgradeEnabled: false
+        });
+      }
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update Recovery Settings
+  app.put("/api/recovery/settings", async (req, res) => {
+    try {
+      const result = insertRecoverySettingsSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid recovery settings", errors: result.error.flatten() });
+      }
+      const settings = await storage.updateRecoverySettings(req.tenantId!, result.data);
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get Category Change Logs
+  app.get("/api/recovery/category-logs", async (req, res) => {
+    try {
+      const logs = await storage.getCategoryChangeLogs(req.tenantId!);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Run Auto-Category Upgrade (System-driven)
+  app.post("/api/recovery/run-auto-upgrade", async (req, res) => {
+    try {
+      // Check if auto-upgrade is enabled
+      const settings = await storage.getRecoverySettings(req.tenantId!);
+      if (!settings?.autoUpgradeEnabled) {
+        return res.status(400).json({ message: "Auto-upgrade is disabled. Please enable it in settings." });
+      }
+
+      // Get thresholds
+      const rules = await storage.getCategoryRules(req.tenantId!) || {
+        alphaDays: 0,
+        betaDays: 15,
+        gammaDays: 45,
+        deltaDays: 100
+      };
+
+      const invoices = await storage.getInvoices(req.tenantId!);
+      const customers = await storage.getMasterCustomers(req.tenantId!);
+      const today = new Date();
+      const upgradedCustomers: any[] = [];
+
+      // Calculate max days overdue per customer
+      const customerOverdue = new Map<string, number>();
+      
+      for (const invoice of invoices) {
+        if (invoice.status === "Paid") continue;
+
+        const invoiceDate = new Date(invoice.invoiceDate);
+        const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+        const dueDate = new Date(invoiceDate);
+        dueDate.setDate(dueDate.getDate() + paymentTerms);
+
+        const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysOverdue > 0) {
+          const current = customerOverdue.get(invoice.customerName) || 0;
+          customerOverdue.set(invoice.customerName, Math.max(current, daysOverdue));
+        }
+      }
+
+      // Upgrade categories based on thresholds
+      for (const customer of customers) {
+        const maxOverdue = customerOverdue.get(customer.clientName) || 0;
+        if (maxOverdue === 0) continue; // No overdue invoices
+
+        let newCategory = customer.category;
+        
+        // Determine new category based on thresholds
+        if (maxOverdue >= rules.deltaDays && customer.category !== "Delta") {
+          newCategory = "Delta";
+        } else if (maxOverdue >= rules.gammaDays && customer.category !== "Gamma" && customer.category !== "Delta") {
+          newCategory = "Gamma";
+        } else if (maxOverdue >= rules.betaDays && customer.category === "Alpha") {
+          newCategory = "Beta";
+        }
+
+        // Upgrade if category changed
+        if (newCategory !== customer.category) {
+          await storage.updateMasterCustomer(req.tenantId!, customer.id, { category: newCategory });
+          
+          // Log the change
+          await storage.logCategoryChange(req.tenantId!, {
+            customerId: customer.id,
+            customerName: customer.clientName,
+            oldCategory: customer.category as "Alpha" | "Beta" | "Gamma" | "Delta",
+            newCategory: newCategory as "Alpha" | "Beta" | "Gamma" | "Delta",
+            changeType: "auto",
+            changedBy: undefined,
+            reason: `Auto-upgraded due to ${maxOverdue} days overdue`,
+            daysOverdue: maxOverdue,
+          });
+
+          upgradedCustomers.push({
+            customerName: customer.clientName,
+            oldCategory: customer.category,
+            newCategory,
+            daysOverdue: maxOverdue,
+          });
+        }
+      }
+
+      res.json({ 
+        message: `Auto-upgrade completed. ${upgradedCustomers.length} customer(s) upgraded.`,
+        upgradedCustomers 
+      });
+    } catch (error: any) {
+      console.error("Failed to run auto-upgrade:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Manual Category Change
+  app.post("/api/recovery/manual-category-change", async (req, res) => {
+    try {
+      const { customerId, newCategory, reason } = req.body;
+      
+      if (!customerId || !newCategory) {
+        return res.status(400).json({ message: "Customer ID and new category are required" });
+      }
+
+      const customer = await storage.getMasterCustomer(req.tenantId!, customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      if (customer.category === newCategory) {
+        return res.status(400).json({ message: "Customer is already in this category" });
+      }
+
+      // Update category
+      await storage.updateMasterCustomer(req.tenantId!, customerId, { category: newCategory });
+
+      // Log the change
+      await storage.logCategoryChange(req.tenantId!, {
+        customerId,
+        customerName: customer.clientName,
+        oldCategory: customer.category as "Alpha" | "Beta" | "Gamma" | "Delta",
+        newCategory: newCategory as "Alpha" | "Beta" | "Gamma" | "Delta",
+        changeType: "manual",
+        changedBy: (req as any).user?.id || "unknown",
+        reason: reason || "Manual category change by user",
+        daysOverdue: undefined,
+      });
+
+      res.json({ 
+        message: "Category updated successfully",
+        customer: { ...customer, category: newCategory }
+      });
+    } catch (error: any) {
+      console.error("Failed to change category:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get Urgent Actions - Overdue invoices requiring immediate attention
+  app.get("/api/recovery/urgent-actions", async (req, res) => {
+    try {
+      // Fetch all invoices and customers
+      const invoices = await storage.getInvoices(req.tenantId!);
+      const customers = await storage.getMasterCustomers(req.tenantId!);
+      const receipts = await storage.getReceipts(req.tenantId!);
+      
+      // Get threshold rules
+      const categoryRules = await storage.getCategoryRules(req.tenantId!) || {
+        alphaDays: 0,
+        betaDays: 15,
+        gammaDays: 45,
+        deltaDays: 100
+      };
+
+      const today = new Date();
+      const urgentActions: any[] = [];
+
+      // Group receipts by customer for FIFO allocation
+      const receiptsByCustomer = new Map<string, typeof receipts>();
+      receipts.forEach(receipt => {
+        const customerReceipts = receiptsByCustomer.get(receipt.customerName) || [];
+        customerReceipts.push(receipt);
+        receiptsByCustomer.set(receipt.customerName, customerReceipts);
+      });
+
+      // Calculate overdue invoices
+      for (const invoice of invoices) {
+        if (invoice.status === "Paid") continue; // Skip paid invoices
+
+        // Calculate due date
+        const invoiceDate = new Date(invoice.invoiceDate);
+        const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+        const dueDate = new Date(invoiceDate);
+        dueDate.setDate(dueDate.getDate() + paymentTerms);
+
+        // Calculate days overdue
+        const diffTime = today.getTime() - dueDate.getTime();
+        const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (daysOverdue <= 0) continue; // Skip invoices not yet overdue
+
+        // Find customer details
+        const customer = customers.find(c => c.clientName === invoice.customerName);
+        const category = customer?.category || "Alpha";
+
+        // Calculate outstanding amount using FIFO
+        const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+        const customerReceipts = receiptsByCustomer.get(invoice.customerName) || [];
+        const sortedReceipts = customerReceipts.sort((a, b) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        // Simple outstanding calculation (can be enhanced with FIFO if needed)
+        let totalPaid = 0;
+        for (const receipt of sortedReceipts) {
+          if (new Date(receipt.date) <= today) {
+            totalPaid += parseFloat(receipt.amount.toString());
+          }
+        }
+
+        // Get this invoice's share of payments (FIFO allocation)
+        const customerInvoices = invoices.filter(inv => inv.customerName === invoice.customerName)
+          .sort((a, b) => new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime());
+        
+        let allocatedToThisInvoice = 0;
+        let cumulativeAmount = 0;
+        
+        for (const inv of customerInvoices) {
+          const invAmount = parseFloat(inv.invoiceAmount.toString());
+          if (inv.id === invoice.id) {
+            // This is our invoice - calculate how much of totalPaid applies to it
+            const beforeThis = cumulativeAmount;
+            const afterThis = cumulativeAmount + invAmount;
+            if (totalPaid > beforeThis) {
+              allocatedToThisInvoice = Math.min(totalPaid - beforeThis, invAmount);
+            }
+            break;
+          }
+          cumulativeAmount += invAmount;
+        }
+
+        const outstandingAmount = invoiceAmount - allocatedToThisInvoice;
+        if (outstandingAmount <= 0) continue; // Skip if fully paid via FIFO
+
+        // Determine recommended action based on category and days overdue
+        let recommendedAction = "";
+        let severity = 0; // Higher is more urgent
+
+        if (category === "Alpha") {
+          if (daysOverdue >= 50) {
+            recommendedAction = "Legal notice + Stop supply immediately";
+            severity = 90;
+          } else if (daysOverdue >= 20) {
+            recommendedAction = "Manager visit + Written warning";
+            severity = 70;
+          } else {
+            recommendedAction = "Send reminder + Personal call";
+            severity = 50;
+          }
+        } else if (category === "Beta") {
+          if (daysOverdue >= 45) {
+            recommendedAction = "Legal notice + Stop supply immediately";
+            severity = 85;
+          } else if (daysOverdue >= 15) {
+            recommendedAction = "Manager visit + Written warning";
+            severity = 65;
+          } else {
+            recommendedAction = "Send reminder + Personal call";
+            severity = 45;
+          }
+        } else if (category === "Gamma") {
+          if (daysOverdue >= 45) {
+            recommendedAction = "Legal notice + Stop supply immediately";
+            severity = 80;
+          } else {
+            recommendedAction = "Manager visit + Written warning";
+            severity = 60;
+          }
+        } else if (category === "Delta") {
+          recommendedAction = "Legal notice + Stop supply immediately";
+          severity = 100; // Highest priority
+        }
+
+        urgentActions.push({
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          customerName: invoice.customerName,
+          customerId: customer?.id,
+          category,
+          daysOverdue,
+          outstandingAmount,
+          invoiceAmount,
+          invoiceDate: invoice.invoiceDate,
+          dueDate,
+          recommendedAction,
+          severity,
+          primaryMobile: invoice.primaryMobile || customer?.primaryMobile,
+          primaryEmail: customer?.primaryEmail,
+        });
+      }
+
+      // Sort by severity (highest first)
+      urgentActions.sort((a, b) => b.severity - a.severity);
+
+      res.json(urgentActions);
+    } catch (error: any) {
+      console.error("Failed to calculate urgent actions:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Legal Notice Template CRUD Routes
+  app.get("/api/recovery/legal-notices/templates", async (req, res) => {
+    try {
+      const templates = await storage.getLegalNoticeTemplates(req.tenantId!);
+      res.json(templates);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/recovery/legal-notices/templates/:id", async (req, res) => {
+    try {
+      const template = await storage.getLegalNoticeTemplate(req.tenantId!, req.params.id);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/recovery/legal-notices/templates", async (req, res) => {
+    try {
+      const result = insertLegalNoticeTemplateSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid template data", errors: result.error.flatten() });
+      }
+      const template = await storage.createLegalNoticeTemplate(req.tenantId!, result.data);
+      res.status(201).json(template);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/recovery/legal-notices/templates/:id", async (req, res) => {
+    try {
+      const result = insertLegalNoticeTemplateSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid template data", errors: result.error.flatten() });
+      }
+      const template = await storage.updateLegalNoticeTemplate(req.tenantId!, req.params.id, result.data);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/recovery/legal-notices/templates/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteLegalNoticeTemplate(req.tenantId!, req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get Legal Notices Sent History
+  app.get("/api/recovery/legal-notices/sent", async (req, res) => {
+    try {
+      const { customerId } = req.query;
+      const notices = await storage.getLegalNoticesSent(req.tenantId!, customerId as string | undefined);
+      res.json(notices);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Send Legal Notice (Email/WhatsApp)
+  app.post("/api/recovery/legal-notices/send", async (req, res) => {
+    try {
+      // Validate request body
+      const sendSchema = z.object({
+        customerId: z.string().min(1, "Customer ID is required"),
+        templateId: z.string().min(1, "Template ID is required"),
+        invoiceId: z.string().optional(),
+        sentVia: z.enum(["email", "whatsapp", "both"]),
+      });
+
+      const result = sendSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid request data", errors: result.error.flatten() });
+      }
+
+      const { customerId, templateId, invoiceId, sentVia } = result.data;
+
+      // Get customer
+      const customer = await storage.getMasterCustomer(req.tenantId!, customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      // Check if customer is Delta category
+      if (customer.category !== "Delta") {
+        return res.status(400).json({ message: "Legal notices can only be sent to Delta category customers" });
+      }
+
+      // Get template
+      const template = await storage.getLegalNoticeTemplate(req.tenantId!, templateId);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+
+      // Get invoice if provided
+      let invoice = null;
+      if (invoiceId) {
+        invoice = await storage.getInvoice(req.tenantId!, invoiceId);
+      }
+
+      // Get company profile
+      const profile = await storage.getCompanyProfile(req.tenantId!);
+
+      // Replace template variables
+      const variables: Record<string, string> = {
+        customerName: customer.clientName,
+        companyName: profile?.legalName || "Company",
+        invoiceNumber: invoice?.invoiceNumber || "N/A",
+        invoiceDate: invoice ? new Date(invoice.invoiceDate).toLocaleDateString('en-IN') : "N/A",
+        amount: invoice ? `₹${parseFloat(invoice.invoiceAmount.toString()).toLocaleString('en-IN')}` : "N/A",
+        dueDate: invoice ? (() => {
+          const invDate = new Date(invoice.invoiceDate);
+          const terms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+          const due = new Date(invDate);
+          due.setDate(due.getDate() + terms);
+          return due.toLocaleDateString('en-IN');
+        })() : "N/A",
+        overduedays: invoice ? (() => {
+          const invDate = new Date(invoice.invoiceDate);
+          const terms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+          const due = new Date(invDate);
+          due.setDate(due.getDate() + terms);
+          const today = new Date();
+          const days = Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+          return days > 0 ? days.toString() : "0";
+        })() : "0",
+      };
+
+      let subject = template.subject;
+      let body = template.body;
+
+      // Replace all variables in subject and body
+      for (const [key, value] of Object.entries(variables)) {
+        const regex = new RegExp(`{{${key}}}`, 'gi');
+        subject = subject.replace(regex, value);
+        body = body.replace(regex, value);
+      }
+
+      // Send via email if requested
+      if (sentVia === "email" || sentVia === "both") {
+        if (!customer.primaryEmail) {
+          return res.status(400).json({ message: "Customer email not found" });
+        }
+
+        const emailConfig = await storage.getEmailConfig(req.tenantId!);
+        if (!emailConfig || emailConfig.isActive !== "Active") {
+          return res.status(400).json({ message: "Email configuration is not active. Please configure email in settings." });
+        }
+
+        // Send email using existing sendEmail function from earlier in routes
+        await sendEmail(emailConfig, customer.primaryEmail, subject, body);
+      }
+
+      // Send via WhatsApp if requested
+      let whatsappLink = null;
+      if (sentVia === "whatsapp" || sentVia === "both") {
+        const mobile = customer.primaryMobile;
+        if (!mobile) {
+          return res.status(400).json({ message: "Customer mobile number not found" });
+        }
+
+        // Format phone number for WhatsApp
+        let phoneNumber = mobile.replace(/\D/g, "");
+        if (!phoneNumber.startsWith("91") && phoneNumber.length === 10) {
+          phoneNumber = "91" + phoneNumber;
+        }
+
+        // Create wa.me link with message
+        const encodedMessage = encodeURIComponent(`${subject}\n\n${body}`);
+        whatsappLink = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+      }
+
+      // Log the sent notice
+      await storage.createLegalNoticeSent(req.tenantId!, {
+        templateId,
+        customerId,
+        customerName: customer.clientName,
+        invoiceId: invoice?.id,
+        invoiceNumber: invoice?.invoiceNumber,
+        sentVia,
+        recipientEmail: customer.primaryEmail || undefined,
+        recipientMobile: customer.primaryMobile || undefined,
+        subject,
+        body,
+        sentBy: (req as any).user?.id || "unknown",
+      });
+
+      res.json({ 
+        message: "Legal notice sent successfully",
+        whatsappLink,
+        subject,
+        body
+      });
+    } catch (error: any) {
+      console.error("Failed to send legal notice:", error);
       res.status(500).json({ message: error.message });
     }
   });
