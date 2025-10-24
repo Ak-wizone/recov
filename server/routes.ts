@@ -7072,22 +7072,38 @@ ${profile?.legalName || 'Company'}`;
         return res.status(400).json({ message: "Auto-upgrade is disabled. Please enable it in settings." });
       }
 
-      // Get thresholds
+      // Get thresholds (cumulative grace periods)
       const rules = await storage.getCategoryRules(req.tenantId!) || {
-        alphaDays: 0,
-        betaDays: 15,
-        gammaDays: 45,
-        deltaDays: 100
+        alphaDays: 5,
+        betaDays: 20,
+        gammaDays: 40,
+        deltaDays: 100,
+        partialPaymentThresholdPercent: 80
       };
 
       const invoices = await storage.getInvoices(req.tenantId!);
+      const receipts = await storage.getReceipts(req.tenantId!);
       const customers = await storage.getMasterCustomers(req.tenantId!);
       const today = new Date();
       const upgradedCustomers: any[] = [];
 
-      // Calculate max days overdue per customer
+      // Calculate cumulative thresholds
+      const alphaEnd = rules.alphaDays;
+      const betaEnd = rules.alphaDays + rules.betaDays;
+      const gammaEnd = rules.alphaDays + rules.betaDays + rules.gammaDays;
+      // Delta starts after gammaEnd
+
+      // Calculate max days overdue per customer (excluding invoices with partial payments >= threshold)
       const customerOverdue = new Map<string, number>();
       
+      // Group receipts by customer for calculation
+      const receiptsByCustomer = new Map<string, typeof receipts>();
+      receipts.forEach(receipt => {
+        const customerReceipts = receiptsByCustomer.get(receipt.customerName) || [];
+        customerReceipts.push(receipt);
+        receiptsByCustomer.set(receipt.customerName, customerReceipts);
+      });
+
       for (const invoice of invoices) {
         if (invoice.status === "Paid") continue;
 
@@ -7099,25 +7115,62 @@ ${profile?.legalName || 'Company'}`;
         const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
         
         if (daysOverdue > 0) {
+          // Check partial payment threshold
+          const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+          const customerReceipts = receiptsByCustomer.get(invoice.customerName) || [];
+          
+          // Calculate FIFO allocation for this invoice
+          const customerInvoices = invoices.filter(inv => inv.customerName === invoice.customerName)
+            .sort((a, b) => new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime());
+          
+          let totalPaid = customerReceipts.reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
+          let cumulativeAmount = 0;
+          let allocatedToThisInvoice = 0;
+          
+          for (const inv of customerInvoices) {
+            const invAmount = parseFloat(inv.invoiceAmount.toString());
+            if (inv.id === invoice.id) {
+              const beforeThis = cumulativeAmount;
+              if (totalPaid > beforeThis) {
+                allocatedToThisInvoice = Math.min(totalPaid - beforeThis, invAmount);
+              }
+              break;
+            }
+            cumulativeAmount += invAmount;
+          }
+
+          const paymentPercent = (allocatedToThisInvoice / invoiceAmount) * 100;
+          
+          // Skip if payment percentage meets or exceeds threshold
+          if (paymentPercent >= rules.partialPaymentThresholdPercent) {
+            continue;
+          }
+
           const current = customerOverdue.get(invoice.customerName) || 0;
           customerOverdue.set(invoice.customerName, Math.max(current, daysOverdue));
         }
       }
 
-      // Upgrade categories based on thresholds
+      // Upgrade categories based on cumulative thresholds
       for (const customer of customers) {
         const maxOverdue = customerOverdue.get(customer.clientName) || 0;
-        if (maxOverdue === 0) continue; // No overdue invoices
+        if (maxOverdue === 0) continue; // No qualifying overdue invoices
 
         let newCategory = customer.category;
         
-        // Determine new category based on thresholds
-        if (maxOverdue >= rules.deltaDays && customer.category !== "Delta") {
+        // Determine new category using cumulative grace periods
+        // Alpha: 0 to alphaDays
+        // Beta: alphaDays+1 to betaEnd
+        // Gamma: betaEnd+1 to gammaEnd
+        // Delta: gammaEnd+1 and beyond
+        if (maxOverdue > gammaEnd) {
           newCategory = "Delta";
-        } else if (maxOverdue >= rules.gammaDays && customer.category !== "Gamma" && customer.category !== "Delta") {
+        } else if (maxOverdue > betaEnd) {
           newCategory = "Gamma";
-        } else if (maxOverdue >= rules.betaDays && customer.category === "Alpha") {
+        } else if (maxOverdue > alphaEnd) {
           newCategory = "Beta";
+        } else {
+          newCategory = "Alpha";
         }
 
         // Upgrade if category changed
@@ -7206,13 +7259,19 @@ ${profile?.legalName || 'Company'}`;
       const customers = await storage.getMasterCustomers(req.tenantId!);
       const receipts = await storage.getReceipts(req.tenantId!);
       
-      // Get threshold rules
+      // Get threshold rules (cumulative grace periods)
       const categoryRules = await storage.getCategoryRules(req.tenantId!) || {
-        alphaDays: 0,
-        betaDays: 15,
-        gammaDays: 45,
-        deltaDays: 100
+        alphaDays: 5,
+        betaDays: 20,
+        gammaDays: 40,
+        deltaDays: 100,
+        partialPaymentThresholdPercent: 80
       };
+
+      // Calculate cumulative thresholds
+      const alphaEnd = categoryRules.alphaDays;
+      const betaEnd = categoryRules.alphaDays + categoryRules.betaDays;
+      const gammaEnd = categoryRules.alphaDays + categoryRules.betaDays + categoryRules.gammaDays;
 
       const today = new Date();
       const urgentActions: any[] = [];
@@ -7283,6 +7342,12 @@ ${profile?.legalName || 'Company'}`;
 
         const outstandingAmount = invoiceAmount - allocatedToThisInvoice;
         if (outstandingAmount <= 0) continue; // Skip if fully paid via FIFO
+
+        // Check partial payment threshold - exclude if payment percentage >= threshold
+        const paymentPercent = (allocatedToThisInvoice / invoiceAmount) * 100;
+        if (paymentPercent >= categoryRules.partialPaymentThresholdPercent) {
+          continue; // Skip this invoice as it meets the partial payment threshold
+        }
 
         // Determine recommended action based on category and days overdue
         let recommendedAction = "";

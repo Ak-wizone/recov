@@ -12,7 +12,7 @@ interface UrgentAction {
   invoiceNumber: string;
   invoiceId: string;
   daysOverdue: number;
-  amountDue: number;
+  outstandingAmount: number;
   recommendedAction: string;
 }
 
@@ -134,7 +134,7 @@ export default function UrgentActionsPage() {
                   <div className="md:col-span-2">
                     <div className="text-center">
                       <div className="text-xl font-semibold text-foreground dark:text-foreground" data-testid={`text-amount-due-${index}`}>
-                        ₹{action.amountDue.toLocaleString()}
+                        ₹{action.outstandingAmount.toLocaleString()}
                       </div>
                       <div className="text-xs text-muted-foreground dark:text-muted-foreground">Amount Due</div>
                     </div>
