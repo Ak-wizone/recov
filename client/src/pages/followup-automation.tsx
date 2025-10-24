@@ -315,15 +315,15 @@ export default function FollowupAutomationPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Alpha Category */}
-              <div className="p-4 bg-green-100 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                <h3 className="font-semibold text-green-900 dark:text-green-100 mb-3">Alpha Category</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-6 bg-green-100 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                <h3 className="font-semibold text-green-900 dark:text-green-100 mb-4">Alpha Category</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FormField
                     control={form.control}
                     name="alphaWhatsapp"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">WhatsApp</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">WhatsApp</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-alpha-whatsapp" />
                         </FormControl>
@@ -334,8 +334,8 @@ export default function FollowupAutomationPage() {
                     control={form.control}
                     name="alphaEmail"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">Email</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">Email</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-alpha-email" />
                         </FormControl>
@@ -346,8 +346,8 @@ export default function FollowupAutomationPage() {
                     control={form.control}
                     name="alphaIvr"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">IVR Call</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">IVR Call</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-alpha-ivr" />
                         </FormControl>
@@ -358,15 +358,15 @@ export default function FollowupAutomationPage() {
               </div>
 
               {/* Beta Category */}
-              <div className="p-4 bg-yellow-100 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-3">Beta Category</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-6 bg-yellow-100 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-4">Beta Category</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FormField
                     control={form.control}
                     name="betaWhatsapp"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">WhatsApp</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">WhatsApp</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-beta-whatsapp" />
                         </FormControl>
@@ -377,8 +377,8 @@ export default function FollowupAutomationPage() {
                     control={form.control}
                     name="betaEmail"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">Email</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">Email</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-beta-email" />
                         </FormControl>
@@ -389,8 +389,8 @@ export default function FollowupAutomationPage() {
                     control={form.control}
                     name="betaIvr"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">IVR Call</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">IVR Call</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-beta-ivr" />
                         </FormControl>
@@ -401,15 +401,15 @@ export default function FollowupAutomationPage() {
               </div>
 
               {/* Gamma Category */}
-              <div className="p-4 bg-orange-100 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800">
-                <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-3">Gamma Category</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-6 bg-orange-100 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800">
+                <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-4">Gamma Category</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FormField
                     control={form.control}
                     name="gammaWhatsapp"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">WhatsApp</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">WhatsApp</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-gamma-whatsapp" />
                         </FormControl>
@@ -420,8 +420,8 @@ export default function FollowupAutomationPage() {
                     control={form.control}
                     name="gammaEmail"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">Email</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">Email</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-gamma-email" />
                         </FormControl>
@@ -432,8 +432,8 @@ export default function FollowupAutomationPage() {
                     control={form.control}
                     name="gammaIvr"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">IVR Call</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">IVR Call</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-gamma-ivr" />
                         </FormControl>
@@ -444,15 +444,15 @@ export default function FollowupAutomationPage() {
               </div>
 
               {/* Delta Category */}
-              <div className="p-4 bg-red-100 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
-                <h3 className="font-semibold text-red-900 dark:text-red-100 mb-3">Delta Category</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-6 bg-red-100 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
+                <h3 className="font-semibold text-red-900 dark:text-red-100 mb-4">Delta Category</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <FormField
                     control={form.control}
                     name="deltaWhatsapp"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">WhatsApp</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">WhatsApp</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-delta-whatsapp" />
                         </FormControl>
@@ -463,8 +463,8 @@ export default function FollowupAutomationPage() {
                     control={form.control}
                     name="deltaEmail"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">Email</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">Email</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-delta-email" />
                         </FormControl>
@@ -475,8 +475,8 @@ export default function FollowupAutomationPage() {
                     control={form.control}
                     name="deltaIvr"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-2 space-y-0">
-                        <FormLabel className="text-foreground dark:text-foreground">IVR Call</FormLabel>
+                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium">IVR Call</FormLabel>
                         <FormControl>
                           <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-delta-ivr" />
                         </FormControl>
