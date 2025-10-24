@@ -17,6 +17,7 @@ export default function WhatsAppConfig() {
   const { toast } = useToast();
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [whatsappWebStatus, setWhatsappWebStatus] = useState<{ status: string; qrCode: string | null }>({ status: "not_initialized", qrCode: null });
 
   const { data: config, isLoading } = useQuery<WhatsappConfig | null>({
     queryKey: ["/api/whatsapp-config"],
@@ -102,6 +103,70 @@ export default function WhatsAppConfig() {
     saveMutation.mutate(data);
   };
 
+  // WhatsApp Web mutations
+  const initializeWhatsAppWeb = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/whatsapp-web/initialize", {});
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Initializing",
+        description: "WhatsApp Web is initializing. Please scan the QR code.",
+      });
+      // Start polling for status
+      pollWhatsAppWebStatus();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const disconnectWhatsAppWeb = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/whatsapp-web/disconnect", {});
+      return await response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Disconnected",
+        description: "WhatsApp Web has been disconnected.",
+      });
+      setWhatsappWebStatus({ status: "not_initialized", qrCode: null });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const pollWhatsAppWebStatus = async () => {
+    try {
+      const response = await apiRequest("GET", "/api/whatsapp-web/status", {});
+      const data = await response.json();
+      setWhatsappWebStatus(data);
+
+      // Continue polling if waiting for QR or connecting
+      if (data.status === "qr" || data.status === "disconnected") {
+        setTimeout(pollWhatsAppWebStatus, 2000);
+      }
+    } catch (error) {
+      console.error("Failed to fetch WhatsApp Web status:", error);
+    }
+  };
+
+  // Check status on mount
+  useEffect(() => {
+    pollWhatsAppWebStatus();
+  }, []);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -130,13 +195,99 @@ export default function WhatsAppConfig() {
         </Link>
       </div>
 
+      {/* WhatsApp Web Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-green-600" />
+            WhatsApp Web (Recommended)
+          </CardTitle>
+          <CardDescription>
+            Connect your WhatsApp account directly without API costs. Scan the QR code with your phone to get started.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+            <div className="flex items-center gap-3">
+              {whatsappWebStatus.status === "ready" ? (
+                <>
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <div>
+                    <div className="font-medium text-sm">Connected</div>
+                    <div className="text-xs text-gray-500">WhatsApp Web is ready to send messages</div>
+                  </div>
+                </>
+              ) : whatsappWebStatus.status === "qr" ? (
+                <>
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                  <div>
+                    <div className="font-medium text-sm">Waiting for Scan</div>
+                    <div className="text-xs text-gray-500">Please scan the QR code with your phone</div>
+                  </div>
+                </>
+              ) : whatsappWebStatus.status === "connected" ? (
+                <>
+                  <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+                  <div>
+                    <div className="font-medium text-sm">Connecting...</div>
+                    <div className="text-xs text-gray-500">Authenticating with WhatsApp</div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <div className="font-medium text-sm">Not Connected</div>
+                    <div className="text-xs text-gray-500">Click Initialize to connect WhatsApp Web</div>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <div className="flex gap-2">
+              {whatsappWebStatus.status === "ready" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => disconnectWhatsAppWeb.mutate()}
+                  disabled={disconnectWhatsAppWeb.isPending}
+                  data-testid="button-disconnect-whatsapp-web"
+                >
+                  {disconnectWhatsAppWeb.isPending ? "Disconnecting..." : "Disconnect"}
+                </Button>
+              ) : (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => initializeWhatsAppWeb.mutate()}
+                  disabled={initializeWhatsAppWeb.isPending || whatsappWebStatus.status === "qr" || whatsappWebStatus.status === "connected"}
+                  data-testid="button-initialize-whatsapp-web"
+                >
+                  {initializeWhatsAppWeb.isPending ? "Initializing..." : "Initialize WhatsApp Web"}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {whatsappWebStatus.qrCode && (
+            <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-gray-800 rounded-lg border-2 border-dashed">
+              <p className="text-sm font-medium mb-4">Scan this QR code with WhatsApp on your phone</p>
+              <img src={whatsappWebStatus.qrCode} alt="WhatsApp QR Code" className="w-64 h-64" />
+              <p className="text-xs text-gray-500 mt-4 text-center max-w-md">
+                Open WhatsApp on your phone → Settings → Linked Devices → Link a Device → Scan this QR code
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>WhatsApp API Configuration</CardTitle>
+              <CardTitle>WhatsApp API Configuration (Alternative)</CardTitle>
               <CardDescription>
-                Choose your WhatsApp API provider and configure the credentials
+                Or use WhatsApp Business API provider if you prefer API-based integration
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

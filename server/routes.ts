@@ -6,6 +6,7 @@ import { wsManager } from "./websocket";
 import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
+import { whatsappWebService } from "./whatsapp-web-service";
 import { ringgService } from "./ringg-service";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
@@ -3944,12 +3945,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Customer mobile number not found" });
       }
 
-      // Get WhatsApp configuration
-      const whatsappConfig = await storage.getWhatsappConfig(req.tenantId!);
-      if (!whatsappConfig || whatsappConfig.isActive !== "Active") {
-        return res.status(400).json({ message: "WhatsApp configuration not found or inactive" });
-      }
-
       // Get company profile
       const profile = await storage.getCompanyProfile(req.tenantId!);
 
@@ -4074,7 +4069,7 @@ Due to the delayed payment on this invoice, we had to pay ₹${totalInterest.toL
 Best regards,
 ${profile?.legalName || 'Company'}`;
 
-      const result = await sendWhatsAppMessage(whatsappConfig, customer.mobile, message);
+      const result = await whatsappWebService.sendMessage(req.tenantId!, customer.mobile, message);
 
       if (!result.success) {
         return res.status(500).json({ message: result.error || "Failed to send WhatsApp message" });
@@ -6729,6 +6724,39 @@ ${profile?.legalName || 'Company'}`;
         return res.status(404).json({ message: "WhatsApp template not found" });
       }
       res.json({ message: "WhatsApp template deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============ WHATSAPP WEB ROUTES ============
+
+  // Initialize WhatsApp Web client
+  app.post("/api/whatsapp-web/initialize", async (req, res) => {
+    try {
+      await whatsappWebService.initializeClient(req.tenantId!);
+      res.json({ message: "WhatsApp Web client initialized" });
+    } catch (error: any) {
+      console.error("Failed to initialize WhatsApp Web:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get WhatsApp Web status and QR code
+  app.get("/api/whatsapp-web/status", async (req, res) => {
+    try {
+      const status = whatsappWebService.getStatus(req.tenantId!);
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Disconnect WhatsApp Web
+  app.post("/api/whatsapp-web/disconnect", async (req, res) => {
+    try {
+      await whatsappWebService.disconnect(req.tenantId!);
+      res.json({ message: "WhatsApp Web disconnected" });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
