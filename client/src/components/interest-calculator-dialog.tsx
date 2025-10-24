@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Printer, Download, X } from "lucide-react";
 import { format } from "date-fns";
+import html2pdf from "html2pdf.js";
 
 interface InterestCalculatorDialogProps {
   invoiceId: string | null;
@@ -17,6 +18,13 @@ interface CompanyProfile {
   address?: string;
   phone?: string;
   email?: string;
+  gstin?: string;
+  primaryContactMobile?: string;
+  regAddressLine1?: string;
+  regAddressLine2?: string;
+  regCity?: string;
+  regState?: string;
+  regPincode?: string;
 }
 
 interface InterestBreakdown {
@@ -83,6 +91,22 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
     }, 100);
   };
 
+  const handleDownloadPDF = () => {
+    const element = document.getElementById('interest-calculator-content');
+    if (!element || !breakdown) return;
+
+    const opt = {
+      margin: [12, 10, 12, 10],
+      filename: `Interest_Calculation_${breakdown.invoice.invoiceNumber}_${format(new Date(), 'ddMMyyyy')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    html2pdf().set(opt).from(element).save();
+  };
+
   if (!invoiceId) return null;
 
   const isLoading = profileLoading || breakdownLoading;
@@ -108,11 +132,15 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
           <div className="flex items-center justify-between">
             <DialogTitle>Interest Calculation Breakdown</DialogTitle>
             <div className="flex items-center gap-2 print:hidden">
-              <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Button variant="outline" size="sm" onClick={handleDownloadPDF} data-testid="button-download-pdf">
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={handlePrint} data-testid="button-print">
                 <Printer className="h-4 w-4 mr-2" />
                 Print
               </Button>
-              <Button variant="ghost" size="sm" onClick={onClose}>
+              <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close">
                 <X className="h-4 w-4" />
               </Button>
             </div>
@@ -129,38 +157,59 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             <Button variant="outline" onClick={onClose}>Close</Button>
           </div>
         ) : (
-          <div className="space-y-6 print:space-y-4" id="interest-calculator-content">
-            {/* Dashboard-Style Header with Business Name */}
-            <div className="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30 p-8 print:p-6 rounded-xl print:rounded-lg shadow-sm print:shadow-none border-2 border-blue-200 dark:border-blue-800">
+          <div className="space-y-5 print:space-y-3" id="interest-calculator-content">
+            {/* Dashboard-Style Header with Complete Business Details */}
+            <div className="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30 p-6 print:p-4 rounded-xl print:rounded-lg shadow-sm print:shadow-none border-2 border-blue-200 dark:border-blue-800">
               <div className="text-center">
                 <div className="flex justify-center items-center gap-3 mb-2">
                   {profile?.logoUrl && (
                     <img 
                       src={profile.logoUrl} 
                       alt="Company Logo" 
-                      className="h-20 w-20 print:h-16 print:w-16 bg-white rounded-lg p-2 shadow-md object-contain"
+                      className="h-16 w-16 print:h-14 print:w-14 bg-white rounded-lg p-2 shadow-md object-contain"
                     />
                   )}
                   <div>
-                    <h1 className="text-4xl print:text-3xl font-extrabold text-blue-900 dark:text-blue-100">
+                    <h1 className="text-3xl print:text-2xl font-extrabold text-blue-900 dark:text-blue-100">
                       {profile?.companyName || "Company Name"}
                     </h1>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{profile?.address || ""}</p>
                   </div>
                 </div>
-                <div className="flex justify-center gap-6 text-sm text-gray-700 dark:text-gray-300 mt-2">
-                  {profile?.phone && <span className="font-medium">📞 {profile.phone}</span>}
-                  {profile?.email && <span className="font-medium">✉️ {profile.email}</span>}
+                
+                {/* Complete Address */}
+                {(profile?.regAddressLine1 || profile?.address) && (
+                  <div className="text-sm text-gray-700 dark:text-gray-300 mt-2 font-medium">
+                    {profile?.regAddressLine1 && (
+                      <>
+                        {profile.regAddressLine1}
+                        {profile.regAddressLine2 && `, ${profile.regAddressLine2}`}
+                        {profile.regCity && `, ${profile.regCity}`}
+                        {profile.regState && `, ${profile.regState}`}
+                        {profile.regPincode && ` - ${profile.regPincode}`}
+                      </>
+                    )}
+                    {!profile?.regAddressLine1 && profile?.address && profile.address}
+                  </div>
+                )}
+                
+                {/* Contact Details Row */}
+                <div className="flex justify-center flex-wrap gap-4 text-sm text-gray-700 dark:text-gray-300 mt-3 font-semibold">
+                  {profile?.gstin && <span>📋 GSTIN: {profile.gstin}</span>}
+                  {profile?.primaryContactMobile && <span>📱 {profile.primaryContactMobile}</span>}
+                  {profile?.phone && !profile?.primaryContactMobile && <span>📱 {profile.phone}</span>}
+                  {profile?.email && <span>✉️ {profile.email}</span>}
                 </div>
-                <div className="mt-4 pt-4 border-t-2 border-blue-300 dark:border-blue-700">
-                  <h2 className="text-2xl print:text-xl font-bold text-purple-800 dark:text-purple-300">Interest Calculation Report</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Generated on {format(new Date(), "MMM dd, yyyy hh:mm a")}</p>
+                
+                {/* Report Title */}
+                <div className="mt-3 pt-3 print:mt-2 print:pt-2 border-t-2 border-blue-300 dark:border-blue-700">
+                  <h2 className="text-xl print:text-lg font-bold text-purple-800 dark:text-purple-300">Interest Calculation Report</h2>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Generated on {format(new Date(), "dd MMM yyyy hh:mm a")}</p>
                 </div>
               </div>
             </div>
 
             {/* Customer & Invoice Details - Dashboard Style */}
-            <div className="grid grid-cols-2 gap-6 print:gap-4">
+            <div className="grid grid-cols-2 gap-5 print:gap-3">
               {/* Customer Card */}
               <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 border-2 border-green-200 dark:border-green-800 rounded-xl print:rounded-lg p-6 print:p-4 shadow-md print:shadow-none">
                 <h3 className="text-xl print:text-lg font-bold text-green-800 dark:text-green-300 mb-4 pb-2 border-b-2 border-green-300 dark:border-green-700">
@@ -205,11 +254,11 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             </div>
 
             {/* Invoice Summary - Dashboard Cards */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-800 rounded-xl print:rounded-lg p-6 print:p-4 shadow-md print:shadow-none">
-              <h3 className="text-xl print:text-lg font-bold text-purple-800 dark:text-purple-300 mb-4 pb-2 border-b-2 border-purple-300 dark:border-purple-700">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-800 rounded-xl print:rounded-lg p-5 print:p-3 shadow-md print:shadow-none">
+              <h3 className="text-lg print:text-base font-bold text-purple-800 dark:text-purple-300 mb-3 pb-2 border-b-2 border-purple-300 dark:border-purple-700">
                 💰 Invoice Summary
               </h3>
-              <div className="grid grid-cols-3 gap-4 print:gap-3">
+              <div className="grid grid-cols-3 gap-3 print:gap-2">
                 <div className="text-center p-5 print:p-3 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-300 dark:border-blue-700 rounded-lg shadow-sm">
                   <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-2">Invoice Amount</p>
                   <p className="text-3xl print:text-2xl font-extrabold text-blue-900 dark:text-blue-100">
@@ -318,12 +367,12 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             </div>
 
             {/* Final Calculation Summary - Dashboard Style */}
-            <div className="bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100 dark:from-emerald-900/30 dark:via-teal-900/30 dark:to-cyan-900/30 border-4 border-emerald-300 dark:border-emerald-700 rounded-2xl print:rounded-xl p-8 print:p-6 shadow-xl print:shadow-lg">
-              <h3 className="text-3xl print:text-2xl font-extrabold text-center text-emerald-900 dark:text-emerald-100 mb-6 pb-3 border-b-4 border-emerald-400 dark:border-emerald-600">
+            <div className="bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100 dark:from-emerald-900/30 dark:via-teal-900/30 dark:to-cyan-900/30 border-4 border-emerald-300 dark:border-emerald-700 rounded-2xl print:rounded-xl p-6 print:p-4 shadow-xl print:shadow-lg">
+              <h3 className="text-2xl print:text-xl font-extrabold text-center text-emerald-900 dark:text-emerald-100 mb-4 pb-2 border-b-4 border-emerald-400 dark:border-emerald-600">
                 💵 Final G.P. Calculation
               </h3>
               
-              <div className="space-y-4 print:space-y-3 max-w-3xl mx-auto">
+              <div className="space-y-3 print:space-y-2 max-w-3xl mx-auto">
                 <div className="flex justify-between items-center py-4 print:py-3 px-6 print:px-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-emerald-200 dark:border-emerald-800">
                   <span className="text-lg font-bold text-gray-700 dark:text-gray-300">Base G.P.</span>
                   <span className="text-2xl print:text-xl font-extrabold text-green-700 dark:text-green-300">
@@ -355,33 +404,6 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
               </div>
             </div>
 
-            {/* Formula Explanation */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 text-sm">
-              <h4 className="font-semibold mb-2">Interest Calculation Method:</h4>
-              <p className="text-gray-600 dark:text-gray-400 mb-3">
-                <span className="font-semibold">Period-wise Interest:</span> Interest is calculated on the outstanding balance for the days BETWEEN each payment (after due date). 
-                Each payment creates a new period, and interest is calculated only for the days in that specific period.
-              </p>
-              <p className="text-gray-600 dark:text-gray-400 mb-2">
-                <span className="font-semibold">Example:</span> Invoice ₹1,00,000, Due Date: 30 Apr 2025, Interest Rate: 18%
-              </p>
-              <ul className="text-gray-600 dark:text-gray-400 text-xs space-y-1 ml-4 mb-3">
-                <li>• Receipt on 15 May (15 days after due date): Balance ₹90,000</li>
-                <li>• Interest for Period 1 = (₹90,000 × 18% × 15 days) / 36,500 = ₹665.75</li>
-                <li>• After ₹10,000 receipt: Balance becomes ₹80,000</li>
-                <li>• Next receipt on 18 Jun (34 days after 15 May): Balance ₹80,000</li>
-                <li>• Interest for Period 2 = (₹80,000 × 18% × 34 days) / 36,500 = ₹1,341.37</li>
-              </ul>
-              <p className="text-gray-600 dark:text-gray-400 font-mono text-xs">
-                Interest = (Balance × Rate × Days in Period) / (100 × 365)
-              </p>
-              <p className="text-gray-600 dark:text-gray-400 font-mono text-xs mt-1">
-                Final G.P. = Base G.P. - Total Interest
-              </p>
-              <p className="text-gray-600 dark:text-gray-400 font-mono text-xs mt-1">
-                Final G.P. % = (Final G.P. / Invoice Amount) × 100
-              </p>
-            </div>
           </div>
         )}
       </DialogContent>
