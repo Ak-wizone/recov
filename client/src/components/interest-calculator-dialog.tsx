@@ -12,8 +12,8 @@ interface InterestCalculatorDialogProps {
 }
 
 interface CompanyProfile {
-  companyName: string;
-  logoUrl?: string;
+  legalName: string;
+  logo?: string;
   brandColor?: string;
   address?: string;
   phone?: string;
@@ -148,16 +148,16 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             <div className="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30 p-4 print:p-3 rounded-lg shadow-sm print:shadow-none border-2 border-blue-200 dark:border-blue-800">
               <div className="text-center">
                 <div className="flex justify-center items-center gap-2 mb-1">
-                  {profile?.logoUrl && (
+                  {profile?.logo && (
                     <img 
-                      src={profile.logoUrl} 
+                      src={profile.logo} 
                       alt="Company Logo" 
                       className="h-12 w-12 print:h-10 print:w-10 bg-white rounded p-1 shadow-sm object-contain"
                     />
                   )}
                   <div>
                     <h1 className="text-2xl print:text-xl font-extrabold text-blue-900 dark:text-blue-100">
-                      {profile?.companyName || "Company Name"}
+                      {profile?.legalName || "Company Name"}
                     </h1>
                   </div>
                 </div>
