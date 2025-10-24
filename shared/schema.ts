@@ -1414,14 +1414,15 @@ export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 
 // ==================== CREDIT CONTROL / RECOVERY MANAGEMENT TABLES ====================
 
-// Category Rules - Payment delay thresholds for auto-upgrade
+// Category Rules - Payment delay thresholds for auto-upgrade (cumulative grace periods)
 export const categoryRules = pgTable("category_rules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  alphaDays: integer("alpha_days").notNull().default(0), // On-time
-  betaDays: integer("beta_days").notNull().default(15), // 15 days overdue
-  gammaDays: integer("gamma_days").notNull().default(45), // 45 days overdue
-  deltaDays: integer("delta_days").notNull().default(100), // 100 days overdue
+  alphaDays: integer("alpha_days").notNull().default(5), // Grace period: 0-5 days = Alpha
+  betaDays: integer("beta_days").notNull().default(20), // Grace period: 6-25 days (5+20) = Beta
+  gammaDays: integer("gamma_days").notNull().default(40), // Grace period: 26-65 days (5+20+40) = Gamma
+  deltaDays: integer("delta_days").notNull().default(100), // Grace period: 66+ days = Delta
+  partialPaymentThresholdPercent: integer("partial_payment_threshold_percent").notNull().default(80), // Exclude invoices with payment >= 80%
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -1430,11 +1431,13 @@ export const insertCategoryRulesSchema = createInsertSchema(categoryRules).pick(
   betaDays: true,
   gammaDays: true,
   deltaDays: true,
+  partialPaymentThresholdPercent: true,
 }).extend({
   alphaDays: z.number().min(0).max(1000),
   betaDays: z.number().min(0).max(1000),
   gammaDays: z.number().min(0).max(1000),
   deltaDays: z.number().min(0).max(1000),
+  partialPaymentThresholdPercent: z.number().min(0).max(100),
 });
 
 export type InsertCategoryRules = z.infer<typeof insertCategoryRulesSchema>;
@@ -1444,17 +1447,20 @@ export type CategoryRules = typeof categoryRules.$inferSelect;
 export const followupRules = pgTable("followup_rules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  alphaDays: integer("alpha_days").notNull().default(7), // Alpha: follow up after 7 days
   betaDays: integer("beta_days").notNull().default(4), // Beta: follow up after 4 days
-  gammaDays: integer("gamma_days").notNull().default(8), // Gamma: follow up after 8 days
-  deltaDays: integer("delta_days").notNull().default(12), // Delta: follow up after 12 days
+  gammaDays: integer("gamma_days").notNull().default(2), // Gamma: follow up after 2 days
+  deltaDays: integer("delta_days").notNull().default(1), // Delta: follow up daily
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const insertFollowupRulesSchema = createInsertSchema(followupRules).pick({
+  alphaDays: true,
   betaDays: true,
   gammaDays: true,
   deltaDays: true,
 }).extend({
+  alphaDays: z.number().min(0).max(365),
   betaDays: z.number().min(0).max(365),
   gammaDays: z.number().min(0).max(365),
   deltaDays: z.number().min(0).max(365),
@@ -1591,4 +1597,58 @@ export const insertLegalNoticeSentSchema = createInsertSchema(legalNoticesSent).
 
 export type InsertLegalNoticeSent = z.infer<typeof insertLegalNoticeSentSchema>;
 export type LegalNoticeSent = typeof legalNoticesSent.$inferSelect;
+
+// Follow-up Automation Settings - Configuration for automated reminders
+export const followupAutomationSettings = pgTable("followup_automation_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  
+  // Scheduling Mode: fixed_frequency, before_due, after_due, weekly, monthly
+  schedulingMode: text("scheduling_mode").notNull().default("after_due"),
+  
+  // Category-wise actions (JSON: { alpha: { whatsapp: true, email: true, ivr: false }, beta: {...}, ... })
+  categoryActions: text("category_actions").notNull().default('{"alpha":{"whatsapp":false,"email":false,"ivr":false},"beta":{"whatsapp":true,"email":true,"ivr":false},"gamma":{"whatsapp":true,"email":true,"ivr":true},"delta":{"whatsapp":true,"email":true,"ivr":true}}'),
+  
+  // For weekly mode: day of week (0-6, 0 = Sunday)
+  weeklyDay: integer("weekly_day"),
+  
+  // For monthly mode: day of month (1-31)
+  monthlyDate: integer("monthly_date"),
+  
+  // For before_due mode: days before due date
+  daysBeforeDue: integer("days_before_due"),
+  
+  // IVR/Calling settings
+  enableIvrCalling: boolean("enable_ivr_calling").notNull().default(false),
+  callingHoursStart: text("calling_hours_start").default("09:00"),
+  callingHoursEnd: text("calling_hours_end").default("18:00"),
+  maxRetriesPerDay: integer("max_retries_per_day").default(3),
+  
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertFollowupAutomationSettingsSchema = createInsertSchema(followupAutomationSettings).pick({
+  schedulingMode: true,
+  categoryActions: true,
+  weeklyDay: true,
+  monthlyDate: true,
+  daysBeforeDue: true,
+  enableIvrCalling: true,
+  callingHoursStart: true,
+  callingHoursEnd: true,
+  maxRetriesPerDay: true,
+}).extend({
+  schedulingMode: z.enum(["fixed_frequency", "before_due", "after_due", "weekly", "monthly"]),
+  categoryActions: z.string(),
+  weeklyDay: z.number().min(0).max(6).optional(),
+  monthlyDate: z.number().min(1).max(31).optional(),
+  daysBeforeDue: z.number().min(1).max(30).optional(),
+  enableIvrCalling: z.boolean(),
+  callingHoursStart: z.string().optional(),
+  callingHoursEnd: z.string().optional(),
+  maxRetriesPerDay: z.number().min(1).max(10).optional(),
+});
+
+export type InsertFollowupAutomationSettings = z.infer<typeof insertFollowupAutomationSettingsSchema>;
+export type FollowupAutomationSettings = typeof followupAutomationSettings.$inferSelect;
 

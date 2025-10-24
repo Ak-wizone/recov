@@ -15,9 +15,12 @@ import { Settings, Save } from "lucide-react";
 import type { CategoryRules, FollowupRules, RecoverySettings } from "@shared/schema";
 
 const categoryRulesFormSchema = z.object({
+  alphaDays: z.coerce.number().min(0, "Must be at least 0 days"),
   betaDays: z.coerce.number().min(1, "Must be at least 1 day"),
   gammaDays: z.coerce.number().min(1, "Must be at least 1 day"),
   deltaDays: z.coerce.number().min(1, "Must be at least 1 day"),
+  partialPaymentThresholdPercent: z.coerce.number().min(0, "Must be 0-100%").max(100, "Must be 0-100%"),
+  alphaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
   betaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
   gammaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
   deltaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
@@ -44,12 +47,15 @@ export default function CategoryRulesPage() {
   const form = useForm<CategoryRulesFormValues>({
     resolver: zodResolver(categoryRulesFormSchema),
     defaultValues: {
-      betaDays: 15,
-      gammaDays: 45,
+      alphaDays: 5,
+      betaDays: 20,
+      gammaDays: 40,
       deltaDays: 100,
+      partialPaymentThresholdPercent: 80,
+      alphaFollowupDays: 7,
       betaFollowupDays: 4,
-      gammaFollowupDays: 8,
-      deltaFollowupDays: 12,
+      gammaFollowupDays: 2,
+      deltaFollowupDays: 1,
       autoUpgradeEnabled: false,
     },
   });
@@ -61,9 +67,12 @@ export default function CategoryRulesPage() {
     queryFn: () => {
       if (categoryRules && followupRules && settings) {
         form.reset({
+          alphaDays: categoryRules.alphaDays,
           betaDays: categoryRules.betaDays,
           gammaDays: categoryRules.gammaDays,
           deltaDays: categoryRules.deltaDays,
+          partialPaymentThresholdPercent: categoryRules.partialPaymentThresholdPercent,
+          alphaFollowupDays: followupRules.alphaDays,
           betaFollowupDays: followupRules.betaDays,
           gammaFollowupDays: followupRules.gammaDays,
           deltaFollowupDays: followupRules.deltaDays,
@@ -79,11 +88,14 @@ export default function CategoryRulesPage() {
       // Save all three configurations
       await Promise.all([
         apiRequest("PUT", "/api/recovery/category-rules", {
+          alphaDays: data.alphaDays,
           betaDays: data.betaDays,
           gammaDays: data.gammaDays,
           deltaDays: data.deltaDays,
+          partialPaymentThresholdPercent: data.partialPaymentThresholdPercent,
         }),
         apiRequest("PUT", "/api/recovery/followup-rules", {
+          alphaDays: data.alphaFollowupDays,
           betaDays: data.betaFollowupDays,
           gammaDays: data.gammaFollowupDays,
           deltaDays: data.deltaFollowupDays,
@@ -184,21 +196,40 @@ export default function CategoryRulesPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground dark:text-foreground">
-                        Alpha Category
-                      </Label>
-                      <div className="p-3 bg-green-100 dark:bg-green-950/30 rounded-md border border-green-200 dark:border-green-800">
-                        <p className="text-sm text-green-900 dark:text-green-100">0 days (Default)</p>
-                      </div>
-                    </div>
+                    <FormField
+                      control={form.control}
+                      name="alphaDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground dark:text-foreground">Alpha Category Grace Period</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                className="bg-white dark:bg-gray-900 text-foreground dark:text-foreground border-border dark:border-border"
+                                data-testid="input-alpha-days"
+                              />
+                              <span className="absolute right-3 top-2.5 text-sm text-muted-foreground dark:text-muted-foreground">
+                                days
+                              </span>
+                            </div>
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground">
+                            0 to {field.value} days after due date = Alpha
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
                     <FormField
                       control={form.control}
                       name="betaDays"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground dark:text-foreground">Beta Category Threshold</FormLabel>
+                          <FormLabel className="text-foreground dark:text-foreground">Beta Category Grace Period</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
@@ -213,6 +244,9 @@ export default function CategoryRulesPage() {
                               </span>
                             </div>
                           </FormControl>
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground">
+                            {form.watch("alphaDays") + 1} to {form.watch("alphaDays") + field.value} days = Beta
+                          </p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -223,7 +257,7 @@ export default function CategoryRulesPage() {
                       name="gammaDays"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground dark:text-foreground">Gamma Category Threshold</FormLabel>
+                          <FormLabel className="text-foreground dark:text-foreground">Gamma Category Grace Period</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
@@ -238,6 +272,9 @@ export default function CategoryRulesPage() {
                               </span>
                             </div>
                           </FormControl>
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground">
+                            {form.watch("alphaDays") + form.watch("betaDays") + 1} to {form.watch("alphaDays") + form.watch("betaDays") + field.value} days = Gamma
+                          </p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -248,7 +285,7 @@ export default function CategoryRulesPage() {
                       name="deltaDays"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground dark:text-foreground">Delta Category Threshold</FormLabel>
+                          <FormLabel className="text-foreground dark:text-foreground">Delta Category Grace Period</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
@@ -263,6 +300,37 @@ export default function CategoryRulesPage() {
                               </span>
                             </div>
                           </FormControl>
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground">
+                            {form.watch("alphaDays") + form.watch("betaDays") + form.watch("gammaDays") + 1}+ days = Delta
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="partialPaymentThresholdPercent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground dark:text-foreground">Partial Payment Threshold</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                className="bg-white dark:bg-gray-900 text-foreground dark:text-foreground border-border dark:border-border"
+                                data-testid="input-partial-payment-threshold"
+                              />
+                              <span className="absolute right-3 top-2.5 text-sm text-muted-foreground dark:text-muted-foreground">
+                                %
+                              </span>
+                            </div>
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground">
+                            Exclude invoices with payment ≥ {field.value}% from delay calculations
+                          </p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -279,6 +347,31 @@ export default function CategoryRulesPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="alphaFollowupDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground dark:text-foreground">Alpha Category Follow-up</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                className="bg-white dark:bg-gray-900 text-foreground dark:text-foreground border-border dark:border-border"
+                                data-testid="input-alpha-followup"
+                              />
+                              <span className="absolute right-3 top-2.5 text-sm text-muted-foreground dark:text-muted-foreground">
+                                days
+                              </span>
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={form.control}
                       name="betaFollowupDays"
