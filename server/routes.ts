@@ -3749,8 +3749,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get customer details from master data
-      const allCustomers = await storage.getCustomers(req.tenantId!);
-      const customer = allCustomers.find(c => c.name === invoice.customerName);
+      const allCustomers = await storage.getMasterCustomers(req.tenantId!);
+      const customer = allCustomers.find(c => c.clientName === invoice.customerName);
       
       if (!customer) {
         return res.status(404).json({ 
@@ -3758,7 +3758,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      if (!customer.email) {
+      if (!customer.primaryEmail) {
         return res.status(400).json({ 
           message: `Customer "${invoice.customerName}" has no email address. Please add email in customer master data.` 
         });
@@ -3878,7 +3878,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const body = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">Interest Calculation Report</h2>
-          <p>Dear ${customer.name},</p>
+          <p>Dear ${customer.clientName},</p>
           <p>We would like to inform you about the interest charges on your invoice due to delayed payment.</p>
           
           <div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
@@ -3922,7 +3922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </div>
       `;
 
-      await sendEmail(emailConfig, customer.email, subject, body);
+      await sendEmail(emailConfig, customer.primaryEmail, subject, body);
 
       res.json({ message: "Interest report sent via email successfully" });
     } catch (error: any) {
@@ -3944,9 +3944,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // If not in invoice, try to find in customer master
       if (!mobileNumber) {
-        const allCustomers = await storage.getCustomers(req.tenantId!);
-        const customer = allCustomers.find(c => c.name === invoice.customerName);
-        mobileNumber = customer?.mobile;
+        const allCustomers = await storage.getMasterCustomers(req.tenantId!);
+        const customer = allCustomers.find(c => c.clientName === invoice.customerName);
+        mobileNumber = customer?.primaryMobile;
       }
 
       if (!mobileNumber) {
@@ -4061,7 +4061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create WhatsApp message
       const message = `*Interest Calculation Report*
 
-Dear ${customer.name},
+Dear ${invoice.customerName},
 
 We would like to inform you about the interest charges on your invoice due to delayed payment.
 
