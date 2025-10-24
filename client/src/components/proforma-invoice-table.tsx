@@ -316,7 +316,7 @@ export function ProformaInvoiceTable({
               </TableRow>
             ) : (
               paginatedInvoices.map((invoice) => (
-                <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
+                <TableRow key={invoice.id} className="hover:bg-muted/50 transition-colors" data-testid={`row-invoice-${invoice.id}`}>
                   <TableCell>
                     <Checkbox
                       checked={selectedIds.includes(invoice.id)}

@@ -637,7 +637,7 @@ export function LeadTable({
                 paginatedLeads.map((lead) => (
                   <TableRow
                     key={lead.id}
-                    className="border-b border-gray-200 hover:bg-[#F8FAFC] transition-colors"
+                    className="border-b border-gray-200 dark:border-gray-700 hover:bg-muted/50 transition-colors"
                     data-testid={`row-lead-${lead.id}`}
                   >
                     <TableCell className="py-4">

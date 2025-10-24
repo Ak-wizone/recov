@@ -326,7 +326,7 @@ export function QuotationTable({
               </TableRow>
             ) : (
               paginatedQuotations.map((quotation) => (
-                <TableRow key={quotation.id} data-testid={`row-quotation-${quotation.id}`}>
+                <TableRow key={quotation.id} className="hover:bg-muted/50 transition-colors" data-testid={`row-quotation-${quotation.id}`}>
                   <TableCell>
                     <Checkbox
                       checked={selectedIds.includes(quotation.id)}

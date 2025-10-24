@@ -391,6 +391,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="hover:bg-muted/50 transition-colors"
                   data-testid={`row-debtor-${row.original.customerId}`}
                 >
                   {row.getVisibleCells().map((cell) => (
