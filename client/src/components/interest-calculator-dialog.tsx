@@ -244,22 +244,22 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
               <h3 className="text-base print:text-sm font-bold text-purple-800 dark:text-purple-300 mb-2 pb-1 border-b border-purple-300 dark:border-purple-700">
                 💰 Invoice Summary
               </h3>
-              <div className="grid grid-cols-3 gap-2 print:gap-1.5">
-                <div className="text-center p-2 print:p-1.5 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border border-blue-300 dark:border-blue-700 rounded shadow-sm">
-                  <p className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-1">Invoice Amount</p>
-                  <p className="text-lg print:text-base font-extrabold text-blue-900 dark:text-blue-100">
+              <div className="grid grid-cols-3 gap-1.5 print:gap-1">
+                <div className="text-center p-1.5 print:p-1 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border border-blue-300 dark:border-blue-700 rounded shadow-sm">
+                  <p className="text-[9px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-0.5">Invoice Amount</p>
+                  <p className="text-sm print:text-xs font-extrabold text-blue-900 dark:text-blue-100">
                     ₹{breakdown.invoice.invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="text-center p-2 print:p-1.5 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-300 dark:border-green-700 rounded shadow-sm">
-                  <p className="text-[10px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide mb-1">Base G.P.</p>
-                  <p className="text-lg print:text-base font-extrabold text-green-900 dark:text-green-100">
+                <div className="text-center p-1.5 print:p-1 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-300 dark:border-green-700 rounded shadow-sm">
+                  <p className="text-[9px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide mb-0.5">Base G.P.</p>
+                  <p className="text-sm print:text-xs font-extrabold text-green-900 dark:text-green-100">
                     ₹{breakdown.calculation.baseGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="text-center p-2 print:p-1.5 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-300 dark:border-purple-700 rounded shadow-sm">
-                  <p className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide mb-1">Interest Rate</p>
-                  <p className="text-lg print:text-base font-extrabold text-purple-900 dark:text-purple-100">
+                <div className="text-center p-1.5 print:p-1 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-300 dark:border-purple-700 rounded shadow-sm">
+                  <p className="text-[9px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide mb-0.5">Interest Rate</p>
+                  <p className="text-sm print:text-xs font-extrabold text-purple-900 dark:text-purple-100">
                     {breakdown.invoice.interestRate}% p.a.
                   </p>
                 </div>
