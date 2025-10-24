@@ -263,12 +263,12 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                 
                 {/* Interest Rate + Total Interest */}
                 <div className="text-center p-3 print:p-1 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 border-2 border-orange-400 dark:border-orange-700 rounded shadow-md">
-                  <p className="text-[10px] print:text-[7px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-wide mb-1 print:mb-0">Interest Rate</p>
-                  <p className="text-base print:text-[8px] font-extrabold text-orange-900 dark:text-orange-100">
-                    {breakdown.invoice.interestRate}% p.a.
+                  <p className="text-[10px] print:text-[7px] font-bold text-orange-700 dark:text-orange-300 uppercase tracking-wide mb-1 print:mb-0">Total Interest</p>
+                  <p className="text-lg print:text-[9px] font-extrabold text-orange-900 dark:text-orange-100">
+                    ₹{breakdown.calculation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
-                  <p className="text-[9px] print:text-[6px] font-semibold text-red-700 dark:text-red-400 mt-1 print:mt-0 border-t border-orange-300 dark:border-orange-600 pt-1 print:pt-0">
-                    Total Interest: ₹{breakdown.calculation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <p className="text-[10px] print:text-[7px] font-bold text-red-700 dark:text-red-400 mt-1 print:mt-0 border-t border-orange-300 dark:border-orange-600 pt-1 print:pt-0">
+                    {breakdown.invoice.interestRate}% p.a.
                   </p>
                 </div>
                 
