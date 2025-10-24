@@ -364,27 +364,93 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
         )}
       </DialogContent>
 
-      {/* Print Styles */}
+      {/* Print Styles - A4 Format */}
       <style>{`
         @media print {
+          @page {
+            size: A4;
+            margin: 15mm 10mm;
+          }
+          
           body * {
             visibility: hidden;
           }
+          
           #interest-calculator-content,
           #interest-calculator-content * {
             visibility: visible;
           }
+          
           #interest-calculator-content {
             position: absolute;
             left: 0;
             top: 0;
             width: 100%;
+            max-width: 210mm;
+            font-size: 10pt;
           }
+          
           .print\\:hidden {
             display: none !important;
           }
+          
           .print\\:rounded-none {
             border-radius: 0 !important;
+          }
+          
+          /* Optimize table for print */
+          table {
+            page-break-inside: avoid;
+            border-collapse: collapse;
+          }
+          
+          thead {
+            display: table-header-group;
+          }
+          
+          tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+          }
+          
+          /* Ensure colors print correctly */
+          .bg-\\[\\#2C5F7C\\] {
+            background-color: #2C5F7C !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          
+          .text-white {
+            color: #000 !important;
+          }
+          
+          .bg-red-50 {
+            background-color: #fee !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          
+          /* Print company header */
+          .rounded-lg {
+            border-radius: 0 !important;
+          }
+          
+          /* Optimize spacing for A4 */
+          .space-y-6 > * + * {
+            margin-top: 1rem !important;
+          }
+          
+          .p-6 {
+            padding: 0.75rem !important;
+          }
+          
+          .p-4 {
+            padding: 0.5rem !important;
+          }
+          
+          /* Ensure table fits on one page if possible */
+          .overflow-x-auto {
+            overflow: visible !important;
           }
         }
       `}</style>
