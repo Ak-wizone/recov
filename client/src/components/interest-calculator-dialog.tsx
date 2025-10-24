@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, X } from "lucide-react";
+import { Download, X, Mail, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import html2pdf from "html2pdf.js";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface InterestCalculatorDialogProps {
   invoiceId: string | null;
@@ -71,6 +73,9 @@ interface InterestBreakdown {
 }
 
 export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalculatorDialogProps) {
+  const [reportType, setReportType] = useState<'gp' | 'customer'>('gp');
+  const { toast } = useToast();
+
   const { data: profile, isLoading: profileLoading } = useQuery<CompanyProfile>({
     queryKey: ["/api/company-profile"],
     enabled: !!invoiceId,
@@ -81,20 +86,96 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
     enabled: !!invoiceId,
   });
 
-  const handleDownloadPDF = () => {
-    const element = document.getElementById('interest-calculator-content');
-    if (!element || !breakdown) return;
+  const handleDownloadGPPDF = () => {
+    setReportType('gp');
+    setTimeout(() => {
+      const element = document.getElementById('interest-calculator-content');
+      if (!element || !breakdown) return;
 
-    const opt = {
-      margin: [12, 10, 12, 10],
-      filename: `Interest_Calculation_${breakdown.invoice.invoiceNumber}_${format(new Date(), 'ddMMyyyy')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-    };
+      const opt = {
+        margin: [12, 10, 12, 10],
+        filename: `GP_Interest_Report_${breakdown.invoice.invoiceNumber}_${format(new Date(), 'ddMMyyyy')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
 
-    html2pdf().set(opt).from(element).save();
+      html2pdf().set(opt).from(element).save();
+    }, 100);
+  };
+
+  const handleDownloadCustomerPDF = () => {
+    setReportType('customer');
+    setTimeout(() => {
+      const element = document.getElementById('interest-calculator-content');
+      if (!element || !breakdown) return;
+
+      const opt = {
+        margin: [12, 10, 12, 10],
+        filename: `Interest_Report_${breakdown.invoice.invoiceNumber}_${format(new Date(), 'ddMMyyyy')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        setReportType('gp');
+      });
+    }, 100);
+  };
+
+  const sendEmailMutation = useMutation({
+    mutationFn: async (data: { invoiceId: string }) => {
+      return await apiRequest(`/api/invoices/${data.invoiceId}/send-interest-email`, {
+        method: 'POST'
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Email Sent",
+        description: "Interest report has been sent to the customer via email.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send email. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const sendWhatsAppMutation = useMutation({
+    mutationFn: async (data: { invoiceId: string }) => {
+      return await apiRequest(`/api/invoices/${data.invoiceId}/send-interest-whatsapp`, {
+        method: 'POST'
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "WhatsApp Sent",
+        description: "Interest report has been sent to the customer via WhatsApp.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send WhatsApp message. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSendEmail = () => {
+    if (!invoiceId) return;
+    sendEmailMutation.mutate({ invoiceId });
+  };
+
+  const handleSendWhatsApp = () => {
+    if (!invoiceId) return;
+    sendWhatsAppMutation.mutate({ invoiceId });
   };
 
   if (!invoiceId) return null;
@@ -121,10 +202,34 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>Interest Calculation Breakdown</DialogTitle>
-            <div className="flex items-center gap-2 print:hidden">
-              <Button variant="outline" size="sm" onClick={handleDownloadPDF} data-testid="button-download-pdf">
+            <div className="flex items-center gap-2 print:hidden flex-wrap">
+              <Button variant="outline" size="sm" onClick={handleDownloadGPPDF} data-testid="button-download-gp-pdf">
                 <Download className="h-4 w-4 mr-2" />
-                Download PDF
+                G.P. Report
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleDownloadCustomerPDF} data-testid="button-download-customer-pdf">
+                <Download className="h-4 w-4 mr-2" />
+                Customer Report
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleSendEmail}
+                disabled={sendEmailMutation.isPending}
+                data-testid="button-send-email"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {sendEmailMutation.isPending ? "Sending..." : "Email"}
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={handleSendWhatsApp}
+                disabled={sendWhatsAppMutation.isPending}
+                data-testid="button-send-whatsapp"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                {sendWhatsAppMutation.isPending ? "Sending..." : "WhatsApp"}
               </Button>
               <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close">
                 <X className="h-4 w-4" />
@@ -239,12 +344,12 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
               </div>
             </div>
 
-            {/* Invoice and Final G.P. Summary */}
+            {/* Invoice and Final G.P. Summary / Invoice Summary */}
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-300 dark:border-purple-800 rounded-lg p-4 print:p-1.5 shadow-sm print:shadow-none">
               <h3 className="text-lg print:text-[9px] font-extrabold text-purple-800 dark:text-purple-300 mb-3 print:mb-1 pb-2 print:pb-0.5 border-b-2 border-purple-400 dark:border-purple-700">
-                💰 Invoice and Final G.P. Summary
+                {reportType === 'customer' ? '💰 Invoice Summary' : '💰 Invoice and Final G.P. Summary'}
               </h3>
-              <div className="grid grid-cols-4 gap-2 print:gap-1">
+              <div className={`grid ${reportType === 'customer' ? 'grid-cols-2' : 'grid-cols-4'} gap-2 print:gap-1`}>
                 {/* Invoice Amount */}
                 <div className="text-center p-3 print:p-1 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-400 dark:border-blue-700 rounded shadow-md">
                   <p className="text-[10px] print:text-[7px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-1 print:mb-0">Invoice Amount</p>
@@ -253,13 +358,15 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                   </p>
                 </div>
                 
-                {/* Base G.P. */}
-                <div className="text-center p-3 print:p-1 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-400 dark:border-green-700 rounded shadow-md">
-                  <p className="text-[10px] print:text-[7px] font-bold text-green-700 dark:text-green-300 uppercase tracking-wide mb-1 print:mb-0">Base G.P.</p>
-                  <p className="text-lg print:text-[9px] font-extrabold text-green-900 dark:text-green-100">
-                    ₹{breakdown.calculation.baseGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </div>
+                {/* Base G.P. - Only for GP Report */}
+                {reportType === 'gp' && (
+                  <div className="text-center p-3 print:p-1 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-400 dark:border-green-700 rounded shadow-md">
+                    <p className="text-[10px] print:text-[7px] font-bold text-green-700 dark:text-green-300 uppercase tracking-wide mb-1 print:mb-0">Base G.P.</p>
+                    <p className="text-lg print:text-[9px] font-extrabold text-green-900 dark:text-green-100">
+                      ₹{breakdown.calculation.baseGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                )}
                 
                 {/* Interest Rate + Total Interest */}
                 <div className="text-center p-3 print:p-1 bg-gradient-to-br from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30 border-2 border-orange-400 dark:border-orange-700 rounded shadow-md">
@@ -272,16 +379,18 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                   </p>
                 </div>
                 
-                {/* Final G.P. + Final G.P. % */}
-                <div className="text-center p-3 print:p-1 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-800 dark:to-teal-800 border-4 print:border-2 border-emerald-500 dark:border-emerald-600 rounded shadow-lg">
-                  <p className="text-[10px] print:text-[7px] font-extrabold text-emerald-800 dark:text-emerald-200 uppercase tracking-wide mb-1 print:mb-0">FINAL G.P.</p>
-                  <p className="text-xl print:text-[10px] font-extrabold text-emerald-900 dark:text-emerald-100">
-                    ₹{breakdown.calculation.finalGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                  <p className="text-base print:text-[8px] font-extrabold text-teal-700 dark:text-teal-300 mt-1 print:mt-0 border-t border-emerald-400 dark:border-emerald-600 pt-1 print:pt-0">
-                    {breakdown.calculation.finalGpPercentage.toFixed(2)}%
-                  </p>
-                </div>
+                {/* Final G.P. + Final G.P. % - Only for GP Report */}
+                {reportType === 'gp' && (
+                  <div className="text-center p-3 print:p-1 bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-800 dark:to-teal-800 border-4 print:border-2 border-emerald-500 dark:border-emerald-600 rounded shadow-lg">
+                    <p className="text-[10px] print:text-[7px] font-extrabold text-emerald-800 dark:text-emerald-200 uppercase tracking-wide mb-1 print:mb-0">FINAL G.P.</p>
+                    <p className="text-xl print:text-[10px] font-extrabold text-emerald-900 dark:text-emerald-100">
+                      ₹{breakdown.calculation.finalGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                    <p className="text-base print:text-[8px] font-extrabold text-teal-700 dark:text-teal-300 mt-1 print:mt-0 border-t border-emerald-400 dark:border-emerald-600 pt-1 print:pt-0">
+                      {breakdown.calculation.finalGpPercentage.toFixed(2)}%
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

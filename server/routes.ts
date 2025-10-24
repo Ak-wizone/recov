@@ -5,6 +5,7 @@ import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { wsManager } from "./websocket";
 import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
+import { sendWhatsAppMessage } from "./whatsapp-service";
 import { ringgService } from "./ringg-service";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
@@ -3734,6 +3735,354 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
     } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Send interest report via email
+  app.post("/api/invoices/:id/send-interest-email", async (req, res) => {
+    try {
+      const invoice = await storage.getInvoice(req.tenantId!, req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Get customer details
+      const customers = await storage.getCustomersByName(req.tenantId!, invoice.customerName);
+      if (!customers || customers.length === 0) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      const customer = customers[0];
+
+      if (!customer.email) {
+        return res.status(400).json({ message: "Customer email not found" });
+      }
+
+      // Get email configuration
+      const emailConfig = await storage.getEmailConfig(req.tenantId!);
+      if (!emailConfig || emailConfig.isActive !== "Active") {
+        return res.status(400).json({ message: "Email configuration not found or inactive" });
+      }
+
+      // Get company profile
+      const profile = await storage.getCompanyProfile(req.tenantId!);
+
+      // Calculate interest (simplified - just get total interest)
+      const customerReceipts = await storage.getReceiptsByCustomerName(req.tenantId!, invoice.customerName);
+      const sortedReceipts = customerReceipts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const customerInvoices = await storage.getInvoicesByCustomerName(req.tenantId!, invoice.customerName);
+      const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+      const invoiceDate = new Date(invoice.invoiceDate);
+      const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+      const dueDate = new Date(invoiceDate);
+      dueDate.setDate(dueDate.getDate() + paymentTerms);
+
+      let applicableDate: Date;
+      if (invoice.interestApplicableFrom === "Due Date") {
+        applicableDate = dueDate;
+      } else if (invoice.interestApplicableFrom === "Invoice Date") {
+        applicableDate = invoiceDate;
+      } else {
+        applicableDate = dueDate;
+      }
+
+      const totalReceiptAmount = sortedReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
+      let cumulativeAllocated = 0;
+      let invoiceStartAllocation = 0;
+      let invoiceEndAllocation = 0;
+      let paidAmount = 0;
+
+      for (const inv of customerInvoices) {
+        const invAmount = parseFloat(inv.invoiceAmount.toString());
+        const remainingReceipt = totalReceiptAmount - cumulativeAllocated;
+
+        if (inv.id === invoice.id) {
+          invoiceStartAllocation = cumulativeAllocated;
+          if (remainingReceipt >= invAmount) {
+            paidAmount = invAmount;
+            invoiceEndAllocation = cumulativeAllocated + invAmount;
+          } else if (remainingReceipt > 0) {
+            paidAmount = remainingReceipt;
+            invoiceEndAllocation = cumulativeAllocated + remainingReceipt;
+          } else {
+            paidAmount = 0;
+            invoiceEndAllocation = cumulativeAllocated;
+          }
+          break;
+        }
+
+        if (remainingReceipt >= invAmount) {
+          cumulativeAllocated += invAmount;
+        } else if (remainingReceipt > 0) {
+          cumulativeAllocated += remainingReceipt;
+        }
+      }
+
+      let receiptCumulative = 0;
+      let totalInterest = 0;
+      let currentBalance = invoiceAmount;
+      let previousDate = applicableDate;
+
+      for (const receipt of sortedReceipts) {
+        const receiptAmount = parseFloat(receipt.amount.toString());
+        const prevCumulative = receiptCumulative;
+        receiptCumulative += receiptAmount;
+
+        if (receiptCumulative > invoiceStartAllocation && prevCumulative < invoiceEndAllocation) {
+          const allocatedAmount = Math.min(
+            receiptAmount,
+            invoiceEndAllocation - Math.max(prevCumulative, invoiceStartAllocation)
+          );
+
+          const receiptDate = new Date(receipt.date);
+          const periodStartDate = previousDate.getTime() > applicableDate.getTime() ? previousDate : applicableDate;
+          const diffTime = receiptDate.getTime() - periodStartDate.getTime();
+          const daysInPeriod = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+
+          let interestAmount = 0;
+          if (receiptDate > applicableDate && invoice.interestRate && currentBalance > 0 && daysInPeriod > 0) {
+            const interestRate = parseFloat(invoice.interestRate.toString());
+            interestAmount = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
+          }
+
+          totalInterest += interestAmount;
+          const newBalance = Math.max(currentBalance - allocatedAmount, 0);
+          currentBalance = newBalance;
+          previousDate = receiptDate;
+        }
+      }
+
+      const unpaidAmount = invoiceAmount - paidAmount;
+      if (unpaidAmount > 0 && invoice.interestRate) {
+        const today = new Date();
+        if (today > applicableDate && currentBalance > 0) {
+          const periodStartDate = previousDate.getTime() > applicableDate.getTime() ? previousDate : applicableDate;
+          const diffTime = today.getTime() - periodStartDate.getTime();
+          const daysInPeriod = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          if (daysInPeriod > 0) {
+            const interestRate = parseFloat(invoice.interestRate.toString());
+            const unpaidInterest = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
+            totalInterest += unpaidInterest;
+          }
+        }
+      }
+
+      // Create email message
+      const subject = `Interest Calculation Report - Invoice ${invoice.invoiceNumber}`;
+      const body = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">Interest Calculation Report</h2>
+          <p>Dear ${customer.name},</p>
+          <p>We would like to inform you about the interest charges on your invoice due to delayed payment.</p>
+          
+          <div style="background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 8px;">
+            <h3 style="margin-top: 0; color: #444;">Invoice Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0;"><strong>Invoice Number:</strong></td>
+                <td style="padding: 8px 0; text-align: right;">${invoice.invoiceNumber}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><strong>Invoice Date:</strong></td>
+                <td style="padding: 8px 0; text-align: right;">${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><strong>Due Date:</strong></td>
+                <td style="padding: 8px 0; text-align: right;">${dueDate.toLocaleDateString('en-IN')}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><strong>Invoice Amount:</strong></td>
+                <td style="padding: 8px 0; text-align: right;">₹${invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><strong>Interest Rate:</strong></td>
+                <td style="padding: 8px 0; text-align: right;">${invoice.interestRate}% p.a.</td>
+              </tr>
+              <tr style="border-top: 2px solid #ddd;">
+                <td style="padding: 12px 0;"><strong>Total Interest Charges:</strong></td>
+                <td style="padding: 12px 0; text-align: right; color: #d32f2f; font-size: 1.1em;"><strong>₹${totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="color: #666; font-size: 14px;">
+            Due to the delayed payment on this invoice, we had to pay ₹${totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2 })} as bank interest charges on our working capital limit.
+          </p>
+
+          <p style="margin-top: 30px;">
+            Best regards,<br>
+            <strong>${profile?.legalName || 'Company'}</strong>
+          </p>
+        </div>
+      `;
+
+      await sendEmail(emailConfig, customer.email, subject, body);
+
+      res.json({ message: "Interest report sent via email successfully" });
+    } catch (error: any) {
+      console.error("Failed to send interest email:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Send interest report via WhatsApp
+  app.post("/api/invoices/:id/send-interest-whatsapp", async (req, res) => {
+    try {
+      const invoice = await storage.getInvoice(req.tenantId!, req.params.id);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+
+      // Get customer details
+      const customers = await storage.getCustomersByName(req.tenantId!, invoice.customerName);
+      if (!customers || customers.length === 0) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      const customer = customers[0];
+
+      if (!customer.mobile) {
+        return res.status(400).json({ message: "Customer mobile number not found" });
+      }
+
+      // Get WhatsApp configuration
+      const whatsappConfig = await storage.getWhatsappConfig(req.tenantId!);
+      if (!whatsappConfig || whatsappConfig.isActive !== "Active") {
+        return res.status(400).json({ message: "WhatsApp configuration not found or inactive" });
+      }
+
+      // Get company profile
+      const profile = await storage.getCompanyProfile(req.tenantId!);
+
+      // Calculate interest (same logic as email)
+      const customerReceipts = await storage.getReceiptsByCustomerName(req.tenantId!, invoice.customerName);
+      const sortedReceipts = customerReceipts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const customerInvoices = await storage.getInvoicesByCustomerName(req.tenantId!, invoice.customerName);
+      const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+      const invoiceDate = new Date(invoice.invoiceDate);
+      const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+      const dueDate = new Date(invoiceDate);
+      dueDate.setDate(dueDate.getDate() + paymentTerms);
+
+      let applicableDate: Date;
+      if (invoice.interestApplicableFrom === "Due Date") {
+        applicableDate = dueDate;
+      } else if (invoice.interestApplicableFrom === "Invoice Date") {
+        applicableDate = invoiceDate;
+      } else {
+        applicableDate = dueDate;
+      }
+
+      const totalReceiptAmount = sortedReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.amount.toString()), 0);
+      let cumulativeAllocated = 0;
+      let invoiceStartAllocation = 0;
+      let invoiceEndAllocation = 0;
+      let paidAmount = 0;
+
+      for (const inv of customerInvoices) {
+        const invAmount = parseFloat(inv.invoiceAmount.toString());
+        const remainingReceipt = totalReceiptAmount - cumulativeAllocated;
+
+        if (inv.id === invoice.id) {
+          invoiceStartAllocation = cumulativeAllocated;
+          if (remainingReceipt >= invAmount) {
+            paidAmount = invAmount;
+            invoiceEndAllocation = cumulativeAllocated + invAmount;
+          } else if (remainingReceipt > 0) {
+            paidAmount = remainingReceipt;
+            invoiceEndAllocation = cumulativeAllocated + remainingReceipt;
+          } else {
+            paidAmount = 0;
+            invoiceEndAllocation = cumulativeAllocated;
+          }
+          break;
+        }
+
+        if (remainingReceipt >= invAmount) {
+          cumulativeAllocated += invAmount;
+        } else if (remainingReceipt > 0) {
+          cumulativeAllocated += remainingReceipt;
+        }
+      }
+
+      let receiptCumulative = 0;
+      let totalInterest = 0;
+      let currentBalance = invoiceAmount;
+      let previousDate = applicableDate;
+
+      for (const receipt of sortedReceipts) {
+        const receiptAmount = parseFloat(receipt.amount.toString());
+        const prevCumulative = receiptCumulative;
+        receiptCumulative += receiptAmount;
+
+        if (receiptCumulative > invoiceStartAllocation && prevCumulative < invoiceEndAllocation) {
+          const allocatedAmount = Math.min(
+            receiptAmount,
+            invoiceEndAllocation - Math.max(prevCumulative, invoiceStartAllocation)
+          );
+
+          const receiptDate = new Date(receipt.date);
+          const periodStartDate = previousDate.getTime() > applicableDate.getTime() ? previousDate : applicableDate;
+          const diffTime = receiptDate.getTime() - periodStartDate.getTime();
+          const daysInPeriod = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+
+          let interestAmount = 0;
+          if (receiptDate > applicableDate && invoice.interestRate && currentBalance > 0 && daysInPeriod > 0) {
+            const interestRate = parseFloat(invoice.interestRate.toString());
+            interestAmount = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
+          }
+
+          totalInterest += interestAmount;
+          const newBalance = Math.max(currentBalance - allocatedAmount, 0);
+          currentBalance = newBalance;
+          previousDate = receiptDate;
+        }
+      }
+
+      const unpaidAmount = invoiceAmount - paidAmount;
+      if (unpaidAmount > 0 && invoice.interestRate) {
+        const today = new Date();
+        if (today > applicableDate && currentBalance > 0) {
+          const periodStartDate = previousDate.getTime() > applicableDate.getTime() ? previousDate : applicableDate;
+          const diffTime = today.getTime() - periodStartDate.getTime();
+          const daysInPeriod = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          if (daysInPeriod > 0) {
+            const interestRate = parseFloat(invoice.interestRate.toString());
+            const unpaidInterest = (currentBalance * interestRate * daysInPeriod) / (100 * 365);
+            totalInterest += unpaidInterest;
+          }
+        }
+      }
+
+      // Create WhatsApp message
+      const message = `*Interest Calculation Report*
+
+Dear ${customer.name},
+
+We would like to inform you about the interest charges on your invoice due to delayed payment.
+
+*Invoice Details:*
+Invoice #: ${invoice.invoiceNumber}
+Invoice Date: ${new Date(invoice.invoiceDate).toLocaleDateString('en-IN')}
+Due Date: ${dueDate.toLocaleDateString('en-IN')}
+Invoice Amount: ₹${invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+Interest Rate: ${invoice.interestRate}% p.a.
+
+*Total Interest Charges: ₹${totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2 })}*
+
+Due to the delayed payment on this invoice, we had to pay ₹${totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2 })} as bank interest charges on our working capital limit.
+
+Best regards,
+${profile?.legalName || 'Company'}`;
+
+      const result = await sendWhatsAppMessage(whatsappConfig, customer.mobile, message);
+
+      if (!result.success) {
+        return res.status(500).json({ message: result.error || "Failed to send WhatsApp message" });
+      }
+
+      res.json({ message: "Interest report sent via WhatsApp successfully" });
+    } catch (error: any) {
+      console.error("Failed to send interest WhatsApp:", error);
       res.status(500).json({ message: error.message });
     }
   });
