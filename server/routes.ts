@@ -3749,11 +3749,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get customer details
-      const customers = await storage.getCustomersByName(req.tenantId!, invoice.customerName);
-      if (!customers || customers.length === 0) {
+      const allCustomers = await storage.getCustomers(req.tenantId!);
+      const customer = allCustomers.find(c => c.name === invoice.customerName);
+      if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
-      const customer = customers[0];
 
       if (!customer.email) {
         return res.status(400).json({ message: "Customer email not found" });
@@ -3935,11 +3935,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get customer details
-      const customers = await storage.getCustomersByName(req.tenantId!, invoice.customerName);
-      if (!customers || customers.length === 0) {
+      const allCustomers = await storage.getCustomers(req.tenantId!);
+      const customer = allCustomers.find(c => c.name === invoice.customerName);
+      if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
-      const customer = customers[0];
 
       if (!customer.mobile) {
         return res.status(400).json({ message: "Customer mobile number not found" });
@@ -4069,13 +4069,20 @@ Due to the delayed payment on this invoice, we had to pay ₹${totalInterest.toL
 Best regards,
 ${profile?.legalName || 'Company'}`;
 
-      const result = await whatsappWebService.sendMessage(req.tenantId!, customer.mobile, message);
-
-      if (!result.success) {
-        return res.status(500).json({ message: result.error || "Failed to send WhatsApp message" });
+      // Format phone number for WhatsApp (remove non-digits, add country code if needed)
+      let phoneNumber = customer.mobile.replace(/\D/g, "");
+      if (!phoneNumber.startsWith("91") && phoneNumber.length === 10) {
+        phoneNumber = "91" + phoneNumber;
       }
 
-      res.json({ message: "Interest report sent via WhatsApp successfully" });
+      // Create WhatsApp Click to Chat link
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappLink = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+      res.json({ 
+        message: "WhatsApp link generated successfully",
+        whatsappLink: whatsappLink
+      });
     } catch (error: any) {
       console.error("Failed to send interest WhatsApp:", error);
       res.status(500).json({ message: error.message });

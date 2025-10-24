@@ -128,9 +128,8 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
 
   const sendEmailMutation = useMutation({
     mutationFn: async (data: { invoiceId: string }) => {
-      return await apiRequest(`/api/invoices/${data.invoiceId}/send-interest-email`, {
-        method: 'POST'
-      });
+      const response = await apiRequest("POST", `/api/invoices/${data.invoiceId}/send-interest-email`);
+      return await response.json();
     },
     onSuccess: () => {
       toast({
@@ -138,10 +137,10 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
         description: "Interest report has been sent to the customer via email.",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to send email. Please try again.",
+        description: error.message || "Failed to send email. Please try again.",
         variant: "destructive",
       });
     }
@@ -149,20 +148,21 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
 
   const sendWhatsAppMutation = useMutation({
     mutationFn: async (data: { invoiceId: string }) => {
-      return await apiRequest(`/api/invoices/${data.invoiceId}/send-interest-whatsapp`, {
-        method: 'POST'
-      });
+      const response = await apiRequest("POST", `/api/invoices/${data.invoiceId}/send-interest-whatsapp`);
+      return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: { whatsappLink: string }) => {
+      // Open WhatsApp with pre-filled message
+      window.open(data.whatsappLink, '_blank');
       toast({
-        title: "WhatsApp Sent",
-        description: "Interest report has been sent to the customer via WhatsApp.",
+        title: "Opening WhatsApp",
+        description: "WhatsApp is opening with the interest report message.",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to send WhatsApp message. Please try again.",
+        description: "Failed to generate WhatsApp message. Please try again.",
         variant: "destructive",
       });
     }
