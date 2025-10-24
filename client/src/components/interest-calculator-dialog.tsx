@@ -264,11 +264,6 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                   </p>
                 </div>
               </div>
-              <div className="mt-3 p-3 print:p-2 bg-gradient-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 border-2 border-yellow-400 dark:border-yellow-700 rounded shadow-sm">
-                <p className="text-sm print:text-xs font-extrabold text-yellow-900 dark:text-yellow-100">
-                  📅 Interest Applicable From: <span className="text-base font-extrabold">{breakdown.invoice.interestApplicableFrom}</span>
-                </p>
-              </div>
             </div>
 
             {/* Receipt Allocation & Balance Based Interest - Dashboard Table */}
@@ -352,12 +347,12 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
               </div>
             </div>
 
-            {/* Final G.P. Calculation - Enhanced Cards */}
+            {/* Final G.P. Calculation - Single Row */}
             <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-2 border-emerald-300 dark:border-emerald-800 rounded-lg p-4 print:p-2 shadow-sm print:shadow-none">
               <h3 className="text-lg print:text-sm font-extrabold text-emerald-800 dark:text-emerald-300 mb-3 pb-2 border-b-2 border-emerald-400 dark:border-emerald-700">
                 💵 Final G.P. Calculation
               </h3>
-              <div className="grid grid-cols-2 gap-3 print:gap-1.5">
+              <div className="grid grid-cols-4 gap-3 print:gap-1.5">
                 {/* Base G.P. Card */}
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-300 dark:border-green-700 rounded-lg p-3 print:p-1.5 shadow-md">
                   <p className="text-xs font-bold text-gray-700 dark:text-gray-400 uppercase tracking-wide mb-1">Base G.P.</p>
@@ -375,7 +370,7 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                 </div>
                 
                 {/* FINAL G.P. Card */}
-                <div className="bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-800 dark:to-teal-800 border-4 border-emerald-500 dark:border-emerald-600 rounded-lg p-4 print:p-1.5 shadow-lg">
+                <div className="bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-800 dark:to-teal-800 border-4 border-emerald-500 dark:border-emerald-600 rounded-lg p-3 print:p-1.5 shadow-lg">
                   <p className="text-xs font-extrabold text-emerald-800 dark:text-emerald-200 uppercase tracking-wide mb-1.5">FINAL G.P.</p>
                   <p className="text-2xl print:text-base font-extrabold text-emerald-900 dark:text-emerald-100">
                     ₹{breakdown.calculation.finalGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -383,7 +378,7 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                 </div>
                 
                 {/* FINAL G.P. % Card */}
-                <div className="bg-gradient-to-br from-teal-100 to-cyan-100 dark:from-teal-800/80 dark:to-cyan-800/80 border-4 border-teal-400 dark:border-teal-600 rounded-lg p-4 print:p-1.5 shadow-lg">
+                <div className="bg-gradient-to-br from-teal-100 to-cyan-100 dark:from-teal-800/80 dark:to-cyan-800/80 border-4 border-teal-400 dark:border-teal-600 rounded-lg p-3 print:p-1.5 shadow-lg">
                   <p className="text-xs font-extrabold text-teal-800 dark:text-teal-200 uppercase tracking-wide mb-1.5">FINAL G.P. %</p>
                   <p className="text-2xl print:text-base font-extrabold text-teal-900 dark:text-teal-100">
                     {breakdown.calculation.finalGpPercentage.toFixed(2)}%
