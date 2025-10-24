@@ -207,8 +207,9 @@ export function ProformaInvoiceTable({
         </DropdownMenu>
       </div>
 
-      <div className="rounded-md border bg-white dark:bg-gray-800">
-        <Table>
+      <div className="rounded-md border bg-white dark:bg-gray-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow className="bg-[#F1F5F9] dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600">
               <TableHead className="w-[50px]">
@@ -413,6 +414,7 @@ export function ProformaInvoiceTable({
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
