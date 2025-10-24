@@ -24,6 +24,14 @@ The application uses `shadcn/ui` (Radix UI) with Tailwind CSS for a responsive d
 *   **Proforma Invoice Module**: Full CRUD operations with grid features, enforcing one PI per quotation.
 *   **Enhanced Import System**: Universal editable import preview for various modules with inline error correction, smart parsing, and duplicate detection.
 *   **User Management & RBAC**: Granular, module-specific permissions (View, Create, Edit, Delete, Export, Import, Print) across 13 modules.
+*   **Credit Control & Recovery System**:
+    *   **Cumulative Grace Period Logic**: Categories determined by cumulative days (Alpha: 0-X days, Beta: X+1 to X+Y days, Gamma: X+Y+1 to X+Y+Z days, Delta: beyond X+Y+Z days)
+    *   **Partial Payment Threshold**: Invoices with payment percentage ≥ configured threshold (default 80%) are excluded from delay calculations and auto-upgrade logic
+    *   **Auto/Manual Category Mode**: Toggle between automatic category upgrades based on payment delays and manual category assignment with full audit logging
+    *   **Manual Category Override**: Category dropdown in Customer Master (disabled when auto-mode ON) allows manual changes with proper logging via dedicated endpoint
+    *   **Category Change Logs**: Complete audit trail of all category changes (auto and manual) with timestamp, reason, and changed-by user tracking
+    *   **Follow-up Rules**: Configurable follow-up frequency per category (Alpha, Beta, Gamma, Delta) with days between reminders
+    *   **Follow-up Automation Settings** (Schema defined, UI pending): Multi-channel automation (WhatsApp/Email/IVR) with 5 scheduling modes (fixed frequency, before due, after due, weekly specific day, monthly fixed date), category-wise action configuration, and IVR calling hours/retry limits
 *   **Communication Integrations**:
     *   **Email**: Nodemailer integration with support for Gmail OAuth2/SMTP, template management, variable substitution, and module-specific quick-access email buttons. Includes platform-level email configuration for tenant credential emails.
     *   **WhatsApp**: Enterprise-grade messaging via multi-provider support (Twilio, WATI, Meta, etc.), comprehensive configuration, and message templates with automatic data enrichment.
