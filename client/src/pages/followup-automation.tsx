@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,138 +9,82 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Save, Settings2, Calendar, Clock, Phone } from "lucide-react";
+import { Plus, Edit, Trash2, Settings2, Calendar, MessageSquare, Mail, Phone } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const followupAutomationFormSchema = z.object({
-  schedulingMode: z.enum(["fixed_frequency", "before_due", "after_due", "weekly", "monthly"]),
-  alphaWhatsapp: z.boolean(),
-  alphaEmail: z.boolean(),
-  alphaIvr: z.boolean(),
-  betaWhatsapp: z.boolean(),
-  betaEmail: z.boolean(),
-  betaIvr: z.boolean(),
-  gammaWhatsapp: z.boolean(),
-  gammaEmail: z.boolean(),
-  gammaIvr: z.boolean(),
-  deltaWhatsapp: z.boolean(),
-  deltaEmail: z.boolean(),
-  deltaIvr: z.boolean(),
+const followupScheduleSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  triggerType: z.enum(["days_before_due", "days_after_due", "fixed_weekly", "fixed_monthly"]),
+  timingValue: z.coerce.number().min(1, "Value must be at least 1"),
   weeklyDay: z.coerce.number().min(0).max(6).optional(),
-  monthlyDate: z.coerce.number().min(1).max(31).optional(),
-  daysBeforeDue: z.coerce.number().min(1).max(30).optional(),
-  enableIvrCalling: z.boolean(),
-  callingHoursStart: z.string(),
-  callingHoursEnd: z.string(),
-  maxRetriesPerDay: z.coerce.number().min(1).max(10),
+  enableWhatsapp: z.boolean(),
+  enableEmail: z.boolean(),
+  enableIvr: z.boolean(),
+  categoryFilter: z.string().optional(),
+  isActive: z.boolean(),
+  displayOrder: z.coerce.number().optional(),
 });
 
-type FollowupAutomationFormValues = z.infer<typeof followupAutomationFormSchema>;
+type FollowupScheduleFormValues = z.infer<typeof followupScheduleSchema>;
 
-interface FollowupAutomationSettings {
-  schedulingMode: string;
-  categoryActions: string;
+interface FollowupSchedule {
+  id: string;
+  name: string;
+  description?: string;
+  triggerType: string;
+  timingValue: number;
   weeklyDay?: number;
-  monthlyDate?: number;
-  daysBeforeDue?: number;
-  enableIvrCalling: boolean;
-  callingHoursStart: string;
-  callingHoursEnd: string;
-  maxRetriesPerDay: number;
+  enableWhatsapp: boolean;
+  enableEmail: boolean;
+  enableIvr: boolean;
+  categoryFilter?: string;
+  isActive: boolean;
+  displayOrder: number;
 }
 
 export default function FollowupAutomationPage() {
   const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<FollowupSchedule | null>(null);
 
-  const { data: settings, isLoading } = useQuery<FollowupAutomationSettings | null>({
-    queryKey: ["/api/recovery/followup-automation"],
+  const { data: schedules, isLoading } = useQuery<FollowupSchedule[]>({
+    queryKey: ["/api/recovery/followup-schedules"],
   });
 
-  const form = useForm<FollowupAutomationFormValues>({
-    resolver: zodResolver(followupAutomationFormSchema),
+  const form = useForm<FollowupScheduleFormValues>({
+    resolver: zodResolver(followupScheduleSchema),
     defaultValues: {
-      schedulingMode: "after_due",
-      alphaWhatsapp: false,
-      alphaEmail: false,
-      alphaIvr: false,
-      betaWhatsapp: true,
-      betaEmail: true,
-      betaIvr: false,
-      gammaWhatsapp: true,
-      gammaEmail: true,
-      gammaIvr: true,
-      deltaWhatsapp: true,
-      deltaEmail: true,
-      deltaIvr: true,
-      enableIvrCalling: false,
-      callingHoursStart: "09:00",
-      callingHoursEnd: "18:00",
-      maxRetriesPerDay: 3,
+      name: "",
+      description: "",
+      triggerType: "days_before_due",
+      timingValue: 7,
+      weeklyDay: 1,
+      enableWhatsapp: true,
+      enableEmail: true,
+      enableIvr: false,
+      categoryFilter: "all",
+      isActive: true,
+      displayOrder: 0,
     },
   });
 
-  // Update form when data loads
-  useQuery({
-    queryKey: ["followup-automation-loaded"],
-    enabled: !!settings,
-    queryFn: () => {
-      if (settings) {
-        const actions = JSON.parse(settings.categoryActions);
-        form.reset({
-          schedulingMode: settings.schedulingMode as any,
-          alphaWhatsapp: actions.alpha?.whatsapp || false,
-          alphaEmail: actions.alpha?.email || false,
-          alphaIvr: actions.alpha?.ivr || false,
-          betaWhatsapp: actions.beta?.whatsapp || false,
-          betaEmail: actions.beta?.email || false,
-          betaIvr: actions.beta?.ivr || false,
-          gammaWhatsapp: actions.gamma?.whatsapp || false,
-          gammaEmail: actions.gamma?.email || false,
-          gammaIvr: actions.gamma?.ivr || false,
-          deltaWhatsapp: actions.delta?.whatsapp || false,
-          deltaEmail: actions.delta?.email || false,
-          deltaIvr: actions.delta?.ivr || false,
-          weeklyDay: settings.weeklyDay,
-          monthlyDate: settings.monthlyDate,
-          daysBeforeDue: settings.daysBeforeDue,
-          enableIvrCalling: settings.enableIvrCalling,
-          callingHoursStart: settings.callingHoursStart,
-          callingHoursEnd: settings.callingHoursEnd,
-          maxRetriesPerDay: settings.maxRetriesPerDay,
-        });
-      }
-      return null;
-    },
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: async (data: FollowupAutomationFormValues) => {
-      const categoryActions = {
-        alpha: { whatsapp: data.alphaWhatsapp, email: data.alphaEmail, ivr: data.alphaIvr },
-        beta: { whatsapp: data.betaWhatsapp, email: data.betaEmail, ivr: data.betaIvr },
-        gamma: { whatsapp: data.gammaWhatsapp, email: data.gammaEmail, ivr: data.gammaIvr },
-        delta: { whatsapp: data.deltaWhatsapp, email: data.deltaEmail, ivr: data.deltaIvr },
-      };
-
-      await apiRequest("PUT", "/api/recovery/followup-automation", {
-        schedulingMode: data.schedulingMode,
-        categoryActions: JSON.stringify(categoryActions),
-        weeklyDay: data.weeklyDay,
-        monthlyDate: data.monthlyDate,
-        daysBeforeDue: data.daysBeforeDue,
-        enableIvrCalling: data.enableIvrCalling,
-        callingHoursStart: data.callingHoursStart,
-        callingHoursEnd: data.callingHoursEnd,
-        maxRetriesPerDay: data.maxRetriesPerDay,
-      });
+  const createMutation = useMutation({
+    mutationFn: async (data: FollowupScheduleFormValues) => {
+      await apiRequest("POST", "/api/recovery/followup-schedules", data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/recovery/followup-automation"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recovery/followup-schedules"] });
+      setIsDialogOpen(false);
+      setEditingSchedule(null);
+      form.reset();
       toast({
         title: "Success",
-        description: "Follow-up automation settings saved successfully",
+        description: "Follow-up schedule created successfully",
       });
     },
     onError: (error: Error) => {
@@ -151,9 +96,104 @@ export default function FollowupAutomationPage() {
     },
   });
 
-  const onSubmit = (data: FollowupAutomationFormValues) => {
-    saveMutation.mutate(data);
+  const updateMutation = useMutation({
+    mutationFn: async (data: FollowupScheduleFormValues & { id: string }) => {
+      await apiRequest("PUT", `/api/recovery/followup-schedules/${data.id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recovery/followup-schedules"] });
+      setIsDialogOpen(false);
+      setEditingSchedule(null);
+      form.reset();
+      toast({
+        title: "Success",
+        description: "Follow-up schedule updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/recovery/followup-schedules/${id}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recovery/followup-schedules"] });
+      toast({
+        title: "Success",
+        description: "Follow-up schedule deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: FollowupScheduleFormValues) => {
+    if (editingSchedule) {
+      updateMutation.mutate({ ...data, id: editingSchedule.id });
+    } else {
+      createMutation.mutate(data);
+    }
   };
+
+  const handleEdit = (schedule: FollowupSchedule) => {
+    setEditingSchedule(schedule);
+    form.reset({
+      name: schedule.name,
+      description: schedule.description || "",
+      triggerType: schedule.triggerType as any,
+      timingValue: schedule.timingValue,
+      weeklyDay: schedule.weeklyDay,
+      enableWhatsapp: schedule.enableWhatsapp,
+      enableEmail: schedule.enableEmail,
+      enableIvr: schedule.enableIvr,
+      categoryFilter: schedule.categoryFilter || "all",
+      isActive: schedule.isActive,
+      displayOrder: schedule.displayOrder,
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this schedule?")) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const handleAddNew = () => {
+    setEditingSchedule(null);
+    form.reset();
+    setIsDialogOpen(true);
+  };
+
+  const getTriggerLabel = (schedule: FollowupSchedule) => {
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    switch (schedule.triggerType) {
+      case "days_before_due":
+        return `${schedule.timingValue} days before due`;
+      case "days_after_due":
+        return `${schedule.timingValue} days after due`;
+      case "fixed_weekly":
+        return `Every ${dayNames[schedule.weeklyDay || 0]}`;
+      case "fixed_monthly":
+        return `Day ${schedule.timingValue} of month`;
+      default:
+        return schedule.triggerType;
+    }
+  };
+
+  const triggerType = form.watch("triggerType");
 
   if (isLoading) {
     return (
@@ -164,8 +204,6 @@ export default function FollowupAutomationPage() {
     );
   }
 
-  const schedulingMode = form.watch("schedulingMode");
-
   return (
     <div className="container mx-auto p-6 space-y-6 bg-background dark:bg-background">
       {/* Header */}
@@ -174,409 +212,424 @@ export default function FollowupAutomationPage() {
           <Settings2 className="h-8 w-8 text-purple-600 dark:text-purple-400" data-testid="icon-settings" />
           <div>
             <h1 className="text-3xl font-bold text-foreground dark:text-foreground" data-testid="text-page-title">
-              Follow-up Automation Settings
+              Follow-up Automation
             </h1>
             <p className="text-muted-foreground dark:text-muted-foreground mt-1">
-              Configure automated reminders for overdue customers
+              Configure multiple automated reminder schedules
             </p>
           </div>
         </div>
+        <Button
+          onClick={handleAddNew}
+          className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600"
+          data-testid="button-add-schedule"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Schedule
+        </Button>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* Scheduling Mode */}
-          <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-900/20 border-blue-200 dark:border-blue-800">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
-                <Calendar className="h-5 w-5" />
-                Scheduling Mode
-              </CardTitle>
-              <CardDescription className="text-blue-700 dark:text-blue-300">
-                Choose when follow-ups should be triggered
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="schedulingMode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-foreground dark:text-foreground">Mode</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="bg-white dark:bg-gray-900" data-testid="select-scheduling-mode">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="after_due">After Due Date (based on follow-up rules)</SelectItem>
-                        <SelectItem value="before_due">Before Due Date</SelectItem>
-                        <SelectItem value="fixed_frequency">Fixed Frequency</SelectItem>
-                        <SelectItem value="weekly">Weekly on Specific Day</SelectItem>
-                        <SelectItem value="monthly">Monthly on Specific Date</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      {schedulingMode === "after_due" && "Follow-ups trigger based on category rules (Alpha: every 7 days, Beta: every 4 days, etc.)"}
-                      {schedulingMode === "before_due" && "Send reminders before invoice due date"}
-                      {schedulingMode === "weekly" && "Send follow-ups on a specific day of the week"}
-                      {schedulingMode === "monthly" && "Send follow-ups on a specific date each month"}
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+      {/* Schedules Table */}
+      <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
+        <CardHeader>
+          <CardTitle className="text-purple-900 dark:text-purple-100">Active Follow-up Schedules</CardTitle>
+          <CardDescription className="text-purple-700 dark:text-purple-300">
+            Manage your automated reminder configurations
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {schedules && schedules.length > 0 ? (
+            <div className="rounded-md border border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-900 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-purple-100 dark:bg-purple-900/20">
+                    <TableHead className="text-purple-900 dark:text-purple-100 font-semibold">Name</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-100 font-semibold">Trigger</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-100 font-semibold">Channels</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-100 font-semibold">Category</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-100 font-semibold">Status</TableHead>
+                    <TableHead className="text-purple-900 dark:text-purple-100 font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {schedules.map((schedule) => (
+                    <TableRow key={schedule.id} data-testid={`row-schedule-${schedule.id}`}>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-foreground dark:text-foreground">{schedule.name}</p>
+                          {schedule.description && (
+                            <p className="text-sm text-muted-foreground dark:text-muted-foreground">{schedule.description}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          <span className="text-foreground dark:text-foreground">{getTriggerLabel(schedule)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {schedule.enableWhatsapp && (
+                            <div className="p-1.5 bg-green-100 dark:bg-green-900/30 rounded" title="WhatsApp">
+                              <MessageSquare className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            </div>
+                          )}
+                          {schedule.enableEmail && (
+                            <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded" title="Email">
+                              <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            </div>
+                          )}
+                          {schedule.enableIvr && (
+                            <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded" title="IVR Call">
+                              <Phone className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-foreground dark:text-foreground capitalize">
+                          {schedule.categoryFilter || "All"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            schedule.isActive
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                          }`}
+                        >
+                          {schedule.isActive ? "Active" : "Inactive"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(schedule)}
+                            data-testid={`button-edit-${schedule.id}`}
+                          >
+                            <Edit className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(schedule.id)}
+                            data-testid={`button-delete-${schedule.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-lg border border-purple-200 dark:border-purple-700">
+              <Calendar className="h-12 w-12 text-purple-300 dark:text-purple-600 mx-auto mb-4" />
+              <p className="text-muted-foreground dark:text-muted-foreground mb-4">
+                No follow-up schedules configured yet
+              </p>
+              <Button onClick={handleAddNew} variant="outline" data-testid="button-add-first">
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Schedule
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-              {schedulingMode === "before_due" && (
+      {/* Add/Edit Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900">
+          <DialogHeader>
+            <DialogTitle className="text-foreground dark:text-foreground">
+              {editingSchedule ? "Edit Follow-up Schedule" : "Add Follow-up Schedule"}
+            </DialogTitle>
+            <DialogDescription>
+              Configure when and how to send automated reminders to customers
+            </DialogDescription>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Basic Info */}
+              <div className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="daysBeforeDue"
+                  name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-foreground dark:text-foreground">Days Before Due</FormLabel>
+                      <FormLabel className="text-foreground dark:text-foreground">Schedule Name *</FormLabel>
                       <FormControl>
                         <Input
-                          type="number"
                           {...field}
-                          className="bg-white dark:bg-gray-900"
-                          data-testid="input-days-before-due"
+                          placeholder="e.g., 7 Days Before Due Reminder"
+                          className="bg-white dark:bg-gray-800"
+                          data-testid="input-schedule-name"
                         />
                       </FormControl>
-                      <FormDescription>Send reminders this many days before the due date</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
 
-              {schedulingMode === "weekly" && (
                 <FormField
                   control={form.control}
-                  name="weeklyDay"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-foreground dark:text-foreground">Day of Week</FormLabel>
-                      <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+                      <FormLabel className="text-foreground dark:text-foreground">Description</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Optional description"
+                          className="bg-white dark:bg-gray-800"
+                          data-testid="input-schedule-description"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Trigger Settings */}
+              <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h3 className="font-semibold text-blue-900 dark:text-blue-100">Trigger Settings</h3>
+                
+                <FormField
+                  control={form.control}
+                  name="triggerType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-foreground dark:text-foreground">When to Send</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger className="bg-white dark:bg-gray-900" data-testid="select-weekly-day">
-                            <SelectValue placeholder="Select day" />
+                          <SelectTrigger className="bg-white dark:bg-gray-800" data-testid="select-trigger-type">
+                            <SelectValue />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="0">Sunday</SelectItem>
-                          <SelectItem value="1">Monday</SelectItem>
-                          <SelectItem value="2">Tuesday</SelectItem>
-                          <SelectItem value="3">Wednesday</SelectItem>
-                          <SelectItem value="4">Thursday</SelectItem>
-                          <SelectItem value="5">Friday</SelectItem>
-                          <SelectItem value="6">Saturday</SelectItem>
+                          <SelectItem value="days_before_due">Days Before Due Date</SelectItem>
+                          <SelectItem value="days_after_due">Days After Due Date</SelectItem>
+                          <SelectItem value="fixed_weekly">Fixed Weekly</SelectItem>
+                          <SelectItem value="fixed_monthly">Fixed Monthly</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
 
-              {schedulingMode === "monthly" && (
-                <FormField
-                  control={form.control}
-                  name="monthlyDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground dark:text-foreground">Date of Month</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="31"
-                          {...field}
-                          className="bg-white dark:bg-gray-900"
-                          data-testid="input-monthly-date"
-                        />
-                      </FormControl>
-                      <FormDescription>Day of the month (1-31) to send follow-ups</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Category-wise Actions */}
-          <Card className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
-            <CardHeader>
-              <CardTitle className="text-purple-900 dark:text-purple-100">Category-wise Actions</CardTitle>
-              <CardDescription className="text-purple-700 dark:text-purple-300">
-                Enable/disable communication channels per category
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Alpha Category */}
-              <div className="p-6 bg-green-100 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                <h3 className="font-semibold text-green-900 dark:text-green-100 mb-4">Alpha Category</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {(triggerType === "days_before_due" || triggerType === "days_after_due") && (
                   <FormField
                     control={form.control}
-                    name="alphaWhatsapp"
+                    name="timingValue"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">WhatsApp</FormLabel>
+                      <FormItem>
+                        <FormLabel className="text-foreground dark:text-foreground">Number of Days</FormLabel>
                         <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-alpha-whatsapp" />
+                          <Input
+                            type="number"
+                            min="1"
+                            {...field}
+                            className="bg-white dark:bg-gray-800"
+                            data-testid="input-timing-value"
+                          />
                         </FormControl>
+                        <FormDescription>
+                          {triggerType === "days_before_due" ? "Send reminder this many days before due date" : "Send reminder this many days after due date"}
+                        </FormDescription>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="alphaEmail"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">Email</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-alpha-email" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="alphaIvr"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">IVR Call</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-alpha-ivr" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Beta Category */}
-              <div className="p-6 bg-yellow-100 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                <h3 className="font-semibold text-yellow-900 dark:text-yellow-100 mb-4">Beta Category</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="betaWhatsapp"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">WhatsApp</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-beta-whatsapp" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="betaEmail"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">Email</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-beta-email" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="betaIvr"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">IVR Call</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-beta-ivr" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Gamma Category */}
-              <div className="p-6 bg-orange-100 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800">
-                <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-4">Gamma Category</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="gammaWhatsapp"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">WhatsApp</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-gamma-whatsapp" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="gammaEmail"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">Email</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-gamma-email" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="gammaIvr"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">IVR Call</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-gamma-ivr" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Delta Category */}
-              <div className="p-6 bg-red-100 dark:bg-red-950/30 rounded-lg border border-red-200 dark:border-red-800">
-                <h3 className="font-semibold text-red-900 dark:text-red-100 mb-4">Delta Category</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="deltaWhatsapp"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">WhatsApp</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-delta-whatsapp" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="deltaEmail"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">Email</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-delta-email" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="deltaIvr"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-x-3 space-y-0 p-3 bg-white/50 dark:bg-gray-900/50 rounded-md">
-                        <FormLabel className="text-foreground dark:text-foreground font-medium">IVR Call</FormLabel>
-                        <FormControl>
-                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-delta-ivr" />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* IVR Settings */}
-          <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-900/20 border-indigo-200 dark:border-indigo-800">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-indigo-900 dark:text-indigo-100">
-                <Phone className="h-5 w-5" />
-                IVR Calling Settings
-              </CardTitle>
-              <CardDescription className="text-indigo-700 dark:text-indigo-300">
-                Configure automated calling parameters
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <FormField
-                control={form.control}
-                name="enableIvrCalling"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between space-y-0">
-                    <div>
-                      <FormLabel className="text-foreground dark:text-foreground">Enable IVR Calling</FormLabel>
-                      <FormDescription>Allow system to make automated calls to customers</FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-enable-ivr" />
-                    </FormControl>
-                  </FormItem>
                 )}
-              />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="callingHoursStart"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground dark:text-foreground">Calling Hours Start</FormLabel>
-                      <FormControl>
-                        <Input type="time" {...field} className="bg-white dark:bg-gray-900" data-testid="input-calling-start" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {triggerType === "fixed_weekly" && (
+                  <FormField
+                    control={form.control}
+                    name="weeklyDay"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-foreground dark:text-foreground">Day of Week</FormLabel>
+                        <Select onValueChange={(value) => field.onChange(parseInt(value))} value={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger className="bg-white dark:bg-gray-800" data-testid="select-weekly-day">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="0">Sunday</SelectItem>
+                            <SelectItem value="1">Monday</SelectItem>
+                            <SelectItem value="2">Tuesday</SelectItem>
+                            <SelectItem value="3">Wednesday</SelectItem>
+                            <SelectItem value="4">Thursday</SelectItem>
+                            <SelectItem value="5">Friday</SelectItem>
+                            <SelectItem value="6">Saturday</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
 
-                <FormField
-                  control={form.control}
-                  name="callingHoursEnd"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-foreground dark:text-foreground">Calling Hours End</FormLabel>
-                      <FormControl>
-                        <Input type="time" {...field} className="bg-white dark:bg-gray-900" data-testid="input-calling-end" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {triggerType === "fixed_monthly" && (
+                  <FormField
+                    control={form.control}
+                    name="timingValue"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-foreground dark:text-foreground">Day of Month</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="31"
+                            {...field}
+                            className="bg-white dark:bg-gray-800"
+                            data-testid="input-monthly-day"
+                          />
+                        </FormControl>
+                        <FormDescription>Send reminder on this day each month (1-31)</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </div>
 
+              {/* Communication Channels */}
+              <div className="space-y-4 p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                <h3 className="font-semibold text-green-900 dark:text-green-100">Communication Channels</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="enableWhatsapp"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 p-3 bg-white dark:bg-gray-800 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4" />
+                          WhatsApp
+                        </FormLabel>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-whatsapp" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="enableEmail"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 p-3 bg-white dark:bg-gray-800 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium flex items-center gap-2">
+                          <Mail className="h-4 w-4" />
+                          Email
+                        </FormLabel>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-email" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="enableIvr"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between space-y-0 p-3 bg-white dark:bg-gray-800 rounded-md">
+                        <FormLabel className="text-foreground dark:text-foreground font-medium flex items-center gap-2">
+                          <Phone className="h-4 w-4" />
+                          IVR Call
+                        </FormLabel>
+                        <FormControl>
+                          <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-ivr" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Category Filter */}
               <FormField
                 control={form.control}
-                name="maxRetriesPerDay"
+                name="categoryFilter"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-foreground dark:text-foreground">Max Retries Per Day</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} className="bg-white dark:bg-gray-900" data-testid="input-max-retries" />
-                    </FormControl>
-                    <FormDescription>Maximum number of call attempts per customer per day</FormDescription>
+                    <FormLabel className="text-foreground dark:text-foreground">Category Filter</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="bg-white dark:bg-gray-800" data-testid="select-category-filter">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        <SelectItem value="alpha">Alpha Only</SelectItem>
+                        <SelectItem value="beta">Beta Only</SelectItem>
+                        <SelectItem value="gamma">Gamma Only</SelectItem>
+                        <SelectItem value="delta">Delta Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>Which customer categories should receive this reminder</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </CardContent>
-          </Card>
 
-          {/* Save Button */}
-          <div className="flex justify-end">
-            <Button
-              type="submit"
-              disabled={saveMutation.isPending}
-              className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600"
-              data-testid="button-save-settings"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {saveMutation.isPending ? "Saving..." : "Save Settings"}
-            </Button>
-          </div>
-        </form>
-      </Form>
+              {/* Active Toggle */}
+              <FormField
+                control={form.control}
+                name="isActive"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between">
+                    <div>
+                      <FormLabel className="text-foreground dark:text-foreground">Active</FormLabel>
+                      <FormDescription>Enable or disable this schedule</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-active" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {/* Form Actions */}
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsDialogOpen(false);
+                    setEditingSchedule(null);
+                    form.reset();
+                  }}
+                  data-testid="button-cancel"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600"
+                  data-testid="button-save"
+                >
+                  {createMutation.isPending || updateMutation.isPending ? "Saving..." : editingSchedule ? "Update" : "Create"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
