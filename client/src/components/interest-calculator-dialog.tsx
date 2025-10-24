@@ -352,6 +352,46 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
               </div>
             </div>
 
+            {/* Final G.P. Calculation - Small Cards */}
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 print:p-2 shadow-sm print:shadow-none">
+              <h3 className="text-base print:text-sm font-bold text-emerald-800 dark:text-emerald-300 mb-2 pb-1 border-b border-emerald-300 dark:border-emerald-700">
+                💵 Final G.P. Calculation
+              </h3>
+              <div className="grid grid-cols-2 gap-2 print:gap-1.5">
+                {/* Base G.P. Card */}
+                <div className="bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-700 rounded p-2 print:p-1.5 shadow-sm">
+                  <p className="text-[9px] font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-0.5">Base G.P.</p>
+                  <p className="text-sm print:text-xs font-extrabold text-green-700 dark:text-green-300">
+                    ₹{breakdown.calculation.baseGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                
+                {/* Less: Total Interest Card */}
+                <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border border-red-200 dark:border-red-700 rounded p-2 print:p-1.5 shadow-sm">
+                  <p className="text-[9px] font-semibold text-red-700 dark:text-red-400 uppercase tracking-wide mb-0.5">Less: Total Interest</p>
+                  <p className="text-sm print:text-xs font-extrabold text-red-700 dark:text-red-300">
+                    - ₹{breakdown.calculation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                
+                {/* FINAL G.P. Card */}
+                <div className="bg-gradient-to-br from-emerald-100 to-teal-100 dark:from-emerald-800 dark:to-teal-800 border-2 border-emerald-400 dark:border-emerald-600 rounded p-2 print:p-1.5 shadow-sm">
+                  <p className="text-[9px] font-semibold text-emerald-800 dark:text-emerald-200 uppercase tracking-wide mb-0.5">FINAL G.P.</p>
+                  <p className="text-lg print:text-base font-extrabold text-emerald-900 dark:text-emerald-100">
+                    ₹{breakdown.calculation.finalGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                
+                {/* FINAL G.P. % Card */}
+                <div className="bg-gradient-to-br from-teal-100 to-cyan-100 dark:from-teal-800/80 dark:to-cyan-800/80 border border-teal-300 dark:border-teal-600 rounded p-2 print:p-1.5 shadow-sm">
+                  <p className="text-[9px] font-semibold text-teal-800 dark:text-teal-200 uppercase tracking-wide mb-0.5">FINAL G.P. %</p>
+                  <p className="text-lg print:text-base font-extrabold text-teal-900 dark:text-teal-100">
+                    {breakdown.calculation.finalGpPercentage.toFixed(2)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
       </DialogContent>
