@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, Download, X } from "lucide-react";
+import { Download, X } from "lucide-react";
 import { format } from "date-fns";
 import html2pdf from "html2pdf.js";
 
@@ -71,8 +71,6 @@ interface InterestBreakdown {
 }
 
 export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalculatorDialogProps) {
-  const [isPrinting, setIsPrinting] = useState(false);
-
   const { data: profile, isLoading: profileLoading } = useQuery<CompanyProfile>({
     queryKey: ["/api/company-profile"],
     enabled: !!invoiceId,
@@ -82,14 +80,6 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
     queryKey: [`/api/invoices/${invoiceId}/interest-breakdown`],
     enabled: !!invoiceId,
   });
-
-  const handlePrint = () => {
-    setIsPrinting(true);
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 100);
-  };
 
   const handleDownloadPDF = () => {
     const element = document.getElementById('interest-calculator-content');
@@ -136,10 +126,6 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                 <Download className="h-4 w-4 mr-2" />
                 Download PDF
               </Button>
-              <Button variant="outline" size="sm" onClick={handlePrint} data-testid="button-print">
-                <Printer className="h-4 w-4 mr-2" />
-                Print
-              </Button>
               <Button variant="ghost" size="sm" onClick={onClose} data-testid="button-close">
                 <X className="h-4 w-4" />
               </Button>
@@ -157,20 +143,20 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             <Button variant="outline" onClick={onClose}>Close</Button>
           </div>
         ) : (
-          <div className="space-y-5 print:space-y-3" id="interest-calculator-content">
+          <div className="space-y-3 print:space-y-2" id="interest-calculator-content">
             {/* Dashboard-Style Header with Complete Business Details */}
-            <div className="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30 p-6 print:p-4 rounded-xl print:rounded-lg shadow-sm print:shadow-none border-2 border-blue-200 dark:border-blue-800">
+            <div className="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/30 dark:via-purple-900/30 dark:to-pink-900/30 p-4 print:p-3 rounded-lg shadow-sm print:shadow-none border-2 border-blue-200 dark:border-blue-800">
               <div className="text-center">
-                <div className="flex justify-center items-center gap-3 mb-2">
+                <div className="flex justify-center items-center gap-2 mb-1">
                   {profile?.logoUrl && (
                     <img 
                       src={profile.logoUrl} 
                       alt="Company Logo" 
-                      className="h-16 w-16 print:h-14 print:w-14 bg-white rounded-lg p-2 shadow-md object-contain"
+                      className="h-12 w-12 print:h-10 print:w-10 bg-white rounded p-1 shadow-sm object-contain"
                     />
                   )}
                   <div>
-                    <h1 className="text-3xl print:text-2xl font-extrabold text-blue-900 dark:text-blue-100">
+                    <h1 className="text-2xl print:text-xl font-extrabold text-blue-900 dark:text-blue-100">
                       {profile?.companyName || "Company Name"}
                     </h1>
                   </div>
@@ -178,7 +164,7 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                 
                 {/* Complete Address */}
                 {(profile?.regAddressLine1 || profile?.address) && (
-                  <div className="text-sm text-gray-700 dark:text-gray-300 mt-2 font-medium">
+                  <div className="text-xs text-gray-700 dark:text-gray-300 mt-1 font-medium">
                     {profile?.regAddressLine1 && (
                       <>
                         {profile.regAddressLine1}
@@ -193,7 +179,7 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                 )}
                 
                 {/* Contact Details Row */}
-                <div className="flex justify-center flex-wrap gap-4 text-sm text-gray-700 dark:text-gray-300 mt-3 font-semibold">
+                <div className="flex justify-center flex-wrap gap-3 text-xs text-gray-700 dark:text-gray-300 mt-2 font-semibold">
                   {profile?.gstin && <span>📋 GSTIN: {profile.gstin}</span>}
                   {profile?.primaryContactMobile && <span>📱 {profile.primaryContactMobile}</span>}
                   {profile?.phone && !profile?.primaryContactMobile && <span>📱 {profile.phone}</span>}
@@ -201,26 +187,26 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                 </div>
                 
                 {/* Report Title */}
-                <div className="mt-3 pt-3 print:mt-2 print:pt-2 border-t-2 border-blue-300 dark:border-blue-700">
-                  <h2 className="text-xl print:text-lg font-bold text-purple-800 dark:text-purple-300">Interest Calculation Report</h2>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Generated on {format(new Date(), "dd MMM yyyy hh:mm a")}</p>
+                <div className="mt-2 pt-2 border-t border-blue-300 dark:border-blue-700">
+                  <h2 className="text-lg print:text-base font-bold text-purple-800 dark:text-purple-300">Interest Calculation Report</h2>
+                  <p className="text-[10px] text-gray-600 dark:text-gray-400 mt-0.5">Generated on {format(new Date(), "dd MMM yyyy hh:mm a")}</p>
                 </div>
               </div>
             </div>
 
             {/* Customer & Invoice Details - Dashboard Style */}
-            <div className="grid grid-cols-2 gap-5 print:gap-3">
+            <div className="grid grid-cols-2 gap-3 print:gap-2">
               {/* Customer Card */}
-              <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 border-2 border-green-200 dark:border-green-800 rounded-xl print:rounded-lg p-6 print:p-4 shadow-md print:shadow-none">
-                <h3 className="text-xl print:text-lg font-bold text-green-800 dark:text-green-300 mb-4 pb-2 border-b-2 border-green-300 dark:border-green-700">
+              <div className="bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/20 dark:to-teal-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 print:p-2 shadow-sm print:shadow-none">
+                <h3 className="text-base print:text-sm font-bold text-green-800 dark:text-green-300 mb-2 pb-1 border-b border-green-300 dark:border-green-700">
                   👤 Customer Details
                 </h3>
-                <div className="space-y-3 print:space-y-2">
-                  <div className="flex justify-between">
+                <div className="space-y-1.5 print:space-y-1">
+                  <div className="flex justify-between text-xs">
                     <span className="text-gray-700 dark:text-gray-300 font-semibold">Name:</span>
                     <span className="font-bold text-gray-900 dark:text-gray-100">{breakdown.invoice.customerName}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-xs">
                     <span className="text-gray-700 dark:text-gray-300 font-semibold">Status:</span>
                     <span className="font-bold text-green-700 dark:text-green-400">{breakdown.invoice.status}</span>
                   </div>
@@ -228,24 +214,24 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
               </div>
 
               {/* Invoice Card */}
-              <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border-2 border-orange-200 dark:border-orange-800 rounded-xl print:rounded-lg p-6 print:p-4 shadow-md print:shadow-none">
-                <h3 className="text-xl print:text-lg font-bold text-orange-800 dark:text-orange-300 mb-4 pb-2 border-b-2 border-orange-300 dark:border-orange-700">
+              <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3 print:p-2 shadow-sm print:shadow-none">
+                <h3 className="text-base print:text-sm font-bold text-orange-800 dark:text-orange-300 mb-2 pb-1 border-b border-orange-300 dark:border-orange-700">
                   📄 Invoice Details
                 </h3>
-                <div className="space-y-3 print:space-y-2">
-                  <div className="flex justify-between">
+                <div className="space-y-1.5 print:space-y-1">
+                  <div className="flex justify-between text-xs">
                     <span className="text-gray-700 dark:text-gray-300 font-semibold">Invoice #:</span>
                     <span className="font-bold text-gray-900 dark:text-gray-100">{breakdown.invoice.invoiceNumber}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-xs">
                     <span className="text-gray-700 dark:text-gray-300 font-semibold">Date:</span>
                     <span className="font-bold text-gray-900 dark:text-gray-100">{format(new Date(breakdown.invoice.invoiceDate), "dd MMM yyyy")}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-xs">
                     <span className="text-gray-700 dark:text-gray-300 font-semibold">Due Date:</span>
                     <span className="font-bold text-red-700 dark:text-red-400">{format(new Date(breakdown.invoice.dueDate), "dd MMM yyyy")}</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between text-xs">
                     <span className="text-gray-700 dark:text-gray-300 font-semibold">Payment Terms:</span>
                     <span className="font-bold text-gray-900 dark:text-gray-100">{breakdown.invoice.paymentTerms} days</span>
                   </div>
@@ -254,58 +240,58 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             </div>
 
             {/* Invoice Summary - Dashboard Cards */}
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-2 border-purple-200 dark:border-purple-800 rounded-xl print:rounded-lg p-5 print:p-3 shadow-md print:shadow-none">
-              <h3 className="text-lg print:text-base font-bold text-purple-800 dark:text-purple-300 mb-3 pb-2 border-b-2 border-purple-300 dark:border-purple-700">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3 print:p-2 shadow-sm print:shadow-none">
+              <h3 className="text-base print:text-sm font-bold text-purple-800 dark:text-purple-300 mb-2 pb-1 border-b border-purple-300 dark:border-purple-700">
                 💰 Invoice Summary
               </h3>
-              <div className="grid grid-cols-3 gap-3 print:gap-2">
-                <div className="text-center p-5 print:p-3 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border-2 border-blue-300 dark:border-blue-700 rounded-lg shadow-sm">
-                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-2">Invoice Amount</p>
-                  <p className="text-3xl print:text-2xl font-extrabold text-blue-900 dark:text-blue-100">
+              <div className="grid grid-cols-3 gap-2 print:gap-1.5">
+                <div className="text-center p-2 print:p-1.5 bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/30 dark:to-cyan-900/30 border border-blue-300 dark:border-blue-700 rounded shadow-sm">
+                  <p className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide mb-1">Invoice Amount</p>
+                  <p className="text-lg print:text-base font-extrabold text-blue-900 dark:text-blue-100">
                     ₹{breakdown.invoice.invoiceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="text-center p-5 print:p-3 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-300 dark:border-green-700 rounded-lg shadow-sm">
-                  <p className="text-xs font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide mb-2">Base G.P.</p>
-                  <p className="text-3xl print:text-2xl font-extrabold text-green-900 dark:text-green-100">
+                <div className="text-center p-2 print:p-1.5 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-300 dark:border-green-700 rounded shadow-sm">
+                  <p className="text-[10px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide mb-1">Base G.P.</p>
+                  <p className="text-lg print:text-base font-extrabold text-green-900 dark:text-green-100">
                     ₹{breakdown.calculation.baseGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="text-center p-5 print:p-3 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border-2 border-purple-300 dark:border-purple-700 rounded-lg shadow-sm">
-                  <p className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide mb-2">Interest Rate</p>
-                  <p className="text-3xl print:text-2xl font-extrabold text-purple-900 dark:text-purple-100">
+                <div className="text-center p-2 print:p-1.5 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-300 dark:border-purple-700 rounded shadow-sm">
+                  <p className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide mb-1">Interest Rate</p>
+                  <p className="text-lg print:text-base font-extrabold text-purple-900 dark:text-purple-100">
                     {breakdown.invoice.interestRate}% p.a.
                   </p>
                 </div>
               </div>
-              <div className="mt-4 p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg">
-                <p className="text-sm font-bold text-yellow-900 dark:text-yellow-100">
+              <div className="mt-2 p-2 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded">
+                <p className="text-xs font-bold text-yellow-900 dark:text-yellow-100">
                   📅 Interest Applicable From: <span className="font-extrabold">{breakdown.invoice.interestApplicableFrom}</span>
                 </p>
               </div>
             </div>
 
             {/* Receipt Allocation & Balance Based Interest - Dashboard Table */}
-            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border-2 border-indigo-200 dark:border-indigo-800 rounded-xl print:rounded-lg overflow-hidden shadow-md print:shadow-none">
-              <div className="p-6 print:p-4 bg-gradient-to-r from-indigo-100 to-blue-100 dark:from-indigo-900/40 dark:to-blue-900/40 border-b-2 border-indigo-300 dark:border-indigo-700">
-                <h3 className="text-xl print:text-lg font-bold text-indigo-900 dark:text-indigo-100">
+            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg overflow-hidden shadow-sm print:shadow-none">
+              <div className="p-3 print:p-2 bg-gradient-to-r from-indigo-100 to-blue-100 dark:from-indigo-900/40 dark:to-blue-900/40 border-b border-indigo-300 dark:border-indigo-700">
+                <h3 className="text-base print:text-sm font-bold text-indigo-900 dark:text-indigo-100">
                   📊 Period-wise Interest Breakdown
                 </h3>
-                <p className="text-sm text-indigo-800 dark:text-indigo-200 mt-2 font-semibold">
+                <p className="text-xs text-indigo-800 dark:text-indigo-200 mt-1 font-semibold">
                   Interest charged on outstanding balance for the days BETWEEN each payment (after due date)
                 </p>
               </div>
               
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs">
                   <thead className="bg-gradient-to-r from-slate-700 to-slate-600 dark:from-slate-800 dark:to-slate-700 text-white">
                     <tr>
-                      <th className="px-4 py-4 print:py-3 text-left font-bold">Receipt Date</th>
-                      <th className="px-4 py-4 print:py-3 text-right font-bold">Receipt Amount</th>
-                      <th className="px-4 py-4 print:py-3 text-right font-bold">Balance Amount</th>
-                      <th className="px-4 py-4 print:py-3 text-center font-bold">Days in Period</th>
-                      <th className="px-4 py-4 print:py-3 text-center font-bold">Status</th>
-                      <th className="px-4 py-4 print:py-3 text-right font-bold">Interest for Period</th>
+                      <th className="px-2 py-2 print:py-1.5 text-left font-bold">Receipt Date</th>
+                      <th className="px-2 py-2 print:py-1.5 text-right font-bold">Receipt Amount</th>
+                      <th className="px-2 py-2 print:py-1.5 text-right font-bold">Balance Amount</th>
+                      <th className="px-2 py-2 print:py-1.5 text-center font-bold">Days in Period</th>
+                      <th className="px-2 py-2 print:py-1.5 text-center font-bold">Status</th>
+                      <th className="px-2 py-2 print:py-1.5 text-right font-bold">Interest for Period</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -313,14 +299,14 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                       // Handle DUE DATE row
                       if (allocation.isDueDateRow) {
                         return (
-                          <tr key={`due-date-${index}`} className="bg-gradient-to-r from-red-100 to-pink-100 dark:from-red-900/30 dark:to-pink-900/30 font-bold border-2 border-red-300 dark:border-red-700">
-                            <td className="px-4 py-4 print:py-3">
+                          <tr key={`due-date-${index}`} className="bg-gradient-to-r from-red-100 to-pink-100 dark:from-red-900/30 dark:to-pink-900/30 font-bold border border-red-300 dark:border-red-700">
+                            <td className="px-2 py-1.5 print:py-1">
                               <span className="font-extrabold text-red-900 dark:text-red-100">{format(new Date(allocation.receiptDate), "dd MMM yyyy")}</span>
                             </td>
-                            <td className="px-4 py-4 print:py-3 text-right text-gray-500">—</td>
-                            <td className="px-4 py-4 print:py-3 text-right font-extrabold text-red-900 dark:text-red-100">₹{allocation.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                            <td className="px-4 py-4 print:py-3 text-center font-extrabold text-red-900 dark:text-red-100">DUE DATE</td>
-                            <td className="px-4 py-4 print:py-3 text-center" colSpan={2}>
+                            <td className="px-2 py-1.5 print:py-1 text-right text-gray-500">—</td>
+                            <td className="px-2 py-1.5 print:py-1 text-right font-extrabold text-red-900 dark:text-red-100">₹{allocation.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="px-2 py-1.5 print:py-1 text-center font-extrabold text-red-900 dark:text-red-100">DUE DATE</td>
+                            <td className="px-2 py-1.5 print:py-1 text-center" colSpan={2}>
                               <span className="text-red-800 dark:text-red-200 font-extrabold">{allocation.message}</span>
                             </td>
                           </tr>
@@ -334,18 +320,18 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                         : "bg-green-50 dark:bg-green-900/10";
                       return (
                         <tr key={allocation.receiptId || index} className={`${rowBg} hover:bg-indigo-100 dark:hover:bg-indigo-900/20 transition-colors`}>
-                          <td className="px-4 py-4 print:py-3 font-bold text-gray-900 dark:text-gray-100">{format(new Date(allocation.receiptDate), "dd MMM yyyy")}</td>
-                          <td className="px-4 py-4 print:py-3 text-right font-bold text-gray-900 dark:text-gray-100">₹{(allocation.receiptAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                          <td className="px-4 py-4 print:py-3 text-right font-extrabold text-blue-900 dark:text-blue-100">₹{allocation.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                          <td className="px-4 py-4 print:py-3 text-center font-bold text-gray-900 dark:text-gray-100">
+                          <td className="px-2 py-1.5 print:py-1 font-bold text-gray-900 dark:text-gray-100">{format(new Date(allocation.receiptDate), "dd MMM yyyy")}</td>
+                          <td className="px-2 py-1.5 print:py-1 text-right font-bold text-gray-900 dark:text-gray-100">₹{(allocation.receiptAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="px-2 py-1.5 print:py-1 text-right font-extrabold text-blue-900 dark:text-blue-100">₹{allocation.balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                          <td className="px-2 py-1.5 print:py-1 text-center font-bold text-gray-900 dark:text-gray-100">
                             {(allocation.daysInPeriod || 0) === 0 ? "—" : `${allocation.daysInPeriod} days`}
                           </td>
-                          <td className="px-4 py-4 print:py-3 text-center">
-                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${status.className}`}>
+                          <td className="px-2 py-1.5 print:py-1 text-center">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${status.className}`}>
                               {status.label}
                             </span>
                           </td>
-                          <td className="px-4 py-4 print:py-3 text-right font-extrabold text-orange-700 dark:text-orange-300">
+                          <td className="px-2 py-1.5 print:py-1 text-right font-extrabold text-orange-700 dark:text-orange-300">
                             ₹{(allocation.interestAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </td>
                         </tr>
@@ -353,13 +339,13 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                     })}
                     
                     {/* TOTAL Row */}
-                    <tr className="bg-gradient-to-r from-slate-700 to-slate-600 dark:from-slate-800 dark:to-slate-700 text-white font-extrabold border-t-4 border-slate-900">
-                      <td className="px-4 py-5 print:py-4 text-lg">TOTAL</td>
-                      <td className="px-4 py-5 print:py-4 text-right text-lg">₹{breakdown.allocation.totalReceiptAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="px-4 py-5 print:py-4 text-right text-lg">₹{breakdown.allocation.unpaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="px-4 py-5 print:py-4 text-center">—</td>
-                      <td className="px-4 py-5 print:py-4 text-center">—</td>
-                      <td className="px-4 py-5 print:py-4 text-right text-lg">₹{breakdown.allocation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <tr className="bg-gradient-to-r from-slate-700 to-slate-600 dark:from-slate-800 dark:to-slate-700 text-white font-extrabold border-t-2 border-slate-900">
+                      <td className="px-2 py-2 print:py-1.5 text-sm">TOTAL</td>
+                      <td className="px-2 py-2 print:py-1.5 text-right text-sm">₹{breakdown.allocation.totalReceiptAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="px-2 py-2 print:py-1.5 text-right text-sm">₹{breakdown.allocation.unpaidAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td className="px-2 py-2 print:py-1.5 text-center">—</td>
+                      <td className="px-2 py-2 print:py-1.5 text-center">—</td>
+                      <td className="px-2 py-2 print:py-1.5 text-right text-sm">₹{breakdown.allocation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -367,36 +353,36 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
             </div>
 
             {/* Final Calculation Summary - Dashboard Style */}
-            <div className="bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100 dark:from-emerald-900/30 dark:via-teal-900/30 dark:to-cyan-900/30 border-4 border-emerald-300 dark:border-emerald-700 rounded-2xl print:rounded-xl p-6 print:p-4 shadow-xl print:shadow-lg">
-              <h3 className="text-2xl print:text-xl font-extrabold text-center text-emerald-900 dark:text-emerald-100 mb-4 pb-2 border-b-4 border-emerald-400 dark:border-emerald-600">
+            <div className="bg-gradient-to-br from-emerald-100 via-teal-100 to-cyan-100 dark:from-emerald-900/30 dark:via-teal-900/30 dark:to-cyan-900/30 border-2 border-emerald-300 dark:border-emerald-700 rounded-lg p-3 print:p-2 shadow-sm print:shadow-none">
+              <h3 className="text-base print:text-sm font-extrabold text-center text-emerald-900 dark:text-emerald-100 mb-2 pb-1 border-b-2 border-emerald-400 dark:border-emerald-600">
                 💵 Final G.P. Calculation
               </h3>
               
-              <div className="space-y-3 print:space-y-2 max-w-3xl mx-auto">
-                <div className="flex justify-between items-center py-4 print:py-3 px-6 print:px-4 bg-white dark:bg-gray-800 rounded-lg border-2 border-emerald-200 dark:border-emerald-800">
-                  <span className="text-lg font-bold text-gray-700 dark:text-gray-300">Base G.P.</span>
-                  <span className="text-2xl print:text-xl font-extrabold text-green-700 dark:text-green-300">
+              <div className="space-y-2 print:space-y-1.5 max-w-3xl mx-auto">
+                <div className="flex justify-between items-center py-2 print:py-1.5 px-3 print:px-2 bg-white dark:bg-gray-800 rounded border border-emerald-200 dark:border-emerald-800">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Base G.P.</span>
+                  <span className="text-base print:text-sm font-extrabold text-green-700 dark:text-green-300">
                     ₹{breakdown.calculation.baseGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
                 
-                <div className="flex justify-between items-center py-4 print:py-3 px-6 print:px-4 bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 rounded-lg border-2 border-red-300 dark:border-red-700">
-                  <span className="text-lg font-bold text-red-800 dark:text-red-200">Less: Total Interest (Period-Based)</span>
-                  <span className="text-2xl print:text-xl font-extrabold text-red-700 dark:text-red-300">
+                <div className="flex justify-between items-center py-2 print:py-1.5 px-3 print:px-2 bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 rounded border border-red-300 dark:border-red-700">
+                  <span className="text-sm font-bold text-red-800 dark:text-red-200">Less: Total Interest (Period-Based)</span>
+                  <span className="text-base print:text-sm font-extrabold text-red-700 dark:text-red-300">
                     - ₹{breakdown.calculation.totalInterest.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
                 
-                <div className="border-t-4 border-emerald-500 dark:border-emerald-400 pt-5 mt-6">
-                  <div className="flex justify-between items-center py-5 print:py-4 px-8 print:px-6 bg-gradient-to-r from-emerald-200 to-teal-200 dark:from-emerald-800 dark:to-teal-800 rounded-xl border-4 border-emerald-400 dark:border-emerald-600 shadow-lg">
-                    <span className="text-2xl print:text-xl font-extrabold text-emerald-900 dark:text-emerald-100">FINAL G.P.</span>
-                    <span className="text-4xl print:text-3xl font-extrabold text-emerald-900 dark:text-emerald-100">
+                <div className="border-t-2 border-emerald-500 dark:border-emerald-400 pt-2 mt-2">
+                  <div className="flex justify-between items-center py-2 print:py-1.5 px-4 print:px-3 bg-gradient-to-r from-emerald-200 to-teal-200 dark:from-emerald-800 dark:to-teal-800 rounded border-2 border-emerald-400 dark:border-emerald-600 shadow-sm">
+                    <span className="text-lg print:text-base font-extrabold text-emerald-900 dark:text-emerald-100">FINAL G.P.</span>
+                    <span className="text-2xl print:text-xl font-extrabold text-emerald-900 dark:text-emerald-100">
                       ₹{breakdown.calculation.finalGp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                   </div>
-                  <div className="flex justify-between items-center py-4 print:py-3 px-8 print:px-6 bg-gradient-to-r from-teal-100 to-cyan-100 dark:from-teal-800/50 dark:to-cyan-800/50 rounded-xl border-2 border-teal-300 dark:border-teal-600 mt-3">
-                    <span className="text-xl print:text-lg font-extrabold text-teal-900 dark:text-teal-100">FINAL G.P. %</span>
-                    <span className="text-3xl print:text-2xl font-extrabold text-teal-900 dark:text-teal-100">
+                  <div className="flex justify-between items-center py-2 print:py-1.5 px-4 print:px-3 bg-gradient-to-r from-teal-100 to-cyan-100 dark:from-teal-800/50 dark:to-cyan-800/50 rounded border border-teal-300 dark:border-teal-600 mt-1.5">
+                    <span className="text-base print:text-sm font-extrabold text-teal-900 dark:text-teal-100">FINAL G.P. %</span>
+                    <span className="text-xl print:text-lg font-extrabold text-teal-900 dark:text-teal-100">
                       {breakdown.calculation.finalGpPercentage.toFixed(2)}%
                     </span>
                   </div>
