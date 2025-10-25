@@ -526,15 +526,16 @@ export default function TenantRegistrations() {
   const inactiveCount = data.filter(d => d.status === "inactive").length;
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="p-4 md:p-8 space-y-4 md:space-y-6">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Tenant Management</h1>
-          <p className="text-muted-foreground mt-2">Manage tenant registrations and access control</p>
+          <h1 className="text-2xl md:text-3xl font-bold">Tenant Management</h1>
+          <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">Manage tenant registrations and access control</p>
         </div>
         <Button
           onClick={() => setLocation("/email-config")}
           data-testid="button-email-config"
+          className="w-full md:w-auto"
         >
           <Mail className="w-4 h-4 mr-2" />
           Email Configuration
