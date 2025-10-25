@@ -608,7 +608,154 @@ export default function TenantRegistrations() {
               />
             </div>
 
-            <div className="rounded-md border">
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => {
+                  const tenant = row.original;
+                  return (
+                    <Card key={tenant.id} data-testid={`card-tenant-${tenant.id}`}>
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-base">{tenant.businessName}</h3>
+                              <p className="text-sm text-muted-foreground mt-1">{tenant.email}</p>
+                            </div>
+                            {getStatusBadge(tenant.status)}
+                          </div>
+                          
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                            <div>
+                              <span className="font-medium">City:</span> {tenant.city}
+                            </div>
+                            <div>
+                              <Badge variant="secondary" className="text-xs">
+                                {getPlanTypeLabel(tenant.planType)}
+                              </Badge>
+                            </div>
+                          </div>
+                          
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(tenant.createdAt), "PP")}
+                          </div>
+
+                          <div className="pt-2 border-t">
+                            {/* Pending registration request - show Approve and Reject buttons */}
+                            {tenant.isRegistrationRequest && tenant.status === "pending" && (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApprove(tenant.id)}
+                                  disabled={approveMutation.isPending}
+                                  className="flex-1 bg-green-600 hover:bg-green-700"
+                                  data-testid={`button-approve-${tenant.id}`}
+                                >
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Approve
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleOpenRejectDialog(tenant)}
+                                  disabled={rejectRegistrationMutation.isPending}
+                                  className="flex-1"
+                                  data-testid={`button-reject-${tenant.id}`}
+                                >
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+
+                            {/* Approved/Rejected registration request - show Delete button */}
+                            {tenant.isRegistrationRequest && tenant.status !== "pending" && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleOpenDeleteDialog(tenant)}
+                                disabled={deleteRegistrationRequestMutation.isPending}
+                                className="w-full"
+                                data-testid={`button-delete-request-${tenant.id}`}
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Delete Request
+                              </Button>
+                            )}
+                            
+                            {/* Active/Inactive tenants - show management buttons in dropdown */}
+                            {!tenant.isRegistrationRequest && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="outline" 
+                                    className="w-full"
+                                    data-testid={`button-actions-${tenant.id}`}
+                                  >
+                                    <MoreHorizontal className="h-4 w-4 mr-2" />
+                                    Actions
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                  <DropdownMenuLabel>Tenant Actions</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleToggleStatus(tenant.id)}
+                                    disabled={toggleStatusMutation.isPending}
+                                    data-testid={`menu-toggle-${tenant.id}`}
+                                  >
+                                    {tenant.isActive ? (
+                                      <><ToggleRight className="w-4 h-4 mr-2" />Deactivate Tenant</>
+                                    ) : (
+                                      <><ToggleLeft className="w-4 h-4 mr-2" />Activate Tenant</>
+                                    )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleResetPassword(tenant.id)}
+                                    disabled={resetPasswordMutation.isPending}
+                                    data-testid={`menu-reset-${tenant.id}`}
+                                  >
+                                    <KeyRound className="w-4 h-4 mr-2" />
+                                    Reset Password
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleSendCredentials(tenant.id)}
+                                    disabled={sendCredentialsMutation.isPending}
+                                    data-testid={`menu-send-${tenant.id}`}
+                                  >
+                                    <Mail className="w-4 h-4 mr-2" />
+                                    Send Credentials
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleOpenDeleteDialog(tenant)}
+                                    disabled={deleteTenantMutation.isPending}
+                                    className="text-red-600"
+                                    data-testid={`menu-delete-${tenant.id}`}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete Tenant
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-center text-muted-foreground">
+                    No results.
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border">
               <Table>
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
