@@ -1723,7 +1723,25 @@ export const insertFollowupScheduleSchema = createInsertSchema(followupSchedules
   categoryFilter: z.string().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().optional(),
-});
+}).refine(
+  (data) => !data.enableWhatsapp || (data.whatsappTemplateId && data.whatsappTemplateId.length > 0),
+  {
+    message: "WhatsApp template is required when WhatsApp is enabled",
+    path: ["whatsappTemplateId"],
+  }
+).refine(
+  (data) => !data.enableEmail || (data.emailTemplateId && data.emailTemplateId.length > 0),
+  {
+    message: "Email template is required when Email is enabled",
+    path: ["emailTemplateId"],
+  }
+).refine(
+  (data) => !data.enableIvr || (data.ivrScriptId && data.ivrScriptId.length > 0),
+  {
+    message: "IVR script is required when IVR is enabled",
+    path: ["ivrScriptId"],
+  }
+);
 
 export type InsertFollowupSchedule = z.infer<typeof insertFollowupScheduleSchema>;
 export type FollowupSchedule = typeof followupSchedules.$inferSelect;

@@ -32,6 +32,14 @@ The application uses `shadcn/ui` (Radix UI) with Tailwind CSS for a responsive d
     *   **Category Change Logs**: Complete audit trail of all category changes (auto and manual) with timestamp, reason, and changed-by user tracking
     *   **Follow-up Rules**: Configurable follow-up frequency per category (Alpha, Beta, Gamma, Delta) with days between reminders
     *   **Follow-up Automation Settings** (Schema defined, UI pending): Multi-channel automation (WhatsApp/Email/IVR) with 5 scheduling modes (fixed frequency, before due, after due, weekly specific day, monthly fixed date), category-wise action configuration, and IVR calling hours/retry limits
+    *   **Follow-up Schedules**: Multi-schedule system allowing unlimited reminder configurations with template/script mapping:
+        *   Unlimited schedules per tenant (e.g., "7 days before", "3 days before", "1 day after")
+        *   5 trigger types: days_before_due, days_after_due, fixed_weekly, fixed_monthly, fixed_frequency
+        *   Per-schedule communication channel toggles (WhatsApp/Email/IVR)
+        *   Template/Script Mapping: Each schedule links to specific WhatsApp template, Email template, and IVR script
+        *   Validation: Enabled channels MUST have corresponding template/script selected (enforced at frontend and backend)
+        *   Category filtering: Target specific customer categories or all
+        *   Active/inactive status for easy schedule management
 *   **Communication Integrations**:
     *   **Email**: Nodemailer integration with support for Gmail OAuth2/SMTP, template management, variable substitution, and module-specific quick-access email buttons. Includes platform-level email configuration for tenant credential emails.
     *   **WhatsApp**: Enterprise-grade messaging via multi-provider support (Twilio, WATI, Meta, etc.), comprehensive configuration, and message templates with automatic data enrichment.

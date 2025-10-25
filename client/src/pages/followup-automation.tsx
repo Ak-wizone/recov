@@ -31,7 +31,40 @@ const followupScheduleSchema = z.object({
   categoryFilter: z.string().optional(),
   isActive: z.boolean(),
   displayOrder: z.coerce.number().optional(),
-});
+}).refine(
+  (data) => {
+    if (data.enableWhatsapp && !data.whatsappTemplateId) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "WhatsApp template is required when WhatsApp is enabled",
+    path: ["whatsappTemplateId"],
+  }
+).refine(
+  (data) => {
+    if (data.enableEmail && !data.emailTemplateId) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "Email template is required when Email is enabled",
+    path: ["emailTemplateId"],
+  }
+).refine(
+  (data) => {
+    if (data.enableIvr && !data.ivrScriptId) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "IVR script is required when IVR is enabled",
+    path: ["ivrScriptId"],
+  }
+);
 
 type FollowupScheduleFormValues = z.infer<typeof followupScheduleSchema>;
 
@@ -100,8 +133,8 @@ export default function FollowupAutomationPage() {
       triggerType: "days_before_due",
       timingValue: 7,
       weeklyDay: 1,
-      enableWhatsapp: true,
-      enableEmail: true,
+      enableWhatsapp: false,
+      enableEmail: false,
       enableIvr: false,
       whatsappTemplateId: "",
       emailTemplateId: "",
