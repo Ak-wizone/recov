@@ -578,14 +578,14 @@ export default function TenantRegistrations() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex gap-4">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4">
               <Input
                 placeholder="Filter by business name..."
                 value={(table.getColumn("businessName")?.getFilterValue() as string) ?? ""}
                 onChange={(event) =>
                   table.getColumn("businessName")?.setFilterValue(event.target.value)
                 }
-                className="max-w-sm"
+                className="w-full md:max-w-sm"
                 data-testid="input-filter-name"
               />
               <Input
@@ -594,7 +594,7 @@ export default function TenantRegistrations() {
                 onChange={(event) =>
                   table.getColumn("email")?.setFilterValue(event.target.value)
                 }
-                className="max-w-sm"
+                className="w-full md:max-w-sm"
                 data-testid="input-filter-email"
               />
               <Input
@@ -603,7 +603,7 @@ export default function TenantRegistrations() {
                 onChange={(event) =>
                   table.getColumn("city")?.setFilterValue(event.target.value)
                 }
-                className="max-w-sm"
+                className="w-full md:max-w-sm"
                 data-testid="input-filter-city"
               />
             </div>
