@@ -27,6 +27,7 @@ const moduleColors: Record<string, string> = {
   receipts: "bg-yellow-500",
   debtors: "bg-orange-500",
   credit_management: "bg-red-500",
+  followup_automation: "bg-pink-500",
 };
 
 const moduleLabels: Record<string, string> = {
@@ -37,6 +38,7 @@ const moduleLabels: Record<string, string> = {
   receipts: "Receipts",
   debtors: "Debtors",
   credit_management: "Credit Management",
+  followup_automation: "Follow-up Automation",
 };
 
 export default function WhatsAppTemplates() {
@@ -318,6 +320,7 @@ export default function WhatsAppTemplates() {
                         <SelectItem value="receipts">Receipts</SelectItem>
                         <SelectItem value="debtors">Debtors</SelectItem>
                         <SelectItem value="credit_management">Credit Management</SelectItem>
+                        <SelectItem value="followup_automation">Follow-up Automation</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

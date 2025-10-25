@@ -1152,7 +1152,7 @@ export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).pick
   variables: true,
   isDefault: true,
 }).extend({
-  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
+  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management", "followup_automation"]),
   name: z.string().min(1, "Template name is required"),
   subject: z.string().min(1, "Subject is required"),
   body: z.string().min(1, "Email body is required"),
@@ -1225,7 +1225,7 @@ export const insertWhatsappTemplateSchema = createInsertSchema(whatsappTemplates
   variables: true,
   isDefault: true,
 }).extend({
-  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
+  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management", "followup_automation"]),
   name: z.string().min(1, "Template name is required"),
   message: z.string().min(1, "Message is required"),
   variables: z.array(z.string()).default([]),
@@ -1282,7 +1282,7 @@ export const insertCallScriptMappingSchema = createInsertSchema(callScriptMappin
   description: true,
   isActive: true,
 }).extend({
-  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
+  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management", "followup_automation"]),
   scriptName: z.string().min(1, "Script name is required"),
   ringgScriptId: z.string().min(1, "Ringg.ai Script ID is required"),
   description: z.string().optional(),
