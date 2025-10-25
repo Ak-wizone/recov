@@ -805,7 +805,7 @@ export default function TenantRegistrations() {
               </Table>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3">
               <div className="text-sm text-muted-foreground">
                 {table.getFilteredRowModel().rows.length} total records
               </div>
@@ -817,10 +817,10 @@ export default function TenantRegistrations() {
                   disabled={!table.getCanPreviousPage()}
                   data-testid="button-prev-page"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />
-                  Previous
+                  <ChevronLeft className="h-4 w-4 md:mr-1" />
+                  <span className="hidden md:inline">Previous</span>
                 </Button>
-                <div className="text-sm">
+                <div className="text-sm whitespace-nowrap">
                   Page {table.getState().pagination.pageIndex + 1} of{" "}
                   {table.getPageCount()}
                 </div>
@@ -831,8 +831,8 @@ export default function TenantRegistrations() {
                   disabled={!table.getCanNextPage()}
                   data-testid="button-next-page"
                 >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="hidden md:inline">Next</span>
+                  <ChevronRight className="h-4 w-4 md:ml-1" />
                 </Button>
               </div>
             </div>
