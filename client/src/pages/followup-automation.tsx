@@ -25,6 +25,9 @@ const followupScheduleSchema = z.object({
   enableWhatsapp: z.boolean(),
   enableEmail: z.boolean(),
   enableIvr: z.boolean(),
+  whatsappTemplateId: z.string().optional(),
+  emailTemplateId: z.string().optional(),
+  ivrScriptId: z.string().optional(),
   categoryFilter: z.string().optional(),
   isActive: z.boolean(),
   displayOrder: z.coerce.number().optional(),
@@ -42,9 +45,30 @@ interface FollowupSchedule {
   enableWhatsapp: boolean;
   enableEmail: boolean;
   enableIvr: boolean;
+  whatsappTemplateId?: string;
+  emailTemplateId?: string;
+  ivrScriptId?: string;
   categoryFilter?: string;
   isActive: boolean;
   displayOrder: number;
+}
+
+interface WhatsappTemplate {
+  id: string;
+  name: string;
+  module: string;
+}
+
+interface EmailTemplate {
+  id: string;
+  name: string;
+  module: string;
+}
+
+interface IVRScript {
+  id: string;
+  scriptName: string;
+  module: string;
 }
 
 export default function FollowupAutomationPage() {
@@ -54,6 +78,18 @@ export default function FollowupAutomationPage() {
 
   const { data: schedules, isLoading } = useQuery<FollowupSchedule[]>({
     queryKey: ["/api/recovery/followup-schedules"],
+  });
+
+  const { data: whatsappTemplates } = useQuery<WhatsappTemplate[]>({
+    queryKey: ["/api/whatsapp/templates"],
+  });
+
+  const { data: emailTemplates } = useQuery<EmailTemplate[]>({
+    queryKey: ["/api/email/templates"],
+  });
+
+  const { data: ivrScripts } = useQuery<IVRScript[]>({
+    queryKey: ["/api/ringg/script-mappings"],
   });
 
   const form = useForm<FollowupScheduleFormValues>({
@@ -67,6 +103,9 @@ export default function FollowupAutomationPage() {
       enableWhatsapp: true,
       enableEmail: true,
       enableIvr: false,
+      whatsappTemplateId: "",
+      emailTemplateId: "",
+      ivrScriptId: "",
       categoryFilter: "all",
       isActive: true,
       displayOrder: 0,
@@ -158,6 +197,9 @@ export default function FollowupAutomationPage() {
       enableWhatsapp: schedule.enableWhatsapp,
       enableEmail: schedule.enableEmail,
       enableIvr: schedule.enableIvr,
+      whatsappTemplateId: schedule.whatsappTemplateId || "",
+      emailTemplateId: schedule.emailTemplateId || "",
+      ivrScriptId: schedule.ivrScriptId || "",
       categoryFilter: schedule.categoryFilter || "all",
       isActive: schedule.isActive,
       displayOrder: schedule.displayOrder,
@@ -194,6 +236,9 @@ export default function FollowupAutomationPage() {
   };
 
   const triggerType = form.watch("triggerType");
+  const enableWhatsapp = form.watch("enableWhatsapp");
+  const enableEmail = form.watch("enableEmail");
+  const enableIvr = form.watch("enableIvr");
 
   if (isLoading) {
     return (
@@ -556,6 +601,122 @@ export default function FollowupAutomationPage() {
                       </FormItem>
                     )}
                   />
+                </div>
+              </div>
+
+              {/* Template/Script Selection */}
+              <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                <h3 className="font-semibold text-orange-900 dark:text-orange-100">Message Templates & Scripts</h3>
+                <p className="text-sm text-orange-700 dark:text-orange-300">Select which templates/scripts to use when sending reminders</p>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  {/* WhatsApp Template */}
+                  {enableWhatsapp && (
+                    <FormField
+                      control={form.control}
+                      name="whatsappTemplateId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground dark:text-foreground flex items-center gap-2">
+                            <MessageSquare className="h-4 w-4 text-green-600" />
+                            WhatsApp Template
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-white dark:bg-gray-800" data-testid="select-whatsapp-template">
+                                <SelectValue placeholder="Select WhatsApp template..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {whatsappTemplates && whatsappTemplates.length > 0 ? (
+                                whatsappTemplates.map((template) => (
+                                  <SelectItem key={template.id} value={template.id}>
+                                    {template.name} ({template.module})
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="none" disabled>No templates available</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>Choose the WhatsApp message template for this reminder</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {/* Email Template */}
+                  {enableEmail && (
+                    <FormField
+                      control={form.control}
+                      name="emailTemplateId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground dark:text-foreground flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-blue-600" />
+                            Email Template
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-white dark:bg-gray-800" data-testid="select-email-template">
+                                <SelectValue placeholder="Select email template..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {emailTemplates && emailTemplates.length > 0 ? (
+                                emailTemplates.map((template) => (
+                                  <SelectItem key={template.id} value={template.id}>
+                                    {template.name} ({template.module})
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="none" disabled>No templates available</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>Choose the email template for this reminder</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+
+                  {/* IVR Script */}
+                  {enableIvr && (
+                    <FormField
+                      control={form.control}
+                      name="ivrScriptId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground dark:text-foreground flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-purple-600" />
+                            IVR Script
+                          </FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-white dark:bg-gray-800" data-testid="select-ivr-script">
+                                <SelectValue placeholder="Select IVR script..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {ivrScripts && ivrScripts.length > 0 ? (
+                                ivrScripts.map((script) => (
+                                  <SelectItem key={script.id} value={script.id}>
+                                    {script.scriptName} ({script.module})
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="none" disabled>No scripts available</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                          <FormDescription>Choose the IVR calling script for this reminder</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
               </div>
 

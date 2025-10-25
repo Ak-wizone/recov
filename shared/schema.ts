@@ -1675,6 +1675,11 @@ export const followupSchedules = pgTable("followup_schedules", {
   enableEmail: boolean("enable_email").notNull().default(false),
   enableIvr: boolean("enable_ivr").notNull().default(false),
   
+  // Template/Script Mappings - Which templates to use when sending
+  whatsappTemplateId: varchar("whatsapp_template_id"),
+  emailTemplateId: varchar("email_template_id"),
+  ivrScriptId: varchar("ivr_script_id"),
+  
   // Category filter (comma-separated: "alpha,beta" or "all")
   categoryFilter: text("category_filter").default("all"),
   
@@ -1697,6 +1702,9 @@ export const insertFollowupScheduleSchema = createInsertSchema(followupSchedules
   enableWhatsapp: true,
   enableEmail: true,
   enableIvr: true,
+  whatsappTemplateId: true,
+  emailTemplateId: true,
+  ivrScriptId: true,
   categoryFilter: true,
   isActive: true,
   displayOrder: true,
@@ -1709,6 +1717,9 @@ export const insertFollowupScheduleSchema = createInsertSchema(followupSchedules
   enableWhatsapp: z.boolean(),
   enableEmail: z.boolean(),
   enableIvr: z.boolean(),
+  whatsappTemplateId: z.string().optional(),
+  emailTemplateId: z.string().optional(),
+  ivrScriptId: z.string().optional(),
   categoryFilter: z.string().optional(),
   isActive: z.boolean().optional(),
   displayOrder: z.number().optional(),
