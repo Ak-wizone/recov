@@ -76,6 +76,14 @@ interface TenantStatistics {
       total: number;
     }>;
   };
+  activity: {
+    lastCustomerAdded: string | null;
+    lastInvoiceCreated: string | null;
+    lastReceiptRecorded: string | null;
+    lastLogin: string | null;
+    lastActivityAt: string | null;
+    userCount: number;
+  };
 }
 
 interface TenantRow {
@@ -102,6 +110,7 @@ export default function TenantRegistrations() {
   const [requestToReject, setRequestToReject] = useState<TenantRow | null>(null);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const [selectedTenantForSummary, setSelectedTenantForSummary] = useState<TenantRow | null>(null);
+  const [activityFilter, setActivityFilter] = useState<"all" | "active" | "at-risk" | "inactive" | "never-used">("all");
 
   // Redirect tenant users to dashboard - only platform admins can access this page
   useEffect(() => {
@@ -131,7 +140,13 @@ export default function TenantRegistrations() {
     const fetchStats = async () => {
       const statsPromises = tenants.map(async (tenant) => {
         try {
-          const stats = await fetch(`/api/tenants/${tenant.id}/statistics`).then(r => r.json());
+          const response = await fetch(`/api/tenants/${tenant.id}/statistics`, {
+            credentials: "include",
+          });
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const stats = await response.json();
           return { tenantId: tenant.id, stats };
         } catch (error) {
           console.error(`Failed to fetch stats for tenant ${tenant.id}:`, error);
@@ -628,8 +643,40 @@ export default function TenantRegistrations() {
     },
   ], [handleApprove, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, handleOpenRejectDialog]);
 
+  // Helper function to calculate activity status
+  const getActivityStatus = (tenant: TenantRow): "active" | "at-risk" | "inactive" | "never-used" => {
+    if (tenant.isRegistrationRequest) return "never-used";
+    if (!tenant.statistics?.activity?.lastActivityAt) return "never-used";
+    
+    const lastActivity = new Date(tenant.statistics.activity.lastActivityAt);
+    const now = new Date();
+    const daysSinceActivity = Math.floor((now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (daysSinceActivity <= 7) return "active";
+    if (daysSinceActivity <= 30) return "at-risk";
+    return "inactive";
+  };
+
+  // Filter data based on activity filter
+  const filteredData = useMemo(() => {
+    if (activityFilter === "all") return data;
+    
+    return data.filter(tenant => {
+      const status = getActivityStatus(tenant);
+      return status === activityFilter;
+    });
+  }, [data, activityFilter]);
+
+  // Calculate engagement metrics
+  const approvedTenants = data.filter(d => !d.isRegistrationRequest);
+  const activeTenantsCount = approvedTenants.filter(t => getActivityStatus(t) === "active").length;
+  const atRiskCount = approvedTenants.filter(t => getActivityStatus(t) === "at-risk").length;
+  const inactiveTenantsCount = approvedTenants.filter(t => getActivityStatus(t) === "inactive").length;
+  const neverUsedCount = approvedTenants.filter(t => getActivityStatus(t) === "never-used").length;
+  const pendingCount = data.filter(d => d.status === "pending").length;
+
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -640,10 +687,6 @@ export default function TenantRegistrations() {
       columnFilters,
     },
   });
-
-  const pendingCount = data.filter(d => d.status === "pending").length;
-  const activeCount = data.filter(d => d.status === "active").length;
-  const inactiveCount = data.filter(d => d.status === "inactive").length;
 
   return (
     <div className="p-4 md:p-8 space-y-4 md:space-y-6">
@@ -662,32 +705,110 @@ export default function TenantRegistrations() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
+      {/* Tenant Engagement Analytics - Clickable Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-lg ${activityFilter === "all" ? "ring-2 ring-primary" : ""}`}
+          onClick={() => setActivityFilter("all")}
+          data-testid="card-all-tenants"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">All Tenants</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
+            <div className="text-xl md:text-2xl font-bold">{approvedTenants.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Total registered</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Active Tenants</CardTitle>
+
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-lg ${activityFilter === "active" ? "ring-2 ring-green-500" : ""}`}
+          onClick={() => setActivityFilter("active")}
+          data-testid="card-active-tenants"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-green-700 flex items-center gap-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              Active (7d)
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activeCount}</div>
+            <div className="text-xl md:text-2xl font-bold text-green-600">{activeTenantsCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Using regularly</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Inactive Tenants</CardTitle>
+
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-lg ${activityFilter === "at-risk" ? "ring-2 ring-yellow-500" : ""}`}
+          onClick={() => setActivityFilter("at-risk")}
+          data-testid="card-at-risk-tenants"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-yellow-700 flex items-center gap-1">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+              At Risk (7-30d)
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{inactiveCount}</div>
+            <div className="text-xl md:text-2xl font-bold text-yellow-600">{atRiskCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Need follow-up</p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-lg ${activityFilter === "inactive" ? "ring-2 ring-orange-500" : ""}`}
+          onClick={() => setActivityFilter("inactive")}
+          data-testid="card-inactive-tenants"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-orange-700 flex items-center gap-1">
+              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+              Inactive (30d+)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl md:text-2xl font-bold text-orange-600">{inactiveTenantsCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Not using</p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className={`cursor-pointer transition-all hover:shadow-lg ${activityFilter === "never-used" ? "ring-2 ring-red-500" : ""}`}
+          onClick={() => setActivityFilter("never-used")}
+          data-testid="card-never-used-tenants"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs md:text-sm font-medium text-red-700 flex items-center gap-1">
+              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+              Never Used
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl md:text-2xl font-bold text-red-600">{neverUsedCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Need onboarding</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Active Filter Indicator */}
+      {activityFilter !== "all" && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg">
+          <span className="text-sm font-medium">
+            Showing: {activityFilter === "active" ? "Active Tenants (Last 7 days)" :
+                      activityFilter === "at-risk" ? "At-Risk Tenants (7-30 days)" :
+                      activityFilter === "inactive" ? "Inactive Tenants (30+ days)" :
+                      "Never Used Tenants"}
+          </span>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setActivityFilter("all")}
+            className="ml-auto"
+          >
+            Clear Filter
+          </Button>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

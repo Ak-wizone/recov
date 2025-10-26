@@ -776,27 +776,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get tenant statistics (admin only) - Aggregate counts for customers, invoices, receipts
+  // Get tenant statistics (admin only) - Aggregate counts for customers, invoices, receipts with activity tracking
   app.get("/api/tenants/:tenantId/statistics", adminOnlyMiddleware, async (req, res) => {
     try {
       const { tenantId } = req.params;
 
-      // Count customers
-      const customerCount = await db
-        .select({ count: sql<number>`count(*)::int` })
+      // Get customer stats with last activity
+      const customerStats = await db
+        .select({ 
+          count: sql<number>`count(*)::int`,
+          lastAdded: sql<string>`MAX(${masterCustomers.createdAt})`
+        })
         .from(masterCustomers)
         .where(eq(masterCustomers.tenantId, tenantId));
 
-      // Count and sum invoices
+      // Get invoice stats with last activity
       const invoiceStats = await db
         .select({
           count: sql<number>`count(*)::int`,
-          total: sql<string>`COALESCE(SUM(CAST(${invoices.invoiceAmount} AS DECIMAL)), 0)`
+          total: sql<string>`COALESCE(SUM(CAST(${invoices.invoiceAmount} AS DECIMAL)), 0)`,
+          lastCreated: sql<string>`MAX(${invoices.createdAt})`
         })
         .from(invoices)
         .where(eq(invoices.tenantId, tenantId));
 
-      // Get receipt breakdown by voucher type
+      // Get receipt breakdown by voucher type with last activity
       const receiptStats = await db
         .select({
           voucherType: receipts.voucherType,
@@ -807,12 +811,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(eq(receipts.tenantId, tenantId))
         .groupBy(receipts.voucherType);
 
+      // Get last receipt timestamp
+      const lastReceiptStats = await db
+        .select({
+          lastRecorded: sql<string>`MAX(${receipts.createdAt})`
+        })
+        .from(receipts)
+        .where(eq(receipts.tenantId, tenantId));
+
+      // Get user login activity for this tenant
+      const userActivity = await db
+        .select({
+          lastLogin: sql<string>`MAX(${users.lastLogin})`,
+          userCount: sql<number>`count(*)::int`
+        })
+        .from(users)
+        .where(eq(users.tenantId, tenantId));
+
       // Total receipts
       const totalReceiptCount = receiptStats.reduce((sum, r) => sum + r.count, 0);
       const totalReceiptAmount = receiptStats.reduce((sum, r) => sum + parseFloat(r.total), 0);
 
+      // Determine overall last activity
+      const activities = [
+        customerStats[0]?.lastAdded,
+        invoiceStats[0]?.lastCreated,
+        lastReceiptStats[0]?.lastRecorded,
+        userActivity[0]?.lastLogin
+      ].filter(Boolean);
+      
+      const lastActivityAt = activities.length > 0 
+        ? new Date(Math.max(...activities.map(d => new Date(d).getTime()))).toISOString()
+        : null;
+
       res.json({
-        customers: customerCount[0]?.count || 0,
+        customers: customerStats[0]?.count || 0,
         invoices: {
           count: invoiceStats[0]?.count || 0,
           total: parseFloat(invoiceStats[0]?.total || "0")
@@ -825,6 +858,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             count: r.count,
             total: parseFloat(r.total)
           }))
+        },
+        activity: {
+          lastCustomerAdded: customerStats[0]?.lastAdded || null,
+          lastInvoiceCreated: invoiceStats[0]?.lastCreated || null,
+          lastReceiptRecorded: lastReceiptStats[0]?.lastRecorded || null,
+          lastLogin: userActivity[0]?.lastLogin || null,
+          lastActivityAt,
+          userCount: userActivity[0]?.userCount || 0
         }
       });
     } catch (error: any) {
