@@ -60,6 +60,23 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 
+interface TenantStatistics {
+  customers: number;
+  invoices: {
+    count: number;
+    total: number;
+  };
+  receipts: {
+    count: number;
+    total: number;
+    breakdown: Array<{
+      type: string;
+      count: number;
+      total: number;
+    }>;
+  };
+}
+
 interface TenantRow {
   id: string;
   businessName: string;
@@ -70,6 +87,7 @@ interface TenantRow {
   isActive?: boolean;
   createdAt: string;
   isRegistrationRequest: boolean;
+  statistics?: TenantStatistics;
 }
 
 export default function TenantRegistrations() {
@@ -98,6 +116,40 @@ export default function TenantRegistrations() {
   const { data: tenants } = useQuery<any[]>({
     queryKey: ['/api/tenants'],
   });
+
+  // State for tenant statistics
+  const [tenantStats, setTenantStats] = useState<Record<string, TenantStatistics>>({});
+
+  // Fetch statistics for all tenants
+  useEffect(() => {
+    if (!tenants || tenants.length === 0) return;
+
+    // Fetch stats for each tenant in parallel
+    const fetchStats = async () => {
+      const statsPromises = tenants.map(async (tenant) => {
+        try {
+          const stats = await fetch(`/api/tenants/${tenant.id}/statistics`).then(r => r.json());
+          return { tenantId: tenant.id, stats };
+        } catch (error) {
+          console.error(`Failed to fetch stats for tenant ${tenant.id}:`, error);
+          return { tenantId: tenant.id, stats: null };
+        }
+      });
+
+      const results = await Promise.all(statsPromises);
+      const statsMap: Record<string, TenantStatistics> = {};
+      
+      results.forEach(({ tenantId, stats }) => {
+        if (stats) {
+          statsMap[tenantId] = stats;
+        }
+      });
+
+      setTenantStats(statsMap);
+    };
+
+    fetchStats();
+  }, [tenants]);
 
   const approveMutation = useMutation({
     mutationFn: async (requestId: string) => {
@@ -299,6 +351,7 @@ export default function TenantRegistrations() {
       status: r.status,
       createdAt: r.createdAt,
       isRegistrationRequest: true,
+      statistics: undefined,
     })) || []),
     ...(tenants?.map(t => ({
       id: t.id,
@@ -310,8 +363,9 @@ export default function TenantRegistrations() {
       isActive: t.isActive,
       createdAt: t.createdAt,
       isRegistrationRequest: false,
+      statistics: tenantStats[t.id],
     })) || []),
-  ], [requests, tenants]);
+  ], [requests, tenants, tenantStats]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -405,6 +459,61 @@ export default function TenantRegistrations() {
       cell: ({ row }) => (
         <div className="text-sm">{format(new Date(row.original.createdAt), "PP")}</div>
       ),
+    },
+    {
+      id: "customers",
+      header: "Customers",
+      cell: ({ row }) => {
+        const stats = row.original.statistics;
+        if (!stats || row.original.isRegistrationRequest) {
+          return <div className="text-sm text-gray-400">—</div>;
+        }
+        return <div className="text-sm font-medium">{stats.customers}</div>;
+      },
+    },
+    {
+      id: "invoices",
+      header: "Invoices",
+      cell: ({ row }) => {
+        const stats = row.original.statistics;
+        if (!stats || row.original.isRegistrationRequest) {
+          return <div className="text-sm text-gray-400">—</div>;
+        }
+        return (
+          <div className="text-sm">
+            <div className="font-medium">{stats.invoices.count}</div>
+            <div className="text-xs text-muted-foreground">
+              ₹{stats.invoices.total.toLocaleString("en-IN")}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "receipts",
+      header: "Receipts",
+      cell: ({ row }) => {
+        const stats = row.original.statistics;
+        if (!stats || row.original.isRegistrationRequest) {
+          return <div className="text-sm text-gray-400">—</div>;
+        }
+        
+        const breakdown = stats.receipts.breakdown;
+        const tdsEntry = breakdown.find(b => b.type === "TDS");
+        const cnEntry = breakdown.find(b => b.type === "CN");
+        
+        return (
+          <div className="text-sm">
+            <div className="font-medium">{stats.receipts.count} total</div>
+            {(tdsEntry || cnEntry) && (
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                {cnEntry && <div>CN: {cnEntry.count}</div>}
+                {tdsEntry && <div>TDS: {tdsEntry.count}</div>}
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: "actions",
