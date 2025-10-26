@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { wsManager } from "./websocket";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, invoices, masterCustomers, receipts, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
 import { whatsappWebService } from "./whatsapp-web-service";
@@ -14,7 +14,7 @@ import * as XLSX from "xlsx";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -772,6 +772,181 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(allTenants);
     } catch (error: any) {
       console.error("Failed to fetch tenants:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get tenant statistics (admin only) - Aggregate counts for customers, invoices, receipts
+  app.get("/api/tenants/:tenantId/statistics", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+
+      // Count customers
+      const customerCount = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(masterCustomers)
+        .where(eq(masterCustomers.tenantId, tenantId));
+
+      // Count and sum invoices
+      const invoiceStats = await db
+        .select({
+          count: sql<number>`count(*)::int`,
+          total: sql<string>`COALESCE(SUM(CAST(${invoices.invoiceAmount} AS DECIMAL)), 0)`
+        })
+        .from(invoices)
+        .where(eq(invoices.tenantId, tenantId));
+
+      // Get receipt breakdown by voucher type
+      const receiptStats = await db
+        .select({
+          voucherType: receipts.voucherType,
+          count: sql<number>`count(*)::int`,
+          total: sql<string>`COALESCE(SUM(CAST(${receipts.amount} AS DECIMAL)), 0)`
+        })
+        .from(receipts)
+        .where(eq(receipts.tenantId, tenantId))
+        .groupBy(receipts.voucherType);
+
+      // Total receipts
+      const totalReceiptCount = receiptStats.reduce((sum, r) => sum + r.count, 0);
+      const totalReceiptAmount = receiptStats.reduce((sum, r) => sum + parseFloat(r.total), 0);
+
+      res.json({
+        customers: customerCount[0]?.count || 0,
+        invoices: {
+          count: invoiceStats[0]?.count || 0,
+          total: parseFloat(invoiceStats[0]?.total || "0")
+        },
+        receipts: {
+          count: totalReceiptCount,
+          total: totalReceiptAmount,
+          breakdown: receiptStats.map(r => ({
+            type: r.voucherType,
+            count: r.count,
+            total: parseFloat(r.total)
+          }))
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch tenant statistics:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get tenant summary (admin only) - Detailed analytics for a tenant
+  app.get("/api/tenants/:tenantId/summary", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { tenantId } = req.params;
+
+      // Get tenant details
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, tenantId));
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // Get all customers for this tenant
+      const customers = await db
+        .select()
+        .from(masterCustomers)
+        .where(eq(masterCustomers.tenantId, tenantId));
+
+      // Calculate opening balance (as of April 1, 2025 or any date)
+      const openingBalanceSum = customers.reduce((sum, c) => {
+        const balance = parseFloat(c.openingBalance || "0");
+        return sum + (isNaN(balance) ? 0 : balance);
+      }, 0);
+
+      // Get invoice statistics
+      const invoiceStats = await db
+        .select({
+          count: sql<number>`count(*)::int`,
+          total: sql<string>`COALESCE(SUM(CAST(${invoices.invoiceAmount} AS DECIMAL)), 0)`
+        })
+        .from(invoices)
+        .where(eq(invoices.tenantId, tenantId));
+
+      // Get receipt statistics with breakdown
+      const receiptStats = await db
+        .select({
+          voucherType: receipts.voucherType,
+          count: sql<number>`count(*)::int`,
+          total: sql<string>`COALESCE(SUM(CAST(${receipts.amount} AS DECIMAL)), 0)`
+        })
+        .from(receipts)
+        .where(eq(receipts.tenantId, tenantId))
+        .groupBy(receipts.voucherType);
+
+      const totalReceiptAmount = receiptStats.reduce((sum, r) => sum + parseFloat(r.total), 0);
+      const totalReceiptCount = receiptStats.reduce((sum, r) => sum + r.count, 0);
+
+      // Calculate outstanding balance
+      const invoiceTotal = parseFloat(invoiceStats[0]?.total || "0");
+      const outstandingBalance = openingBalanceSum + invoiceTotal - totalReceiptAmount;
+
+      // Get category distribution
+      const categoryDistribution = await db
+        .select({
+          category: masterCustomers.category,
+          count: sql<number>`count(*)::int`
+        })
+        .from(masterCustomers)
+        .where(eq(masterCustomers.tenantId, tenantId))
+        .groupBy(masterCustomers.category);
+
+      // Get customer count by status
+      const activeCustomers = customers.filter(c => c.isActive === "Yes").length;
+      const inactiveCustomers = customers.length - activeCustomers;
+
+      // Calculate additional insights
+      const avgInvoiceValue = invoiceStats[0]?.count > 0 
+        ? invoiceTotal / invoiceStats[0].count 
+        : 0;
+
+      const collectionRate = invoiceTotal > 0 
+        ? (totalReceiptAmount / invoiceTotal) * 100 
+        : 0;
+
+      res.json({
+        tenant: {
+          id: tenant.id,
+          businessName: tenant.businessName,
+          email: tenant.email,
+          city: tenant.city,
+          planType: tenant.planType
+        },
+        financialSnapshot: {
+          openingBalance: openingBalanceSum,
+          totalInvoices: invoiceTotal,
+          invoiceCount: invoiceStats[0]?.count || 0,
+          totalReceipts: totalReceiptAmount,
+          receiptCount: totalReceiptCount,
+          outstandingBalance: outstandingBalance
+        },
+        customerInsights: {
+          totalCustomers: customers.length,
+          activeCustomers: activeCustomers,
+          inactiveCustomers: inactiveCustomers,
+          categoryBreakdown: categoryDistribution.map(c => ({
+            category: c.category,
+            count: c.count
+          }))
+        },
+        receiptAnalysis: receiptStats.map(r => ({
+          type: r.voucherType,
+          count: r.count,
+          amount: parseFloat(r.total)
+        })),
+        additionalMetrics: {
+          averageInvoiceValue: avgInvoiceValue,
+          collectionRate: collectionRate
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch tenant summary:", error);
       res.status(500).json({ message: error.message });
     }
   });
