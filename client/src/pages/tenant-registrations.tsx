@@ -59,6 +59,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import { format } from "date-fns";
+import { TenantSummary } from "@/components/TenantSummary";
 
 interface TenantStatistics {
   customers: number;
@@ -99,6 +100,8 @@ export default function TenantRegistrations() {
   const [tenantToDelete, setTenantToDelete] = useState<TenantRow | null>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [requestToReject, setRequestToReject] = useState<TenantRow | null>(null);
+  const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+  const [selectedTenantForSummary, setSelectedTenantForSummary] = useState<TenantRow | null>(null);
 
   // Redirect tenant users to dashboard - only platform admins can access this page
   useEffect(() => {
@@ -339,6 +342,14 @@ export default function TenantRegistrations() {
       rejectRegistrationMutation.mutate(requestToReject.id);
     }
   };
+
+  const handleOpenSummary = useCallback((tenant: TenantRow) => {
+    // Only open summary for approved tenants (not pending registration requests)
+    if (!tenant.isRegistrationRequest) {
+      setSelectedTenantForSummary(tenant);
+      setSummaryDialogOpen(true);
+    }
+  }, []);
 
   // Combine requests and tenants into unified data - memoize to prevent re-renders
   const data = useMemo<TenantRow[]>(() => [
@@ -723,7 +734,12 @@ export default function TenantRegistrations() {
                 table.getRowModel().rows.map((row) => {
                   const tenant = row.original;
                   return (
-                    <Card key={tenant.id} data-testid={`card-tenant-${tenant.id}`}>
+                    <Card 
+                      key={tenant.id} 
+                      data-testid={`card-tenant-${tenant.id}`}
+                      onClick={() => handleOpenSummary(tenant)}
+                      className={!tenant.isRegistrationRequest ? "cursor-pointer hover:shadow-md transition-shadow" : ""}
+                    >
                       <CardContent className="p-4">
                         <div className="space-y-3">
                           <div className="flex items-start justify-between">
@@ -907,6 +923,8 @@ export default function TenantRegistrations() {
                         key={row.id}
                         data-state={row.getIsSelected() && "selected"}
                         data-testid={`row-tenant-${row.original.id}`}
+                        onClick={() => handleOpenSummary(row.original)}
+                        className={!row.original.isRegistrationRequest ? "cursor-pointer hover:bg-muted/50" : ""}
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
@@ -1030,6 +1048,16 @@ export default function TenantRegistrations() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Tenant Summary Dialog */}
+      {selectedTenantForSummary && (
+        <TenantSummary
+          tenantId={selectedTenantForSummary.id}
+          tenantName={selectedTenantForSummary.businessName}
+          open={summaryDialogOpen}
+          onOpenChange={setSummaryDialogOpen}
+        />
+      )}
     </div>
   );
 }
