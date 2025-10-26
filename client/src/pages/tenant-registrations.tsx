@@ -749,6 +749,24 @@ export default function TenantRegistrations() {
                             {format(new Date(tenant.createdAt), "PP")}
                           </div>
 
+                          {/* Statistics (only for approved tenants) */}
+                          {!tenant.isRegistrationRequest && tenant.statistics && (
+                            <div className="flex items-center gap-4 text-sm pt-2 border-t">
+                              <div>
+                                <span className="text-muted-foreground">Customers:</span>
+                                <span className="ml-1 font-medium">{tenant.statistics.customers}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Invoices:</span>
+                                <span className="ml-1 font-medium">{tenant.statistics.invoices.count}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Receipts:</span>
+                                <span className="ml-1 font-medium">{tenant.statistics.receipts.count}</span>
+                              </div>
+                            </div>
+                          )}
+
                           <div className="pt-2 border-t">
                             {/* Pending registration request - show Approve and Reject buttons */}
                             {tenant.isRegistrationRequest && tenant.status === "pending" && (
