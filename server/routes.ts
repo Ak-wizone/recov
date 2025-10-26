@@ -14,7 +14,7 @@ import * as XLSX from "xlsx";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "./db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, max } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -785,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const customerStats = await db
         .select({ 
           count: sql<number>`count(*)::int`,
-          lastAdded: sql<string>`MAX(${masterCustomers.createdAt})`
+          lastAdded: max(masterCustomers.createdAt)
         })
         .from(masterCustomers)
         .where(eq(masterCustomers.tenantId, tenantId));
@@ -795,7 +795,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select({
           count: sql<number>`count(*)::int`,
           total: sql<string>`COALESCE(SUM(CAST(${invoices.invoiceAmount} AS DECIMAL)), 0)`,
-          lastCreated: sql<string>`MAX(${invoices.createdAt})`
+          lastCreated: max(invoices.createdAt)
         })
         .from(invoices)
         .where(eq(invoices.tenantId, tenantId));
@@ -814,15 +814,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get last receipt timestamp
       const lastReceiptStats = await db
         .select({
-          lastRecorded: sql<string>`MAX(${receipts.createdAt})`
+          lastRecorded: max(receipts.createdAt)
         })
         .from(receipts)
         .where(eq(receipts.tenantId, tenantId));
 
-      // Get user login activity for this tenant
+      // Get user count for this tenant
       const userActivity = await db
         .select({
-          lastLogin: sql<string>`MAX(${users.lastLogin})`,
           userCount: sql<number>`count(*)::int`
         })
         .from(users)
@@ -832,12 +831,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const totalReceiptCount = receiptStats.reduce((sum, r) => sum + r.count, 0);
       const totalReceiptAmount = receiptStats.reduce((sum, r) => sum + parseFloat(r.total), 0);
 
-      // Determine overall last activity
+      // Determine overall last activity (from customer, invoice, receipt activities)
       const activities = [
         customerStats[0]?.lastAdded,
         invoiceStats[0]?.lastCreated,
-        lastReceiptStats[0]?.lastRecorded,
-        userActivity[0]?.lastLogin
+        lastReceiptStats[0]?.lastRecorded
       ].filter(Boolean);
       
       const lastActivityAt = activities.length > 0 
@@ -863,7 +861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastCustomerAdded: customerStats[0]?.lastAdded || null,
           lastInvoiceCreated: invoiceStats[0]?.lastCreated || null,
           lastReceiptRecorded: lastReceiptStats[0]?.lastRecorded || null,
-          lastLogin: userActivity[0]?.lastLogin || null,
+          lastLogin: null, // Not tracked in current schema
           lastActivityAt,
           userCount: userActivity[0]?.userCount || 0
         }
