@@ -19,6 +19,19 @@ import { nanoid } from "nanoid";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Helper function to get fiscal year start date (April 1st)
+function getFiscalYearStartDate(): Date {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-indexed (0 = January, 3 = April)
+  
+  // If current month is January, February, or March (0, 1, 2), fiscal year started last year
+  // If current month is April onwards (3+), fiscal year started this year
+  const fiscalYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+  
+  return new Date(fiscalYear, 3, 1); // April 1st of the fiscal year
+}
+
 // Centralized credential email template
 const CREDENTIAL_EMAIL_TEMPLATE = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
@@ -1296,12 +1309,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const tdsAmount = tdsReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
       const cnAmount = cnReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
 
-      // Calculate interest amount for each invoice (sum of interest amounts)
-      let totalInterestAmount = 0;
+      // Calculate interest amount for invoices and opening balance separately
+      let invoiceInterestAmount = 0;
+      let openingBalanceInterest = 0;
       const today = new Date();
       
       console.log(`[Interest Calculation] Customer: ${customer.clientName}, Total Invoices: ${customerInvoices.length}`);
       
+      // Calculate invoice interest
       for (const invoice of customerInvoices) {
         const interestRate = parseFloat(invoice.interestRate || "0");
         const invoiceAmt = parseFloat(invoice.invoiceAmount);
@@ -1328,18 +1343,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             if (daysOverdue > 0) {
               const interestAmount = (invoiceAmt * interestRate * daysOverdue) / (100 * 365);
-              totalInterestAmount += interestAmount;
-              console.log(`[Interest] Due Date: ${applicableDate.toISOString().split('T')[0]}, Days Overdue: ${daysOverdue}, Interest Amount: ${interestAmount.toFixed(2)}`);
+              invoiceInterestAmount += interestAmount;
+              console.log(`[Invoice Interest] Due Date: ${applicableDate.toISOString().split('T')[0]}, Days Overdue: ${daysOverdue}, Interest Amount: ${interestAmount.toFixed(2)}`);
             } else {
-              console.log(`[Interest] Not yet overdue. Due Date: ${applicableDate.toISOString().split('T')[0]}, Days until due: ${Math.abs(daysOverdue)}`);
+              console.log(`[Invoice Interest] Not yet overdue. Due Date: ${applicableDate.toISOString().split('T')[0]}, Days until due: ${Math.abs(daysOverdue)}`);
             }
           } else {
-            console.log(`[Interest] Invalid applicable date for invoice ${invoice.invoiceNumber}`);
+            console.log(`[Invoice Interest] Invalid applicable date for invoice ${invoice.invoiceNumber}`);
           }
         }
       }
       
-      console.log(`[Total Interest] Customer: ${customer.clientName}, Total Interest: ${totalInterestAmount.toFixed(2)}`);
+      // Calculate opening balance interest
+      const openingBalance = parseFloat(customer.openingBalance || "0");
+      if (openingBalance > 0) {
+        const interestRate = parseFloat(customer.interestRate || "0");
+        if (interestRate > 0) {
+          // Opening balance starts from fiscal year start date (April 1st)
+          const fiscalYearStart = getFiscalYearStartDate();
+          const daysSinceStart = Math.floor((today.getTime() - fiscalYearStart.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysSinceStart > 0) {
+            openingBalanceInterest = (openingBalance * interestRate * daysSinceStart) / (100 * 365);
+            console.log(`[Opening Balance Interest] Amount: ${openingBalance}, Rate: ${interestRate}%, Days: ${daysSinceStart}, Interest: ${openingBalanceInterest.toFixed(2)}`);
+          }
+        }
+      }
+      
+      const totalInterestAmount = invoiceInterestAmount + openingBalanceInterest;
+      console.log(`[Total Interest] Customer: ${customer.clientName}, Invoice Interest: ${invoiceInterestAmount.toFixed(2)}, Opening Balance Interest: ${openingBalanceInterest.toFixed(2)}, Total: ${totalInterestAmount.toFixed(2)}`);
 
       // Calculate debtor amount and opening balance for customer's category
       const categoryCustomers = allMasterCustomers.filter(c => c.category === customer.category);
@@ -1351,14 +1383,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const custReceipts = allReceipts.filter(rec => rec.customerName === c.clientName);
         const custInvoiceTotal = custInvoices.reduce((s, inv) => s + parseFloat(inv.invoiceAmount), 0);
         const custReceiptTotal = custReceipts.reduce((s, rec) => s + parseFloat(rec.amount), 0);
-        const openingBalance = parseFloat(c.openingBalance || "0");
+        const custOpeningBalance = parseFloat(c.openingBalance || "0");
         
-        categoryOpeningBalance += openingBalance;
-        categoryDebtorAmount += (openingBalance + custInvoiceTotal - custReceiptTotal);
+        categoryOpeningBalance += custOpeningBalance;
+        categoryDebtorAmount += (custOpeningBalance + custInvoiceTotal - custReceiptTotal);
       });
 
       // Calculate credit details - include opening balance in utilized credit
-      const openingBalance = parseFloat(customer.openingBalance || "0");
       const creditLimit = parseFloat(customer.creditLimit || "0");
       const utilizedCredit = openingBalance + invoiceAmount - receiptAmount;
       const availableCredit = creditLimit - utilizedCredit;
@@ -1397,6 +1428,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         debtorAmount: customerDebtorAmount.toFixed(2),
         interestAmount: totalInterestAmount.toFixed(2),
+        interestBreakdown: {
+          invoiceInterest: invoiceInterestAmount.toFixed(2),
+          openingBalanceInterest: openingBalanceInterest.toFixed(2),
+          totalInterest: totalInterestAmount.toFixed(2),
+        },
         creditInfo: {
           creditLimit: creditLimit.toFixed(2),
           utilizedCredit: utilizedCredit.toFixed(2),
@@ -1442,7 +1478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         totalOutstanding += (openingBalance + invoiceTotal - receiptTotal);
 
-        // Calculate interest for this customer
+        // Calculate invoice interest for this customer
         customerInvoices.forEach((invoice) => {
           const interestRate = parseFloat(invoice.interestRate || "0");
           const invoiceAmt = parseFloat(invoice.invoiceAmount);
@@ -1469,6 +1505,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         });
+        
+        // Calculate opening balance interest for this customer
+        if (openingBalance > 0) {
+          const interestRate = parseFloat(customer.interestRate || "0");
+          if (interestRate > 0) {
+            const fiscalYearStart = getFiscalYearStartDate();
+            const daysSinceStart = Math.floor((today.getTime() - fiscalYearStart.getTime()) / (1000 * 60 * 60 * 24));
+            
+            if (daysSinceStart > 0) {
+              const openingBalanceInterest = (openingBalance * interestRate * daysSinceStart) / (100 * 365);
+              totalInterest += openingBalanceInterest;
+            }
+          }
+        }
       });
 
       // Module Statistics
@@ -7427,12 +7477,17 @@ ${profile?.legalName || 'Company'}`;
           const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
           const customerReceipts = receiptsByCustomer.get(invoice.customerName) || [];
           
-          // Calculate FIFO allocation for this invoice
+          // Calculate FIFO allocation for this invoice (opening balance first, then invoices)
+          const customer = customers.find(c => c.clientName === invoice.customerName);
+          const openingBalance = customer ? parseFloat(customer.openingBalance || "0") : 0;
+          
           const customerInvoices = invoices.filter(inv => inv.customerName === invoice.customerName)
             .sort((a, b) => new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime());
           
           let totalPaid = customerReceipts.reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
-          let cumulativeAmount = 0;
+          
+          // Start with opening balance in FIFO allocation
+          let cumulativeAmount = openingBalance;
           let allocatedToThisInvoice = 0;
           
           for (const inv of customerInvoices) {
@@ -7619,9 +7674,12 @@ ${profile?.legalName || 'Company'}`;
         const totalPaid = customerReceipts.reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
 
         let maxDaysOverdue = 0;
-        let totalOutstanding = parseFloat(customer.openingBalance || "0");
+        const openingBalance = parseFloat(customer.openingBalance || "0");
+        let totalOutstanding = openingBalance;
         let oldestInvoiceDate: Date | null = null;
-        let cumulativeAmount = 0;
+        
+        // FIFO allocation: Start with opening balance FIRST
+        let cumulativeAmount = openingBalance;
         const invoiceDetails: any[] = [];
 
         // Iterate through ALL invoices for proper FIFO calculation
@@ -7633,7 +7691,7 @@ ${profile?.legalName || 'Company'}`;
 
           const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
           
-          // FIFO allocation
+          // FIFO allocation (receipts first pay opening balance, then invoices chronologically)
           const beforeThis = cumulativeAmount;
           let allocatedToThisInvoice = 0;
           if (totalPaid > beforeThis) {
@@ -7862,12 +7920,17 @@ ${profile?.legalName || 'Company'}`;
           }
         }
 
-        // Get this invoice's share of payments (FIFO allocation)
+        // Get this invoice's share of payments (FIFO allocation - opening balance first)
+        const customerForInvoice = customers.find(c => c.clientName === invoice.customerName);
+        const openingBalanceForFifo = customerForInvoice ? parseFloat(customerForInvoice.openingBalance || "0") : 0;
+        
         const customerInvoices = invoices.filter(inv => inv.customerName === invoice.customerName)
           .sort((a, b) => new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime());
         
         let allocatedToThisInvoice = 0;
-        let cumulativeAmount = 0;
+        
+        // Start with opening balance in FIFO allocation
+        let cumulativeAmount = openingBalanceForFifo;
         
         for (const inv of customerInvoices) {
           const invAmount = parseFloat(inv.invoiceAmount.toString());

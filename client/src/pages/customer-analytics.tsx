@@ -64,6 +64,11 @@ interface CustomerAnalytics {
   };
   debtorAmount: string;
   interestAmount: string;
+  interestBreakdown: {
+    invoiceInterest: string;
+    openingBalanceInterest: string;
+    totalInterest: string;
+  };
   creditInfo: {
     creditLimit: string;
     utilizedCredit: string;
@@ -358,19 +363,38 @@ export default function Home() {
               <Card className="border-l-4 border-l-orange-500 shadow-md hover:shadow-lg transition-shadow" data-testid="card-interest-amount">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                    Interest Amount
+                    Total Interest
                   </CardTitle>
                   <TrendingUp className="h-6 w-6 text-orange-500" />
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <div className="text-4xl font-bold text-orange-600">
-                      ₹{parseFloat(analytics.interestAmount).toLocaleString("en-IN", {
+                      ₹{parseFloat(analytics.interestBreakdown.totalInterest).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
                     </div>
-                    <p className="text-sm text-gray-500 font-medium">Sum of net profit from invoices</p>
+                    <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">Invoice Interest:</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ₹{parseFloat(analytics.interestBreakdown.invoiceInterest).toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">Opening Balance Interest:</span>
+                        <span className="font-semibold text-gray-900 dark:text-white">
+                          ₹{parseFloat(analytics.interestBreakdown.openingBalanceInterest).toLocaleString("en-IN", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
