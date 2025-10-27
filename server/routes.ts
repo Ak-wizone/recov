@@ -7938,6 +7938,147 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Ledger API - Get all transactions for a customer
+  app.get("/api/ledgers/:customerId", async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const { fromDate, toDate } = req.query;
+
+      // Get customer to verify it belongs to this tenant
+      const customer = await storage.getCustomerById(req.tenantId!, customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      // Get all invoices for this customer
+      const customerInvoices = await db
+        .select()
+        .from(invoices)
+        .where(and(
+          eq(invoices.tenantId, req.tenantId!),
+          eq(invoices.customerName, customer.clientName)
+        ))
+        .orderBy(invoices.invoiceDate);
+
+      // Get all receipts for this customer
+      const customerReceipts = await db
+        .select()
+        .from(receipts)
+        .where(and(
+          eq(receipts.tenantId, req.tenantId!),
+          eq(receipts.customerName, customer.clientName)
+        ))
+        .orderBy(receipts.date);
+
+      // Build transaction array
+      interface LedgerTransaction {
+        date: Date;
+        particulars: string;
+        refNo: string;
+        voucherType: string;
+        voucherNo: string;
+        debit: number;
+        credit: number;
+        balance: number;
+        balanceType: 'Dr' | 'Cr';
+      }
+
+      const transactions: LedgerTransaction[] = [];
+
+      // Add opening balance as first transaction
+      const openingBalance = parseFloat(customer.openingBalance?.toString() || "0");
+      transactions.push({
+        date: new Date(fromDate as string || '2025-04-01'),
+        particulars: 'Opening Balance',
+        refNo: '',
+        voucherType: 'Opening',
+        voucherNo: '',
+        debit: 0,
+        credit: 0,
+        balance: openingBalance,
+        balanceType: openingBalance >= 0 ? 'Dr' : 'Cr'
+      });
+
+      // Add invoices as debit transactions
+      customerInvoices.forEach(invoice => {
+        transactions.push({
+          date: new Date(invoice.invoiceDate),
+          particulars: invoice.remarks || 'Sales',
+          refNo: invoice.invoiceNumber,
+          voucherType: 'Sales',
+          voucherNo: invoice.invoiceNumber,
+          debit: parseFloat(invoice.invoiceAmount.toString()),
+          credit: 0,
+          balance: 0, // Will calculate running balance
+          balanceType: 'Dr'
+        });
+      });
+
+      // Add receipts as credit transactions
+      customerReceipts.forEach(receipt => {
+        transactions.push({
+          date: new Date(receipt.date),
+          particulars: receipt.remarks || receipt.voucherType || 'Receipt',
+          refNo: receipt.voucherNumber,
+          voucherType: receipt.voucherType || 'Receipt',
+          voucherNo: receipt.voucherNumber,
+          debit: 0,
+          credit: parseFloat(receipt.amount.toString()),
+          balance: 0,
+          balanceType: 'Dr'
+        });
+      });
+
+      // Sort all transactions by date
+      transactions.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      // Calculate running balance
+      let runningBalance = openingBalance;
+      for (let i = 1; i < transactions.length; i++) {
+        runningBalance += transactions[i].debit - transactions[i].credit;
+        transactions[i].balance = Math.abs(runningBalance);
+        transactions[i].balanceType = runningBalance >= 0 ? 'Dr' : 'Cr';
+      }
+
+      // Filter by date range if provided
+      let filteredTransactions = transactions;
+      if (fromDate || toDate) {
+        filteredTransactions = transactions.filter(t => {
+          if (fromDate && t.date < new Date(fromDate as string)) return false;
+          if (toDate && t.date > new Date(toDate as string)) return false;
+          return true;
+        });
+      }
+
+      res.json({
+        customer: {
+          name: customer.clientName,
+          gstin: customer.gstin,
+          address: customer.billingAddress,
+          city: customer.city,
+          state: customer.state,
+          pincode: customer.pincode,
+          mobile: customer.primaryMobile,
+          email: customer.primaryEmail
+        },
+        transactions: filteredTransactions.map(t => ({
+          ...t,
+          date: t.date.toISOString().split('T')[0]
+        })),
+        summary: {
+          openingBalance,
+          totalDebits: filteredTransactions.reduce((sum, t) => sum + t.debit, 0),
+          totalCredits: filteredTransactions.reduce((sum, t) => sum + t.credit, 0),
+          closingBalance: filteredTransactions[filteredTransactions.length - 1]?.balance || openingBalance,
+          closingBalanceType: filteredTransactions[filteredTransactions.length - 1]?.balanceType || (openingBalance >= 0 ? 'Dr' : 'Cr')
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch ledger:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
