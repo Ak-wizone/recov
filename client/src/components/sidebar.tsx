@@ -27,6 +27,7 @@ import {
   TrendingDown,
   Heart,
   AlertTriangle,
+  Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -155,6 +156,11 @@ const navItems: NavItem[] = [
         name: "Category Rules",
         path: "/credit-control/category-rules",
         icon: <Settings className="h-4 w-4" />,
+      },
+      {
+        name: "Category Calculation",
+        path: "/credit-control/category-calculation",
+        icon: <Calculator className="h-4 w-4" />,
       },
       {
         name: "Urgent Actions",

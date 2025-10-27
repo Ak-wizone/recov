@@ -39,6 +39,7 @@ import TenantRegistrations from "@/pages/tenant-registrations";
 import ForgotPassword from "@/pages/forgot-password";
 import ResetPassword from "@/pages/reset-password";
 import CategoryRules from "@/pages/category-rules";
+import CategoryCalculation from "@/pages/category-calculation";
 import UrgentActions from "@/pages/urgent-actions";
 import FollowupAutomation from "@/pages/followup-automation";
 
@@ -74,6 +75,7 @@ function Router() {
               <Route path="/risk/payment-forecaster" component={PaymentRiskForecaster} />
               <Route path="/risk/recovery-health" component={RecoveryHealthTest} />
               <Route path="/credit-control/category-rules" component={CategoryRules} />
+              <Route path="/credit-control/category-calculation" component={CategoryCalculation} />
               <Route path="/credit-control/urgent-actions" component={UrgentActions} />
               <Route path="/credit-control/followup-automation" component={FollowupAutomation} />
               <Route path="/company-settings" component={CompanySettings} />
