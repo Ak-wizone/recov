@@ -5,12 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -20,11 +26,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, Mail, MessageCircle, FileText } from "lucide-react";
+import { Download, Mail, MessageCircle, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import html2pdf from "html2pdf.js";
 import { useLocation } from "wouter";
+import { cn } from "@/lib/utils";
 
 interface LedgerTransaction {
   date: string;
@@ -71,11 +78,29 @@ const voucherColors = {
   'Debit Note': 'bg-purple-50 text-purple-700 border-purple-200',
 };
 
+// Calculate financial year dates (April 1 to March 31)
+const getFinancialYearDates = () => {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth(); // 0-indexed (0 = January, 3 = April)
+  
+  // If we're in Jan-March, FY started last year's April
+  // If we're in Apr-Dec, FY started this year's April
+  const fyStartYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+  
+  const fromDate = `${fyStartYear}-04-01`;
+  const toDate = format(today, 'yyyy-MM-dd');
+  
+  return { fromDate, toDate };
+};
+
 export default function Ledger() {
   const [location] = useLocation();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [open, setOpen] = useState(false);
+  const { fromDate: defaultFromDate, toDate: defaultToDate } = getFinancialYearDates();
+  const [fromDate, setFromDate] = useState(defaultFromDate);
+  const [toDate, setToDate] = useState(defaultToDate);
   const { toast } = useToast();
 
   // Parse URL parameters on mount
@@ -228,18 +253,53 @@ export default function Ledger() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <Label htmlFor="customer-select">Select Customer</Label>
-                <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
-                  <SelectTrigger id="customer-select" data-testid="select-customer">
-                    <SelectValue placeholder="Choose a customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {customers.map((customer) => (
-                      <SelectItem key={customer.id} value={customer.id}>
-                        {customer.clientName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="w-full justify-between"
+                      data-testid="select-customer"
+                    >
+                      {selectedCustomerId
+                        ? customers.find((customer) => customer.id === selectedCustomerId)?.clientName
+                        : "Search and select customer..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search customers by name..." />
+                      <CommandList>
+                        <CommandEmpty>No customer found.</CommandEmpty>
+                        <CommandGroup>
+                          {customers
+                            .sort((a, b) => a.clientName.localeCompare(b.clientName))
+                            .map((customer) => (
+                              <CommandItem
+                                key={customer.id}
+                                value={customer.clientName}
+                                onSelect={() => {
+                                  setSelectedCustomerId(customer.id);
+                                  setOpen(false);
+                                }}
+                                data-testid={`customer-option-${customer.id}`}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedCustomerId === customer.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {customer.clientName}
+                              </CommandItem>
+                            ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label htmlFor="from-date">From Date</Label>
