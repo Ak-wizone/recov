@@ -171,11 +171,12 @@ export default function Ledger() {
     element.style.visibility = 'visible';
 
     const opt = {
-      margin: [10, 12.7, 10, 12.7] as [number, number, number, number], // 0.5 inch (12.7mm) left and right margins
+      margin: [5, 5, 5, 5] as [number, number, number, number], // 0.5 cm (5mm) margins on all sides
       filename: `Ledger_${ledgerData.customer.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: { scale: 2, logging: false, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const }
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
 
     html2pdf()
@@ -519,12 +520,12 @@ export default function Ledger() {
                 position: 'absolute', 
                 left: '-9999px', 
                 visibility: 'hidden',
-                width: '190mm',
+                width: '200mm',
                 backgroundColor: '#ffffff'
               }}
             >
               <div style={{ 
-                padding: '15mm', 
+                padding: '8mm', 
                 fontFamily: 'Arial, Helvetica, sans-serif',
                 fontSize: '13px',
                 lineHeight: '1.5',
@@ -692,21 +693,23 @@ export default function Ledger() {
                     {ledgerData.transactions.map((transaction, index) => (
                       <tr key={index} style={{ 
                         backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8fafc',
-                        borderBottom: '1px solid #e2e8f0'
+                        borderBottom: '1px solid #e2e8f0',
+                        pageBreakInside: 'avoid'
                       }}>
-                        <td style={{ padding: '10px', color: '#475569', fontSize: '12px' }}>
+                        <td style={{ padding: '10px', color: '#475569', fontSize: '12px', verticalAlign: 'middle' }}>
                           {format(new Date(transaction.date), 'dd-MMM-yy')}
                         </td>
-                        <td style={{ padding: '10px', color: '#1e293b', fontSize: '12px', fontWeight: '500' }}>
+                        <td style={{ padding: '10px', color: '#1e293b', fontSize: '12px', fontWeight: '500', verticalAlign: 'middle' }}>
                           {transaction.particulars}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '11px' }}>
+                        <td style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '11px', verticalAlign: 'middle' }}>
                           {transaction.refNo}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'center', fontSize: '11px' }}>
+                        <td style={{ padding: '10px', textAlign: 'center', fontSize: '11px', verticalAlign: 'middle' }}>
                           <span style={{ 
-                            padding: '4px 10px', 
-                            borderRadius: '4px',
+                            display: 'inline-block',
+                            padding: '5px 12px', 
+                            borderRadius: '5px',
                             backgroundColor: 
                               transaction.voucherType === 'Sales' || transaction.voucherType === 'Invoice' ? '#dbeafe' :
                               transaction.voucherType === 'Receipt' || transaction.voucherType === 'Payment' ? '#dcfce7' :
@@ -720,21 +723,23 @@ export default function Ledger() {
                               transaction.voucherType === 'Credit Note' ? '#9f1239' :
                               '#475569',
                             fontWeight: '700',
-                            fontSize: '11px'
+                            fontSize: '10px',
+                            lineHeight: '1',
+                            whiteSpace: 'nowrap'
                           }}>
                             {transaction.voucherType}
                           </span>
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '11px' }}>
+                        <td style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '11px', verticalAlign: 'middle' }}>
                           {transaction.voucherNo}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'right', color: '#dc2626', fontWeight: '700', fontSize: '12px' }}>
+                        <td style={{ padding: '10px', textAlign: 'right', color: '#dc2626', fontWeight: '700', fontSize: '12px', verticalAlign: 'middle' }}>
                           {transaction.debit > 0 ? transaction.debit.toLocaleString() : '-'}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'right', color: '#16a34a', fontWeight: '700', fontSize: '12px' }}>
+                        <td style={{ padding: '10px', textAlign: 'right', color: '#16a34a', fontWeight: '700', fontSize: '12px', verticalAlign: 'middle' }}>
                           {transaction.credit > 0 ? transaction.credit.toLocaleString() : '-'}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold', fontSize: '12px', color: '#1e293b' }}>
+                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold', fontSize: '12px', color: '#1e293b', verticalAlign: 'middle' }}>
                           {transaction.balance.toLocaleString()} 
                           <span style={{ 
                             fontSize: '10px', 
