@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { Download, Mail, MessageCircle, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import html2pdf from "html2pdf.js";
+import { useLocation } from "wouter";
 
 interface LedgerTransaction {
   date: string;
@@ -71,10 +72,20 @@ const voucherColors = {
 };
 
 export default function Ledger() {
+  const [location] = useLocation();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const { toast } = useToast();
+
+  // Parse URL parameters on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const customerIdParam = params.get('customerId');
+    if (customerIdParam) {
+      setSelectedCustomerId(customerIdParam);
+    }
+  }, [location]);
 
   // Fetch customers for dropdown
   const { data: customers = [] } = useQuery<any[]>({
