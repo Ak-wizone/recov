@@ -248,14 +248,14 @@ export default function CategoryCalculationPage() {
                 Filter by Category
               </Label>
               <Select
-                value={filterCategories.join(",")}
-                onValueChange={(value) => setFilterCategories(value ? value.split(",") : [])}
+                value={filterCategories.length > 0 ? filterCategories.join(",") : "all"}
+                onValueChange={(value) => setFilterCategories(value === "all" ? [] : value.split(","))}
               >
                 <SelectTrigger id="filter-category" data-testid="select-filter-category">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all">All Categories</SelectItem>
                   <SelectItem value="Alpha">Alpha Only</SelectItem>
                   <SelectItem value="Beta">Beta Only</SelectItem>
                   <SelectItem value="Gamma">Gamma Only</SelectItem>
