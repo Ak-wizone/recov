@@ -54,6 +54,15 @@ The application uses `shadcn/ui` (Radix UI) with Tailwind CSS for a responsive d
     *   Email and WhatsApp sharing capabilities for ledger statements
     *   Quick access from Debtors table via BookOpen icon button with URL parameter pre-selection
     *   Accessible via sidebar under Payment Tracking > Ledger
+*   **Daily Engagement Features (Action Center & Team Performance)**:
+    *   **Daily Dashboard**: Personalized greeting, today's priority tasks, follow-ups due, overdue alerts, collection targets, quick action buttons
+    *   **Task Manager**: Create/assign/track tasks with status updates, due dates, priority levels, filtering; managers can assign to team members, team members can self-assign
+    *   **Call Queue**: Auto-prioritized call list from follow-ups/overdues/categories, click-to-call, status tracking, quick activity logging, auto-next customer
+    *   **Activity Log**: Universal quick-log modal accessible from all pages, activity history view, filter by type/date, mandatory field validation
+    *   **Leaderboard**: Team rankings, personal efficiency scores, achievement badges, visual charts, daily/weekly/monthly metrics
+    *   **Daily Targets**: Set/track collection targets, progress bars, target vs actual, achievement percentage, hourly breakdown (manager-only creation)
+    *   **Notification Center**: Real-time notifications for tasks/payments/achievements, bell icon with unread count, mark as read, WebSocket integration
+    *   **Role-Based Access Control**: Manager-only permissions for task assignment (to others) and target management; team members can create self-assigned tasks and view all features
 
 # External Dependencies
 
