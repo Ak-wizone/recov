@@ -115,7 +115,7 @@ export default function Ledger() {
 
   // Fetch customers for dropdown
   const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<any[]>({
-    queryKey: ["/api/master-customers"],
+    queryKey: ["/api/masters/customers"],
   });
 
   // Debug: Log customers data
