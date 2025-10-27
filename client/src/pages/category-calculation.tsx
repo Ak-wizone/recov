@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -450,9 +450,8 @@ export default function CategoryCalculationPage() {
                     </TableRow>
                   ) : (
                     filteredRecommendations.map((rec) => (
-                      <>
+                      <Fragment key={rec.customerId}>
                         <TableRow
-                          key={rec.customerId}
                           className={selectedCustomers.has(rec.customerId) ? "bg-blue-50 dark:bg-blue-950/20" : ""}
                         >
                           <TableCell>
@@ -566,7 +565,7 @@ export default function CategoryCalculationPage() {
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </Fragment>
                     ))
                   )}
                 </TableBody>
