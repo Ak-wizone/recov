@@ -28,6 +28,12 @@ import {
   Heart,
   AlertTriangle,
   Calculator,
+  CheckSquare,
+  Phone,
+  ClipboardList,
+  Target,
+  Trophy,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -105,6 +111,50 @@ const navItems: NavItem[] = [
         name: "Ledger",
         path: "/ledger",
         icon: <BookOpen className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    name: "Action Center",
+    path: "#",
+    icon: <Zap className="h-5 w-5" />,
+    subItems: [
+      {
+        name: "Daily Dashboard",
+        path: "/action-center/dashboard",
+        icon: <LayoutDashboard className="h-4 w-4" />,
+      },
+      {
+        name: "Tasks",
+        path: "/action-center/tasks",
+        icon: <CheckSquare className="h-4 w-4" />,
+      },
+      {
+        name: "Call Queue",
+        path: "/action-center/call-queue",
+        icon: <Phone className="h-4 w-4" />,
+      },
+      {
+        name: "Activity Log",
+        path: "/action-center/activity-log",
+        icon: <ClipboardList className="h-4 w-4" />,
+      },
+    ],
+  },
+  {
+    name: "Team Performance",
+    path: "#",
+    icon: <Trophy className="h-5 w-5" />,
+    subItems: [
+      {
+        name: "Leaderboard",
+        path: "/team/leaderboard",
+        icon: <Trophy className="h-4 w-4" />,
+      },
+      {
+        name: "Daily Targets",
+        path: "/team/targets",
+        icon: <Target className="h-4 w-4" />,
       },
     ],
   },

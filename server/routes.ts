@@ -1,9 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
+import { tenantMiddleware, adminOnlyMiddleware, managerOnlyMiddleware } from "./middleware";
 import { wsManager } from "./websocket";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, invoices, masterCustomers, receipts, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertTaskSchema, insertActivityLogSchema, insertUserMetricSchema, insertDailyTargetSchema, insertNotificationSchema, invoices, masterCustomers, receipts, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
 import { whatsappWebService } from "./whatsapp-web-service";
@@ -8403,6 +8403,602 @@ ${profile?.legalName || 'Company'}`;
       });
     } catch (error: any) {
       console.error("Failed to fetch ledger:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== TASK MANAGEMENT ROUTES ====================
+  
+  // Get all tasks
+  app.get("/api/tasks", tenantMiddleware, async (req, res) => {
+    try {
+      const tasks = await storage.getTasks(req.tenantId!);
+      res.json(tasks);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get tasks by user
+  app.get("/api/tasks/user/:userId", tenantMiddleware, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const tasks = await storage.getTasksByUser(req.tenantId!, userId);
+      res.json(tasks);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get tasks by customer
+  app.get("/api/tasks/customer/:customerId", tenantMiddleware, async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const tasks = await storage.getTasksByCustomer(req.tenantId!, customerId);
+      res.json(tasks);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get today's tasks
+  app.get("/api/tasks/today", tenantMiddleware, async (req, res) => {
+    try {
+      const tasks = await storage.getTodaysTasks(req.tenantId!);
+      res.json(tasks);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get overdue tasks
+  app.get("/api/tasks/overdue", tenantMiddleware, async (req, res) => {
+    try {
+      const tasks = await storage.getOverdueTasks(req.tenantId!);
+      res.json(tasks);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create task
+  app.post("/api/tasks", tenantMiddleware, async (req, res) => {
+    try {
+      const validated = insertTaskSchema.parse(req.body);
+      const sessionUser = (req.session as any).user;
+      
+      // Check if user is assigning task to someone else (not themselves)
+      const isAssigningToOthers = validated.assignedToUserId && validated.assignedToUserId !== sessionUser.id;
+      
+      // Only managers can assign tasks to others
+      if (isAssigningToOthers) {
+        const roleName = (sessionUser.roleName || "").toLowerCase();
+        const isManager = roleName.includes("manager") || roleName.includes("admin") || roleName.includes("supervisor");
+        
+        if (!isManager) {
+          return res.status(403).json({ message: "Only managers can assign tasks to other team members" });
+        }
+      }
+      
+      const task = await storage.createTask(req.tenantId!, validated);
+      
+      // Create notification if task is assigned to someone
+      if (task.assignedToUserId && task.assignedToUserId !== task.createdByUserId) {
+        await storage.createNotification(req.tenantId!, {
+          userId: task.assignedToUserId,
+          title: "New Task Assigned",
+          message: `${task.createdByUserName} assigned you a task: ${task.title}`,
+          type: "task_assigned",
+          relatedId: task.id,
+          relatedType: "task"
+        });
+      }
+      
+      res.status(201).json(task);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update task
+  app.patch("/api/tasks/:id", tenantMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const sessionUser = (req.session as any).user;
+      
+      // If updating assignedToUserId, check if user is assigning to someone else
+      if (req.body.assignedToUserId && req.body.assignedToUserId !== sessionUser.id) {
+        const roleName = (sessionUser.roleName || "").toLowerCase();
+        const isManager = roleName.includes("manager") || roleName.includes("admin") || roleName.includes("supervisor");
+        
+        if (!isManager) {
+          return res.status(403).json({ message: "Only managers can assign tasks to other team members" });
+        }
+      }
+      
+      const task = await storage.updateTask(req.tenantId!, id, req.body);
+      
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.json(task);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete task
+  app.delete("/api/tasks/:id", tenantMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteTask(req.tenantId!, id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== ACTIVITY LOG ROUTES ====================
+  
+  // Get all activity logs
+  app.get("/api/activity-logs", tenantMiddleware, async (req, res) => {
+    try {
+      const logs = await storage.getActivityLogs(req.tenantId!);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get activity logs by customer
+  app.get("/api/activity-logs/customer/:customerId", tenantMiddleware, async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const logs = await storage.getActivityLogsByCustomer(req.tenantId!, customerId);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get activity logs by user
+  app.get("/api/activity-logs/user/:userId", tenantMiddleware, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const logs = await storage.getActivityLogsByUser(req.tenantId!, userId);
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create activity log
+  app.post("/api/activity-logs", tenantMiddleware, async (req, res) => {
+    try {
+      const validated = insertActivityLogSchema.parse(req.body);
+      const log = await storage.createActivityLog(req.tenantId!, validated);
+      
+      // Auto-create task if next action is specified
+      if (log.nextAction && log.nextActionDate) {
+        await storage.createTask(req.tenantId!, {
+          customerId: log.customerId,
+          customerName: log.customerName,
+          title: log.nextAction,
+          description: `Follow-up from ${log.interactionType} on ${new Date(log.createdAt).toLocaleDateString()}`,
+          type: "follow_up",
+          priority: "medium",
+          dueDate: log.nextActionDate.toISOString(),
+          assignedToUserId: log.loggedByUserId,
+          assignedToUserName: log.loggedByUserName,
+          createdByUserId: log.loggedByUserId,
+          createdByUserName: log.loggedByUserName
+        });
+      }
+      
+      res.status(201).json(log);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== DAILY DASHBOARD ROUTES ====================
+  
+  // Get daily action dashboard data
+  app.get("/api/dashboard/daily-actions", tenantMiddleware, async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      const [todaysTasks, overdueTasks, todaysTargets, allInvoices, allReceipts, allCustomers] = await Promise.all([
+        storage.getTodaysTasks(req.tenantId!),
+        storage.getOverdueTasks(req.tenantId!),
+        storage.getTodaysTargets(req.tenantId!),
+        storage.getInvoices(req.tenantId!),
+        storage.getReceipts(req.tenantId!),
+        storage.getMasterCustomers(req.tenantId!)
+      ]);
+
+      // Calculate priority customers (overdue > 30 days)
+      const today = new Date();
+      const priorityCustomers = allCustomers.filter(customer => {
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+        
+        const overdueInvoices = customerInvoices.filter(inv => {
+          const dueDate = new Date(inv.invoiceDate);
+          dueDate.setDate(dueDate.getDate() + parseInt(String(inv.paymentTerms || "0")));
+          const daysDiff = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+          return daysDiff > 30;
+        });
+        
+        return overdueInvoices.length > 0;
+      }).slice(0, 10);
+
+      // Calculate today's collection progress
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+      
+      const todaysReceipts = allReceipts.filter(receipt => {
+        const receiptDate = new Date(receipt.date);
+        return receiptDate >= todayStart && receiptDate <= todayEnd;
+      });
+      
+      const todaysCollection = todaysReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+
+      res.json({
+        todaysTasks: userId ? todaysTasks.filter(t => t.assignedToUserId === userId) : todaysTasks,
+        overdueTasks: userId ? overdueTasks.filter(t => t.assignedToUserId === userId) : overdueTasks,
+        priorityCustomers: priorityCustomers.map(c => ({
+          id: c.id,
+          name: c.clientName,
+          category: c.category,
+          mobile: c.primaryMobile,
+          outstandingAmount: parseFloat(c.openingBalance || "0") + 
+            allInvoices.filter(inv => inv.customerName === c.clientName).reduce((s, inv) => s + parseFloat(inv.invoiceAmount), 0) - 
+            allReceipts.filter(rec => rec.customerName === c.clientName).reduce((s, rec) => s + parseFloat(rec.amount), 0)
+        })),
+        todaysTargets,
+        todaysCollection,
+        summary: {
+          pendingTasks: todaysTasks.filter(t => t.status === 'pending').length,
+          overdueTasks: overdueTasks.length,
+          priorityCustomers: priorityCustomers.length,
+          collectionProgress: todaysTargets.find(t => t.targetType === 'collection') ? 
+            (todaysCollection / parseFloat(todaysTargets.find(t => t.targetType === 'collection')?.targetAmount || "1")) * 100 : 0
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== CALL QUEUE ROUTES ====================
+  
+  // Get auto-generated call queue
+  app.get("/api/call-queue", tenantMiddleware, async (req, res) => {
+    try {
+      const [allCustomers, allInvoices, allReceipts, activityLogs] = await Promise.all([
+        storage.getMasterCustomers(req.tenantId!),
+        storage.getInvoices(req.tenantId!),
+        storage.getReceipts(req.tenantId!),
+        storage.getActivityLogs(req.tenantId!)
+      ]);
+
+      const today = new Date();
+      const callQueue: any[] = [];
+
+      allCustomers.forEach(customer => {
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+        const customerActivities = activityLogs.filter(log => log.customerId === customer.id);
+        
+        // Calculate overdue amount
+        let overdueAmount = 0;
+        let maxOverdueDays = 0;
+        
+        customerInvoices.forEach(invoice => {
+          const dueDate = new Date(invoice.invoiceDate);
+          dueDate.setDate(dueDate.getDate() + parseInt(String(invoice.paymentTerms || "0")));
+          const daysDiff = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (daysDiff > 0) {
+            overdueAmount += parseFloat(invoice.invoiceAmount);
+            maxOverdueDays = Math.max(maxOverdueDays, daysDiff);
+          }
+        });
+
+        // Get last call date
+        const lastCall = customerActivities
+          .filter(log => log.interactionType === 'call')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        
+        const daysSinceLastCall = lastCall ? 
+          Math.floor((today.getTime() - new Date(lastCall.createdAt).getTime()) / (1000 * 60 * 60 * 24)) : 999;
+
+        // Prioritize: overdue > 30 days OR no call in 7 days OR high priority category
+        if (maxOverdueDays > 30 || daysSinceLastCall > 7 || customer.category === 'Delta' || customer.category === 'Gamma') {
+          callQueue.push({
+            customerId: customer.id,
+            customerName: customer.clientName,
+            mobile: customer.primaryMobile,
+            category: customer.category,
+            overdueAmount,
+            overdueDays: maxOverdueDays,
+            daysSinceLastCall,
+            lastCallDate: lastCall?.createdAt || null,
+            lastCallOutcome: lastCall?.outcome || null,
+            priority: maxOverdueDays > 60 ? 'urgent' : maxOverdueDays > 30 ? 'high' : 'medium',
+            callStatus: 'pending'
+          });
+        }
+      });
+
+      // Sort by priority (urgent > high > medium) and then by overdue days
+      callQueue.sort((a, b) => {
+        const priorityOrder = { urgent: 3, high: 2, medium: 1 };
+        if (priorityOrder[a.priority as keyof typeof priorityOrder] !== priorityOrder[b.priority as keyof typeof priorityOrder]) {
+          return priorityOrder[b.priority as keyof typeof priorityOrder] - priorityOrder[a.priority as keyof typeof priorityOrder];
+        }
+        return b.overdueDays - a.overdueDays;
+      });
+
+      res.json(callQueue);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== USER METRICS & LEADERBOARD ROUTES ====================
+  
+  // Get leaderboard (team performance)
+  app.get("/api/leaderboard", tenantMiddleware, async (req, res) => {
+    try {
+      const period = req.query.period as string || 'today'; // today, week, month
+      const today = new Date();
+      let startDate = new Date(today);
+      
+      if (period === 'today') {
+        startDate.setHours(0, 0, 0, 0);
+      } else if (period === 'week') {
+        startDate.setDate(today.getDate() - 7);
+      } else if (period === 'month') {
+        startDate.setMonth(today.getMonth() - 1);
+      }
+
+      const [allUsers, allMetrics, allTasks, allActivityLogs, allReceipts] = await Promise.all([
+        storage.getUsers(req.tenantId!),
+        storage.getUserMetrics(req.tenantId!, '', startDate),
+        storage.getTasks(req.tenantId!),
+        storage.getActivityLogs(req.tenantId!),
+        storage.getReceipts(req.tenantId!)
+      ]);
+
+      // Calculate metrics for each user
+      const leaderboard = allUsers.map(user => {
+        const userTasks = allTasks.filter(t => 
+          t.assignedToUserId === user.id && 
+          new Date(t.createdAt) >= startDate
+        );
+        const userActivities = allActivityLogs.filter(log => 
+          log.loggedByUserId === user.id && 
+          new Date(log.createdAt) >= startDate
+        );
+        const userReceipts = allReceipts.filter(r => 
+          new Date(r.date) >= startDate
+        ); // In real app, filter by user who collected
+
+        const tasksCompleted = userTasks.filter(t => t.status === 'completed').length;
+        const callsMade = userActivities.filter(a => a.interactionType === 'call').length;
+        const emailsSent = userActivities.filter(a => a.interactionType === 'email').length;
+        const paymentsCollected = userReceipts.reduce((sum, r) => sum + parseFloat(r.amount), 0) / allUsers.length; // Distribute evenly for now
+        
+        // Calculate efficiency score (weighted formula)
+        const efficiencyScore = (
+          (tasksCompleted * 10) + 
+          (callsMade * 5) + 
+          (emailsSent * 3) + 
+          (paymentsCollected / 1000)
+        );
+
+        return {
+          userId: user.id,
+          userName: user.name,
+          tasksCompleted,
+          callsMade,
+          emailsSent,
+          paymentsCollected,
+          efficiencyScore: Math.round(efficiencyScore),
+          rank: 0 // Will calculate after sorting
+        };
+      });
+
+      // Sort by efficiency score and assign ranks
+      leaderboard.sort((a, b) => b.efficiencyScore - a.efficiencyScore);
+      leaderboard.forEach((entry, index) => {
+        entry.rank = index + 1;
+      });
+
+      res.json(leaderboard);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get user metrics
+  app.get("/api/user-metrics/:userId", tenantMiddleware, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { startDate, endDate } = req.query;
+      
+      const metrics = await storage.getUserMetrics(
+        req.tenantId!, 
+        userId,
+        startDate ? new Date(startDate as string) : undefined,
+        endDate ? new Date(endDate as string) : undefined
+      );
+      
+      res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== DAILY TARGETS ROUTES ====================
+  
+  // Get all daily targets
+  app.get("/api/daily-targets", tenantMiddleware, async (req, res) => {
+    try {
+      const targets = await storage.getDailyTargets(req.tenantId!);
+      res.json(targets);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get today's targets
+  app.get("/api/daily-targets/today", tenantMiddleware, async (req, res) => {
+    try {
+      const targets = await storage.getTodaysTargets(req.tenantId!);
+      res.json(targets);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create daily target (Manager only)
+  app.post("/api/daily-targets", tenantMiddleware, managerOnlyMiddleware, async (req, res) => {
+    try {
+      const validated = insertDailyTargetSchema.parse(req.body);
+      const target = await storage.createDailyTarget(req.tenantId!, validated);
+      res.status(201).json(target);
+    } catch (error: any) {
+      if (error.name === 'ZodError') {
+        const validationError = fromZodError(error);
+        return res.status(400).json({ message: validationError.message });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update daily target (Manager only)
+  app.patch("/api/daily-targets/:id", tenantMiddleware, managerOnlyMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const target = await storage.updateDailyTarget(req.tenantId!, id, req.body);
+      
+      if (!target) {
+        return res.status(404).json({ message: "Target not found" });
+      }
+      
+      // Check if target achieved, send notification
+      if (target.targetType === 'collection' && parseFloat(target.achievedAmount || "0") >= parseFloat(target.targetAmount || "0")) {
+        if (target.userId) {
+          await storage.createNotification(req.tenantId!, {
+            userId: target.userId,
+            title: "Target Achieved! 🎉",
+            message: `Congratulations! You've achieved your collection target of ₹${target.targetAmount}`,
+            type: "target_achieved",
+            relatedId: target.id,
+            relatedType: "target"
+          });
+        }
+      }
+      
+      res.json(target);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete daily target (Manager only)
+  app.delete("/api/daily-targets/:id", tenantMiddleware, managerOnlyMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteDailyTarget(req.tenantId!, id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Target not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================== NOTIFICATIONS ROUTES ====================
+  
+  // Get user notifications
+  app.get("/api/notifications", tenantMiddleware, async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+      
+      const notifications = await storage.getNotifications(req.tenantId!, userId);
+      res.json(notifications);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get unread notifications
+  app.get("/api/notifications/unread", tenantMiddleware, async (req, res) => {
+    try {
+      const userId = req.query.userId as string;
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+      
+      const notifications = await storage.getUnreadNotifications(req.tenantId!, userId);
+      res.json(notifications);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Mark notification as read
+  app.patch("/api/notifications/:id/read", tenantMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.markNotificationAsRead(req.tenantId!, id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Mark all notifications as read
+  app.patch("/api/notifications/mark-all-read", tenantMiddleware, async (req, res) => {
+    try {
+      const userId = req.body.userId as string;
+      if (!userId) {
+        return res.status(400).json({ message: "userId is required" });
+      }
+      
+      const count = await storage.markAllNotificationsAsRead(req.tenantId!, userId);
+      res.json({ count });
+    } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });

@@ -42,6 +42,12 @@ import CategoryRules from "@/pages/category-rules";
 import CategoryCalculation from "@/pages/category-calculation";
 import UrgentActions from "@/pages/urgent-actions";
 import FollowupAutomation from "@/pages/followup-automation";
+import DailyDashboard from "@/pages/daily-dashboard";
+import Tasks from "@/pages/tasks";
+import CallQueue from "@/pages/call-queue";
+import ActivityLog from "@/pages/activity-log";
+import Leaderboard from "@/pages/leaderboard";
+import DailyTargets from "@/pages/daily-targets";
 
 function Router() {
   return (
@@ -78,6 +84,12 @@ function Router() {
               <Route path="/credit-control/category-calculation" component={CategoryCalculation} />
               <Route path="/credit-control/urgent-actions" component={UrgentActions} />
               <Route path="/credit-control/followup-automation" component={FollowupAutomation} />
+              <Route path="/action-center/dashboard" component={DailyDashboard} />
+              <Route path="/action-center/tasks" component={Tasks} />
+              <Route path="/action-center/call-queue" component={CallQueue} />
+              <Route path="/action-center/activity-log" component={ActivityLog} />
+              <Route path="/team/leaderboard" component={Leaderboard} />
+              <Route path="/team/targets" component={DailyTargets} />
               <Route path="/company-settings" component={CompanySettings} />
               <Route path="/email-config" component={EmailConfig} />
               <Route path="/email-templates" component={EmailTemplates} />

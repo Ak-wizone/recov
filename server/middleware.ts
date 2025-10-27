@@ -74,3 +74,23 @@ export function adminOnlyMiddleware(req: Request, res: Response, next: NextFunct
 
   next();
 }
+
+// Middleware to check if user has manager/admin role within their tenant
+// Used for daily engagement features that require elevated permissions
+export function managerOnlyMiddleware(req: Request, res: Response, next: NextFunction) {
+  const sessionUser = (req.session as any).user;
+
+  if (!sessionUser) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+
+  // Check if user has manager or admin role
+  const roleName = (sessionUser.roleName || "").toLowerCase();
+  const isManager = roleName.includes("manager") || roleName.includes("admin") || roleName.includes("supervisor");
+
+  if (!isManager) {
+    return res.status(403).json({ message: "Manager access required for this action" });
+  }
+
+  next();
+}
