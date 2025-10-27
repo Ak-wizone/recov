@@ -66,6 +66,17 @@ interface LedgerData {
   };
 }
 
+interface CompanyProfile {
+  id: string;
+  legalName: string;
+  logo?: string;
+  gstin?: string;
+  regAddressLine1?: string;
+  regCity?: string;
+  regState?: string;
+  regPincode?: string;
+}
+
 // Pastel color scheme for voucher types
 const voucherColors = {
   'Opening': 'bg-gray-100 text-gray-700 border-gray-200',
@@ -118,6 +129,11 @@ export default function Ledger() {
     queryKey: ["/api/masters/customers"],
   });
 
+  // Fetch company profile for PDF branding
+  const { data: companyProfile } = useQuery<CompanyProfile>({
+    queryKey: ["/api/company-profile"],
+  });
+
   // Debug: Log customers data
   useEffect(() => {
     if (customers.length > 0) {
@@ -155,7 +171,7 @@ export default function Ledger() {
     element.style.visibility = 'visible';
 
     const opt = {
-      margin: [10, 10, 10, 10] as [number, number, number, number],
+      margin: [10, 12.7, 10, 12.7] as [number, number, number, number], // 0.5 inch (12.7mm) left and right margins
       filename: `Ledger_${ledgerData.customer.name.replace(/\s+/g, '_')}_${format(new Date(), 'yyyy-MM-dd')}.pdf`,
       image: { type: 'jpeg' as const, quality: 0.98 },
       html2canvas: { scale: 2, logging: false, useCORS: true },
@@ -526,24 +542,40 @@ export default function Ledger() {
                     alignItems: 'flex-start',
                     marginBottom: '15px'
                   }}>
-                    <div>
-                      <h1 style={{ 
-                        margin: '0 0 8px 0', 
-                        fontSize: '28px', 
-                        fontWeight: 'bold',
-                        color: '#1e40af',
-                        letterSpacing: '-0.5px'
-                      }}>
-                        RECOV.
-                      </h1>
-                      <p style={{ 
-                        margin: '0', 
-                        fontSize: '11px', 
-                        color: '#64748b',
-                        fontWeight: '500'
-                      }}>
-                        Business Management Platform
-                      </p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                      {companyProfile?.logo && (
+                        <img 
+                          src={companyProfile.logo} 
+                          alt="Company Logo" 
+                          style={{ 
+                            height: '60px', 
+                            width: 'auto',
+                            maxWidth: '120px',
+                            objectFit: 'contain'
+                          }} 
+                        />
+                      )}
+                      <div>
+                        <h1 style={{ 
+                          margin: '0 0 8px 0', 
+                          fontSize: '24px', 
+                          fontWeight: 'bold',
+                          color: '#1e40af',
+                          letterSpacing: '-0.5px'
+                        }}>
+                          {companyProfile?.legalName || 'Company Name'}
+                        </h1>
+                        {companyProfile?.gstin && (
+                          <p style={{ 
+                            margin: '0', 
+                            fontSize: '10px', 
+                            color: '#64748b',
+                            fontWeight: '500'
+                          }}>
+                            GSTIN: {companyProfile.gstin}
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ 
@@ -566,7 +598,10 @@ export default function Ledger() {
                           fontSize: '9px', 
                           color: '#475569'
                         }}>
-                          {format(new Date(fromDate), 'dd MMM yyyy')} - {format(new Date(toDate), 'dd MMM yyyy')}
+                          {fromDate && toDate 
+                            ? `${format(new Date(fromDate), 'dd MMM yyyy')} - ${format(new Date(toDate), 'dd MMM yyyy')}`
+                            : 'All Transactions'
+                          }
                         </p>
                       </div>
                     </div>
@@ -633,19 +668,6 @@ export default function Ledger() {
                       )}
                     </div>
                   </div>
-                </div>
-
-                {/* Opening Balance */}
-                <div style={{ 
-                  marginBottom: '16px',
-                  padding: '12px 16px',
-                  backgroundColor: '#fef3c7',
-                  border: '1px solid #fbbf24',
-                  borderRadius: '6px'
-                }}>
-                  <p style={{ margin: '0', fontSize: '12px', fontWeight: '600', color: '#92400e' }}>
-                    Opening Balance: ₹{Math.abs(ledgerData.summary.openingBalance).toLocaleString()} {ledgerData.summary.openingBalance >= 0 ? 'Dr' : 'Cr'}
-                  </p>
                 </div>
 
                 {/* Transaction Table */}
@@ -755,10 +777,26 @@ export default function Ledger() {
                 {/* Summary Section */}
                 <div style={{ 
                   display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr 1fr', 
+                  gridTemplateColumns: '1fr 1fr 1fr 1fr', 
                   gap: '12px',
                   marginBottom: '25px'
                 }}>
+                  <div style={{ 
+                    backgroundColor: '#fef3c7', 
+                    padding: '14px', 
+                    borderRadius: '6px',
+                    border: '1px solid #fbbf24'
+                  }}>
+                    <p style={{ margin: '0 0 4px 0', fontSize: '9px', color: '#92400e', fontWeight: '600', textTransform: 'uppercase' }}>
+                      Opening Balance
+                    </p>
+                    <p style={{ margin: '0', fontSize: '16px', fontWeight: 'bold', color: '#a16207' }}>
+                      ₹{Math.abs(ledgerData.summary.openingBalance).toLocaleString()} 
+                      <span style={{ fontSize: '11px', marginLeft: '4px' }}>
+                        {ledgerData.summary.openingBalance >= 0 ? 'Dr' : 'Cr'}
+                      </span>
+                    </p>
+                  </div>
                   <div style={{ 
                     backgroundColor: '#fee2e2', 
                     padding: '14px', 
@@ -822,11 +860,13 @@ export default function Ledger() {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <p style={{ margin: '0', fontSize: '11px', fontWeight: '600', color: '#1e40af' }}>
-                      RECOV.
+                      {companyProfile?.legalName || 'Company Name'}
                     </p>
-                    <p style={{ margin: '2px 0 0 0', fontSize: '8px', color: '#64748b' }}>
-                      Business Management Platform
-                    </p>
+                    {companyProfile?.regCity && companyProfile?.regState && (
+                      <p style={{ margin: '2px 0 0 0', fontSize: '8px', color: '#64748b' }}>
+                        {companyProfile.regCity}, {companyProfile.regState}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
