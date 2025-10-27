@@ -7945,7 +7945,7 @@ ${profile?.legalName || 'Company'}`;
       const { fromDate, toDate } = req.query;
 
       // Get customer to verify it belongs to this tenant
-      const customer = await storage.getCustomer(req.tenantId!, customerId);
+      const customer = await storage.getMasterCustomer(req.tenantId!, customerId);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
