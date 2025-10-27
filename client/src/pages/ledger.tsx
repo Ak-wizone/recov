@@ -143,7 +143,7 @@ export default function Ledger() {
     if (!element) return;
 
     const opt = {
-      margin: [10, 10, 10, 10],
+      margin: [10, 10, 10, 10] as [number, number, number, number],
       filename: `ledger_${ledgerData.customer.name}_${format(new Date(), 'yyyy-MM-dd')}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, logging: false, useCORS: true },
@@ -186,7 +186,7 @@ export default function Ledger() {
     const { customer, summary } = ledgerData;
     const message = `Ledger Statement - ${customer.name}\n\nOpening Balance: ₹${summary.openingBalance.toLocaleString()} ${summary.openingBalance >= 0 ? 'Dr' : 'Cr'}\nTotal Debits: ₹${summary.totalDebits.toLocaleString()}\nTotal Credits: ₹${summary.totalCredits.toLocaleString()}\nClosing Balance: ₹${summary.closingBalance.toLocaleString()} ${summary.closingBalanceType}\n\nThank you for your business!`;
     
-    let phoneNumber = customer.mobile.replace(/\D/g, "");
+    let phoneNumber = (customer.mobile || "").replace(/\D/g, "");
     if (!phoneNumber.startsWith("91") && phoneNumber.length === 10) {
       phoneNumber = "91" + phoneNumber;
     }

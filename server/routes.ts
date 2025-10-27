@@ -7945,7 +7945,7 @@ ${profile?.legalName || 'Company'}`;
       const { fromDate, toDate } = req.query;
 
       // Get customer to verify it belongs to this tenant
-      const customer = await storage.getCustomerById(req.tenantId!, customerId);
+      const customer = await storage.getCustomer(req.tenantId!, customerId);
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -7985,24 +7985,59 @@ ${profile?.legalName || 'Company'}`;
 
       const transactions: LedgerTransaction[] = [];
 
-      // Add opening balance as first transaction
-      const openingBalance = parseFloat(customer.openingBalance?.toString() || "0");
+      // Calculate opening balance
+      let openingBalance = parseFloat(customer.openingBalance?.toString() || "0");
+      let openingBalanceDate = new Date(fromDate as string || '2025-04-01');
+      
+      // If fromDate is provided, calculate opening balance from previous day's closing
+      if (fromDate) {
+        const fromDateObj = new Date(fromDate as string);
+        const previousDay = new Date(fromDateObj);
+        previousDay.setDate(previousDay.getDate() - 1);
+        
+        // Get all transactions before fromDate
+        const previousInvoices = customerInvoices.filter(inv => 
+          new Date(inv.invoiceDate) <= previousDay
+        );
+        const previousReceipts = customerReceipts.filter(rec => 
+          new Date(rec.date) <= previousDay
+        );
+        
+        // Calculate balance up to previous day
+        let calculatedBalance = parseFloat(customer.openingBalance?.toString() || "0");
+        previousInvoices.forEach(inv => {
+          calculatedBalance += parseFloat(inv.invoiceAmount.toString());
+        });
+        previousReceipts.forEach(rec => {
+          calculatedBalance -= parseFloat(rec.amount.toString());
+        });
+        
+        openingBalance = calculatedBalance;
+      }
+
+      // Add opening balance as first transaction with proper date
+      const formattedFromDate = fromDate ? new Date(fromDate as string) : new Date('2025-04-01');
       transactions.push({
-        date: new Date(fromDate as string || '2025-04-01'),
-        particulars: 'Opening Balance',
+        date: formattedFromDate,
+        particulars: `Opening Balance as on ${formattedFromDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`,
         refNo: '',
         voucherType: 'Opening',
         voucherNo: '',
-        debit: 0,
-        credit: 0,
-        balance: openingBalance,
+        debit: openingBalance >= 0 ? openingBalance : 0,
+        credit: openingBalance < 0 ? Math.abs(openingBalance) : 0,
+        balance: Math.abs(openingBalance),
         balanceType: openingBalance >= 0 ? 'Dr' : 'Cr'
       });
 
-      // Add invoices as debit transactions
+      // Add invoices as debit transactions (only from fromDate onwards)
       customerInvoices.forEach(invoice => {
+        const invoiceDate = new Date(invoice.invoiceDate);
+        // Only include if within date range
+        if (fromDate && invoiceDate < new Date(fromDate as string)) return;
+        if (toDate && invoiceDate > new Date(toDate as string)) return;
+        
         transactions.push({
-          date: new Date(invoice.invoiceDate),
+          date: invoiceDate,
           particulars: invoice.remarks || 'Sales',
           refNo: invoice.invoiceNumber,
           voucherType: 'Sales',
@@ -8014,10 +8049,15 @@ ${profile?.legalName || 'Company'}`;
         });
       });
 
-      // Add receipts as credit transactions
+      // Add receipts as credit transactions (only from fromDate onwards)
       customerReceipts.forEach(receipt => {
+        const receiptDate = new Date(receipt.date);
+        // Only include if within date range
+        if (fromDate && receiptDate < new Date(fromDate as string)) return;
+        if (toDate && receiptDate > new Date(toDate as string)) return;
+        
         transactions.push({
-          date: new Date(receipt.date),
+          date: receiptDate,
           particulars: receipt.remarks || receipt.voucherType || 'Receipt',
           refNo: receipt.voucherNumber,
           voucherType: receipt.voucherType || 'Receipt',
@@ -8029,7 +8069,7 @@ ${profile?.legalName || 'Company'}`;
         });
       });
 
-      // Sort all transactions by date
+      // Sort all transactions by date (opening balance is already first)
       transactions.sort((a, b) => a.date.getTime() - b.date.getTime());
 
       // Calculate running balance
@@ -8040,20 +8080,10 @@ ${profile?.legalName || 'Company'}`;
         transactions[i].balanceType = runningBalance >= 0 ? 'Dr' : 'Cr';
       }
 
-      // Filter by date range if provided
-      let filteredTransactions = transactions;
-      if (fromDate || toDate) {
-        filteredTransactions = transactions.filter(t => {
-          if (fromDate && t.date < new Date(fromDate as string)) return false;
-          if (toDate && t.date > new Date(toDate as string)) return false;
-          return true;
-        });
-      }
-
       res.json({
         customer: {
           name: customer.clientName,
-          gstin: customer.gstin,
+          gstin: customer.gstNumber,
           address: customer.billingAddress,
           city: customer.city,
           state: customer.state,
@@ -8061,16 +8091,16 @@ ${profile?.legalName || 'Company'}`;
           mobile: customer.primaryMobile,
           email: customer.primaryEmail
         },
-        transactions: filteredTransactions.map(t => ({
+        transactions: transactions.map(t => ({
           ...t,
           date: t.date.toISOString().split('T')[0]
         })),
         summary: {
           openingBalance,
-          totalDebits: filteredTransactions.reduce((sum, t) => sum + t.debit, 0),
-          totalCredits: filteredTransactions.reduce((sum, t) => sum + t.credit, 0),
-          closingBalance: filteredTransactions[filteredTransactions.length - 1]?.balance || openingBalance,
-          closingBalanceType: filteredTransactions[filteredTransactions.length - 1]?.balanceType || (openingBalance >= 0 ? 'Dr' : 'Cr')
+          totalDebits: transactions.slice(1).reduce((sum, t) => sum + t.debit, 0), // Exclude opening balance
+          totalCredits: transactions.slice(1).reduce((sum, t) => sum + t.credit, 0), // Exclude opening balance
+          closingBalance: transactions[transactions.length - 1]?.balance || Math.abs(openingBalance),
+          closingBalanceType: transactions[transactions.length - 1]?.balanceType || (openingBalance >= 0 ? 'Dr' : 'Cr')
         }
       });
     } catch (error: any) {
