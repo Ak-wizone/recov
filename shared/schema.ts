@@ -1746,3 +1746,205 @@ export const insertFollowupScheduleSchema = createInsertSchema(followupSchedules
 export type InsertFollowupSchedule = z.infer<typeof insertFollowupScheduleSchema>;
 export type FollowupSchedule = typeof followupSchedules.$inferSelect;
 
+// Tasks table - Daily action items and follow-up tasks
+export const tasks = pgTable("tasks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  customerId: varchar("customer_id"),
+  customerName: text("customer_name"),
+  title: text("title").notNull(),
+  description: text("description"),
+  type: text("type").notNull(), // call, email, meeting, follow_up, payment_reminder
+  status: text("status").notNull().default("pending"), // pending, in_progress, completed, cancelled
+  priority: text("priority").notNull().default("medium"), // low, medium, high, urgent
+  dueDate: timestamp("due_date"),
+  assignedToUserId: varchar("assigned_to_user_id"),
+  assignedToUserName: text("assigned_to_user_name"),
+  createdByUserId: varchar("created_by_user_id").notNull(),
+  createdByUserName: text("created_by_user_name").notNull(),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTaskSchema = createInsertSchema(tasks).pick({
+  customerId: true,
+  customerName: true,
+  title: true,
+  description: true,
+  type: true,
+  status: true,
+  priority: true,
+  dueDate: true,
+  assignedToUserId: true,
+  assignedToUserName: true,
+  createdByUserId: true,
+  createdByUserName: true,
+}).extend({
+  customerId: z.string().optional(),
+  customerName: z.string().optional(),
+  title: z.string().min(1, "Task title is required"),
+  description: z.string().optional(),
+  type: z.enum(["call", "email", "meeting", "follow_up", "payment_reminder"]),
+  status: z.enum(["pending", "in_progress", "completed", "cancelled"]).optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+  dueDate: z.string().optional(),
+  assignedToUserId: z.string().optional(),
+  assignedToUserName: z.string().optional(),
+  createdByUserId: z.string(),
+  createdByUserName: z.string(),
+});
+
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Task = typeof tasks.$inferSelect;
+
+// Activity Logs table - Customer interaction tracking
+export const activityLogs = pgTable("activity_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  customerId: varchar("customer_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  interactionType: text("interaction_type").notNull(), // call, email, meeting, whatsapp, visit
+  outcome: text("outcome"), // promised_payment, no_answer, callback_requested, payment_done, dispute
+  notes: text("notes"),
+  nextAction: text("next_action"),
+  nextActionDate: timestamp("next_action_date"),
+  loggedByUserId: varchar("logged_by_user_id").notNull(),
+  loggedByUserName: text("logged_by_user_name").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs).pick({
+  customerId: true,
+  customerName: true,
+  interactionType: true,
+  outcome: true,
+  notes: true,
+  nextAction: true,
+  nextActionDate: true,
+  loggedByUserId: true,
+  loggedByUserName: true,
+}).extend({
+  customerId: z.string().min(1, "Customer is required"),
+  customerName: z.string().min(1, "Customer name is required"),
+  interactionType: z.enum(["call", "email", "meeting", "whatsapp", "visit"]),
+  outcome: z.string().optional(),
+  notes: z.string().optional(),
+  nextAction: z.string().optional(),
+  nextActionDate: z.string().optional(),
+  loggedByUserId: z.string(),
+  loggedByUserName: z.string(),
+});
+
+export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
+export type ActivityLog = typeof activityLogs.$inferSelect;
+
+// User Metrics table - Daily performance tracking
+export const userMetrics = pgTable("user_metrics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  userName: text("user_name").notNull(),
+  metricDate: timestamp("metric_date").notNull(), // Date for which metrics are calculated
+  tasksCompleted: integer("tasks_completed").notNull().default(0),
+  callsMade: integer("calls_made").notNull().default(0),
+  emailsSent: integer("emails_sent").notNull().default(0),
+  meetingsHeld: integer("meetings_held").notNull().default(0),
+  paymentsCollected: decimal("payments_collected", { precision: 15, scale: 2 }).notNull().default("0"),
+  efficiencyScore: decimal("efficiency_score", { precision: 5, scale: 2 }).notNull().default("0"), // Calculated score
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertUserMetricSchema = createInsertSchema(userMetrics).pick({
+  userId: true,
+  userName: true,
+  metricDate: true,
+  tasksCompleted: true,
+  callsMade: true,
+  emailsSent: true,
+  meetingsHeld: true,
+  paymentsCollected: true,
+  efficiencyScore: true,
+}).extend({
+  userId: z.string(),
+  userName: z.string(),
+  metricDate: z.string(),
+  tasksCompleted: z.number().optional(),
+  callsMade: z.number().optional(),
+  emailsSent: z.number().optional(),
+  meetingsHeld: z.number().optional(),
+  paymentsCollected: z.string().optional(),
+  efficiencyScore: z.string().optional(),
+});
+
+export type InsertUserMetric = z.infer<typeof insertUserMetricSchema>;
+export type UserMetric = typeof userMetrics.$inferSelect;
+
+// Daily Targets table - Collection and activity targets
+export const dailyTargets = pgTable("daily_targets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  userId: varchar("user_id"), // Nullable - can be team-wide target
+  userName: text("user_name"),
+  targetDate: timestamp("target_date").notNull(),
+  targetType: text("target_type").notNull(), // collection, calls, tasks, emails
+  targetAmount: decimal("target_amount", { precision: 15, scale: 2 }), // For collection targets
+  targetCount: integer("target_count"), // For activity count targets
+  achievedAmount: decimal("achieved_amount", { precision: 15, scale: 2 }).default("0"),
+  achievedCount: integer("achieved_count").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertDailyTargetSchema = createInsertSchema(dailyTargets).pick({
+  userId: true,
+  userName: true,
+  targetDate: true,
+  targetType: true,
+  targetAmount: true,
+  targetCount: true,
+}).extend({
+  userId: z.string().optional(),
+  userName: z.string().optional(),
+  targetDate: z.string(),
+  targetType: z.enum(["collection", "calls", "tasks", "emails"]),
+  targetAmount: z.string().optional(),
+  targetCount: z.number().optional(),
+});
+
+export type InsertDailyTarget = z.infer<typeof insertDailyTargetSchema>;
+export type DailyTarget = typeof dailyTargets.$inferSelect;
+
+// Notifications table - Real-time alerts and updates
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  userId: varchar("user_id").notNull(), // User who receives the notification
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // task_assigned, task_due, payment_received, achievement, target_achieved
+  relatedId: varchar("related_id"), // ID of related entity (task, customer, payment, etc.)
+  relatedType: text("related_type"), // task, customer, payment, etc.
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).pick({
+  userId: true,
+  title: true,
+  message: true,
+  type: true,
+  relatedId: true,
+  relatedType: true,
+}).extend({
+  userId: z.string(),
+  title: z.string().min(1, "Title is required"),
+  message: z.string().min(1, "Message is required"),
+  type: z.enum(["task_assigned", "task_due", "payment_received", "achievement", "target_achieved"]),
+  relatedId: z.string().optional(),
+  relatedType: z.string().optional(),
+});
+
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+

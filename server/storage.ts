@@ -1,6 +1,6 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, legalNoticeTemplates, legalNoticesSent } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, isNull } from "drizzle-orm";
+import { eq, desc, and, isNull, lt, gte, lte } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
@@ -223,6 +223,48 @@ export interface IStorage {
   deleteLegalNoticeTemplate(tenantId: string, id: string): Promise<boolean>;
   getLegalNoticesSent(tenantId: string, customerId?: string): Promise<any[]>;
   createLegalNoticeSent(tenantId: string, notice: any): Promise<any>;
+  
+  // Task operations
+  getTasks(tenantId: string): Promise<any[]>;
+  getTask(tenantId: string, id: string): Promise<any | undefined>;
+  getTasksByUser(tenantId: string, userId: string): Promise<any[]>;
+  getTasksByCustomer(tenantId: string, customerId: string): Promise<any[]>;
+  getTodaysTasks(tenantId: string): Promise<any[]>;
+  getOverdueTasks(tenantId: string): Promise<any[]>;
+  createTask(tenantId: string, task: any): Promise<any>;
+  updateTask(tenantId: string, id: string, task: any): Promise<any | undefined>;
+  deleteTask(tenantId: string, id: string): Promise<boolean>;
+  
+  // Activity Log operations
+  getActivityLogs(tenantId: string): Promise<any[]>;
+  getActivityLog(tenantId: string, id: string): Promise<any | undefined>;
+  getActivityLogsByCustomer(tenantId: string, customerId: string): Promise<any[]>;
+  getActivityLogsByUser(tenantId: string, userId: string): Promise<any[]>;
+  createActivityLog(tenantId: string, activity: any): Promise<any>;
+  
+  // User Metrics operations
+  getUserMetrics(tenantId: string, userId: string, startDate?: Date, endDate?: Date): Promise<any[]>;
+  getUserMetric(tenantId: string, id: string): Promise<any | undefined>;
+  createUserMetric(tenantId: string, metric: any): Promise<any>;
+  updateUserMetric(tenantId: string, id: string, metric: any): Promise<any | undefined>;
+  getTeamMetrics(tenantId: string, date: Date): Promise<any[]>;
+  
+  // Daily Targets operations
+  getDailyTargets(tenantId: string): Promise<any[]>;
+  getDailyTarget(tenantId: string, id: string): Promise<any | undefined>;
+  getDailyTargetsByUser(tenantId: string, userId: string, date: Date): Promise<any[]>;
+  getTodaysTargets(tenantId: string): Promise<any[]>;
+  createDailyTarget(tenantId: string, target: any): Promise<any>;
+  updateDailyTarget(tenantId: string, id: string, target: any): Promise<any | undefined>;
+  deleteDailyTarget(tenantId: string, id: string): Promise<boolean>;
+  
+  // Notification operations
+  getNotifications(tenantId: string, userId: string): Promise<any[]>;
+  getUnreadNotifications(tenantId: string, userId: string): Promise<any[]>;
+  getNotification(tenantId: string, id: string): Promise<any | undefined>;
+  createNotification(tenantId: string, notification: any): Promise<any>;
+  markNotificationAsRead(tenantId: string, id: string): Promise<boolean>;
+  markAllNotificationsAsRead(tenantId: string, userId: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1786,6 +1828,251 @@ export class DatabaseStorage implements IStorage {
   async createLegalNoticeSent(tenantId: string, notice: InsertLegalNoticeSent): Promise<LegalNoticeSent> {
     const [created] = await db.insert(legalNoticesSent).values({ ...notice, tenantId }).returning();
     return created;
+  }
+
+  // Task operations
+  async getTasks(tenantId: string): Promise<Task[]> {
+    return await db.select().from(tasks).where(eq(tasks.tenantId, tenantId)).orderBy(desc(tasks.createdAt));
+  }
+
+  async getTask(tenantId: string, id: string): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(and(eq(tasks.tenantId, tenantId), eq(tasks.id, id)));
+    return task;
+  }
+
+  async getTasksByUser(tenantId: string, userId: string): Promise<Task[]> {
+    return await db.select().from(tasks).where(and(eq(tasks.tenantId, tenantId), eq(tasks.assignedToUserId, userId))).orderBy(desc(tasks.createdAt));
+  }
+
+  async getTasksByCustomer(tenantId: string, customerId: string): Promise<Task[]> {
+    return await db.select().from(tasks).where(and(eq(tasks.tenantId, tenantId), eq(tasks.customerId, customerId))).orderBy(desc(tasks.createdAt));
+  }
+
+  async getTodaysTasks(tenantId: string): Promise<Task[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    return await db.select().from(tasks).where(
+      and(
+        eq(tasks.tenantId, tenantId),
+        gte(tasks.dueDate, today),
+        lt(tasks.dueDate, tomorrow)
+      )
+    ).orderBy(tasks.priority, tasks.dueDate);
+  }
+
+  async getOverdueTasks(tenantId: string): Promise<Task[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return await db.select().from(tasks).where(
+      and(
+        eq(tasks.tenantId, tenantId),
+        lt(tasks.dueDate, today),
+        eq(tasks.status, 'pending')
+      )
+    ).orderBy(tasks.dueDate);
+  }
+
+  async createTask(tenantId: string, task: InsertTask): Promise<Task> {
+    const taskData: any = { ...task, tenantId };
+    if (task.dueDate) {
+      taskData.dueDate = new Date(task.dueDate);
+    }
+    const [created] = await db.insert(tasks).values(taskData).returning();
+    return created;
+  }
+
+  async updateTask(tenantId: string, id: string, task: Partial<InsertTask>): Promise<Task | undefined> {
+    const updates: any = { ...task };
+    if (task.status === 'completed' && !updates.completedAt) {
+      updates.completedAt = new Date();
+    }
+    const [updated] = await db.update(tasks).set(updates).where(and(eq(tasks.tenantId, tenantId), eq(tasks.id, id))).returning();
+    return updated;
+  }
+
+  async deleteTask(tenantId: string, id: string): Promise<boolean> {
+    const result = await db.delete(tasks).where(and(eq(tasks.tenantId, tenantId), eq(tasks.id, id))).returning();
+    return result.length > 0;
+  }
+
+  // Activity Log operations
+  async getActivityLogs(tenantId: string): Promise<ActivityLog[]> {
+    return await db.select().from(activityLogs).where(eq(activityLogs.tenantId, tenantId)).orderBy(desc(activityLogs.createdAt));
+  }
+
+  async getActivityLog(tenantId: string, id: string): Promise<ActivityLog | undefined> {
+    const [log] = await db.select().from(activityLogs).where(and(eq(activityLogs.tenantId, tenantId), eq(activityLogs.id, id)));
+    return log;
+  }
+
+  async getActivityLogsByCustomer(tenantId: string, customerId: string): Promise<ActivityLog[]> {
+    return await db.select().from(activityLogs).where(and(eq(activityLogs.tenantId, tenantId), eq(activityLogs.customerId, customerId))).orderBy(desc(activityLogs.createdAt));
+  }
+
+  async getActivityLogsByUser(tenantId: string, userId: string): Promise<ActivityLog[]> {
+    return await db.select().from(activityLogs).where(and(eq(activityLogs.tenantId, tenantId), eq(activityLogs.loggedByUserId, userId))).orderBy(desc(activityLogs.createdAt));
+  }
+
+  async createActivityLog(tenantId: string, activity: InsertActivityLog): Promise<ActivityLog> {
+    const activityData: any = { ...activity, tenantId };
+    if (activity.nextActionDate) {
+      activityData.nextActionDate = new Date(activity.nextActionDate);
+    }
+    const [created] = await db.insert(activityLogs).values(activityData).returning();
+    return created;
+  }
+
+  // User Metrics operations
+  async getUserMetrics(tenantId: string, userId: string, startDate?: Date, endDate?: Date): Promise<UserMetric[]> {
+    let conditions = [eq(userMetrics.tenantId, tenantId), eq(userMetrics.userId, userId)];
+    if (startDate) {
+      conditions.push(gte(userMetrics.metricDate, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(userMetrics.metricDate, endDate));
+    }
+    return await db.select().from(userMetrics).where(and(...conditions)).orderBy(desc(userMetrics.metricDate));
+  }
+
+  async getUserMetric(tenantId: string, id: string): Promise<UserMetric | undefined> {
+    const [metric] = await db.select().from(userMetrics).where(and(eq(userMetrics.tenantId, tenantId), eq(userMetrics.id, id)));
+    return metric;
+  }
+
+  async createUserMetric(tenantId: string, metric: InsertUserMetric): Promise<UserMetric> {
+    const metricData: any = { ...metric, tenantId };
+    if (metric.metricDate) {
+      metricData.metricDate = new Date(metric.metricDate);
+    }
+    const [created] = await db.insert(userMetrics).values(metricData).returning();
+    return created;
+  }
+
+  async updateUserMetric(tenantId: string, id: string, metric: Partial<InsertUserMetric>): Promise<UserMetric | undefined> {
+    const updates: any = { ...metric, updatedAt: new Date() };
+    if (metric.metricDate) {
+      updates.metricDate = new Date(metric.metricDate);
+    }
+    const [updated] = await db.update(userMetrics).set(updates).where(and(eq(userMetrics.tenantId, tenantId), eq(userMetrics.id, id))).returning();
+    return updated;
+  }
+
+  async getTeamMetrics(tenantId: string, date: Date): Promise<UserMetric[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return await db.select().from(userMetrics).where(
+      and(
+        eq(userMetrics.tenantId, tenantId),
+        gte(userMetrics.metricDate, startOfDay),
+        lte(userMetrics.metricDate, endOfDay)
+      )
+    ).orderBy(desc(userMetrics.efficiencyScore));
+  }
+
+  // Daily Targets operations
+  async getDailyTargets(tenantId: string): Promise<DailyTarget[]> {
+    return await db.select().from(dailyTargets).where(eq(dailyTargets.tenantId, tenantId)).orderBy(desc(dailyTargets.targetDate));
+  }
+
+  async getDailyTarget(tenantId: string, id: string): Promise<DailyTarget | undefined> {
+    const [target] = await db.select().from(dailyTargets).where(and(eq(dailyTargets.tenantId, tenantId), eq(dailyTargets.id, id)));
+    return target;
+  }
+
+  async getDailyTargetsByUser(tenantId: string, userId: string, date: Date): Promise<DailyTarget[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    return await db.select().from(dailyTargets).where(
+      and(
+        eq(dailyTargets.tenantId, tenantId),
+        eq(dailyTargets.userId, userId),
+        gte(dailyTargets.targetDate, startOfDay),
+        lte(dailyTargets.targetDate, endOfDay)
+      )
+    );
+  }
+
+  async getTodaysTargets(tenantId: string): Promise<DailyTarget[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    return await db.select().from(dailyTargets).where(
+      and(
+        eq(dailyTargets.tenantId, tenantId),
+        gte(dailyTargets.targetDate, today),
+        lt(dailyTargets.targetDate, tomorrow)
+      )
+    );
+  }
+
+  async createDailyTarget(tenantId: string, target: InsertDailyTarget): Promise<DailyTarget> {
+    const targetData: any = { ...target, tenantId };
+    if (target.targetDate) {
+      targetData.targetDate = new Date(target.targetDate);
+    }
+    const [created] = await db.insert(dailyTargets).values(targetData).returning();
+    return created;
+  }
+
+  async updateDailyTarget(tenantId: string, id: string, target: Partial<InsertDailyTarget>): Promise<DailyTarget | undefined> {
+    const updates: any = { ...target, updatedAt: new Date() };
+    if (target.targetDate) {
+      updates.targetDate = new Date(target.targetDate);
+    }
+    const [updated] = await db.update(dailyTargets).set(updates).where(and(eq(dailyTargets.tenantId, tenantId), eq(dailyTargets.id, id))).returning();
+    return updated;
+  }
+
+  async deleteDailyTarget(tenantId: string, id: string): Promise<boolean> {
+    const result = await db.delete(dailyTargets).where(and(eq(dailyTargets.tenantId, tenantId), eq(dailyTargets.id, id))).returning();
+    return result.length > 0;
+  }
+
+  // Notification operations
+  async getNotifications(tenantId: string, userId: string): Promise<Notification[]> {
+    return await db.select().from(notifications).where(and(eq(notifications.tenantId, tenantId), eq(notifications.userId, userId))).orderBy(desc(notifications.createdAt));
+  }
+
+  async getUnreadNotifications(tenantId: string, userId: string): Promise<Notification[]> {
+    return await db.select().from(notifications).where(
+      and(
+        eq(notifications.tenantId, tenantId),
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false)
+      )
+    ).orderBy(desc(notifications.createdAt));
+  }
+
+  async getNotification(tenantId: string, id: string): Promise<Notification | undefined> {
+    const [notification] = await db.select().from(notifications).where(and(eq(notifications.tenantId, tenantId), eq(notifications.id, id)));
+    return notification;
+  }
+
+  async createNotification(tenantId: string, notification: InsertNotification): Promise<Notification> {
+    const [created] = await db.insert(notifications).values({ ...notification, tenantId }).returning();
+    return created;
+  }
+
+  async markNotificationAsRead(tenantId: string, id: string): Promise<boolean> {
+    const [updated] = await db.update(notifications).set({ isRead: true }).where(and(eq(notifications.tenantId, tenantId), eq(notifications.id, id))).returning();
+    return !!updated;
+  }
+
+  async markAllNotificationsAsRead(tenantId: string, userId: string): Promise<number> {
+    const result = await db.update(notifications).set({ isRead: true }).where(and(eq(notifications.tenantId, tenantId), eq(notifications.userId, userId), eq(notifications.isRead, false)));
+    return result.rowCount || 0;
   }
 }
 
