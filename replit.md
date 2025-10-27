@@ -46,6 +46,14 @@ The application uses `shadcn/ui` (Radix UI) with Tailwind CSS for a responsive d
     *   **Ringg.ai AI Calling**: AI-powered voice calling system with configuration, script mapping, call triggering, call history (recordings, transcripts), and webhook integration.
 *   **Communication Schedules**: Automated scheduling for calls, emails, and WhatsApp messages with flexible frequency, time-based scheduling, and JSON-based filter conditions.
 *   **Tenant Credential Emails**: Automated sending of login credentials to newly approved tenants, using platform-level email configuration.
+*   **Customer Ledger Module**: Complete transaction history view displaying all debits (invoices) and credits (receipts) with running balance calculation:
+    *   Customer-wise ledger with date range filtering
+    *   Pastel color-coded voucher types (Sales: soft blue, Receipt: soft green, Journal: soft yellow, Credit Note: soft pink)
+    *   Opening balance, running balance (Dr/Cr), and closing balance display
+    *   PDF generation with company header and formatted transaction table using html2pdf.js
+    *   Email and WhatsApp sharing capabilities for ledger statements
+    *   Quick access from Debtors table via BookOpen icon button with URL parameter pre-selection
+    *   Accessible via sidebar under Payment Tracking > Ledger
 
 # External Dependencies
 
