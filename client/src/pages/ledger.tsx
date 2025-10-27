@@ -98,6 +98,7 @@ export default function Ledger() {
   const [location] = useLocation();
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { fromDate: defaultFromDate, toDate: defaultToDate } = getFinancialYearDates();
   const [fromDate, setFromDate] = useState(defaultFromDate);
   const [toDate, setToDate] = useState(defaultToDate);
@@ -269,20 +270,28 @@ export default function Ledger() {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[400px] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search customers by name..." />
+                    <Command shouldFilter={false}>
+                      <CommandInput 
+                        placeholder="Search customers by name..." 
+                        value={searchQuery}
+                        onValueChange={setSearchQuery}
+                      />
                       <CommandList>
                         <CommandEmpty>No customer found.</CommandEmpty>
                         <CommandGroup>
                           {customers
+                            .filter((customer) => 
+                              customer.clientName.toLowerCase().includes(searchQuery.toLowerCase())
+                            )
                             .sort((a, b) => a.clientName.localeCompare(b.clientName))
                             .map((customer) => (
                               <CommandItem
                                 key={customer.id}
-                                value={customer.clientName}
+                                value={customer.id}
                                 onSelect={() => {
                                   setSelectedCustomerId(customer.id);
                                   setOpen(false);
+                                  setSearchQuery("");
                                 }}
                                 data-testid={`customer-option-${customer.id}`}
                               >
