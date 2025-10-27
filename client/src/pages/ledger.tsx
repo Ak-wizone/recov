@@ -114,9 +114,16 @@ export default function Ledger() {
   }, [location]);
 
   // Fetch customers for dropdown
-  const { data: customers = [] } = useQuery<any[]>({
+  const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<any[]>({
     queryKey: ["/api/master-customers"],
   });
+
+  // Debug: Log customers data
+  useEffect(() => {
+    if (customers.length > 0) {
+      console.log('Customers loaded:', customers.length, customers[0]);
+    }
+  }, [customers]);
 
   // Fetch ledger data
   const { data: ledgerData, isLoading } = useQuery<LedgerData>({
@@ -277,34 +284,43 @@ export default function Ledger() {
                         onValueChange={setSearchQuery}
                       />
                       <CommandList>
-                        <CommandEmpty>No customer found.</CommandEmpty>
-                        <CommandGroup>
-                          {customers
-                            .filter((customer) => 
-                              customer.clientName.toLowerCase().includes(searchQuery.toLowerCase())
-                            )
-                            .sort((a, b) => a.clientName.localeCompare(b.clientName))
-                            .map((customer) => (
-                              <CommandItem
-                                key={customer.id}
-                                value={customer.id}
-                                onSelect={() => {
-                                  setSelectedCustomerId(customer.id);
-                                  setOpen(false);
-                                  setSearchQuery("");
-                                }}
-                                data-testid={`customer-option-${customer.id}`}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    selectedCustomerId === customer.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {customer.clientName}
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
+                        {isLoadingCustomers ? (
+                          <div className="p-4 text-sm text-center text-gray-500">Loading customers...</div>
+                        ) : customers.length === 0 ? (
+                          <div className="p-4 text-sm text-center text-gray-500">No customers found. Please add customers first.</div>
+                        ) : (
+                          <>
+                            <CommandEmpty>No customer found matching your search.</CommandEmpty>
+                            <CommandGroup>
+                              {customers
+                                .filter((customer) => 
+                                  customer?.clientName && 
+                                  customer.clientName.toLowerCase().includes(searchQuery.toLowerCase())
+                                )
+                                .sort((a, b) => (a.clientName || '').localeCompare(b.clientName || ''))
+                                .map((customer) => (
+                                  <CommandItem
+                                    key={customer.id}
+                                    value={customer.id}
+                                    onSelect={() => {
+                                      setSelectedCustomerId(customer.id);
+                                      setOpen(false);
+                                      setSearchQuery("");
+                                    }}
+                                    data-testid={`customer-option-${customer.id}`}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedCustomerId === customer.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {customer.clientName}
+                                  </CommandItem>
+                                ))}
+                            </CommandGroup>
+                          </>
+                        )}
                       </CommandList>
                     </Command>
                   </PopoverContent>
