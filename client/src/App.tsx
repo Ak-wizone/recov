@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth";
+import { CommandPalette } from "@/components/command-palette";
 import Layout from "@/components/layout";
 import Login from "@/pages/login";
 import Home from "@/pages/home";
@@ -48,6 +49,7 @@ import CallQueue from "@/pages/call-queue";
 import ActivityLog from "@/pages/activity-log";
 import Leaderboard from "@/pages/leaderboard";
 import DailyTargets from "@/pages/daily-targets";
+import AuditLogs from "@/pages/audit-logs";
 
 function Router() {
   return (
@@ -101,6 +103,7 @@ function Router() {
               <Route path="/communication-schedules" component={CommunicationSchedules} />
               <Route path="/settings/roles" component={Roles} />
               <Route path="/settings/users" component={Users} />
+              <Route path="/audit-logs" component={AuditLogs} />
               <Route path="/tenant-registrations" component={TenantRegistrations} />
               <Route component={NotFound} />
             </Switch>
@@ -116,6 +119,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
+          <CommandPalette />
           <Toaster />
           <Router />
         </TooltipProvider>
