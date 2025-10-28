@@ -62,7 +62,7 @@ const userFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address"),
   mobile: z.string().regex(/^\d{10}$/, "Mobile must be exactly 10 digits").optional().or(z.literal("")),
-  roleId: z.string().optional(),
+  roleId: z.string().min(1, "Role is required"),
   status: z.enum(["Active", "Inactive"]),
   password: z.string().optional(),
 });
@@ -225,7 +225,8 @@ function Users() {
   });
 
   const handleAdd = () => {
-    form.reset({ name: "", email: "", mobile: "", roleId: "", status: "Active", password: "" });
+    const defaultRoleId = roles.length > 0 ? roles[0].id : "";
+    form.reset({ name: "", email: "", mobile: "", roleId: defaultRoleId, status: "Active", password: "" });
     setIsAddDialogOpen(true);
   };
 
@@ -408,6 +409,16 @@ function Users() {
   });
 
   const onSubmit = (data: UserFormValues) => {
+    // Validate roleId is not empty
+    if (!data.roleId || data.roleId.trim() === "") {
+      toast({
+        title: "Error",
+        description: "Please select a role for the user",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isEditDialogOpen && selectedUser) {
       // For edit, only include password if it's provided
       const updateData = { ...data };
@@ -640,7 +651,7 @@ function Users() {
             </div>
 
             <div>
-              <Label htmlFor="roleId">Role</Label>
+              <Label htmlFor="roleId">Role *</Label>
               <Select value={form.watch("roleId") || undefined} onValueChange={(value) => form.setValue("roleId", value)}>
                 <SelectTrigger data-testid="select-role">
                   <SelectValue placeholder="Select a role" />
@@ -653,6 +664,9 @@ function Users() {
                   ))}
                 </SelectContent>
               </Select>
+              {form.formState.errors.roleId && (
+                <p className="text-sm text-red-500">{form.formState.errors.roleId.message}</p>
+              )}
             </div>
 
             <div className="flex items-center space-x-2">
