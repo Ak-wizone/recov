@@ -364,6 +364,17 @@ export default function Sidebar() {
         return true;
       }
       return isModuleAccessible(item.module);
+    }).map((item) => {
+      // Also filter sub-items based on module access
+      if (item.subItems) {
+        return {
+          ...item,
+          subItems: item.subItems.filter((subItem) =>
+            !subItem.module || isModuleAccessible(subItem.module)
+          )
+        };
+      }
+      return item;
     });
   }, [isPlatformAdmin, tenant]);
 
