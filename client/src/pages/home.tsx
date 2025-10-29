@@ -9,7 +9,12 @@ import {
   Receipt as ReceiptIcon,
   AlertCircle,
   BarChart3,
-  Percent
+  Percent,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle
 } from "lucide-react";
 import { Link } from "wouter";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -86,6 +91,10 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 export default function Home() {
   const { data: dashboardData, isLoading } = useQuery<BusinessOverviewData>({
     queryKey: ['/api/dashboard/business-overview'],
+  });
+
+  const { data: invoiceStatusCards } = useQuery<any>({
+    queryKey: ['/api/dashboard/invoice-status-cards'],
   });
 
   if (isLoading) {
@@ -202,79 +211,127 @@ export default function Home() {
         </Card>
       </div>
 
-      {/* Module Statistics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Link href="/invoices">
-          <Card 
-            className="hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-105" 
-            data-testid="card-invoices-stat"
-          >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Invoices</CardTitle>
-              <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <FileText className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.moduleStats.invoices.count}</div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">₹{parseFloat(dashboardData.moduleStats.invoices.totalAmount).toLocaleString("en-IN")}</p>
-            </CardContent>
-          </Card>
-        </Link>
+      {/* Invoice Status Cards - 6 categories based on grace period logic */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card 
+          className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200" 
+          data-testid="card-upcoming-invoices"
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Upcoming Invoices</CardTitle>
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <Calendar className="h-5 w-5 text-blue-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              {invoiceStatusCards?.upcomingInvoices?.count || 0}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              ₹{(invoiceStatusCards?.upcomingInvoices?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
 
-        <Link href="/receipts">
-          <Card 
-            className="hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-105" 
-            data-testid="card-receipts-stat"
-          >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Receipts</CardTitle>
-              <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <ReceiptIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.moduleStats.receipts.count}</div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">₹{parseFloat(dashboardData.moduleStats.receipts.totalAmount).toLocaleString("en-IN")}</p>
-            </CardContent>
-          </Card>
-        </Link>
+        <Card 
+          className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-all duration-200" 
+          data-testid="card-due-today"
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Due Today</CardTitle>
+            <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+              <Clock className="h-5 w-5 text-yellow-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+              {invoiceStatusCards?.dueToday?.count || 0}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              ₹{(invoiceStatusCards?.dueToday?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
 
-        <Link href="/masters/customers">
-          <Card 
-            className="hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-105" 
-            data-testid="card-customers-stat"
-          >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Customers</CardTitle>
-              <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <Users className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.moduleStats.customers.active}</div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Active of {dashboardData.moduleStats.customers.total} total</p>
-            </CardContent>
-          </Card>
-        </Link>
+        <Card 
+          className="border-l-4 border-l-amber-500 hover:shadow-lg transition-all duration-200" 
+          data-testid="card-in-grace"
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">In Grace</CardTitle>
+            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-amber-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+              {invoiceStatusCards?.inGrace?.count || 0}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              ₹{(invoiceStatusCards?.inGrace?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
 
-        <Link href="/debtors">
-          <Card 
-            className="hover:shadow-md transition-all duration-200 cursor-pointer hover:scale-105" 
-            data-testid="card-debtors-stat"
-          >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Debtors</CardTitle>
-              <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{dashboardData.moduleStats.debtors.count}</div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">₹{parseFloat(dashboardData.moduleStats.debtors.totalOutstanding).toLocaleString("en-IN")}</p>
-            </CardContent>
-          </Card>
-        </Link>
+        <Card 
+          className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200" 
+          data-testid="card-overdue"
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Overdue</CardTitle>
+            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+              {invoiceStatusCards?.overdue?.count || 0}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              ₹{(invoiceStatusCards?.overdue?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200" 
+          data-testid="card-paid-on-time"
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Paid On Time</CardTitle>
+            <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+              {invoiceStatusCards?.paidOnTime?.count || 0}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              ₹{(invoiceStatusCards?.paidOnTime?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200" 
+          data-testid="card-paid-late"
+        >
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Paid Late</CardTitle>
+            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+              <XCircle className="h-5 w-5 text-orange-500" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+              {invoiceStatusCards?.paidLate?.count || 0}
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              ₹{(invoiceStatusCards?.paidLate?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts Section */}
