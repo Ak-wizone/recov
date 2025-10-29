@@ -122,10 +122,10 @@ export default function WhatsAppConfig() {
             Configure WhatsApp API settings for automated messaging
           </p>
         </div>
-        <Link href="/company-settings">
+        <Link href="/credit-control/followup-automation">
           <Button variant="outline" data-testid="button-back">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Settings
+            Back to Configuration
           </Button>
         </Link>
       </div>

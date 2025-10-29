@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Phone, Play, Eye, Search, RefreshCw } from "lucide-react";
+import { Loader2, Phone, Play, Eye, Search, RefreshCw, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 import type { CallLog } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -100,15 +101,23 @@ export default function RinggCallHistory() {
             View and manage all Ringg.ai call logs
           </p>
         </div>
-        <Button
-          onClick={() => refetch()}
-          variant="outline"
-          size="sm"
-          data-testid="button-refresh"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Link href="/credit-control/followup-automation">
+            <Button variant="outline" data-testid="button-back">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Configuration
+            </Button>
+          </Link>
+          <Button
+            onClick={() => refetch()}
+            variant="outline"
+            size="sm"
+            data-testid="button-refresh"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4">

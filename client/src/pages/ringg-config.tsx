@@ -10,7 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Phone, CheckCircle2, XCircle, Info, Eye, EyeOff } from "lucide-react";
+import { Loader2, Phone, CheckCircle2, XCircle, Info, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 import type { RinggConfig } from "@shared/schema";
 
 const ringgConfigFormSchema = z.object({
@@ -133,11 +134,19 @@ export default function RinggConfig() {
 
   return (
     <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Ringg.ai Configuration</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-2">
-          Configure Ringg.ai calling agent integration settings
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Ringg.ai Configuration</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
+            Configure Ringg.ai calling agent integration settings
+          </p>
+        </div>
+        <Link href="/credit-control/followup-automation">
+          <Button variant="outline" data-testid="button-back">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Configuration
+          </Button>
+        </Link>
       </div>
 
       <Alert>

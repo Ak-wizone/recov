@@ -14,7 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Plus, Pencil, Trash2, Phone } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Phone, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 
 const moduleColors: Record<string, string> = {
   leads: "bg-green-500",
@@ -183,10 +184,18 @@ export default function RinggScriptMappings() {
             Manage Ringg.ai script mappings for different modules
           </p>
         </div>
-        <Button onClick={handleCreate} data-testid="button-add-mapping">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Script Mapping
-        </Button>
+        <div className="flex gap-2">
+          <Link href="/credit-control/followup-automation">
+            <Button variant="outline" data-testid="button-back">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Configuration
+            </Button>
+          </Link>
+          <Button onClick={handleCreate} data-testid="button-add-mapping">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Script Mapping
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg">

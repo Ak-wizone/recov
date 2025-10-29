@@ -15,7 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Plus, Pencil, Trash2, Mail, Info } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Mail, Info, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const moduleColors: Record<string, string> = {
@@ -188,10 +189,18 @@ export default function EmailTemplates() {
             Manage email templates for different modules
           </p>
         </div>
-        <Button onClick={handleCreate} data-testid="button-create-template">
-          <Plus className="h-4 w-4 mr-2" />
-          Create Template
-        </Button>
+        <div className="flex gap-2">
+          <Link href="/credit-control/followup-automation">
+            <Button variant="outline" data-testid="button-back">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Configuration
+            </Button>
+          </Link>
+          <Button onClick={handleCreate} data-testid="button-create-template">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Template
+          </Button>
+        </div>
       </div>
 
       <div className="border rounded-lg">

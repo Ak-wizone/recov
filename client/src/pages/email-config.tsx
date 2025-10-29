@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Mail, CheckCircle2, XCircle, Info } from "lucide-react";
+import { Loader2, Mail, CheckCircle2, XCircle, Info, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 import type { EmailConfig } from "@shared/schema";
 
 const emailConfigFormSchema = z.object({
@@ -191,11 +192,19 @@ export default function EmailConfig() {
 
   return (
     <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Email Configuration</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-2">
-          Configure email settings for sending notifications and communications
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Email Configuration</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
+            Configure email settings for sending notifications and communications
+          </p>
+        </div>
+        <Link href="/credit-control/followup-automation">
+          <Button variant="outline" data-testid="button-back">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Configuration
+          </Button>
+        </Link>
       </div>
 
       <Form {...form}>
