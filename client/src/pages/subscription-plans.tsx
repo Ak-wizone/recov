@@ -58,21 +58,68 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const AVAILABLE_MODULES = [
+  // Core Modules
   "Business Overview",
   "Customer Analytics",
+  
+  // Sales Modules
   "Leads",
   "Quotations",
   "Proforma Invoices",
   "Invoices",
   "Receipts",
+  
+  // Payment Tracking Submodules
   "Payment Tracking",
+  "Debtors",
+  "Credit Management",
+  "Ledger",
+  
+  // Action Center Submodules
   "Action Center",
+  "Daily Dashboard",
+  "Task Manager",
+  "Call Queue",
+  "Activity Logs",
+  
+  // Team Performance Submodules
   "Team Performance",
+  "Leaderboard",
+  "Daily Targets",
+  "Notification Center",
+  
+  // Risk & Recovery
   "Risk & Recovery",
+  
+  // Credit Control Submodules
   "Credit Control",
+  "Category Management",
+  "Follow-up Rules",
+  "Category Calculation",
+  "Urgent Actions",
+  "Follow-up Automation",
+  
+  // Masters Submodules
   "Masters",
+  "Customers",
+  "Items",
+  "Banks",
+  "Voucher Types",
+  
+  // Settings Submodules
   "Settings",
+  "Company Profile",
+  "User Management",
+  "Roles Management",
+  "Backup & Restore",
+  "Communication Schedules",
+  "Audit Logs",
+  
+  // Communication Integration
   "Email/WhatsApp/Call Integrations",
+  
+  // AI Features
+  "RECOV Voice Assistant",
 ];
 
 const planFormSchema = z.object({

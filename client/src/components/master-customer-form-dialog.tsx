@@ -193,7 +193,7 @@ export function MasterCustomerFormDialog({
                   Company & Compliance
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-mint p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800">
                     <FormField
                       control={form.control}
                       name="clientName"
@@ -340,7 +340,7 @@ export function MasterCustomerFormDialog({
                   Primary Contact Details
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-cyan p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-cyan-50 dark:bg-cyan-950/20 p-4 rounded-lg border border-cyan-200 dark:border-cyan-800">
                     <FormField
                       control={form.control}
                       name="primaryContactName"
@@ -409,7 +409,7 @@ export function MasterCustomerFormDialog({
                   Secondary Contact Details
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-lavender p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-violet-50 dark:bg-violet-950/20 p-4 rounded-lg border border-violet-200 dark:border-violet-800">
                     <FormField
                       control={form.control}
                       name="secondaryContactName"
@@ -476,7 +476,7 @@ export function MasterCustomerFormDialog({
                   Payment & Credit Terms
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-purple p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-purple-50 dark:bg-purple-950/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
                     <FormField
                       control={form.control}
                       name="paymentTermsDays"
@@ -547,7 +547,7 @@ export function MasterCustomerFormDialog({
                   Interest Configuration
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-orange p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
                     <FormField
                       control={form.control}
                       name="interestApplicableFrom"
@@ -600,7 +600,7 @@ export function MasterCustomerFormDialog({
                   Sales Person
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-pastel-teal p-4 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 bg-teal-50 dark:bg-teal-950/20 p-4 rounded-lg border border-teal-200 dark:border-teal-800">
                     <FormField
                       control={form.control}
                       name="salesPerson"

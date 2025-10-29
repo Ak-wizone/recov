@@ -101,7 +101,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
         customerName: receipt.customerName,
         date: format(new Date(receipt.date), "yyyy-MM-dd"),
         amount: receipt.amount || "",
-        remarks: receipt.remarks || "",
+        remarks: receipt.remarks ?? "",
       });
     } else if (open && !receipt) {
       form.reset({
@@ -156,8 +156,8 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="p-4 rounded-lg border space-y-4" style={{ backgroundColor: '#E6E6FA' }}>
-              <h3 className="text-base font-semibold" style={{ color: '#4B0082' }}>Receipt Details</h3>
+            <div className="p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg border border-purple-200 dark:border-purple-800 space-y-4">
+              <h3 className="text-base font-semibold text-purple-900 dark:text-purple-100">Receipt Details</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
