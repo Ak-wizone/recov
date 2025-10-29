@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -21,6 +21,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen } from "lucide-react";
 import { ColumnChooser } from "@/components/ui/column-chooser";
 import { format } from "date-fns";
@@ -35,6 +42,7 @@ interface DebtorData {
   salesPerson: string | null;
   mobile: string;
   email: string;
+  creditLimit: number;
   openingBalance: number;
   totalInvoices: number;
   totalReceipts: number;
@@ -63,6 +71,17 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
   const [globalFilter, setGlobalFilter] = useState("");
   const [isColumnChooserOpen, setIsColumnChooserOpen] = useState(false);
   const [defaultColumnVisibility] = useState<Record<string, boolean>>({});
+  
+  // Page size with localStorage persistence
+  const [pageSize, setPageSize] = useState(() => {
+    const saved = localStorage.getItem('debtors-table-page-size');
+    return saved ? parseInt(saved, 10) : 10;
+  });
+  
+  // Save page size to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('debtors-table-page-size', pageSize.toString());
+  }, [pageSize]);
 
   const handleWhatsAppClick = (debtor: DebtorData) => {
     if (!debtor.mobile) {
@@ -111,6 +130,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           {row.getValue("name")}
         </div>
       ),
+      enableColumnFilter: true,
     },
     {
       accessorKey: "category",
@@ -132,6 +152,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           </span>
         );
       },
+      enableColumnFilter: true,
     },
     {
       accessorKey: "salesPerson",
@@ -141,6 +162,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           {row.getValue("salesPerson") || "-"}
         </div>
       ),
+      enableColumnFilter: true,
     },
     {
       accessorKey: "mobile",
@@ -150,6 +172,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           {row.getValue("mobile")}
         </div>
       ),
+      enableColumnFilter: true,
     },
     {
       accessorKey: "email",
@@ -159,15 +182,36 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           {row.getValue("email")}
         </div>
       ),
+      enableColumnFilter: true,
+    },
+    {
+      accessorKey: "creditLimit",
+      header: "Credit Limit",
+      cell: ({ row }) => (
+        <div className="text-right font-medium" data-testid={`text-credit-limit-${row.original.customerId}`}>
+          {formatCurrency(row.getValue("creditLimit"))}
+        </div>
+      ),
+      enableColumnFilter: true,
     },
     {
       accessorKey: "openingBalance",
       header: "Opening Balance",
-      cell: ({ row }) => (
-        <div className="text-right font-medium" data-testid={`text-opening-balance-${row.original.customerId}`}>
-          {formatCurrency(row.getValue("openingBalance"))}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const openingBalance = row.getValue("openingBalance") as number;
+        const balance = row.original.balance;
+        const isHighlighted = openingBalance < balance;
+        
+        return (
+          <div 
+            className={`text-right font-medium ${isHighlighted ? 'text-orange-600 dark:text-orange-400 font-bold' : ''}`} 
+            data-testid={`text-opening-balance-${row.original.customerId}`}
+          >
+            {formatCurrency(openingBalance)}
+          </div>
+        );
+      },
+      enableColumnFilter: true,
     },
     {
       accessorKey: "totalInvoices",
@@ -177,6 +221,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           {formatCurrency(row.getValue("totalInvoices"))}
         </div>
       ),
+      enableColumnFilter: true,
     },
     {
       accessorKey: "totalReceipts",
@@ -186,6 +231,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           {formatCurrency(row.getValue("totalReceipts"))}
         </div>
       ),
+      enableColumnFilter: true,
     },
     {
       accessorKey: "balance",
@@ -198,6 +244,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           {formatCurrency(row.getValue("balance"))}
         </div>
       ),
+      enableColumnFilter: true,
     },
     {
       accessorKey: "invoiceCount",
@@ -207,6 +254,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           {row.getValue("invoiceCount")}
         </div>
       ),
+      enableColumnFilter: true,
     },
     {
       accessorKey: "receiptCount",
@@ -216,6 +264,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           {row.getValue("receiptCount")}
         </div>
       ),
+      enableColumnFilter: true,
     },
     {
       accessorKey: "lastInvoiceDate",
@@ -228,6 +277,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           </div>
         );
       },
+      enableColumnFilter: true,
     },
     {
       accessorKey: "lastPaymentDate",
@@ -240,6 +290,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           </div>
         );
       },
+      enableColumnFilter: true,
     },
     {
       accessorKey: "lastFollowUp",
@@ -337,6 +388,16 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
       columnFilters,
       columnVisibility,
       globalFilter,
+      pagination: {
+        pageIndex: 0,
+        pageSize,
+      },
+    },
+    initialState: {
+      pagination: {
+        pageIndex: 0,
+        pageSize,
+      },
     },
   });
 
@@ -396,6 +457,29 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
                 })}
               </TableRow>
             ))}
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={`filter-${headerGroup.id}`}>
+                {headerGroup.headers.map((header) => {
+                  const canFilter = header.column.getCanFilter();
+                  const columnFilterValue = header.column.getFilterValue();
+
+                  return (
+                    <TableHead key={`filter-${header.id}`}>
+                      {canFilter ? (
+                        <Input
+                          type="text"
+                          placeholder={`Search ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header.toLowerCase() : ''}...`}
+                          value={(columnFilterValue ?? "") as string}
+                          onChange={(e) => header.column.setFilterValue(e.target.value)}
+                          className="h-8"
+                          data-testid={`input-filter-${header.id}`}
+                        />
+                      ) : null}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
@@ -435,25 +519,46 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
         <div className="flex-1 text-sm text-muted-foreground">
           Showing {table.getRowModel().rows.length} of {data.length} debtor(s)
         </div>
-        <div className="space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-            data-testid="button-previous-page"
+        <div className="flex items-center gap-2">
+          <Select
+            value={`${pageSize}`}
+            onValueChange={(value) => {
+              const newSize = Number(value);
+              setPageSize(newSize);
+              table.setPageSize(newSize);
+            }}
           >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-            data-testid="button-next-page"
-          >
-            Next
-          </Button>
+            <SelectTrigger className="h-8 w-[100px]" data-testid="select-page-size">
+              <SelectValue placeholder={pageSize} />
+            </SelectTrigger>
+            <SelectContent side="top">
+              {[10, 25, 50, 100].map((size) => (
+                <SelectItem key={size} value={`${size}`} data-testid={`option-page-size-${size}`}>
+                  {size} rows
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              data-testid="button-previous-page"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              data-testid="button-next-page"
+            >
+              Next
+            </Button>
+          </div>
         </div>
       </div>
     </div>

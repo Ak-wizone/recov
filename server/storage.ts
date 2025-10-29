@@ -1146,6 +1146,8 @@ export class DatabaseStorage implements IStorage {
           .sort((a, b) => new Date(a.followUpDateTime).getTime() - new Date(b.followUpDateTime).getTime());
         const nextFollowUp = pendingFollowUps.length > 0 ? pendingFollowUps[0].followUpDateTime : null;
 
+        const creditLimit = customer.creditLimit ? parseFloat(customer.creditLimit.toString()) : 0;
+        
         const debtor = {
           customerId: customer.id,
           name: customer.clientName,
@@ -1153,6 +1155,7 @@ export class DatabaseStorage implements IStorage {
           salesPerson: customer.salesPerson,
           mobile: customer.primaryMobile,
           email: customer.primaryEmail,
+          creditLimit,
           openingBalance,
           totalInvoices,
           totalReceipts,
