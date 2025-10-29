@@ -8528,11 +8528,375 @@ ${profile?.legalName || 'Company'}`;
 
       // Command Parser - Basic keyword matching
       
-      // Due Invoices Query
+      // Follow-ups Menu Query - Interactive options
       if (
+        (normalizedMessage.includes("follow") && normalizedMessage.includes("up")) &&
+        !normalizedMessage.includes("today") &&
+        !normalizedMessage.includes("tomorrow") &&
+        !normalizedMessage.includes("week") &&
+        !normalizedMessage.includes("month") &&
+        !normalizedMessage.includes("overdue") &&
+        !normalizedMessage.includes("no follow")
+      ) {
+        commandType = "info";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        
+        response = `📋 Aap kaun se follow-ups dekhna chahte hain?\n\n`;
+        response += `⏰ Overdue: ${stats.overdue.count} clients - ₹${stats.overdue.totalAmount.toFixed(2)}\n`;
+        response += `📅 Today: ${stats.dueToday.count} clients - ₹${stats.dueToday.totalAmount.toFixed(2)}\n`;
+        response += `📆 Tomorrow: ${stats.dueTomorrow.count} clients - ₹${stats.dueTomorrow.totalAmount.toFixed(2)}\n`;
+        response += `📊 This Week: ${stats.dueThisWeek.count} clients - ₹${stats.dueThisWeek.totalAmount.toFixed(2)}\n`;
+        response += `📈 This Month: ${stats.dueThisMonth.count} clients - ₹${stats.dueThisMonth.totalAmount.toFixed(2)}\n`;
+        response += `❌ No Follow-up: ${stats.noFollowUp.count} clients - ₹${stats.noFollowUp.totalAmount.toFixed(2)}\n\n`;
+        response += `Bolo: "Show today's follow-ups" ya "Aaj ke follow-ups"`;
+        
+        resultData = stats;
+      }
+      
+      // Today's Follow-ups Query
+      else if (
+        (normalizedMessage.includes("today") || normalizedMessage.includes("aaj")) &&
+        (normalizedMessage.includes("follow") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const todayData = stats.dueToday;
+        
+        if (todayData.count === 0) {
+          response = "✅ Aaj koi follow-up due nahi hai!";
+        } else {
+          response = `📅 Aaj ${todayData.count} follow-ups due hain\n`;
+          response += `💰 Total Outstanding: ₹${todayData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          todayData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (todayData.count > 10) {
+            response += `\n...and ${todayData.count - 10} more`;
+          }
+        }
+        
+        resultData = todayData.customers;
+      }
+      
+      // Tomorrow's Follow-ups Query
+      else if (
+        (normalizedMessage.includes("tomorrow") || normalizedMessage.includes("kal")) &&
+        (normalizedMessage.includes("follow") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const tomorrowData = stats.dueTomorrow;
+        
+        if (tomorrowData.count === 0) {
+          response = "✅ Kal koi follow-up due nahi hai!";
+        } else {
+          response = `📆 Kal ${tomorrowData.count} follow-ups due hain\n`;
+          response += `💰 Total Outstanding: ₹${tomorrowData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          tomorrowData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (tomorrowData.count > 10) {
+            response += `\n...and ${tomorrowData.count - 10} more`;
+          }
+        }
+        
+        resultData = tomorrowData.customers;
+      }
+      
+      // This Week's Follow-ups Query
+      else if (
+        normalizedMessage.includes("week") &&
+        (normalizedMessage.includes("follow") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const weekData = stats.dueThisWeek;
+        
+        if (weekData.count === 0) {
+          response = "✅ Is hafte koi follow-up due nahi hai!";
+        } else {
+          response = `📊 Is hafte ${weekData.count} follow-ups due hain\n`;
+          response += `💰 Total Outstanding: ₹${weekData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          weekData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (weekData.count > 10) {
+            response += `\n...and ${weekData.count - 10} more`;
+          }
+        }
+        
+        resultData = weekData.customers;
+      }
+      
+      // This Month's Follow-ups Query
+      else if (
+        normalizedMessage.includes("month") &&
+        (normalizedMessage.includes("follow") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const monthData = stats.dueThisMonth;
+        
+        if (monthData.count === 0) {
+          response = "✅ Is mahine koi follow-up due nahi hai!";
+        } else {
+          response = `📈 Is mahine ${monthData.count} follow-ups due hain\n`;
+          response += `💰 Total Outstanding: ₹${monthData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          monthData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (monthData.count > 10) {
+            response += `\n...and ${monthData.count - 10} more`;
+          }
+        }
+        
+        resultData = monthData.customers;
+      }
+      
+      // Overdue Follow-ups Query
+      else if (
+        normalizedMessage.includes("overdue") &&
+        (normalizedMessage.includes("follow") || normalizedMessage.includes("late"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const overdueData = stats.overdue;
+        
+        if (overdueData.count === 0) {
+          response = "✅ Koi overdue follow-up nahi hai!";
+        } else {
+          response = `⏰ ${overdueData.count} follow-ups overdue hain\n`;
+          response += `💰 Total Outstanding: ₹${overdueData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          overdueData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (overdueData.count > 10) {
+            response += `\n...and ${overdueData.count - 10} more`;
+          }
+        }
+        
+        resultData = overdueData.customers;
+      }
+      
+      // No Follow-up Customers Query
+      else if (
+        normalizedMessage.includes("no follow") ||
+        (normalizedMessage.includes("without") && normalizedMessage.includes("follow"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const noFollowUpData = stats.noFollowUp;
+        
+        if (noFollowUpData.count === 0) {
+          response = "✅ Sabhi customers ke follow-ups bane hain!";
+        } else {
+          response = `❌ ${noFollowUpData.count} customers ke follow-ups nahi bane\n`;
+          response += `💰 Total Outstanding: ₹${noFollowUpData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          noFollowUpData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (noFollowUpData.count > 10) {
+            response += `\n...and ${noFollowUpData.count - 10} more`;
+          }
+        }
+        
+        resultData = noFollowUpData.customers;
+      }
+      
+      // Category-wise Outstanding Query
+      else if (
+        (normalizedMessage.includes("outstanding") && normalizedMessage.includes("kitna")) ||
+        (normalizedMessage.includes("category") && normalizedMessage.includes("wise")) ||
+        normalizedMessage.includes("balance")
+      ) {
+        commandType = "query";
+        
+        const debtorsData = await storage.getDebtorsList(req.tenantId!);
+        const categoryWise = debtorsData.categoryWise;
+        
+        response = `📊 Category-wise Outstanding:\n\n`;
+        response += `🟢 Alpha: ${categoryWise.Alpha.count} clients - ₹${categoryWise.Alpha.totalBalance.toFixed(2)}\n`;
+        response += `🔵 Beta: ${categoryWise.Beta.count} clients - ₹${categoryWise.Beta.totalBalance.toFixed(2)}\n`;
+        response += `🟡 Gamma: ${categoryWise.Gamma.count} clients - ₹${categoryWise.Gamma.totalBalance.toFixed(2)}\n`;
+        response += `🔴 Delta: ${categoryWise.Delta.count} clients - ₹${categoryWise.Delta.totalBalance.toFixed(2)}\n\n`;
+        
+        const totalClients = categoryWise.Alpha.count + categoryWise.Beta.count + categoryWise.Gamma.count + categoryWise.Delta.count;
+        const totalBalance = categoryWise.Alpha.totalBalance + categoryWise.Beta.totalBalance + categoryWise.Gamma.totalBalance + categoryWise.Delta.totalBalance;
+        response += `Total: ${totalClients} clients - ₹${totalBalance.toFixed(2)}`;
+        
+        resultData = categoryWise;
+      }
+      
+      // Alpha Category Query
+      else if (
+        normalizedMessage.includes("alpha") &&
+        (normalizedMessage.includes("outstanding") || normalizedMessage.includes("data") || normalizedMessage.includes("customers"))
+      ) {
+        commandType = "query";
+        
+        const debtorsData = await storage.getDebtorsList(req.tenantId!);
+        const alphaData = debtorsData.categoryWise.Alpha;
+        
+        if (alphaData.count === 0) {
+          response = "No Alpha category customers found.";
+        } else {
+          response = `🟢 Alpha Category:\n`;
+          response += `Total Clients: ${alphaData.count}\n`;
+          response += `💰 Total Outstanding: ₹${alphaData.totalBalance.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          alphaData.debtors.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (alphaData.count > 10) {
+            response += `\n...and ${alphaData.count - 10} more`;
+          }
+        }
+        
+        resultData = alphaData.debtors;
+      }
+      
+      // Beta Category Query
+      else if (
+        normalizedMessage.includes("beta") &&
+        (normalizedMessage.includes("outstanding") || normalizedMessage.includes("data") || normalizedMessage.includes("customers"))
+      ) {
+        commandType = "query";
+        
+        const debtorsData = await storage.getDebtorsList(req.tenantId!);
+        const betaData = debtorsData.categoryWise.Beta;
+        
+        if (betaData.count === 0) {
+          response = "No Beta category customers found.";
+        } else {
+          response = `🔵 Beta Category:\n`;
+          response += `Total Clients: ${betaData.count}\n`;
+          response += `💰 Total Outstanding: ₹${betaData.totalBalance.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          betaData.debtors.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (betaData.count > 10) {
+            response += `\n...and ${betaData.count - 10} more`;
+          }
+        }
+        
+        resultData = betaData.debtors;
+      }
+      
+      // Gamma Category Query
+      else if (
+        normalizedMessage.includes("gamma") &&
+        (normalizedMessage.includes("outstanding") || normalizedMessage.includes("data") || normalizedMessage.includes("customers"))
+      ) {
+        commandType = "query";
+        
+        const debtorsData = await storage.getDebtorsList(req.tenantId!);
+        const gammaData = debtorsData.categoryWise.Gamma;
+        
+        if (gammaData.count === 0) {
+          response = "No Gamma category customers found.";
+        } else {
+          response = `🟡 Gamma Category:\n`;
+          response += `Total Clients: ${gammaData.count}\n`;
+          response += `💰 Total Outstanding: ₹${gammaData.totalBalance.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          gammaData.debtors.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (gammaData.count > 10) {
+            response += `\n...and ${gammaData.count - 10} more`;
+          }
+        }
+        
+        resultData = gammaData.debtors;
+      }
+      
+      // Delta Category Query
+      else if (
+        normalizedMessage.includes("delta") &&
+        (normalizedMessage.includes("outstanding") || normalizedMessage.includes("data") || normalizedMessage.includes("customers"))
+      ) {
+        commandType = "query";
+        
+        const debtorsData = await storage.getDebtorsList(req.tenantId!);
+        const deltaData = debtorsData.categoryWise.Delta;
+        
+        if (deltaData.count === 0) {
+          response = "No Delta category customers found.";
+        } else {
+          response = `🔴 Delta Category:\n`;
+          response += `Total Clients: ${deltaData.count}\n`;
+          response += `💰 Total Outstanding: ₹${deltaData.totalBalance.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          deltaData.debtors.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (deltaData.count > 10) {
+            response += `\n...and ${deltaData.count - 10} more`;
+          }
+        }
+        
+        resultData = deltaData.debtors;
+      }
+      
+      // Due Invoices Query
+      else if (
         normalizedMessage.includes("due invoice") ||
         normalizedMessage.includes("pending invoice") ||
-        normalizedMessage.includes("overdue")
+        normalizedMessage.includes("unpaid")
       ) {
         commandType = "query";
         
