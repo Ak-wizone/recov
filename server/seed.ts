@@ -50,7 +50,14 @@ export async function seedDatabase() {
           "Invoices",
           "Receipts",
           "Masters",
-          "Settings"
+          "Customers",
+          "Items",
+          "Banks",
+          "Voucher Types",
+          "Settings",
+          "Company Profile",
+          "User Management",
+          "Roles Management"
         ],
         color: "#3b82f6",
         displayOrder: 1,
@@ -72,11 +79,28 @@ export async function seedDatabase() {
           "Invoices",
           "Receipts",
           "Payment Tracking",
+          "Debtors",
+          "Credit Management",
+          "Ledger",
           "Credit Control",
+          "Category Management",
+          "Follow-up Rules",
+          "Category Calculation",
+          "Urgent Actions",
+          "Follow-up Automation",
           "Masters",
+          "Customers",
+          "Items",
+          "Banks",
+          "Voucher Types",
           "Settings",
-          "Email/WhatsApp/Call Integrations",
-          "Backup & Restore"
+          "Company Profile",
+          "User Management",
+          "Roles Management",
+          "Backup & Restore",
+          "Communication Schedules",
+          "Audit Logs",
+          "Email/WhatsApp/Call Integrations"
         ],
         color: "#8b5cf6",
         displayOrder: 2,
@@ -98,14 +122,39 @@ export async function seedDatabase() {
           "Invoices",
           "Receipts",
           "Payment Tracking",
+          "Debtors",
+          "Credit Management",
+          "Ledger",
           "Action Center",
+          "Daily Dashboard",
+          "Task Manager",
+          "Call Queue",
+          "Activity Logs",
           "Team Performance",
+          "Leaderboard",
+          "Daily Targets",
+          "Notification Center",
           "Risk & Recovery",
           "Credit Control",
+          "Category Management",
+          "Follow-up Rules",
+          "Category Calculation",
+          "Urgent Actions",
+          "Follow-up Automation",
           "Masters",
+          "Customers",
+          "Items",
+          "Banks",
+          "Voucher Types",
           "Settings",
+          "Company Profile",
+          "User Management",
+          "Roles Management",
+          "Backup & Restore",
+          "Communication Schedules",
+          "Audit Logs",
           "Email/WhatsApp/Call Integrations",
-          "Backup & Restore"
+          "RECOV Voice Assistant"
         ],
         color: "#f59e0b",
         displayOrder: 3,
@@ -114,7 +163,123 @@ export async function seedDatabase() {
       
       console.log("✓ Default subscription plans created (Starter, Professional, Enterprise)");
     } else {
-      console.log("✓ Subscription plans already exist");
+      // Update existing plans with new modules
+      console.log("Updating existing subscription plans with new modules...");
+      
+      const planUpdates = [
+        {
+          name: "Starter",
+          allowedModules: [
+            "Business Overview",
+            "Leads",
+            "Quotations",
+            "Invoices",
+            "Receipts",
+            "Masters",
+            "Customers",
+            "Items",
+            "Banks",
+            "Voucher Types",
+            "Settings",
+            "Company Profile",
+            "User Management",
+            "Roles Management"
+          ]
+        },
+        {
+          name: "Professional",
+          allowedModules: [
+            "Business Overview",
+            "Customer Analytics",
+            "Leads",
+            "Quotations",
+            "Proforma Invoices",
+            "Invoices",
+            "Receipts",
+            "Payment Tracking",
+            "Debtors",
+            "Credit Management",
+            "Ledger",
+            "Credit Control",
+            "Category Management",
+            "Follow-up Rules",
+            "Category Calculation",
+            "Urgent Actions",
+            "Follow-up Automation",
+            "Masters",
+            "Customers",
+            "Items",
+            "Banks",
+            "Voucher Types",
+            "Settings",
+            "Company Profile",
+            "User Management",
+            "Roles Management",
+            "Backup & Restore",
+            "Communication Schedules",
+            "Audit Logs",
+            "Email/WhatsApp/Call Integrations"
+          ]
+        },
+        {
+          name: "Enterprise",
+          allowedModules: [
+            "Business Overview",
+            "Customer Analytics",
+            "Leads",
+            "Quotations",
+            "Proforma Invoices",
+            "Invoices",
+            "Receipts",
+            "Payment Tracking",
+            "Debtors",
+            "Credit Management",
+            "Ledger",
+            "Action Center",
+            "Daily Dashboard",
+            "Task Manager",
+            "Call Queue",
+            "Activity Logs",
+            "Team Performance",
+            "Leaderboard",
+            "Daily Targets",
+            "Notification Center",
+            "Risk & Recovery",
+            "Credit Control",
+            "Category Management",
+            "Follow-up Rules",
+            "Category Calculation",
+            "Urgent Actions",
+            "Follow-up Automation",
+            "Masters",
+            "Customers",
+            "Items",
+            "Banks",
+            "Voucher Types",
+            "Settings",
+            "Company Profile",
+            "User Management",
+            "Roles Management",
+            "Backup & Restore",
+            "Communication Schedules",
+            "Audit Logs",
+            "Email/WhatsApp/Call Integrations",
+            "RECOV Voice Assistant"
+          ]
+        }
+      ];
+
+      for (const update of planUpdates) {
+        const existingPlan = existingPlans.find(p => p.name === update.name);
+        if (existingPlan) {
+          await storage.updateSubscriptionPlan(existingPlan.id, {
+            allowedModules: update.allowedModules
+          });
+          console.log(`✓ Updated ${update.name} plan with ${update.allowedModules.length} modules`);
+        }
+      }
+      
+      console.log("✓ Subscription plans updated successfully");
     }
 
     console.log("Seed data check complete!");
