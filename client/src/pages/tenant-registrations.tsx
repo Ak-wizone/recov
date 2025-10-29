@@ -462,6 +462,91 @@ export default function TenantRegistrations() {
     }
   }, []);
 
+  // Bulk actions handlers
+  const handleOpenBulkPlanChange = () => {
+    setBulkPlanChangeDialogOpen(true);
+    setSelectedBulkPlan("");
+  };
+
+  const handleBulkPlanChange = () => {
+    if (!selectedBulkPlan) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a subscription plan",
+        variant: "destructive",
+      });
+      return;
+    }
+    changePlanMutation.mutate({ 
+      planId: selectedBulkPlan, 
+      tenantIds: Array.from(selectedTenantIds) 
+    }, {
+      onSuccess: () => {
+        // Clear selections and close dialog only on success
+        setBulkPlanChangeDialogOpen(false);
+        setSelectedBulkPlan("");
+        setSelectedTenantIds(new Set());
+      }
+    });
+  };
+
+  // Export to Excel function
+  const handleExportToExcel = () => {
+    if (!tenants || tenants.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No tenants to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const exportData = tenants.map((tenant, index) => {
+      const stats = tenantStats[tenant.id];
+      const plan = subscriptionPlans.find(p => p.id === tenant.subscriptionPlanId);
+      
+      return {
+        "Sr. No.": index + 1,
+        "Business Name": tenant.businessName,
+        "Email": tenant.email,
+        "City": tenant.city,
+        "Subscription Plan": plan ? plan.name : "No Plan",
+        "Status": tenant.isActive ? "Active" : "Inactive",
+        "Customers": stats?.customers || 0,
+        "Total Invoices": stats?.invoices.count || 0,
+        "Invoice Amount": stats?.invoices.total || 0,
+        "Total Receipts": stats?.receipts.count || 0,
+        "Receipt Amount": stats?.receipts.total || 0,
+        "Created Date": format(new Date(tenant.createdAt), "dd MMM yyyy"),
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Tenants");
+
+    // Auto-size columns
+    const maxWidth = 50;
+    const colWidths = Object.keys(exportData[0] || {}).map(key => ({
+      wch: Math.min(
+        Math.max(
+          key.length,
+          ...exportData.map(row => String(row[key as keyof typeof row] || "").length)
+        ),
+        maxWidth
+      )
+    }));
+    worksheet['!cols'] = colWidths;
+
+    const fileName = `tenants_export_${format(new Date(), "yyyy-MM-dd_HHmm")}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+
+    toast({
+      title: "Export Successful",
+      description: `Exported ${tenants.length} tenants to ${fileName}`,
+    });
+  };
+
   // Combine requests and tenants into unified data - memoize to prevent re-renders
   const data = useMemo<TenantRow[]>(() => [
     ...(requests?.map(r => ({
@@ -483,7 +568,7 @@ export default function TenantRegistrations() {
       city: t.city,
       planType: t.planType,
       subscriptionPlanId: t.subscriptionPlanId,
-      status: t.isActive ? 'active' : 'inactive',
+      status: (t.isActive ? 'active' : 'inactive') as "active" | "inactive",
       isActive: t.isActive,
       createdAt: t.createdAt,
       isRegistrationRequest: false,
@@ -556,38 +641,43 @@ export default function TenantRegistrations() {
     });
   }, []);
 
-  const toggleSelectAll = useCallback((checked: boolean) => {
+  const toggleSelectAll = useCallback((checked: boolean, filteredRows: any[]) => {
     if (checked) {
-      // Select all non-registration-request tenants on current page
-      const tenantIds = new Set(
-        (tenants || [])
-          .filter(t => !t.isRegistrationRequest)
-          .map(t => t.id)
+      // Select only visible tenants on current filtered/paginated view
+      const visibleTenantIds = new Set(
+        filteredRows
+          .filter(row => !row.original.isRegistrationRequest)
+          .map(row => row.original.id)
       );
-      setSelectedTenantIds(tenantIds);
+      setSelectedTenantIds(visibleTenantIds);
     } else {
       setSelectedTenantIds(new Set());
     }
-  }, [tenants]);
+  }, []);
 
   const selectedCount = selectedTenantIds.size;
-  const allTenantsSelected = tenants && tenants.length > 0 && 
-    tenants.filter(t => !t.isRegistrationRequest).every(t => selectedTenantIds.has(t.id));
 
   // Wrap columns in useMemo to prevent re-creation on every render
   const columns = useMemo<ColumnDef<TenantRow>[]>(() => [
     {
       id: "select",
-      header: ({ table }) => (
-        <div className="flex items-center justify-center">
-          <Checkbox
-            checked={allTenantsSelected}
-            onCheckedChange={(checked) => toggleSelectAll(!!checked)}
-            aria-label="Select all"
-            data-testid="checkbox-select-all"
-          />
-        </div>
-      ),
+      header: ({ table }) => {
+        // Get only visible rows on current page
+        const visibleRows = table.getRowModel().rows;
+        const visibleTenants = visibleRows.filter(r => !r.original.isRegistrationRequest);
+        const allSelected = visibleTenants.length > 0 && visibleTenants.every(r => selectedTenantIds.has(r.original.id));
+        
+        return (
+          <div className="flex items-center justify-center">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={(checked) => toggleSelectAll(!!checked, visibleRows)}
+              aria-label="Select all"
+              data-testid="checkbox-select-all"
+            />
+          </div>
+        );
+      },
       cell: ({ row }) => {
         // Don't show checkbox for registration requests
         if (row.original.isRegistrationRequest) {
@@ -857,7 +947,7 @@ export default function TenantRegistrations() {
         );
       },
     },
-  ], [handleOpenApproveDialog, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, handleOpenRejectDialog, handleOpenChangePlanDialog, approveMutation.isPending, rejectRegistrationMutation.isPending, deleteRegistrationRequestMutation.isPending, deleteTenantMutation.isPending, toggleStatusMutation.isPending, resetPasswordMutation.isPending, sendCredentialsMutation.isPending, selectedTenantIds, toggleSelectTenant, toggleSelectAll, allTenantsSelected]);
+  ], [handleOpenApproveDialog, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, handleOpenRejectDialog, handleOpenChangePlanDialog, approveMutation.isPending, rejectRegistrationMutation.isPending, deleteRegistrationRequestMutation.isPending, deleteTenantMutation.isPending, toggleStatusMutation.isPending, resetPasswordMutation.isPending, sendCredentialsMutation.isPending, selectedTenantIds, toggleSelectTenant, toggleSelectAll]);
 
   // Helper function to calculate activity status
   const getActivityStatus = (tenant: TenantRow): "active" | "at-risk" | "inactive" | "never-used" => {
@@ -911,14 +1001,48 @@ export default function TenantRegistrations() {
           <h1 className="text-2xl md:text-3xl font-bold">Tenant Management</h1>
           <p className="text-muted-foreground mt-1 md:mt-2 text-sm md:text-base">Manage tenant registrations and access control</p>
         </div>
-        <Button
-          onClick={() => setLocation("/email-config")}
-          data-testid="button-email-config"
-          className="w-full md:w-auto"
-        >
-          <Mail className="w-4 h-4 mr-2" />
-          Email Configuration
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          {selectedCount > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  data-testid="button-bulk-actions"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Bulk Actions ({selectedCount})
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={handleOpenBulkPlanChange}
+                  data-testid="menu-bulk-change-plan"
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  Change Plan
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          <Button
+            onClick={handleExportToExcel}
+            variant="outline"
+            className="w-full sm:w-auto"
+            data-testid="button-export-excel"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export to Excel
+          </Button>
+          <Button
+            onClick={() => setLocation("/email-config")}
+            data-testid="button-email-config"
+            className="w-full sm:w-auto"
+          >
+            <Mail className="w-4 h-4 mr-2" />
+            Email Configuration
+          </Button>
+        </div>
       </div>
 
       {/* Tenant Engagement Analytics - Clickable Cards */}
@@ -1296,8 +1420,28 @@ export default function TenantRegistrations() {
             </div>
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-3">
-              <div className="text-sm text-muted-foreground">
-                {table.getFilteredRowModel().rows.length} total records
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-muted-foreground">
+                  {table.getFilteredRowModel().rows.length} total records
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Show</span>
+                  <Select
+                    value={String(table.getState().pagination.pageSize)}
+                    onValueChange={(value) => table.setPageSize(Number(value))}
+                  >
+                    <SelectTrigger className="w-20 h-8" data-testid="select-page-size">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm text-muted-foreground">rows</span>
+                </div>
               </div>
               <div className="flex items-center space-x-2">
                 <Button
@@ -1541,6 +1685,75 @@ export default function TenantRegistrations() {
               data-testid="button-confirm-change-plan"
             >
               {changePlanMutation.isPending ? "Changing Plan..." : "Change Plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Change Plan Dialog */}
+      <Dialog open={bulkPlanChangeDialogOpen} onOpenChange={setBulkPlanChangeDialogOpen}>
+        <DialogContent data-testid="dialog-bulk-change-plan">
+          <DialogHeader>
+            <DialogTitle>Bulk Change Subscription Plan</DialogTitle>
+            <DialogDescription>
+              Update the subscription plan for {selectedCount} selected tenant{selectedCount > 1 ? 's' : ''}. This will change their module access immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="plan-select-bulk">New Subscription Plan *</Label>
+              <Select
+                value={selectedBulkPlan}
+                onValueChange={setSelectedBulkPlan}
+                disabled={isLoadingPlans}
+              >
+                <SelectTrigger id="plan-select-bulk" data-testid="select-plan-bulk">
+                  <SelectValue placeholder="Select a subscription plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subscriptionPlans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id} data-testid={`option-plan-bulk-${plan.id}`}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: plan.color }}
+                        />
+                        <span>{plan.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({plan.allowedModules.length} modules)
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedBulkPlan && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 rounded-md">
+                <div className="text-sm">
+                  <strong>Selected Plan:</strong>{" "}
+                  {subscriptionPlans.find(p => p.id === selectedBulkPlan)?.name}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  This plan will be applied to {selectedCount} tenant{selectedCount > 1 ? 's' : ''}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkPlanChangeDialogOpen(false)}
+              data-testid="button-cancel-bulk-change"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkPlanChange}
+              disabled={changePlanMutation.isPending || !selectedBulkPlan}
+              data-testid="button-confirm-bulk-change"
+            >
+              {changePlanMutation.isPending ? "Changing Plans..." : "Change Plans"}
             </Button>
           </DialogFooter>
         </DialogContent>
