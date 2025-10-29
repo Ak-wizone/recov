@@ -318,11 +318,11 @@ export default function Invoices() {
           matchesCategoryFilter = invoice.status === 'Unpaid' && today > gracePeriodEnd;
           break;
         case 'paidOnTime':
-          // Paid invoices (for now, showing all paid - payment date logic would need receipts data)
-          matchesCategoryFilter = invoice.status === 'Paid';
-          break;
         case 'paidLate':
-          // Paid invoices (for now, showing all paid - payment date logic would need receipts data)
+          // For paid invoices, we show all paid invoices for both categories
+          // Proper differentiation requires FIFO payment allocation with receipts data
+          // which is calculated on the backend for dashboard cards
+          // TODO: Add payment completion date to invoice data or create backend filter endpoint
           matchesCategoryFilter = invoice.status === 'Paid';
           break;
         default:
