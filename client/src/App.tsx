@@ -50,6 +50,7 @@ import ActivityLog from "@/pages/activity-log";
 import Leaderboard from "@/pages/leaderboard";
 import DailyTargets from "@/pages/daily-targets";
 import AuditLogs from "@/pages/audit-logs";
+import SubscriptionPlans from "@/pages/subscription-plans";
 
 function Router() {
   return (
@@ -105,6 +106,7 @@ function Router() {
               <Route path="/settings/users" component={Users} />
               <Route path="/audit-logs" component={AuditLogs} />
               <Route path="/tenant-registrations" component={TenantRegistrations} />
+              <Route path="/subscription-plans" component={SubscriptionPlans} />
               <Route component={NotFound} />
             </Switch>
           </Layout>

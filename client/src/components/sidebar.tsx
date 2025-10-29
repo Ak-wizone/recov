@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Users,
@@ -37,10 +38,12 @@ import {
   Menu,
   X,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import type { Tenant, SubscriptionPlan } from "@shared/schema";
 
 interface NavItem {
   name: string;
@@ -48,7 +51,32 @@ interface NavItem {
   icon: React.ReactNode;
   subItems?: NavItem[];
   badge?: number;
+  module?: string;
 }
+
+type TenantWithPlan = Tenant & {
+  subscriptionPlan: SubscriptionPlan | null;
+};
+
+// Module mapping configuration
+const MODULE_MAPPING: Record<string, string> = {
+  "Business Overview": "Business Overview",
+  "Customer Analytics": "Customer Analytics",
+  "Leads": "Leads",
+  "Quotations": "Quotations",
+  "Proforma Invoices": "Proforma Invoices",
+  "Invoices": "Invoices",
+  "Receipts": "Receipts",
+  "Payment Tracking": "Payment Tracking",
+  "Action Center": "Action Center",
+  "Team Performance": "Team Performance",
+  "Risk & Recovery": "Risk & Recovery",
+  "Credit Control": "Credit Control",
+  "Masters": "Masters",
+  "Settings": "Settings",
+  "Email/WhatsApp/Call Integrations": "Email/WhatsApp/Call Integrations",
+  "Audit Trial Logs": "Settings",
+};
 
 // Platform Admin navigation items
 const platformAdminNavItems: NavItem[] = [
@@ -56,6 +84,11 @@ const platformAdminNavItems: NavItem[] = [
     name: "Tenant Registrations",
     path: "/tenant-registrations",
     icon: <Building2 className="h-5 w-5" />,
+  },
+  {
+    name: "Subscription Plans",
+    path: "/subscription-plans",
+    icon: <Package className="h-5 w-5" />,
   },
 ];
 
@@ -65,41 +98,49 @@ const navItems: NavItem[] = [
     name: "Business Overview",
     path: "/",
     icon: <LayoutDashboard className="h-5 w-5" />,
+    module: "Business Overview",
   },
   {
     name: "Customer Analytics",
     path: "/customer-analytics",
     icon: <BarChart3 className="h-5 w-5" />,
+    module: "Customer Analytics",
   },
   {
     name: "Leads",
     path: "/leads",
     icon: <Users className="h-5 w-5" />,
+    module: "Leads",
   },
   {
     name: "Quotations",
     path: "/quotations",
     icon: <FileText className="h-5 w-5" />,
+    module: "Quotations",
   },
   {
     name: "Proforma Invoices",
     path: "/proforma-invoices",
     icon: <FileSpreadsheet className="h-5 w-5" />,
+    module: "Proforma Invoices",
   },
   {
     name: "Invoices",
     path: "/invoices",
     icon: <Receipt className="h-5 w-5" />,
+    module: "Invoices",
   },
   {
     name: "Receipts",
     path: "/receipts",
     icon: <CreditCard className="h-5 w-5" />,
+    module: "Receipts",
   },
   {
     name: "Payment Tracking",
     path: "#",
     icon: <Wallet className="h-5 w-5" />,
+    module: "Payment Tracking",
     subItems: [
       {
         name: "Debtors",
@@ -122,6 +163,7 @@ const navItems: NavItem[] = [
     name: "Action Center",
     path: "#",
     icon: <Zap className="h-5 w-5" />,
+    module: "Action Center",
     subItems: [
       {
         name: "Daily Dashboard",
@@ -149,6 +191,7 @@ const navItems: NavItem[] = [
     name: "Team Performance",
     path: "#",
     icon: <Trophy className="h-5 w-5" />,
+    module: "Team Performance",
     subItems: [
       {
         name: "Leaderboard",
@@ -166,6 +209,7 @@ const navItems: NavItem[] = [
     name: "Risk & Recovery",
     path: "#",
     icon: <AlertTriangle className="h-5 w-5" />,
+    module: "Risk & Recovery",
     subItems: [
       {
         name: "Client Risk Thermometer",
@@ -188,6 +232,7 @@ const navItems: NavItem[] = [
     name: "Credit Control",
     path: "#",
     icon: <Calculator className="h-5 w-5" />,
+    module: "Credit Control",
     subItems: [
       {
         name: "Category Rules",
@@ -215,6 +260,7 @@ const navItems: NavItem[] = [
     name: "Masters",
     path: "#",
     icon: <FolderOpen className="h-5 w-5" />,
+    module: "Masters",
     subItems: [
       {
         name: "Customers",
@@ -237,6 +283,7 @@ const navItems: NavItem[] = [
     name: "Settings",
     path: "#",
     icon: <Settings className="h-5 w-5" />,
+    module: "Settings",
     subItems: [
       {
         name: "User Management",
@@ -259,6 +306,7 @@ const navItems: NavItem[] = [
     name: "Audit Trial Logs",
     path: "/audit-logs",
     icon: <FileCheck className="h-5 w-5" />,
+    module: "Settings",
   },
 ];
 
@@ -270,7 +318,48 @@ export default function Sidebar() {
   
   // Determine which navigation to show based on user type
   const isPlatformAdmin = user && !user.tenantId;
-  const currentNavItems = isPlatformAdmin ? platformAdminNavItems : navItems;
+
+  // Fetch current tenant with subscription plan for tenant users
+  const { data: tenant, isLoading: isLoadingTenant } = useQuery<TenantWithPlan | null>({
+    queryKey: ["/api/tenants/current"],
+    enabled: !isPlatformAdmin && !!user,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Helper function to check if a module is accessible
+  const isModuleAccessible = (moduleName: string): boolean => {
+    if (isPlatformAdmin) {
+      return true;
+    }
+
+    if (!tenant) {
+      return false;
+    }
+
+    const allowedModules = tenant.customModules || tenant.subscriptionPlan?.allowedModules || [];
+    
+    return allowedModules.includes(moduleName);
+  };
+
+  // Filter navigation items based on allowed modules
+  const filteredNavItems = useMemo(() => {
+    if (isPlatformAdmin) {
+      return platformAdminNavItems;
+    }
+
+    if (!tenant) {
+      return [];
+    }
+
+    return navItems.filter((item) => {
+      if (!item.module) {
+        return true;
+      }
+      return isModuleAccessible(item.module);
+    });
+  }, [isPlatformAdmin, tenant]);
+
+  const currentNavItems = filteredNavItems;
 
   const toggleExpanded = (name: string) => {
     setExpandedItems((prev) => {
@@ -374,7 +463,27 @@ export default function Sidebar() {
         "flex-1 overflow-y-auto p-3 space-y-1",
         "scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent"
       )}>
-        {currentNavItems.map((item) => (
+        {isLoadingTenant && !isPlatformAdmin ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Loading navigation...
+              </p>
+            </div>
+          </div>
+        ) : currentNavItems.length === 0 && !isPlatformAdmin ? (
+          <div className="flex items-center justify-center py-8 px-4">
+            <div className="text-center">
+              <AlertTriangle className="h-8 w-8 mx-auto text-yellow-500 mb-2" />
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                No modules available. Please contact your administrator.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {currentNavItems.map((item) => (
           <div key={item.name}>
             {item.subItems ? (
               <div>
@@ -490,7 +599,9 @@ export default function Sidebar() {
               </Link>
             )}
           </div>
-        ))}
+            ))}
+          </>
+        )}
       </nav>
 
       {/* Footer */}

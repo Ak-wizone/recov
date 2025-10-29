@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { wsManager } from "./websocket";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
 import { whatsappWebService } from "./whatsapp-web-service";
@@ -193,6 +193,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/registration-requests/:requestId/approve", adminOnlyMiddleware, async (req, res) => {
     try {
       const { requestId } = req.params;
+      const { planId } = req.body;
+
+      // Validate planId is provided
+      if (!planId) {
+        return res.status(400).json({ message: "Subscription plan ID is required" });
+      }
+
+      // Verify subscription plan exists
+      const [plan] = await db
+        .select()
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, planId))
+        .limit(1);
+
+      if (!plan) {
+        return res.status(404).json({ message: "Subscription plan not found" });
+      }
 
       // Get the registration request
       const [request] = await db
@@ -275,6 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             gstNumber: request.gstNumber,
             industryType: request.industryType,
             planType: request.planType,
+            subscriptionPlanId: planId,
             existingAccountingSoftware: request.existingAccountingSoftware,
             status: "active",
             isActive: true,
@@ -762,6 +780,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current tenant with subscription plan (for tenant users)
+  app.get("/api/tenants/current", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Platform admins don't have a tenant
+      if (!sessionUser.tenantId) {
+        return res.json(null);
+      }
+
+      // Fetch tenant with subscription plan
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, sessionUser.tenantId))
+        .limit(1);
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // Fetch subscription plan if assigned
+      let subscriptionPlan = null;
+      if (tenant.subscriptionPlanId) {
+        const [plan] = await db
+          .select()
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, tenant.subscriptionPlanId))
+          .limit(1);
+        subscriptionPlan = plan || null;
+      }
+
+      res.json({
+        ...tenant,
+        subscriptionPlan,
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch current tenant:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get all tenants (admin only)
   app.get("/api/tenants", adminOnlyMiddleware, async (req, res) => {
     try {
@@ -816,6 +879,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // ========== SUBSCRIPTION PLANS API (Platform Admin Only) ==========
+
+  // Get all subscription plans
+  app.get("/api/subscription-plans", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const plans = await storage.getSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      console.error("Failed to fetch subscription plans:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get active subscription plans only
+  app.get("/api/subscription-plans/active", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const plans = await storage.getActiveSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      console.error("Failed to fetch active subscription plans:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get plan usage statistics
+  app.get("/api/subscription-plans/stats", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const stats = await storage.getPlanUsageStats();
+      res.json(stats);
+    } catch (error: any) {
+      console.error("Failed to fetch plan stats:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single subscription plan
+  app.get("/api/subscription-plans/:id", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const plan = await storage.getSubscriptionPlan(req.params.id);
+      if (!plan) {
+        return res.status(404).json({ message: "Subscription plan not found" });
+      }
+      res.json(plan);
+    } catch (error: any) {
+      console.error("Failed to fetch subscription plan:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create subscription plan
+  app.post("/api/subscription-plans", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const validated = insertSubscriptionPlanSchema.parse(req.body);
+      const plan = await storage.createSubscriptionPlan(validated);
+      res.status(201).json(plan);
+    } catch (error: any) {
+      console.error("Failed to create subscription plan:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update subscription plan
+  app.put("/api/subscription-plans/:id", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const validated = insertSubscriptionPlanSchema.partial().parse(req.body);
+      const plan = await storage.updateSubscriptionPlan(req.params.id, validated);
+      if (!plan) {
+        return res.status(404).json({ message: "Subscription plan not found" });
+      }
+      res.json(plan);
+    } catch (error: any) {
+      console.error("Failed to update subscription plan:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete subscription plan
+  app.delete("/api/subscription-plans/:id", adminOnlyMiddleware, async (req, res) => {
+    try {
+      // Check if any tenants are using this plan
+      const allTenants = await db.select().from(tenants);
+      const tenantsUsingPlan = allTenants.filter(t => t.subscriptionPlanId === req.params.id);
+      
+      if (tenantsUsingPlan.length > 0) {
+        return res.status(400).json({ 
+          message: `Cannot delete plan. ${tenantsUsingPlan.length} tenant(s) are currently using this plan.`,
+          tenantsCount: tenantsUsingPlan.length
+        });
+      }
+
+      const success = await storage.deleteSubscriptionPlan(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Subscription plan not found" });
+      }
+      res.json({ success: true, message: "Plan deleted successfully" });
+    } catch (error: any) {
+      console.error("Failed to delete subscription plan:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Bulk update tenants' subscription plan
+  app.post("/api/subscription-plans/:planId/assign-tenants", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { planId } = req.params;
+      const { tenantIds } = req.body;
+
+      if (!Array.isArray(tenantIds) || tenantIds.length === 0) {
+        return res.status(400).json({ message: "tenantIds must be a non-empty array" });
+      }
+
+      // Verify plan exists
+      const plan = await storage.getSubscriptionPlan(planId);
+      if (!plan) {
+        return res.status(404).json({ message: "Subscription plan not found" });
+      }
+
+      // Update all tenants
+      let updated = 0;
+      for (const tenantId of tenantIds) {
+        const result = await db
+          .update(tenants)
+          .set({ subscriptionPlanId: planId, customModules: null })
+          .where(eq(tenants.id, tenantId))
+          .returning();
+        
+        if (result.length > 0) updated++;
+      }
+
+      res.json({ 
+        success: true, 
+        message: `${updated} tenant(s) updated to plan "${plan.name}"`,
+        updatedCount: updated 
+      });
+    } catch (error: any) {
+      console.error("Failed to assign plan to tenants:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ========== END SUBSCRIPTION PLANS API ==========
 
   // Cleanup orphaned users (admin only) - Deletes users whose tenant no longer exists
   app.post("/api/cleanup-orphaned-users", adminOnlyMiddleware, async (req, res) => {

@@ -5,6 +5,39 @@ import { z } from "zod";
 
 // Multi-Tenant Tables
 
+// Subscription Plans
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull().default("0"),
+  billingCycle: text("billing_cycle").notNull().default("monthly"), // monthly, annual, lifetime
+  allowedModules: text("allowed_modules").array().notNull(),
+  color: text("color").notNull().default("#3B82F6"), // For UI badges
+  isActive: boolean("is_active").notNull().default(true),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  name: z.string().min(1, "Plan name is required"),
+  description: z.string().optional(),
+  price: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid price format"),
+  billingCycle: z.enum(["monthly", "annual", "lifetime"]),
+  allowedModules: z.array(z.string()).min(1, "At least one module must be selected"),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid hex color"),
+  isActive: z.boolean().default(true),
+  displayOrder: z.number().int().default(0),
+});
+
+export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+
 export const tenants = pgTable("tenants", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   slug: text("slug").notNull().unique(),
@@ -17,7 +50,9 @@ export const tenants = pgTable("tenants", {
   panNumber: text("pan_number"),
   gstNumber: text("gst_number"),
   industryType: text("industry_type"),
-  planType: text("plan_type").notNull(),
+  planType: text("plan_type").notNull(), // Legacy field, kept for backward compatibility
+  subscriptionPlanId: varchar("subscription_plan_id").references(() => subscriptionPlans.id),
+  customModules: text("custom_modules").array(), // Override plan modules if needed
   existingAccountingSoftware: text("existing_accounting_software"),
   status: text("status").notNull().default("pending"),
   isActive: boolean("is_active").notNull().default(false),

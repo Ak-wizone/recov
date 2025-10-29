@@ -17,6 +17,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -57,9 +73,11 @@ import {
   ChevronLeft,
   ChevronRight,
   MoreHorizontal,
+  Package,
 } from "lucide-react";
 import { format } from "date-fns";
 import { TenantSummary } from "@/components/TenantSummary";
+import type { SubscriptionPlan } from "@shared/schema";
 
 interface TenantStatistics {
   customers: number;
@@ -92,6 +110,7 @@ interface TenantRow {
   email: string;
   city: string;
   planType: string;
+  subscriptionPlanId?: string | null;
   status: "pending" | "approved" | "rejected" | "active" | "inactive";
   isActive?: boolean;
   createdAt: string;
@@ -111,6 +130,12 @@ export default function TenantRegistrations() {
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const [selectedTenantForSummary, setSelectedTenantForSummary] = useState<TenantRow | null>(null);
   const [activityFilter, setActivityFilter] = useState<"all" | "active" | "at-risk" | "inactive" | "never-used">("all");
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [requestToApprove, setRequestToApprove] = useState<TenantRow | null>(null);
+  const [selectedPlanForApproval, setSelectedPlanForApproval] = useState<string>("");
+  const [changePlanDialogOpen, setChangePlanDialogOpen] = useState(false);
+  const [tenantToChangePlan, setTenantToChangePlan] = useState<TenantRow | null>(null);
+  const [selectedNewPlan, setSelectedNewPlan] = useState<string>("");
 
   // Redirect tenant users to dashboard - only platform admins can access this page
   useEffect(() => {
@@ -127,6 +152,11 @@ export default function TenantRegistrations() {
   // Fetch approved tenants
   const { data: tenants } = useQuery<any[]>({
     queryKey: ['/api/tenants'],
+  });
+
+  // Fetch active subscription plans
+  const { data: subscriptionPlans = [], isLoading: isLoadingPlans } = useQuery<SubscriptionPlan[]>({
+    queryKey: ['/api/subscription-plans/active'],
   });
 
   // State for tenant statistics
@@ -170,8 +200,8 @@ export default function TenantRegistrations() {
   }, [tenants]);
 
   const approveMutation = useMutation({
-    mutationFn: async (requestId: string) => {
-      return await apiRequest("POST", `/api/registration-requests/${requestId}/approve`);
+    mutationFn: async ({ requestId, planId }: { requestId: string; planId: string }) => {
+      return await apiRequest("POST", `/api/registration-requests/${requestId}/approve`, { planId });
     },
     onSuccess: () => {
       toast({
@@ -180,10 +210,36 @@ export default function TenantRegistrations() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/registration-requests'] });
       queryClient.invalidateQueries({ queryKey: ['/api/tenants'] });
+      setApproveDialogOpen(false);
+      setRequestToApprove(null);
+      setSelectedPlanForApproval("");
     },
     onError: (error: Error) => {
       toast({
         title: "Approval Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const changePlanMutation = useMutation({
+    mutationFn: async ({ planId, tenantIds }: { planId: string; tenantIds: string[] }) => {
+      return await apiRequest("POST", `/api/subscription-plans/${planId}/assign-tenants`, { tenantIds });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Subscription plan changed successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/tenants'] });
+      setChangePlanDialogOpen(false);
+      setTenantToChangePlan(null);
+      setSelectedNewPlan("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to change plan",
         description: error.message,
         variant: "destructive",
       });
@@ -325,10 +381,41 @@ export default function TenantRegistrations() {
   };
 
   // Create stable handler functions to prevent re-renders
-  // Mutation.mutate functions are stable, so no dependencies needed
-  const handleApprove = useCallback((tenantId: string) => {
-    approveMutation.mutate(tenantId);
+  const handleOpenApproveDialog = useCallback((request: TenantRow) => {
+    setRequestToApprove(request);
+    setSelectedPlanForApproval("");
+    setApproveDialogOpen(true);
   }, []);
+
+  const handleApprove = () => {
+    if (!requestToApprove || !selectedPlanForApproval) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a subscription plan",
+        variant: "destructive",
+      });
+      return;
+    }
+    approveMutation.mutate({ requestId: requestToApprove.id, planId: selectedPlanForApproval });
+  };
+
+  const handleOpenChangePlanDialog = useCallback((tenant: TenantRow) => {
+    setTenantToChangePlan(tenant);
+    setSelectedNewPlan(tenant.subscriptionPlanId || "");
+    setChangePlanDialogOpen(true);
+  }, []);
+
+  const handleChangePlan = () => {
+    if (!tenantToChangePlan || !selectedNewPlan) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a subscription plan",
+        variant: "destructive",
+      });
+      return;
+    }
+    changePlanMutation.mutate({ planId: selectedNewPlan, tenantIds: [tenantToChangePlan.id] });
+  };
 
   const handleToggleStatus = useCallback((tenantId: string) => {
     toggleStatusMutation.mutate(tenantId);
@@ -374,6 +461,7 @@ export default function TenantRegistrations() {
       email: r.email,
       city: r.city,
       planType: r.planType,
+      subscriptionPlanId: null,
       status: r.status,
       createdAt: r.createdAt,
       isRegistrationRequest: true,
@@ -385,6 +473,7 @@ export default function TenantRegistrations() {
       email: t.email,
       city: t.city,
       planType: t.planType,
+      subscriptionPlanId: t.subscriptionPlanId,
       status: t.isActive ? 'active' : 'inactive',
       isActive: t.isActive,
       createdAt: t.createdAt,
@@ -419,6 +508,32 @@ export default function TenantRegistrations() {
     return planLabels[planType] || planType;
   };
 
+  const getSubscriptionPlanBadge = (subscriptionPlanId: string | null | undefined) => {
+    if (!subscriptionPlanId) {
+      return <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200" data-testid="badge-no-plan">No Plan</Badge>;
+    }
+
+    const plan = subscriptionPlans.find(p => p.id === subscriptionPlanId);
+    if (!plan) {
+      return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200" data-testid="badge-custom-plan">Custom</Badge>;
+    }
+
+    return (
+      <Badge
+        variant="outline"
+        style={{
+          backgroundColor: `${plan.color}15`,
+          color: plan.color,
+          borderColor: `${plan.color}40`,
+        }}
+        data-testid={`badge-plan-${plan.id}`}
+      >
+        <Package className="w-3 h-3 mr-1" />
+        {plan.name}
+      </Badge>
+    );
+  };
+
   // Wrap columns in useMemo to prevent re-creation on every render
   const columns = useMemo<ColumnDef<TenantRow>[]>(() => [
     {
@@ -451,6 +566,15 @@ export default function TenantRegistrations() {
       header: "City",
       cell: ({ row }) => (
         <div className="text-sm">{row.original.city}</div>
+      ),
+    },
+    {
+      accessorKey: "subscriptionPlanId",
+      header: "Subscription Plan",
+      cell: ({ row }) => (
+        <div data-testid={`cell-plan-${row.index}`}>
+          {getSubscriptionPlanBadge(row.original.subscriptionPlanId)}
+        </div>
       ),
     },
     {
@@ -554,7 +678,7 @@ export default function TenantRegistrations() {
               <>
                 <Button
                   size="sm"
-                  onClick={() => handleApprove(tenant.id)}
+                  onClick={() => handleOpenApproveDialog(tenant)}
                   disabled={approveMutation.isPending}
                   className="bg-green-600 hover:bg-green-700"
                   data-testid={`button-approve-${tenant.id}`}
@@ -589,59 +713,80 @@ export default function TenantRegistrations() {
               </Button>
             )}
             
-            {/* Active/Inactive tenants - show full management buttons */}
+            {/* Active/Inactive tenants - show management dropdown */}
             {!tenant.isRegistrationRequest && (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleToggleStatus(tenant.id)}
-                  disabled={toggleStatusMutation.isPending}
-                  data-testid={`button-toggle-${tenant.id}`}
-                >
-                  {tenant.isActive ? (
-                    <><ToggleRight className="w-3 h-3 mr-1" />Deactivate</>
-                  ) : (
-                    <><ToggleLeft className="w-3 h-3 mr-1" />Activate</>
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleResetPassword(tenant.id)}
-                  disabled={resetPasswordMutation.isPending}
-                  data-testid={`button-reset-${tenant.id}`}
-                >
-                  <KeyRound className="w-3 h-3 mr-1" />
-                  Reset
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleSendCredentials(tenant.id)}
-                  disabled={sendCredentialsMutation.isPending}
-                  data-testid={`button-send-${tenant.id}`}
-                >
-                  <Mail className="w-3 h-3 mr-1" />
-                  Send
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => handleOpenDeleteDialog(tenant)}
-                  disabled={deleteTenantMutation.isPending}
-                  data-testid={`button-delete-${tenant.id}`}
-                >
-                  <Trash2 className="w-3 h-3 mr-1" />
-                  Delete
-                </Button>
-              </>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="h-8 w-8 p-0"
+                    data-testid={`button-menu-${tenant.id}`}
+                  >
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => handleToggleStatus(tenant.id)}
+                    disabled={toggleStatusMutation.isPending}
+                    data-testid={`menu-toggle-${tenant.id}`}
+                  >
+                    {tenant.isActive ? (
+                      <>
+                        <ToggleRight className="w-4 h-4 mr-2" />
+                        Deactivate
+                      </>
+                    ) : (
+                      <>
+                        <ToggleLeft className="w-4 h-4 mr-2" />
+                        Activate
+                      </>
+                    )}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleOpenChangePlanDialog(tenant)}
+                    data-testid={`menu-change-plan-${tenant.id}`}
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Change Plan
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => handleResetPassword(tenant.id)}
+                    disabled={resetPasswordMutation.isPending}
+                    data-testid={`menu-reset-${tenant.id}`}
+                  >
+                    <KeyRound className="w-4 h-4 mr-2" />
+                    Reset Password
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleSendCredentials(tenant.id)}
+                    disabled={sendCredentialsMutation.isPending}
+                    data-testid={`menu-send-${tenant.id}`}
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Send Credentials
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => handleOpenDeleteDialog(tenant)}
+                    disabled={deleteTenantMutation.isPending}
+                    className="text-red-600"
+                    data-testid={`menu-delete-${tenant.id}`}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Tenant
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         );
       },
     },
-  ], [handleApprove, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, handleOpenRejectDialog]);
+  ], [handleOpenApproveDialog, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, handleOpenRejectDialog, handleOpenChangePlanDialog, approveMutation.isPending, rejectRegistrationMutation.isPending, deleteRegistrationRequestMutation.isPending, deleteTenantMutation.isPending, toggleStatusMutation.isPending, resetPasswordMutation.isPending, sendCredentialsMutation.isPending]);
 
   // Helper function to calculate activity status
   const getActivityStatus = (tenant: TenantRow): "active" | "at-risk" | "inactive" | "never-used" => {
@@ -910,7 +1055,7 @@ export default function TenantRegistrations() {
                               <div className="flex gap-2">
                                 <Button
                                   size="sm"
-                                  onClick={() => handleApprove(tenant.id)}
+                                  onClick={() => handleOpenApproveDialog(tenant)}
                                   disabled={approveMutation.isPending}
                                   className="flex-1 bg-green-600 hover:bg-green-700"
                                   data-testid={`button-approve-${tenant.id}`}
@@ -974,6 +1119,14 @@ export default function TenantRegistrations() {
                                       <><ToggleLeft className="w-4 h-4 mr-2" />Activate Tenant</>
                                     )}
                                   </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={() => handleOpenChangePlanDialog(tenant)}
+                                    data-testid={`menu-change-plan-${tenant.id}`}
+                                  >
+                                    <Package className="w-4 h-4 mr-2" />
+                                    Change Plan
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     onClick={() => handleResetPassword(tenant.id)}
                                     disabled={resetPasswordMutation.isPending}
@@ -1169,6 +1322,158 @@ export default function TenantRegistrations() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Approve Request Dialog */}
+      <Dialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
+        <DialogContent data-testid="dialog-approve-request">
+          <DialogHeader>
+            <DialogTitle>Approve Registration Request</DialogTitle>
+            <DialogDescription>
+              Select a subscription plan for {requestToApprove?.businessName}. This plan will determine which modules and features they can access.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="plan-select">Subscription Plan *</Label>
+              <Select
+                value={selectedPlanForApproval}
+                onValueChange={setSelectedPlanForApproval}
+                disabled={isLoadingPlans}
+              >
+                <SelectTrigger id="plan-select" data-testid="select-plan-approval">
+                  <SelectValue placeholder="Select a subscription plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subscriptionPlans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id} data-testid={`option-plan-${plan.id}`}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: plan.color }}
+                        />
+                        <span>{plan.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({plan.allowedModules.length} modules)
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedPlanForApproval && (
+              <div className="p-3 bg-muted rounded-md">
+                <div className="text-sm">
+                  <strong>Selected Plan Details:</strong>
+                  {subscriptionPlans.find(p => p.id === selectedPlanForApproval) && (
+                    <div className="mt-2 space-y-1">
+                      <div>
+                        <span className="text-muted-foreground">Name:</span>{" "}
+                        {subscriptionPlans.find(p => p.id === selectedPlanForApproval)?.name}
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Modules:</span>{" "}
+                        {subscriptionPlans.find(p => p.id === selectedPlanForApproval)?.allowedModules.length}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setApproveDialogOpen(false)}
+              data-testid="button-cancel-approve"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleApprove}
+              disabled={approveMutation.isPending || !selectedPlanForApproval}
+              className="bg-green-600 hover:bg-green-700"
+              data-testid="button-confirm-approve"
+            >
+              {approveMutation.isPending ? "Approving..." : "Approve & Send Welcome Email"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Plan Dialog */}
+      <Dialog open={changePlanDialogOpen} onOpenChange={setChangePlanDialogOpen}>
+        <DialogContent data-testid="dialog-change-plan">
+          <DialogHeader>
+            <DialogTitle>Change Subscription Plan</DialogTitle>
+            <DialogDescription>
+              Update the subscription plan for {tenantToChangePlan?.businessName}. This will change their module access immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="plan-select-change">New Subscription Plan *</Label>
+              <Select
+                value={selectedNewPlan}
+                onValueChange={setSelectedNewPlan}
+                disabled={isLoadingPlans}
+              >
+                <SelectTrigger id="plan-select-change" data-testid="select-plan-change">
+                  <SelectValue placeholder="Select a subscription plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subscriptionPlans.map((plan) => (
+                    <SelectItem key={plan.id} value={plan.id} data-testid={`option-plan-change-${plan.id}`}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: plan.color }}
+                        />
+                        <span>{plan.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({plan.allowedModules.length} modules)
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {tenantToChangePlan?.subscriptionPlanId && (
+              <div className="p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-900 rounded-md">
+                <div className="text-sm">
+                  <strong>Current Plan:</strong>{" "}
+                  {subscriptionPlans.find(p => p.id === tenantToChangePlan.subscriptionPlanId)?.name || "No Plan"}
+                </div>
+              </div>
+            )}
+            {selectedNewPlan && selectedNewPlan !== tenantToChangePlan?.subscriptionPlanId && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-900 rounded-md">
+                <div className="text-sm">
+                  <strong>New Plan:</strong>{" "}
+                  {subscriptionPlans.find(p => p.id === selectedNewPlan)?.name}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setChangePlanDialogOpen(false)}
+              data-testid="button-cancel-change-plan"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleChangePlan}
+              disabled={changePlanMutation.isPending || !selectedNewPlan || selectedNewPlan === tenantToChangePlan?.subscriptionPlanId}
+              data-testid="button-confirm-change-plan"
+            >
+              {changePlanMutation.isPending ? "Changing Plan..." : "Change Plan"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Tenant Summary Dialog */}
       {selectedTenantForSummary && (
