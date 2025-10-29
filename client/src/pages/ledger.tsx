@@ -541,147 +541,148 @@ export default function Ledger() {
               }}
             >
               <div style={{ 
-                padding: '10mm 8mm', 
+                padding: '10mm 10mm', 
                 fontFamily: 'Arial, Helvetica, sans-serif',
-                fontSize: '11px',
-                lineHeight: '1.4',
-                color: '#333',
+                fontSize: '10px',
+                lineHeight: '1.3',
+                color: '#1e293b',
                 maxWidth: '100%'
               }}>
-                {/* Header Section - Logo LEFT, Company RIGHT */}
+                {/* Header + Title Section - Combined (25mm = 1 inch) */}
                 <div style={{ 
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '8px',
-                  paddingBottom: '8px',
+                  marginBottom: '0',
+                  paddingBottom: '2mm',
                   borderBottom: '2px solid #2563eb'
                 }}>
-                  {/* Left: Logo */}
-                  <div style={{ flex: '0 0 auto' }}>
-                    {companyProfile?.logo && (
-                      <img 
-                        src={companyProfile.logo} 
-                        alt="Company Logo" 
-                        style={{ 
-                          height: '50px', 
-                          width: 'auto',
-                          maxWidth: '120px',
-                          objectFit: 'contain',
-                          display: 'block'
-                        }} 
-                      />
-                    )}
+                  {/* Logo LEFT, Company RIGHT */}
+                  <div style={{ 
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '1mm'
+                  }}>
+                    {/* Left: Logo */}
+                    <div style={{ flex: '0 0 auto' }}>
+                      {companyProfile?.logo ? (
+                        <img 
+                          src={companyProfile.logo} 
+                          alt="Company Logo" 
+                          style={{ 
+                            height: '15mm', 
+                            width: 'auto',
+                            maxWidth: '35mm',
+                            objectFit: 'contain',
+                            display: 'block'
+                          }} 
+                        />
+                      ) : (
+                        <div style={{ height: '15mm', width: '35mm' }}></div>
+                      )}
+                    </div>
+                    
+                    {/* Right: Company Name & GSTIN */}
+                    <div style={{ flex: '1', textAlign: 'right', paddingLeft: '8mm' }}>
+                      <h1 style={{ 
+                        margin: '0 0 1mm 0', 
+                        fontSize: '16px', 
+                        fontWeight: 'bold',
+                        color: '#1e40af',
+                        letterSpacing: '0.2px',
+                        textTransform: 'uppercase',
+                        lineHeight: '1'
+                      }}>
+                        {companyProfile?.legalName || 'Company Name'}
+                      </h1>
+                      {companyProfile?.gstin && (
+                        <p style={{ 
+                          margin: '0', 
+                          fontSize: '9px', 
+                          color: '#64748b',
+                          fontWeight: '500',
+                          lineHeight: '1.2'
+                        }}>
+                          GSTIN: {companyProfile.gstin}
+                        </p>
+                      )}
+                    </div>
                   </div>
                   
-                  {/* Right: Company Name & GSTIN */}
-                  <div style={{ flex: '1', textAlign: 'right', paddingLeft: '15px' }}>
-                    <h1 style={{ 
-                      margin: '0 0 4px 0', 
-                      fontSize: '24px', 
-                      fontWeight: 'bold',
-                      color: '#1e40af',
-                      letterSpacing: '0.5px',
-                      textTransform: 'uppercase',
-                      lineHeight: '1.2'
-                    }}>
-                      {companyProfile?.legalName || 'Company Name'}
-                    </h1>
-                  {companyProfile?.gstin && (
-                    <p style={{ 
-                      margin: '0 0 15px 0', 
-                      fontSize: '13px', 
-                      color: '#64748b',
-                      fontWeight: '500'
-                    }}>
-                      GSTIN: {companyProfile.gstin}
-                    </p>
-                  )}
+                  {/* Ledger Statement Title - Inline */}
                   <div style={{ 
-                    backgroundColor: '#dbeafe', 
-                    padding: '12px 24px',
-                    borderRadius: '6px',
-                    border: '1px solid #93c5fd',
-                    display: 'inline-block',
-                    marginTop: '10px'
+                    textAlign: 'center',
+                    padding: '1mm 0 0 0'
                   }}>
                     <p style={{ 
-                      margin: '0 0 5px 0', 
-                      fontSize: '14px', 
+                      margin: '0', 
+                      fontSize: '10px', 
                       color: '#1e40af',
                       fontWeight: '700',
-                      letterSpacing: '1px'
+                      letterSpacing: '0.5px'
                     }}>
-                      LEDGER STATEMENT
-                    </p>
-                    <p style={{ 
-                      margin: '0', 
-                      fontSize: '12px', 
-                      color: '#475569'
-                    }}>
-                      {fromDate && toDate 
-                        ? `${format(new Date(fromDate), 'dd MMM yyyy')} - ${format(new Date(toDate), 'dd MMM yyyy')}`
-                        : 'All Transactions'
+                      LEDGER STATEMENT {fromDate && toDate 
+                        ? `(${format(new Date(fromDate), 'dd MMM yyyy')} - ${format(new Date(toDate), 'dd MMM yyyy')})`
+                        : ''
                       }
                     </p>
                   </div>
                 </div>
 
-                {/* Customer Information Section */}
+                {/* Customer Information Section - Compact (25mm = 1 inch) */}
                 <div style={{ 
-                  marginBottom: '20px',
+                  marginTop: '2mm',
+                  marginBottom: '0',
                   backgroundColor: '#f8fafc',
-                  padding: '18px',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0'
+                  padding: '2mm 3mm',
+                  borderRadius: '2px',
+                  border: '1px solid #cbd5e1'
                 }}>
-                  <h2 style={{ 
-                    margin: '0 0 14px 0', 
-                    fontSize: '18px', 
+                  <div style={{ 
+                    margin: '0 0 1mm 0', 
+                    fontSize: '9px', 
                     fontWeight: 'bold',
                     color: '#1e293b',
-                    borderBottom: '2px solid #cbd5e1',
-                    paddingBottom: '8px'
+                    borderBottom: '1px solid #cbd5e1',
+                    paddingBottom: '0.5mm'
                   }}>
                     Customer Details
-                  </h2>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2mm', fontSize: '8px', lineHeight: '1.3' }}>
                     <div>
-                      <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>
-                        <span style={{ fontWeight: '700', color: '#475569' }}>Name:</span>{' '}
+                      <p style={{ margin: '0 0 0.8mm 0' }}>
+                        <span style={{ fontWeight: '700', color: '#64748b' }}>Name:</span>{' '}
                         <span style={{ color: '#1e293b' }}>{ledgerData.customer.name}</span>
                       </p>
                       {ledgerData.customer.mobile && (
-                        <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: '700', color: '#475569' }}>Mobile:</span>{' '}
+                        <p style={{ margin: '0 0 0.8mm 0' }}>
+                          <span style={{ fontWeight: '700', color: '#64748b' }}>Mobile:</span>{' '}
                           <span style={{ color: '#1e293b' }}>{ledgerData.customer.mobile}</span>
                         </p>
                       )}
                       {ledgerData.customer.email && (
-                        <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: '700', color: '#475569' }}>Email:</span>{' '}
-                          <span style={{ color: '#1e293b' }}>{ledgerData.customer.email}</span>
+                        <p style={{ margin: '0' }}>
+                          <span style={{ fontWeight: '700', color: '#64748b' }}>Email:</span>{' '}
+                          <span style={{ color: '#1e293b', fontSize: '7px' }}>{ledgerData.customer.email}</span>
                         </p>
                       )}
                     </div>
                     <div>
                       {ledgerData.customer.address && (
-                        <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: '700', color: '#475569' }}>Address:</span>{' '}
-                          <span style={{ color: '#1e293b' }}>{ledgerData.customer.address}</span>
+                        <p style={{ margin: '0 0 0.8mm 0' }}>
+                          <span style={{ fontWeight: '700', color: '#64748b' }}>Address:</span>{' '}
+                          <span style={{ color: '#1e293b', fontSize: '7px' }}>{ledgerData.customer.address}</span>
                         </p>
                       )}
                       {ledgerData.customer.city && (
-                        <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: '700', color: '#475569' }}>City:</span>{' '}
+                        <p style={{ margin: '0 0 0.8mm 0' }}>
+                          <span style={{ fontWeight: '700', color: '#64748b' }}>City:</span>{' '}
                           <span style={{ color: '#1e293b' }}>
                             {ledgerData.customer.city}{ledgerData.customer.state ? `, ${ledgerData.customer.state}` : ''}{ledgerData.customer.pincode ? ` - ${ledgerData.customer.pincode}` : ''}
                           </span>
                         </p>
                       )}
                       {ledgerData.customer.gstin && (
-                        <p style={{ margin: '0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: '700', color: '#475569' }}>GSTIN:</span>{' '}
+                        <p style={{ margin: '0' }}>
+                          <span style={{ fontWeight: '700', color: '#64748b' }}>GSTIN:</span>{' '}
                           <span style={{ color: '#1e293b' }}>{ledgerData.customer.gstin}</span>
                         </p>
                       )}
@@ -689,12 +690,13 @@ export default function Ledger() {
                   </div>
                 </div>
 
-                {/* Transaction Table */}
+                {/* Transaction Table - Optimized */}
                 <table style={{ 
                   width: '100%', 
                   borderCollapse: 'collapse', 
-                  fontSize: '12px',
-                  marginBottom: '20px',
+                  fontSize: '9px',
+                  marginTop: '3mm',
+                  marginBottom: '5mm',
                   border: '1px solid #cbd5e1'
                 }}>
                   <thead>
@@ -702,37 +704,37 @@ export default function Ledger() {
                       backgroundColor: '#1e40af', 
                       color: '#ffffff'
                     }}>
-                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '700', fontSize: '12px' }}>Date</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '700', fontSize: '12px' }}>Particulars</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', fontSize: '12px' }}>Ref No</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', fontSize: '12px' }}>Vch Type</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', fontSize: '12px' }}>Vch No.</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '700', fontSize: '12px' }}>Debit (₹)</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '700', fontSize: '12px' }}>Credit (₹)</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '700', fontSize: '12px' }}>Balance (₹)</th>
+                      <th style={{ padding: '2mm 1.5mm', textAlign: 'left', fontWeight: '700', fontSize: '9px', whiteSpace: 'nowrap' }}>Date</th>
+                      <th style={{ padding: '2mm 1.5mm', textAlign: 'left', fontWeight: '700', fontSize: '9px' }}>Particulars</th>
+                      <th style={{ padding: '2mm 1.5mm', textAlign: 'center', fontWeight: '700', fontSize: '9px', whiteSpace: 'nowrap' }}>Ref No</th>
+                      <th style={{ padding: '2mm 1.5mm', textAlign: 'center', fontWeight: '700', fontSize: '9px', whiteSpace: 'nowrap' }}>Vch Type</th>
+                      <th style={{ padding: '2mm 1.5mm', textAlign: 'center', fontWeight: '700', fontSize: '9px', whiteSpace: 'nowrap' }}>Vch No.</th>
+                      <th style={{ padding: '2mm 1.5mm', textAlign: 'right', fontWeight: '700', fontSize: '9px', whiteSpace: 'nowrap' }}>Debit (₹)</th>
+                      <th style={{ padding: '2mm 1.5mm', textAlign: 'right', fontWeight: '700', fontSize: '9px', whiteSpace: 'nowrap' }}>Credit (₹)</th>
+                      <th style={{ padding: '2mm 1.5mm', textAlign: 'right', fontWeight: '700', fontSize: '9px', whiteSpace: 'nowrap' }}>Balance (₹)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ledgerData.transactions.map((transaction, index) => (
                       <tr key={index} style={{ 
                         backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8fafc',
-                        borderBottom: '1px solid #e2e8f0',
+                        borderBottom: '0.5px solid #e2e8f0',
                         pageBreakInside: 'avoid'
                       }}>
-                        <td style={{ padding: '10px', color: '#475569', fontSize: '12px', verticalAlign: 'middle' }}>
+                        <td style={{ padding: '1.5mm', color: '#475569', fontSize: '8px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                           {formatLedgerDate(transaction.date)}
                         </td>
-                        <td style={{ padding: '10px', color: '#1e293b', fontSize: '12px', fontWeight: '500', verticalAlign: 'middle' }}>
+                        <td style={{ padding: '1.5mm', color: '#1e293b', fontSize: '8px', fontWeight: '500', verticalAlign: 'middle' }}>
                           {transaction.particulars}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '11px', verticalAlign: 'middle' }}>
+                        <td style={{ padding: '1.5mm', textAlign: 'center', color: '#64748b', fontSize: '8px', verticalAlign: 'middle' }}>
                           {transaction.refNo}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'center', fontSize: '11px', verticalAlign: 'middle' }}>
+                        <td style={{ padding: '1.5mm', textAlign: 'center', fontSize: '7px', verticalAlign: 'middle' }}>
                           <span style={{ 
                             display: 'inline-block',
-                            padding: '5px 12px', 
-                            borderRadius: '5px',
+                            padding: '1mm 2mm', 
+                            borderRadius: '2px',
                             backgroundColor: 
                               transaction.voucherType === 'Sales' || transaction.voucherType === 'Invoice' ? '#dbeafe' :
                               transaction.voucherType === 'Receipt' || transaction.voucherType === 'Payment' ? '#dcfce7' :
@@ -746,27 +748,27 @@ export default function Ledger() {
                               transaction.voucherType === 'Credit Note' ? '#9f1239' :
                               '#475569',
                             fontWeight: '700',
-                            fontSize: '10px',
-                            lineHeight: '1',
+                            fontSize: '7px',
+                            lineHeight: '1.2',
                             whiteSpace: 'nowrap'
                           }}>
                             {transaction.voucherType}
                           </span>
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '11px', verticalAlign: 'middle' }}>
+                        <td style={{ padding: '1.5mm', textAlign: 'center', color: '#64748b', fontSize: '8px', verticalAlign: 'middle' }}>
                           {transaction.voucherNo}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'right', color: '#dc2626', fontWeight: '700', fontSize: '12px', verticalAlign: 'middle' }}>
+                        <td style={{ padding: '1.5mm', textAlign: 'right', color: '#dc2626', fontWeight: '700', fontSize: '8px', verticalAlign: 'middle' }}>
                           {transaction.debit > 0 ? transaction.debit.toLocaleString() : '-'}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'right', color: '#16a34a', fontWeight: '700', fontSize: '12px', verticalAlign: 'middle' }}>
+                        <td style={{ padding: '1.5mm', textAlign: 'right', color: '#16a34a', fontWeight: '700', fontSize: '8px', verticalAlign: 'middle' }}>
                           {transaction.credit > 0 ? transaction.credit.toLocaleString() : '-'}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold', fontSize: '12px', color: '#1e293b', verticalAlign: 'middle' }}>
+                        <td style={{ padding: '1.5mm', textAlign: 'right', fontWeight: 'bold', fontSize: '8px', color: '#1e293b', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                           {transaction.balance.toLocaleString()} 
                           <span style={{ 
-                            fontSize: '10px', 
-                            marginLeft: '4px',
+                            fontSize: '7px', 
+                            marginLeft: '1mm',
                             color: transaction.balanceType === 'Dr' ? '#dc2626' : '#16a34a',
                             fontWeight: '700'
                           }}>
@@ -782,115 +784,113 @@ export default function Ledger() {
                       color: '#ffffff',
                       fontWeight: 'bold'
                     }}>
-                      <td colSpan={5} style={{ padding: '14px 10px', fontSize: '14px', fontWeight: '700' }}>
+                      <td colSpan={5} style={{ padding: '2.5mm 1.5mm', fontSize: '10px', fontWeight: '700' }}>
                         TOTAL
                       </td>
-                      <td style={{ padding: '14px 10px', textAlign: 'right', fontSize: '14px', fontWeight: '700' }}>
+                      <td style={{ padding: '2.5mm 1.5mm', textAlign: 'right', fontSize: '10px', fontWeight: '700' }}>
                         {ledgerData.summary.totalDebits.toLocaleString()}
                       </td>
-                      <td style={{ padding: '14px 10px', textAlign: 'right', fontSize: '14px', fontWeight: '700' }}>
+                      <td style={{ padding: '2.5mm 1.5mm', textAlign: 'right', fontSize: '10px', fontWeight: '700' }}>
                         {ledgerData.summary.totalCredits.toLocaleString()}
                       </td>
-                      <td style={{ padding: '14px 10px', textAlign: 'right', fontSize: '14px', fontWeight: '700' }}>
+                      <td style={{ padding: '2.5mm 1.5mm', textAlign: 'right', fontSize: '10px', fontWeight: '700', whiteSpace: 'nowrap' }}>
                         {ledgerData.summary.closingBalance.toLocaleString()} {ledgerData.summary.closingBalanceType}
                       </td>
                     </tr>
                   </tfoot>
                 </table>
 
-                {/* Summary Section */}
+                {/* Summary Section - Compact Cards */}
                 <div style={{ 
                   display: 'grid', 
                   gridTemplateColumns: '1fr 1fr 1fr 1fr', 
-                  gap: '15px',
-                  marginBottom: '25px'
+                  gap: '3mm',
+                  marginBottom: '5mm'
                 }}>
                   <div style={{ 
                     backgroundColor: '#fef3c7', 
-                    padding: '18px', 
-                    borderRadius: '8px',
-                    border: '2px solid #fbbf24'
+                    padding: '3mm', 
+                    borderRadius: '3px',
+                    border: '1px solid #fbbf24'
                   }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#92400e', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <p style={{ margin: '0 0 1mm 0', fontSize: '7px', color: '#92400e', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                       Opening Balance
                     </p>
-                    <p style={{ margin: '0', fontSize: '20px', fontWeight: 'bold', color: '#a16207' }}>
+                    <p style={{ margin: '0', fontSize: '12px', fontWeight: 'bold', color: '#a16207' }}>
                       ₹{Math.abs(ledgerData.summary.openingBalance).toLocaleString()} 
-                      <span style={{ fontSize: '14px', marginLeft: '6px' }}>
+                      <span style={{ fontSize: '9px', marginLeft: '1mm' }}>
                         {ledgerData.summary.openingBalance >= 0 ? 'Dr' : 'Cr'}
                       </span>
                     </p>
                   </div>
                   <div style={{ 
                     backgroundColor: '#fee2e2', 
-                    padding: '18px', 
-                    borderRadius: '8px',
-                    border: '2px solid #fecaca'
+                    padding: '3mm', 
+                    borderRadius: '3px',
+                    border: '1px solid #fecaca'
                   }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#991b1b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <p style={{ margin: '0 0 1mm 0', fontSize: '7px', color: '#991b1b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                       Total Debits
                     </p>
-                    <p style={{ margin: '0', fontSize: '20px', fontWeight: 'bold', color: '#dc2626' }}>
+                    <p style={{ margin: '0', fontSize: '12px', fontWeight: 'bold', color: '#dc2626' }}>
                       ₹{ledgerData.summary.totalDebits.toLocaleString()}
                     </p>
                   </div>
                   <div style={{ 
                     backgroundColor: '#dcfce7', 
-                    padding: '18px', 
-                    borderRadius: '8px',
-                    border: '2px solid #bbf7d0'
+                    padding: '3mm', 
+                    borderRadius: '3px',
+                    border: '1px solid #bbf7d0'
                   }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#14532d', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <p style={{ margin: '0 0 1mm 0', fontSize: '7px', color: '#14532d', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                       Total Credits
                     </p>
-                    <p style={{ margin: '0', fontSize: '20px', fontWeight: 'bold', color: '#16a34a' }}>
+                    <p style={{ margin: '0', fontSize: '12px', fontWeight: 'bold', color: '#16a34a' }}>
                       ₹{ledgerData.summary.totalCredits.toLocaleString()}
                     </p>
                   </div>
                   <div style={{ 
                     backgroundColor: '#dbeafe', 
-                    padding: '18px', 
-                    borderRadius: '8px',
-                    border: '2px solid #93c5fd'
+                    padding: '3mm', 
+                    borderRadius: '3px',
+                    border: '1px solid #93c5fd'
                   }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#1e3a8a', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <p style={{ margin: '0 0 1mm 0', fontSize: '7px', color: '#1e3a8a', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                       Closing Balance
                     </p>
-                    <p style={{ margin: '0', fontSize: '20px', fontWeight: 'bold', color: '#1e40af' }}>
+                    <p style={{ margin: '0', fontSize: '12px', fontWeight: 'bold', color: '#1e40af' }}>
                       ₹{ledgerData.summary.closingBalance.toLocaleString()} 
-                      <span style={{ fontSize: '14px', marginLeft: '6px' }}>
+                      <span style={{ fontSize: '9px', marginLeft: '1mm' }}>
                         {ledgerData.summary.closingBalanceType}
                       </span>
                     </p>
                   </div>
                 </div>
 
-                {/* Footer */}
+                {/* Footer - Professional & Compact */}
                 <div style={{ 
-                  marginTop: '30px',
-                  paddingTop: '15px',
-                  borderTop: '2px solid #e2e8f0',
+                  marginTop: '5mm',
+                  paddingTop: '3mm',
+                  borderTop: '1px solid #cbd5e1',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  alignItems: 'center'
+                  alignItems: 'flex-end'
                 }}>
                   <div>
-                    <p style={{ margin: '0', fontSize: '11px', color: '#64748b' }}>
+                    <p style={{ margin: '0', fontSize: '7px', color: '#64748b' }}>
                       Generated on {format(new Date(), 'dd MMM yyyy, hh:mm a')}
                     </p>
-                    <p style={{ margin: '4px 0 0 0', fontSize: '10px', color: '#94a3b8' }}>
-                      This is a computer-generated document and does not require a signature
+                    <p style={{ margin: '0.5mm 0 0 0', fontSize: '7px', color: '#94a3b8' }}>
+                      This is a computer-generated document
                     </p>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <p style={{ margin: '0', fontSize: '13px', fontWeight: '700', color: '#1e40af' }}>
-                      {companyProfile?.legalName || 'Company Name'}
+                    <p style={{ margin: '0', fontSize: '9px', fontWeight: '700', color: '#1e40af' }}>
+                      For {companyProfile?.legalName || 'Company Name'}
                     </p>
-                    {companyProfile?.regCity && companyProfile?.regState && (
-                      <p style={{ margin: '2px 0 0 0', fontSize: '10px', color: '#64748b' }}>
-                        {companyProfile.regCity}, {companyProfile.regState}
-                      </p>
-                    )}
+                    <p style={{ margin: '1mm 0 0 0', fontSize: '7px', color: '#64748b' }}>
+                      Authorized Signatory
+                    </p>
                   </div>
                 </div>
               </div>
