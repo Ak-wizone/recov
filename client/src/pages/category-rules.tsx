@@ -74,7 +74,7 @@ export default function CategoryRulesPage() {
           gammaDays: categoryRules.gammaDays,
           deltaDays: categoryRules.deltaDays,
           partialPaymentThresholdPercent: categoryRules.partialPaymentThresholdPercent,
-          graceDays: categoryRules.graceDays || 7,
+          graceDays: categoryRules.graceDays ?? 7,
           alphaFollowupDays: followupRules.alphaDays,
           betaFollowupDays: followupRules.betaDays,
           gammaFollowupDays: followupRules.gammaDays,
