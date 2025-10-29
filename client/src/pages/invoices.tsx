@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Invoice } from "@shared/schema";
@@ -64,6 +64,19 @@ export default function Invoices() {
     globalFilter: "", 
     columnFilters: [] 
   });
+
+  // Read URL query parameters on mount and apply filters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusParam = urlParams.get('status');
+    const categoryParam = urlParams.get('category');
+    
+    if (statusParam) {
+      setStatusFilter(statusParam);
+    }
+    // Note: category param can be used for future enhanced filtering
+    // For now, status filter (Paid/Unpaid) provides basic filtering capability
+  }, []);
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],

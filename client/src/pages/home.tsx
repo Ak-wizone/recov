@@ -9,14 +9,14 @@ import {
   Receipt as ReceiptIcon,
   AlertCircle,
   BarChart3,
-  Percent,
+  Wallet,
   Calendar,
   Clock,
   AlertTriangle,
   CheckCircle2,
   XCircle
 } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { SkeletonDashboard } from "@/components/ui/skeleton";
 
@@ -26,7 +26,7 @@ interface BusinessOverviewData {
     totalCollections: string;
     totalOutstanding: string;
     totalInterest: string;
-    collectionEfficiency: string;
+    totalOpeningBalance: string;
   };
   moduleStats: {
     invoices: { count: number; totalAmount: string };
@@ -88,7 +88,23 @@ interface BusinessOverviewData {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
+// Smart formatter for displaying amounts in Lakhs or Crores
+const formatAmount = (value: number): string => {
+  if (value >= 10000000) {
+    // >= 1 Crore: Show in Crores
+    return `₹${(value / 10000000).toFixed(2)} Cr`;
+  } else if (value >= 100000) {
+    // >= 1 Lakh: Show in Lakhs
+    return `₹${(value / 100000).toFixed(2)} L`;
+  } else {
+    // < 1 Lakh: Show in thousands
+    return `₹${(value / 1000).toFixed(2)}K`;
+  }
+};
+
 export default function Home() {
+  const [, setLocation] = useLocation();
+  
   const { data: dashboardData, isLoading } = useQuery<BusinessOverviewData>({
     queryKey: ['/api/dashboard/business-overview'],
   });
@@ -194,17 +210,20 @@ export default function Home() {
 
         <Card 
           className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
-          data-testid="card-collection-efficiency"
+          data-testid="card-opening-balance"
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Collection Efficiency</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Opening Balance</CardTitle>
             <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <Percent className="h-5 w-5 text-purple-500" />
+              <Wallet className="h-5 w-5 text-purple-500" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-              {parseFloat(dashboardData.financialSnapshot.collectionEfficiency).toFixed(1)}%
+              ₹{parseFloat(dashboardData.financialSnapshot.totalOpeningBalance).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Interest: ₹{parseFloat(dashboardData.financialSnapshot.totalInterest).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</p>
           </CardContent>
@@ -216,6 +235,7 @@ export default function Home() {
         <Card 
           className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-upcoming-invoices"
+          onClick={() => setLocation('/invoices?status=Unpaid&category=upcoming')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Upcoming Invoices</CardTitle>
@@ -237,6 +257,7 @@ export default function Home() {
         <Card 
           className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-due-today"
+          onClick={() => setLocation('/invoices?status=Unpaid&category=dueToday')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Due Today</CardTitle>
@@ -258,6 +279,7 @@ export default function Home() {
         <Card 
           className="border-l-4 border-l-amber-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-in-grace"
+          onClick={() => setLocation('/invoices')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">In Grace</CardTitle>
@@ -279,6 +301,7 @@ export default function Home() {
         <Card 
           className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-overdue"
+          onClick={() => setLocation('/invoices?status=Unpaid&category=overdue')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Overdue</CardTitle>
@@ -300,6 +323,7 @@ export default function Home() {
         <Card 
           className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-paid-on-time"
+          onClick={() => setLocation('/invoices?status=Paid&category=paidOnTime')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Paid On Time</CardTitle>
@@ -321,6 +345,7 @@ export default function Home() {
         <Card 
           className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-paid-late"
+          onClick={() => setLocation('/invoices?status=Paid&category=paidLate')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Paid Late</CardTitle>
@@ -356,8 +381,8 @@ export default function Home() {
                 <BarChart data={dashboardData.charts.categoryOutstanding}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="category" />
-                  <YAxis tickFormatter={(value) => `₹${(value / 1000).toFixed(0)}K`} />
-                  <Tooltip formatter={(value: number) => `₹${value.toLocaleString("en-IN")}`} />
+                  <YAxis tickFormatter={formatAmount} />
+                  <Tooltip formatter={(value: number) => formatAmount(value)} />
                   <Legend />
                   <Bar dataKey="amount" fill="#8884d8" name="Outstanding Amount">
                     {dashboardData.charts.categoryOutstanding.map((entry, index) => (

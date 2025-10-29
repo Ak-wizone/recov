@@ -1603,8 +1603,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount: parseFloat(amount.toFixed(2))
       }));
 
-      // Collection Efficiency
-      const collectionEfficiency = totalRevenue > 0 ? (totalCollections / totalRevenue) * 100 : 0;
+      // Total Opening Balance (sum of all customers' opening balances)
+      const totalOpeningBalance = allMasterCustomers.reduce((sum, c) => 
+        sum + parseFloat(c.openingBalance || "0"), 0
+      );
 
       res.json({
         financialSnapshot: {
@@ -1612,7 +1614,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalCollections: totalCollections.toFixed(2),
           totalOutstanding: totalOutstanding.toFixed(2),
           totalInterest: totalInterest.toFixed(2),
-          collectionEfficiency: collectionEfficiency.toFixed(2)
+          totalOpeningBalance: totalOpeningBalance.toFixed(2)
         },
         moduleStats: {
           invoices: {

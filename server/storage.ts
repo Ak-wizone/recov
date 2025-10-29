@@ -1369,30 +1369,84 @@ export class DatabaseStorage implements IStorage {
       paidLate: { count: 0, totalAmount: 0 },
     };
 
+    // Group invoices by customer
+    const customerMap = new Map<string, typeof allInvoices>();
     for (const invoice of allInvoices) {
-      const invoiceDate = new Date(invoice.invoiceDate);
-      const paymentTerms = invoice.paymentTerms || 0;
-      const dueDate = new Date(invoiceDate);
-      dueDate.setDate(dueDate.getDate() + paymentTerms);
-      dueDate.setHours(0, 0, 0, 0);
+      if (!customerMap.has(invoice.customerName)) {
+        customerMap.set(invoice.customerName, []);
+      }
+      customerMap.get(invoice.customerName)!.push(invoice);
+    }
 
-      const gracePeriodEnd = new Date(dueDate);
-      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + graceDays);
+    // Process each customer using FIFO allocation
+    for (const [customerName, customerInvoices] of Array.from(customerMap.entries())) {
+      // Sort invoices by date (oldest first) for FIFO
+      const sortedInvoices = customerInvoices.sort((a: any, b: any) => 
+        new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime()
+      );
 
-      const customerReceipts = allReceipts.filter(r => r.customerName === invoice.customerName);
-      const totalPaid = customerReceipts.reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
-      const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
-      const isPaidInFull = invoice.status === "Paid" || totalPaid >= invoiceAmount;
+      // Get and sort customer receipts
+      const customerReceipts = allReceipts.filter(r => r.customerName === customerName);
+      const sortedReceipts = customerReceipts.sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
 
-      if (isPaidInFull) {
-        const paidReceipts = customerReceipts.filter(r => r.customerName === invoice.customerName).sort((a, b) => 
-          new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-        const lastPaymentDate = paidReceipts.length > 0 ? new Date(paidReceipts[paidReceipts.length - 1].date) : null;
+      // Track receipt consumption for FIFO allocation
+      let receiptIndex = 0;
+      let remainingFromCurrentReceipt = receiptIndex < sortedReceipts.length 
+        ? parseFloat(sortedReceipts[receiptIndex].amount.toString()) 
+        : 0;
 
-        if (lastPaymentDate) {
-          lastPaymentDate.setHours(0, 0, 0, 0);
-          if (lastPaymentDate <= gracePeriodEnd) {
+      // Apply FIFO allocation to each invoice
+      for (const invoice of sortedInvoices) {
+        const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+        const invoiceDate = new Date(invoice.invoiceDate);
+        const paymentTerms = invoice.paymentTerms || 0;
+        const dueDate = new Date(invoiceDate);
+        dueDate.setDate(dueDate.getDate() + paymentTerms);
+        dueDate.setHours(0, 0, 0, 0);
+
+        const gracePeriodEnd = new Date(dueDate);
+        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + graceDays);
+
+        // Allocate receipts to this invoice using FIFO
+        let allocatedToThisInvoice = 0;
+        let paymentCompletionDate: Date | null = null;
+
+        while (allocatedToThisInvoice < invoiceAmount && receiptIndex < sortedReceipts.length) {
+          const amountNeeded = invoiceAmount - allocatedToThisInvoice;
+          
+          if (remainingFromCurrentReceipt >= amountNeeded) {
+            // Current receipt fully pays this invoice
+            allocatedToThisInvoice += amountNeeded;
+            remainingFromCurrentReceipt -= amountNeeded;
+            paymentCompletionDate = new Date(sortedReceipts[receiptIndex].date);
+            
+            // If receipt is fully consumed, move to next receipt
+            if (remainingFromCurrentReceipt === 0) {
+              receiptIndex++;
+              remainingFromCurrentReceipt = receiptIndex < sortedReceipts.length 
+                ? parseFloat(sortedReceipts[receiptIndex].amount.toString()) 
+                : 0;
+            }
+            break;
+          } else {
+            // Current receipt partially pays this invoice
+            allocatedToThisInvoice += remainingFromCurrentReceipt;
+            paymentCompletionDate = new Date(sortedReceipts[receiptIndex].date);
+            receiptIndex++;
+            remainingFromCurrentReceipt = receiptIndex < sortedReceipts.length 
+              ? parseFloat(sortedReceipts[receiptIndex].amount.toString()) 
+              : 0;
+          }
+        }
+
+        const isPaidInFull = allocatedToThisInvoice >= invoiceAmount;
+
+        if (isPaidInFull && paymentCompletionDate) {
+          // Invoice fully paid - check if payment was on time or late
+          paymentCompletionDate.setHours(0, 0, 0, 0);
+          if (paymentCompletionDate <= gracePeriodEnd) {
             stats.paidOnTime.count++;
             stats.paidOnTime.totalAmount += invoiceAmount;
           } else {
@@ -1400,22 +1454,20 @@ export class DatabaseStorage implements IStorage {
             stats.paidLate.totalAmount += invoiceAmount;
           }
         } else {
-          stats.paidOnTime.count++;
-          stats.paidOnTime.totalAmount += invoiceAmount;
-        }
-      } else {
-        if (dueDate.getTime() === today.getTime()) {
-          stats.dueToday.count++;
-          stats.dueToday.totalAmount += invoiceAmount;
-        } else if (dueDate > today) {
-          stats.upcomingInvoices.count++;
-          stats.upcomingInvoices.totalAmount += invoiceAmount;
-        } else if (today <= gracePeriodEnd) {
-          stats.inGrace.count++;
-          stats.inGrace.totalAmount += invoiceAmount;
-        } else {
-          stats.overdue.count++;
-          stats.overdue.totalAmount += invoiceAmount;
+          // Unpaid or Partial - categorize based on due date
+          if (dueDate.getTime() === today.getTime()) {
+            stats.dueToday.count++;
+            stats.dueToday.totalAmount += invoiceAmount;
+          } else if (dueDate > today) {
+            stats.upcomingInvoices.count++;
+            stats.upcomingInvoices.totalAmount += invoiceAmount;
+          } else if (today <= gracePeriodEnd) {
+            stats.inGrace.count++;
+            stats.inGrace.totalAmount += invoiceAmount;
+          } else {
+            stats.overdue.count++;
+            stats.overdue.totalAmount += invoiceAmount;
+          }
         }
       }
     }
