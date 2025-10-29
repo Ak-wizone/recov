@@ -134,12 +134,6 @@ export default function Ledger() {
     queryKey: ["/api/company-profile"],
   });
 
-  // Debug: Log customers data
-  useEffect(() => {
-    if (customers.length > 0) {
-      console.log('Customers loaded:', customers.length, customers[0]);
-    }
-  }, [customers]);
 
   // Fetch ledger data
   const { data: ledgerData, isLoading } = useQuery<LedgerData>({
