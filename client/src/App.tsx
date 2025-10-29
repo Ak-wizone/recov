@@ -36,6 +36,9 @@ import CommunicationSchedules from "@/pages/communication-schedules";
 import ClientRiskThermometer from "@/pages/client-risk-thermometer";
 import PaymentRiskForecaster from "@/pages/payment-risk-forecaster";
 import RecoveryHealthTest from "@/pages/recovery-health-test";
+import PaymentAnalytics from "@/pages/payment-analytics";
+import PaymentScorecard from "@/pages/payment-scorecard";
+import ReliableCustomersReport from "@/pages/reliable-customers-report";
 import RegisterTenant from "@/pages/register-tenant";
 import TenantRegistrations from "@/pages/tenant-registrations";
 import ForgotPassword from "@/pages/forgot-password";
@@ -85,6 +88,9 @@ function Router() {
               <Route path="/risk/client-thermometer" component={ClientRiskThermometer} />
               <Route path="/risk/payment-forecaster" component={PaymentRiskForecaster} />
               <Route path="/risk/recovery-health" component={RecoveryHealthTest} />
+              <Route path="/payment-analytics" component={PaymentAnalytics} />
+              <Route path="/payment-analytics/scorecard" component={PaymentScorecard} />
+              <Route path="/payment-analytics/reliable-customers" component={ReliableCustomersReport} />
               <Route path="/credit-control/category-rules" component={CategoryRules} />
               <Route path="/credit-control/category-calculation" component={CategoryCalculation} />
               <Route path="/credit-control/urgent-actions" component={UrgentActions} />

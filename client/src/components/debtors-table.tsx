@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen } from "lucide-react";
+import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen, Activity } from "lucide-react";
 import { ColumnChooser } from "@/components/ui/column-chooser";
 import { format } from "date-fns";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
@@ -329,6 +329,15 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
             data-testid={`button-ledger-${row.original.customerId}`}
           >
             <BookOpen className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLocation(`/payment-analytics/scorecard?customerId=${row.original.customerId}`)}
+            className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-950"
+            data-testid={`button-payment-score-${row.original.customerId}`}
+          >
+            <Activity className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
