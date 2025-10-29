@@ -244,23 +244,26 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
     setIsProcessing(false);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || isProcessing) return;
+  const handleSendMessage = async (commandText?: string) => {
+    const messageToSend = commandText || inputText;
+    if (!messageToSend.trim() || isProcessing) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       type: "user",
-      content: inputText,
+      content: messageToSend,
       timestamp: new Date(),
       isVoice: false,
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setInputText("");
+    if (!commandText) {
+      setInputText("");
+    }
     setIsProcessing(true);
 
     await processCommandMutation.mutateAsync({
-      message: inputText,
+      message: messageToSend,
       isVoice: false,
     });
 
@@ -357,10 +360,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
                   variant="outline"
                   size="sm"
                   className="text-xs"
-                  onClick={() => {
-                    setInputText(action.command);
-                    handleSendMessage();
-                  }}
+                  onClick={() => handleSendMessage(action.command)}
                   data-testid={`button-quick-${action.label.toLowerCase()}`}
                 >
                   <action.icon className="h-3 w-3 mr-1.5" />
@@ -411,6 +411,108 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
                         </Badge>
                       )}
                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      
+                      {/* Formatted Data Display */}
+                      {message.type === "assistant" && message.data && Array.isArray(message.data) && message.data.length > 0 && (
+                        <div className="mt-3 space-y-2 max-w-full overflow-x-auto">
+                          {/* Invoice/Customer Table - Check for data structure instead of action type */}
+                          {(message.data[0].invoiceNumber || message.data[0].customerName || message.data[0].name || message.data[0].category) && (
+                            <div className="text-xs bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700">
+                              <table className="w-full">
+                                <thead className="bg-slate-50 dark:bg-slate-800">
+                                  <tr>
+                                    <th className="px-2 py-1 text-left font-medium">Name</th>
+                                    {message.data[0].invoiceNumber && <th className="px-2 py-1 text-left font-medium">Invoice</th>}
+                                    {message.data[0].invoiceAmount && <th className="px-2 py-1 text-right font-medium">Amount</th>}
+                                    {message.data[0].category && <th className="px-2 py-1 text-left font-medium">Category</th>}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {message.data.slice(0, 5).map((item: any, idx: number) => (
+                                    <tr key={idx} className="border-t border-slate-100 dark:border-slate-800">
+                                      <td className="px-2 py-1">{item.customerName || item.name}</td>
+                                      {item.invoiceNumber && <td className="px-2 py-1">{item.invoiceNumber}</td>}
+                                      {item.invoiceAmount && (
+                                        <td className="px-2 py-1 text-right font-mono">
+                                          ₹{(parseFloat(item.invoiceAmount) - parseFloat(item.paidAmount || 0)).toFixed(2)}
+                                        </td>
+                                      )}
+                                      {item.category && (
+                                        <td className="px-2 py-1">
+                                          <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                                        </td>
+                                      )}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                              {message.data.length > 5 && (
+                                <div className="px-2 py-1 text-center text-xs text-slate-500 bg-slate-50 dark:bg-slate-800">
+                                  +{message.data.length - 5} more
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Single Customer/Entity Card */}
+                      {message.type === "assistant" && message.data && !Array.isArray(message.data) && (
+                        <div className="mt-3 text-xs bg-white dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-700 p-3">
+                          {message.data.name && (
+                            <div className="font-medium mb-1">{message.data.name}</div>
+                          )}
+                          {message.data.mobileNumber && (
+                            <div className="text-slate-600 dark:text-slate-400">📱 {message.data.mobileNumber}</div>
+                          )}
+                          {message.data.email && (
+                            <div className="text-slate-600 dark:text-slate-400">✉️ {message.data.email}</div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Contextual Quick Actions */}
+                      {message.type === "assistant" && message.data && Array.isArray(message.data) && message.data.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex flex-wrap gap-2">
+                          {/* Actions for due invoices */}
+                          {message.action?.includes("invoice") && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-7"
+                                onClick={() => handleSendMessage("Send email reminder to overdue customers")}
+                              >
+                                <Mail className="h-3 w-3 mr-1" />
+                                Send Email Reminders
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-7"
+                                onClick={() => handleSendMessage("Send WhatsApp reminder to due customers")}
+                              >
+                                <MessageSquare className="h-3 w-3 mr-1" />
+                                Send WhatsApp
+                              </Button>
+                            </>
+                          )}
+                          
+                          {/* Actions for customer lists */}
+                          {message.action?.includes("customer") && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7"
+                              onClick={() => handleSendMessage("Show collection report")}
+                            >
+                              <TrendingUp className="h-3 w-3 mr-1" />
+                              View Collections
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                      
                       <p className="text-xs mt-1 opacity-70">
                         {message.timestamp.toLocaleTimeString()}
                       </p>

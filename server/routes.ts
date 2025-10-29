@@ -8691,7 +8691,115 @@ ${profile?.legalName || 'Company'}`;
         }
       }
       
-      // Send Email Action
+      // Send Email Action - Reminder to overdue customers
+      else if (
+        (normalizedMessage.includes("send email") || normalizedMessage.includes("email bhejo")) &&
+        (normalizedMessage.includes("reminder") || normalizedMessage.includes("overdue") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "action";
+        actionPerformed = "email_reminder_sent";
+        
+        const overdueInvoices = await db
+          .select({
+            id: invoices.id,
+            customerName: invoices.customerName,
+            customerEmail: invoices.customerEmail,
+            invoiceNumber: invoices.invoiceNumber,
+            invoiceAmount: invoices.invoiceAmount,
+            paidAmount: invoices.paidAmount,
+          })
+          .from(invoices)
+          .where(
+            and(
+              eq(invoices.tenantId, req.tenantId!),
+              sql`${invoices.invoice_amount} > ${invoices.paid_amount}`,
+              sql`${invoices.customer_email} IS NOT NULL AND ${invoices.customer_email} != ''`
+            )
+          )
+          .limit(10);
+        
+        if (overdueInvoices.length === 0) {
+          response = "No overdue invoices found with valid email addresses.";
+        } else {
+          response = `I would send payment reminders to ${overdueInvoices.length} customers with overdue invoices. However, email sending requires template selection. Please use the Email page or specify a template ID to proceed.`;
+          resultData = overdueInvoices;
+        }
+      }
+      
+      // Send WhatsApp Action - Reminder to overdue customers
+      else if (
+        (normalizedMessage.includes("send whatsapp") || normalizedMessage.includes("whatsapp bhejo")) &&
+        (normalizedMessage.includes("reminder") || normalizedMessage.includes("overdue") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "action";
+        actionPerformed = "whatsapp_reminder_sent";
+        
+        const overdueInvoices = await db
+          .select({
+            id: invoices.id,
+            customerName: invoices.customerName,
+            customerMobile: invoices.customerMobile,
+            invoiceNumber: invoices.invoiceNumber,
+            invoiceAmount: invoices.invoiceAmount,
+            paidAmount: invoices.paidAmount,
+          })
+          .from(invoices)
+          .where(
+            and(
+              eq(invoices.tenantId, req.tenantId!),
+              sql`${invoices.invoice_amount} > ${invoices.paid_amount}`,
+              sql`${invoices.customer_mobile} IS NOT NULL AND ${invoices.customer_mobile} != ''`
+            )
+          )
+          .limit(10);
+        
+        if (overdueInvoices.length === 0) {
+          response = "No overdue invoices found with valid mobile numbers.";
+        } else {
+          response = `I would send WhatsApp payment reminders to ${overdueInvoices.length} customers with overdue invoices. However, WhatsApp sending requires template selection. Please use the WhatsApp page or specify a template ID to proceed.`;
+          resultData = overdueInvoices;
+        }
+      }
+      
+      // Call Customer Action
+      else if (
+        normalizedMessage.includes("call") ||
+        normalizedMessage.includes("phone kar")
+      ) {
+        commandType = "action";
+        actionPerformed = "call_trigger";
+        
+        // Extract customer name
+        const nameMatch = normalizedMessage.match(/call\s+([a-z\s]+)/i);
+        
+        if (nameMatch && nameMatch[1]) {
+          const searchName = nameMatch[1].trim();
+          
+          const customer = await db
+            .select()
+            .from(customers)
+            .where(
+              and(
+                eq(customers.tenantId, req.tenantId!),
+                sql`LOWER(${customers.name}) LIKE ${`%${searchName}%`}`
+              )
+            )
+            .limit(1);
+
+          if (customer.length > 0 && customer[0].mobileNumber) {
+            response = `I can trigger an AI call to ${customer[0].name} at ${customer[0].mobileNumber}. However, this requires script selection. Please use the Calls page or specify a script ID to proceed.`;
+            resultData = customer[0];
+          } else {
+            response = searchName 
+              ? `Customer "${searchName}" not found or has no mobile number.`
+              : "Please specify the customer name. For example: 'Call ABC Company'";
+          }
+        } else {
+          response = "Please specify the customer name. For example: 'Call ABC Company'";
+        }
+      }
+      
+      // General Email Action
       else if (
         normalizedMessage.includes("send email") ||
         normalizedMessage.includes("email bhejo")
@@ -8701,7 +8809,7 @@ ${profile?.legalName || 'Company'}`;
         response = "Email sending feature is available. Please specify the customer and template, or use the Email page to send emails.";
       }
       
-      // Send WhatsApp Action
+      // General WhatsApp Action
       else if (
         normalizedMessage.includes("send whatsapp") ||
         normalizedMessage.includes("whatsapp bhejo")
@@ -8714,12 +8822,16 @@ ${profile?.legalName || 'Company'}`;
       // Default response
       else {
         response = `Hi ${userName}! I can help you with:\n\n` +
-          "📋 Due invoices - Ask 'show due invoices'\n" +
-          "💰 Today's collection - Ask 'aaj ka collection'\n" +
-          "👥 Alpha customers - Ask 'alpha category customers'\n" +
-          "📊 Customer ledger - Ask 'show ledger for [customer name]'\n" +
-          "📧 Send emails and WhatsApp messages\n\n" +
-          "What would you like to know?";
+          "📋 Queries:\n" +
+          "  • 'Show due invoices'\n" +
+          "  • 'Today's collection'\n" +
+          "  • 'Alpha category customers'\n" +
+          "  • 'Show ledger for [customer name]'\n\n" +
+          "📧 Actions:\n" +
+          "  • 'Send email reminder to overdue customers'\n" +
+          "  • 'Send WhatsApp reminder to due customers'\n" +
+          "  • 'Call [customer name]'\n\n" +
+          "What would you like to do?";
       }
 
       // Save to chat history
