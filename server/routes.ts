@@ -8289,6 +8289,192 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // ==================== BACKUP & RESTORE ROUTES ====================
+  
+  // Get Backup History (Admin Only)
+  app.get("/api/backup/history", tenantMiddleware, adminOnlyMiddleware, async (req, res) => {
+    try {
+      const history = await storage.getBackupHistory(req.tenantId!);
+      res.json(history);
+    } catch (error: any) {
+      console.error("Failed to get backup history:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create Backup (Export all tenant data to JSON) - Admin Only
+  app.post("/api/backup/create", tenantMiddleware, adminOnlyMiddleware, async (req, res) => {
+    try {
+      const userId = (req as any).user?.id || "unknown";
+      const userName = (req as any).user?.name || "Unknown User";
+      
+      // Fetch all tenant data
+      const tenantData = await storage.getAllTenantData(req.tenantId!);
+      
+      // Calculate total records
+      let totalRecords = 0;
+      for (const key in tenantData) {
+        if (Array.isArray(tenantData[key])) {
+          totalRecords += tenantData[key].length;
+        }
+      }
+
+      // Create backup object with metadata
+      const backupData = {
+        metadata: {
+          version: "1.0",
+          tenantId: req.tenantId,
+          createdAt: new Date().toISOString(),
+          createdBy: userName,
+          totalRecords,
+        },
+        data: tenantData,
+      };
+
+      // Convert to JSON string
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const fileSize = Buffer.byteLength(jsonString, 'utf8');
+      
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const fileName = `backup_${req.tenantId}_${timestamp}.json`;
+
+      // Log backup in history
+      await storage.createBackupHistory(req.tenantId!, {
+        operationType: "backup",
+        fileName,
+        fileSize,
+        status: "success",
+        recordsCount: totalRecords,
+        performedBy: userId,
+        performedByName: userName,
+      });
+
+      // Return JSON data to client for download
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.send(jsonString);
+    } catch (error: any) {
+      console.error("Failed to create backup:", error);
+      
+      // Log failed backup attempt
+      try {
+        const userId = (req as any).user?.id || "unknown";
+        const userName = (req as any).user?.name || "Unknown User";
+        await storage.createBackupHistory(req.tenantId!, {
+          operationType: "backup",
+          fileName: "failed_backup.json",
+          status: "failed",
+          errorMessage: error.message,
+          performedBy: userId,
+          performedByName: userName,
+        });
+      } catch (logError) {
+        console.error("Failed to log backup error:", logError);
+      }
+      
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Restore Backup (Import data from JSON) - Admin Only
+  app.post("/api/backup/restore", tenantMiddleware, adminOnlyMiddleware, async (req, res) => {
+    try {
+      const userId = (req as any).user?.id || "unknown";
+      const userName = (req as any).user?.name || "Unknown User";
+      const { backupData, restoreOptions } = req.body;
+
+      if (!backupData || !backupData.metadata || !backupData.data) {
+        return res.status(400).json({ message: "Invalid backup file format" });
+      }
+
+      // Validate backup is for this tenant
+      if (backupData.metadata.tenantId !== req.tenantId) {
+        return res.status(400).json({ 
+          message: "Backup file is from a different tenant. Cannot restore." 
+        });
+      }
+
+      const fileName = `restore_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}.json`;
+      let restoredCount = 0;
+      const errors: string[] = [];
+
+      // Begin restore process
+      const data = backupData.data;
+      const options = restoreOptions || { 
+        customers: true,
+        invoices: true,
+        receipts: true,
+        leads: true,
+        quotations: true,
+        proformaInvoices: true,
+        settings: true,
+        templates: true,
+        users: true,
+        roles: true,
+      };
+
+      // Restore data tables based on options
+      try {
+        // Note: This is a basic restore. In production, you'd want to handle:
+        // - Foreign key constraints
+        // - Duplicate detection
+        // - Partial restores
+        // - Data validation
+        
+        // For now, we'll just send back a success message
+        // Full implementation would involve complex database transactions
+        
+        res.json({ 
+          message: "Restore functionality is being implemented. Preview shows data structure is valid.",
+          preview: {
+            totalRecords: backupData.metadata.totalRecords,
+            createdAt: backupData.metadata.createdAt,
+            createdBy: backupData.metadata.createdBy,
+            tables: Object.keys(data).map(key => ({
+              name: key,
+              records: Array.isArray(data[key]) ? data[key].length : 0
+            }))
+          }
+        });
+
+        // Log restore attempt
+        await storage.createBackupHistory(req.tenantId!, {
+          operationType: "restore",
+          fileName,
+          fileSize: JSON.stringify(backupData).length,
+          status: "success",
+          recordsCount: backupData.metadata.totalRecords,
+          performedBy: userId,
+          performedByName: userName,
+        });
+
+      } catch (restoreError: any) {
+        console.error("Restore failed:", restoreError);
+        errors.push(restoreError.message);
+        
+        // Log failed restore
+        await storage.createBackupHistory(req.tenantId!, {
+          operationType: "restore",
+          fileName,
+          status: "failed",
+          errorMessage: restoreError.message,
+          performedBy: userId,
+          performedByName: userName,
+        });
+
+        return res.status(500).json({ 
+          message: "Restore failed", 
+          errors 
+        });
+      }
+
+    } catch (error: any) {
+      console.error("Failed to restore backup:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

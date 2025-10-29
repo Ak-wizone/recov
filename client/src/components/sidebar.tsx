@@ -39,6 +39,7 @@ import {
   X,
   Sparkles,
   Loader2,
+  Database,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -294,6 +295,11 @@ const navItems: NavItem[] = [
         name: "Roles Management",
         path: "/settings/roles",
         icon: <Shield className="h-4 w-4" />,
+      },
+      {
+        name: "Backup & Restore",
+        path: "/settings/backup-restore",
+        icon: <Database className="h-4 w-4" />,
       },
       {
         name: "Communication Schedules",

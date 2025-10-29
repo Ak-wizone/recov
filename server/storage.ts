@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, lt, gte, lte } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -274,6 +274,11 @@ export interface IStorage {
   updateSubscriptionPlan(id: string, plan: any): Promise<any | undefined>;
   deleteSubscriptionPlan(id: string): Promise<boolean>;
   getPlanUsageStats(): Promise<any[]>;
+  
+  // Backup & Restore operations
+  getBackupHistory(tenantId: string): Promise<any[]>;
+  createBackupHistory(tenantId: string, history: any): Promise<any>;
+  getAllTenantData(tenantId: string): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2127,6 +2132,143 @@ export class DatabaseStorage implements IStorage {
         color: plan.color,
       };
     });
+  }
+
+  // Backup & Restore operations
+  async getBackupHistory(tenantId: string): Promise<BackupHistory[]> {
+    return await db.select().from(backupHistory).where(eq(backupHistory.tenantId, tenantId)).orderBy(desc(backupHistory.createdAt));
+  }
+
+  async createBackupHistory(tenantId: string, history: InsertBackupHistory): Promise<BackupHistory> {
+    const [created] = await db.insert(backupHistory).values({ ...history, tenantId }).returning();
+    return created;
+  }
+
+  async getAllTenantData(tenantId: string): Promise<any> {
+    // Fetch all tenant data for backup
+    const [
+      customersData,
+      paymentsData,
+      followUpsData,
+      masterCustomersData,
+      masterItemsData,
+      invoicesData,
+      receiptsData,
+      leadsData,
+      leadFollowUpsData,
+      companyProfileData,
+      quotationsData,
+      quotationItemsData,
+      quotationSettingsData,
+      proformaInvoicesData,
+      proformaInvoiceItemsData,
+      debtorsFollowUpsData,
+      rolesData,
+      usersData,
+      emailConfigsData,
+      emailTemplatesData,
+      whatsappConfigsData,
+      whatsappTemplatesData,
+      ringgConfigsData,
+      callScriptMappingsData,
+      callLogsData,
+      communicationSchedulesData,
+      categoryRulesData,
+      followupRulesData,
+      recoverySettingsData,
+      categoryChangeLogData,
+      legalNoticeTemplatesData,
+      legalNoticesSentData,
+      followupAutomationSettingsData,
+      followupSchedulesData,
+      tasksData,
+      activityLogsData,
+      userMetricsData,
+      dailyTargetsData,
+      notificationsData,
+    ] = await Promise.all([
+      db.select().from(customers).where(eq(customers.tenantId, tenantId)),
+      db.select().from(payments).where(eq(payments.tenantId, tenantId)),
+      db.select().from(followUps).where(eq(followUps.tenantId, tenantId)),
+      db.select().from(masterCustomers).where(eq(masterCustomers.tenantId, tenantId)),
+      db.select().from(masterItems).where(eq(masterItems.tenantId, tenantId)),
+      db.select().from(invoices).where(eq(invoices.tenantId, tenantId)),
+      db.select().from(receipts).where(eq(receipts.tenantId, tenantId)),
+      db.select().from(leads).where(eq(leads.tenantId, tenantId)),
+      db.select().from(leadFollowUps).where(eq(leadFollowUps.tenantId, tenantId)),
+      db.select().from(companyProfile).where(eq(companyProfile.tenantId, tenantId)),
+      db.select().from(quotations).where(eq(quotations.tenantId, tenantId)),
+      db.select().from(quotationItems).where(eq(quotationItems.tenantId, tenantId)),
+      db.select().from(quotationSettings).where(eq(quotationSettings.tenantId, tenantId)),
+      db.select().from(proformaInvoices).where(eq(proformaInvoices.tenantId, tenantId)),
+      db.select().from(proformaInvoiceItems).where(eq(proformaInvoiceItems.tenantId, tenantId)),
+      db.select().from(debtorsFollowUps).where(eq(debtorsFollowUps.tenantId, tenantId)),
+      db.select().from(roles).where(eq(roles.tenantId, tenantId)),
+      db.select().from(users).where(eq(users.tenantId, tenantId)),
+      db.select().from(emailConfigs).where(eq(emailConfigs.tenantId, tenantId)),
+      db.select().from(emailTemplates).where(eq(emailTemplates.tenantId, tenantId)),
+      db.select().from(whatsappConfigs).where(eq(whatsappConfigs.tenantId, tenantId)),
+      db.select().from(whatsappTemplates).where(eq(whatsappTemplates.tenantId, tenantId)),
+      db.select().from(ringgConfigs).where(eq(ringgConfigs.tenantId, tenantId)),
+      db.select().from(callScriptMappings).where(eq(callScriptMappings.tenantId, tenantId)),
+      db.select().from(callLogs).where(eq(callLogs.tenantId, tenantId)),
+      db.select().from(communicationSchedules).where(eq(communicationSchedules.tenantId, tenantId)),
+      db.select().from(categoryRules).where(eq(categoryRules.tenantId, tenantId)),
+      db.select().from(followupRules).where(eq(followupRules.tenantId, tenantId)),
+      db.select().from(recoverySettings).where(eq(recoverySettings.tenantId, tenantId)),
+      db.select().from(categoryChangeLog).where(eq(categoryChangeLog.tenantId, tenantId)),
+      db.select().from(legalNoticeTemplates).where(eq(legalNoticeTemplates.tenantId, tenantId)),
+      db.select().from(legalNoticesSent).where(eq(legalNoticesSent.tenantId, tenantId)),
+      db.select().from(followupAutomationSettings).where(eq(followupAutomationSettings.tenantId, tenantId)),
+      db.select().from(followupSchedules).where(eq(followupSchedules.tenantId, tenantId)),
+      db.select().from(tasks).where(eq(tasks.tenantId, tenantId)),
+      db.select().from(activityLogs).where(eq(activityLogs.tenantId, tenantId)),
+      db.select().from(userMetrics).where(eq(userMetrics.tenantId, tenantId)),
+      db.select().from(dailyTargets).where(eq(dailyTargets.tenantId, tenantId)),
+      db.select().from(notifications).where(eq(notifications.tenantId, tenantId)),
+    ]);
+
+    return {
+      customers: customersData,
+      payments: paymentsData,
+      followUps: followUpsData,
+      masterCustomers: masterCustomersData,
+      masterItems: masterItemsData,
+      invoices: invoicesData,
+      receipts: receiptsData,
+      leads: leadsData,
+      leadFollowUps: leadFollowUpsData,
+      companyProfile: companyProfileData,
+      quotations: quotationsData,
+      quotationItems: quotationItemsData,
+      quotationSettings: quotationSettingsData,
+      proformaInvoices: proformaInvoicesData,
+      proformaInvoiceItems: proformaInvoiceItemsData,
+      debtorsFollowUps: debtorsFollowUpsData,
+      roles: rolesData,
+      users: usersData,
+      emailConfigs: emailConfigsData,
+      emailTemplates: emailTemplatesData,
+      whatsappConfigs: whatsappConfigsData,
+      whatsappTemplates: whatsappTemplatesData,
+      ringgConfigs: ringgConfigsData,
+      callScriptMappings: callScriptMappingsData,
+      callLogs: callLogsData,
+      communicationSchedules: communicationSchedulesData,
+      categoryRules: categoryRulesData,
+      followupRules: followupRulesData,
+      recoverySettings: recoverySettingsData,
+      categoryChangeLog: categoryChangeLogData,
+      legalNoticeTemplates: legalNoticeTemplatesData,
+      legalNoticesSent: legalNoticesSentData,
+      followupAutomationSettings: followupAutomationSettingsData,
+      followupSchedules: followupSchedulesData,
+      tasks: tasksData,
+      activityLogs: activityLogsData,
+      userMetrics: userMetricsData,
+      dailyTargets: dailyTargetsData,
+      notifications: notificationsData,
+    };
   }
 }
 

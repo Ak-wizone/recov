@@ -1983,3 +1983,41 @@ export const insertNotificationSchema = createInsertSchema(notifications).pick({
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
 
+// Backup History table - Track backup and restore operations
+export const backupHistory = pgTable("backup_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  operationType: text("operation_type").notNull(), // backup, restore
+  fileName: text("file_name").notNull(),
+  fileSize: integer("file_size"), // Size in bytes
+  status: text("status").notNull().default("success"), // success, failed, in_progress
+  recordsCount: integer("records_count"), // Total number of records in backup
+  errorMessage: text("error_message"),
+  performedBy: varchar("performed_by").notNull(), // User ID who performed the operation
+  performedByName: text("performed_by_name"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertBackupHistorySchema = createInsertSchema(backupHistory).pick({
+  operationType: true,
+  fileName: true,
+  fileSize: true,
+  status: true,
+  recordsCount: true,
+  errorMessage: true,
+  performedBy: true,
+  performedByName: true,
+}).extend({
+  operationType: z.enum(["backup", "restore"]),
+  fileName: z.string().min(1, "File name is required"),
+  fileSize: z.number().optional(),
+  status: z.enum(["success", "failed", "in_progress"]).default("success"),
+  recordsCount: z.number().optional(),
+  errorMessage: z.string().optional(),
+  performedBy: z.string(),
+  performedByName: z.string().optional(),
+});
+
+export type InsertBackupHistory = z.infer<typeof insertBackupHistorySchema>;
+export type BackupHistory = typeof backupHistory.$inferSelect;
+

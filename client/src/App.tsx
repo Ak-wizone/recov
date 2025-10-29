@@ -51,6 +51,7 @@ import Leaderboard from "@/pages/leaderboard";
 import DailyTargets from "@/pages/daily-targets";
 import AuditLogs from "@/pages/audit-logs";
 import SubscriptionPlans from "@/pages/subscription-plans";
+import BackupRestore from "@/pages/backup-restore";
 
 function Router() {
   return (
@@ -104,6 +105,7 @@ function Router() {
               <Route path="/communication-schedules" component={CommunicationSchedules} />
               <Route path="/settings/roles" component={Roles} />
               <Route path="/settings/users" component={Users} />
+              <Route path="/settings/backup-restore" component={BackupRestore} />
               <Route path="/audit-logs" component={AuditLogs} />
               <Route path="/tenant-registrations" component={TenantRegistrations} />
               <Route path="/subscription-plans" component={SubscriptionPlans} />
