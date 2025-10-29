@@ -8,6 +8,7 @@ import { createTransporter, renderTemplate, sendEmail, testEmailConnection } fro
 import { sendWhatsAppMessage } from "./whatsapp-service";
 import { whatsappWebService } from "./whatsapp-web-service";
 import { ringgService } from "./ringg-service";
+import { sendSecureExcelFile } from "./excel-utils";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
 import * as XLSX from "xlsx";
@@ -2091,15 +2092,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Created At": customer.createdAt.toISOString(),
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Customers");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=customers.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, data, {
+        filename: "customers.xlsx",
+        sheetName: "Customers",
+        title: "Customers Data Export",
+        subject: "Customer Data Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -2206,15 +2204,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       ];
 
-      const worksheet = XLSX.utils.json_to_sheet(sampleData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Sample Data");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=master_customers_template.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, sampleData, {
+        filename: "master_customers_template.xlsx",
+        sheetName: "Sample Data",
+        title: "Master Customers Import Template",
+        subject: "Customer Master Data Template",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -2248,15 +2243,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "STATUS": customer.isActive,
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Master Customers");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=master_customers_export.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, data, {
+        filename: "master_customers_export.xlsx",
+        sheetName: "Master Customers",
+        title: "Master Customers Data Export",
+        subject: "Customer Master Data Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -2576,15 +2568,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       ];
 
-      const worksheet = XLSX.utils.json_to_sheet(sampleData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Master Items Template");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=master_items_template.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, sampleData, {
+        filename: "master_items_template.xlsx",
+        sheetName: "Master Items Template",
+        title: "Master Items Import Template",
+        subject: "Items Master Data Template",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -2611,15 +2600,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Created At": item.createdAt.toISOString(),
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Master Items");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=master_items_export.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, data, {
+        filename: "master_items_export.xlsx",
+        sheetName: "Master Items",
+        title: "Master Items Data Export",
+        subject: "Items Master Data Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -3236,15 +3222,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       ];
 
-      const worksheet = XLSX.utils.json_to_sheet(sampleData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices Template");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=invoices_template.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, sampleData, {
+        filename: "invoices_template.xlsx",
+        sheetName: "Invoices Template",
+        title: "Invoices Import Template",
+        subject: "Invoice Data Import Template",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -3263,15 +3246,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "G.P.": invoice.gp,
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Invoices");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=invoices_export.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, data, {
+        filename: "invoices_export.xlsx",
+        sheetName: "Invoices",
+        title: "Invoices Data Export",
+        subject: "Invoice Data Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -4139,15 +4119,12 @@ ${profile?.legalName || 'Company'}`;
         }
       ];
 
-      const worksheet = XLSX.utils.json_to_sheet(sampleData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Receipts Template");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=receipts_template.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, sampleData, {
+        filename: "receipts_template.xlsx",
+        sheetName: "Receipts Template",
+        title: "Receipts Import Template",
+        subject: "Receipt Data Import Template",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -4168,15 +4145,12 @@ ${profile?.legalName || 'Company'}`;
         "Created At": receipt.createdAt.toISOString(),
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Receipts");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=receipts_export.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, data, {
+        filename: "receipts_export.xlsx",
+        sheetName: "Receipts",
+        title: "Receipts Data Export",
+        subject: "Receipt Data Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -4458,15 +4432,12 @@ ${profile?.legalName || 'Company'}`;
         }
       ];
 
-      const worksheet = XLSX.utils.json_to_sheet(sampleData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Leads Template");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=leads_template.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, sampleData, {
+        filename: "leads_template.xlsx",
+        sheetName: "Leads Template",
+        title: "Leads Import Template",
+        subject: "Lead Data Import Template",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -4499,15 +4470,12 @@ ${profile?.legalName || 'Company'}`;
         "Created At": lead.createdAt.toISOString(),
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(data);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Leads");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=leads_export.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, data, {
+        filename: "leads_export.xlsx",
+        sheetName: "Leads",
+        title: "Leads Data Export",
+        subject: "Lead Data Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -4892,15 +4860,12 @@ ${profile?.legalName || 'Company'}`;
         "Created At": new Date(q.createdAt).toLocaleDateString(),
       }));
 
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Quotations");
-      
-      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-      
-      res.setHeader('Content-Disposition', 'attachment; filename=quotations.xlsx');
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.send(buffer);
+      sendSecureExcelFile(res, exportData, {
+        filename: "quotations.xlsx",
+        sheetName: "Quotations",
+        title: "Quotations Data Export",
+        subject: "Quotation Data Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -5284,15 +5249,12 @@ ${profile?.legalName || 'Company'}`;
         "Created At": new Date(inv.createdAt).toLocaleDateString(),
       }));
 
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Proforma Invoices");
-      
-      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-      
-      res.setHeader('Content-Disposition', 'attachment; filename=proforma_invoices.xlsx');
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.send(buffer);
+      sendSecureExcelFile(res, exportData, {
+        filename: "proforma_invoices.xlsx",
+        sheetName: "Proforma Invoices",
+        title: "Proforma Invoices Data Export",
+        subject: "Proforma Invoice Data Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -5383,15 +5345,12 @@ ${profile?.legalName || 'Company'}`;
         "Utilization %": item.utilizationPercentage.toFixed(2) + "%",
       }));
 
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Credit Management");
-      
-      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-      
-      res.setHeader('Content-Disposition', 'attachment; filename=credit_management.xlsx');
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.send(buffer);
+      sendSecureExcelFile(res, exportData, {
+        filename: "credit_management.xlsx",
+        sheetName: "Credit Management",
+        title: "Credit Management Data Export",
+        subject: "Credit Management Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -5425,15 +5384,12 @@ ${profile?.legalName || 'Company'}`;
         },
       ];
 
-      const worksheet = XLSX.utils.json_to_sheet(sampleData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Roles");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=roles_template.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, sampleData, {
+        filename: "roles_template.xlsx",
+        sheetName: "Roles",
+        title: "Roles Import Template",
+        subject: "Role Data Import Template",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -5450,15 +5406,12 @@ ${profile?.legalName || 'Company'}`;
         "Created At": new Date(role.createdAt).toLocaleDateString(),
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Roles");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=roles.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, exportData, {
+        filename: "roles.xlsx",
+        sheetName: "Roles",
+        title: "Roles Data Export",
+        subject: "Role Data Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -5601,15 +5554,12 @@ ${profile?.legalName || 'Company'}`;
         },
       ];
 
-      const worksheet = XLSX.utils.json_to_sheet(sampleData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=users_template.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, sampleData, {
+        filename: "users_template.xlsx",
+        sheetName: "Users",
+        title: "Users Import Template",
+        subject: "User Data Import Template",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -5628,15 +5578,12 @@ ${profile?.legalName || 'Company'}`;
         "Created At": new Date(user.createdAt).toLocaleDateString(),
       }));
 
-      const worksheet = XLSX.utils.json_to_sheet(exportData);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Users");
-
-      const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
-
-      res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-      res.setHeader("Content-Disposition", "attachment; filename=users.xlsx");
-      res.send(buffer);
+      sendSecureExcelFile(res, exportData, {
+        filename: "users.xlsx",
+        sheetName: "Users",
+        title: "Users Data Export",
+        subject: "User Data Export",
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
