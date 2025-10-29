@@ -113,6 +113,8 @@ export default function CategoryRulesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/recovery/category-rules"] });
       queryClient.invalidateQueries({ queryKey: ["/api/recovery/followup-rules"] });
       queryClient.invalidateQueries({ queryKey: ["/api/recovery/settings"] });
+      // Invalidate dashboard cards to reflect grace period changes immediately
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/invoice-status-cards"] });
       toast({
         title: "Success",
         description: "Category rules saved successfully",

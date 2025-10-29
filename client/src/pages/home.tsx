@@ -214,7 +214,7 @@ export default function Home() {
       {/* Invoice Status Cards - 6 categories based on grace period logic */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card 
-          className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200" 
+          className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-upcoming-invoices"
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -225,16 +225,17 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-              {invoiceStatusCards?.upcomingInvoices?.count || 0}
+              ₹{(invoiceStatusCards?.upcomingInvoices?.totalAmount || 0).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              ₹{(invoiceStatusCards?.upcomingInvoices?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.upcomingInvoices?.count || 0} invoices</p>
           </CardContent>
         </Card>
 
         <Card 
-          className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-all duration-200" 
+          className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-due-today"
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -245,16 +246,17 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
-              {invoiceStatusCards?.dueToday?.count || 0}
+              ₹{(invoiceStatusCards?.dueToday?.totalAmount || 0).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              ₹{(invoiceStatusCards?.dueToday?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.dueToday?.count || 0} invoices</p>
           </CardContent>
         </Card>
 
         <Card 
-          className="border-l-4 border-l-amber-500 hover:shadow-lg transition-all duration-200" 
+          className="border-l-4 border-l-amber-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-in-grace"
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -265,16 +267,17 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
-              {invoiceStatusCards?.inGrace?.count || 0}
+              ₹{(invoiceStatusCards?.inGrace?.totalAmount || 0).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              ₹{(invoiceStatusCards?.inGrace?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.inGrace?.count || 0} invoices</p>
           </CardContent>
         </Card>
 
         <Card 
-          className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200" 
+          className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-overdue"
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -285,16 +288,17 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-red-600 dark:text-red-400">
-              {invoiceStatusCards?.overdue?.count || 0}
+              ₹{(invoiceStatusCards?.overdue?.totalAmount || 0).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              ₹{(invoiceStatusCards?.overdue?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.overdue?.count || 0} invoices</p>
           </CardContent>
         </Card>
 
         <Card 
-          className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200" 
+          className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-paid-on-time"
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -305,16 +309,17 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-600 dark:text-green-400">
-              {invoiceStatusCards?.paidOnTime?.count || 0}
+              ₹{(invoiceStatusCards?.paidOnTime?.totalAmount || 0).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              ₹{(invoiceStatusCards?.paidOnTime?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.paidOnTime?.count || 0} invoices</p>
           </CardContent>
         </Card>
 
         <Card 
-          className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200" 
+          className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-paid-late"
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -325,11 +330,12 @@ export default function Home() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-              {invoiceStatusCards?.paidLate?.count || 0}
+              ₹{(invoiceStatusCards?.paidLate?.totalAmount || 0).toLocaleString("en-IN", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              ₹{(invoiceStatusCards?.paidLate?.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.paidLate?.count || 0} invoices</p>
           </CardContent>
         </Card>
       </div>
