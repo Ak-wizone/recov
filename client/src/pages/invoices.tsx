@@ -35,6 +35,7 @@ import {
 export default function Invoices() {
   const { toast } = useToast();
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [assignedUserFilter, setAssignedUserFilter] = useState<string | null>(null);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -74,13 +75,22 @@ export default function Invoices() {
     if (statusParam) {
       setStatusFilter(statusParam);
     }
-    // Note: category param can be used for future enhanced filtering
-    // For now, status filter (Paid/Unpaid) provides basic filtering capability
+    if (categoryParam) {
+      setCategoryFilter(categoryParam);
+    }
   }, []);
 
   const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
     queryKey: ["/api/invoices"],
   });
+
+  const { data: categoryRules } = useQuery<{
+    graceDays: number;
+  }>({
+    queryKey: ["/api/category-rules"],
+  });
+
+  const graceDays = categoryRules?.graceDays ?? 7;
 
   const { data: dashboardStats } = useQuery<{
     totalInvoicesAmount: number;
@@ -241,7 +251,7 @@ export default function Invoices() {
     },
   });
 
-  // Filter table data by date filter mode, status filter, assigned user, and active card
+  // Filter table data by date filter mode, status filter, assigned user, active card, and category
   const filteredInvoices = invoices.filter((invoice) => {
     const invoiceDate = new Date(invoice.invoiceDate);
     
@@ -276,7 +286,51 @@ export default function Invoices() {
       matchesCardFilter = invoice.status === activeCardFilter;
     }
 
-    return matchesMonth && matchesStatusFilter && matchesAssignedUserFilter && matchesCardFilter;
+    // Category filtering based on grace period logic
+    let matchesCategoryFilter = true;
+    if (categoryFilter) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const paymentTerms = invoice.paymentTerms || 0;
+      const dueDate = new Date(invoiceDate);
+      dueDate.setDate(dueDate.getDate() + paymentTerms);
+      dueDate.setHours(0, 0, 0, 0);
+      
+      const gracePeriodEnd = new Date(dueDate);
+      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + graceDays);
+      
+      switch (categoryFilter) {
+        case 'upcoming':
+          // Unpaid with due date > today
+          matchesCategoryFilter = invoice.status === 'Unpaid' && dueDate > today;
+          break;
+        case 'dueToday':
+          // Unpaid with due date = today
+          matchesCategoryFilter = invoice.status === 'Unpaid' && dueDate.getTime() === today.getTime();
+          break;
+        case 'inGrace':
+          // Unpaid with today > due date and today <= (due date + grace days)
+          matchesCategoryFilter = invoice.status === 'Unpaid' && dueDate < today && today <= gracePeriodEnd;
+          break;
+        case 'overdue':
+          // Unpaid with today > (due date + grace days)
+          matchesCategoryFilter = invoice.status === 'Unpaid' && today > gracePeriodEnd;
+          break;
+        case 'paidOnTime':
+          // Paid invoices (for now, showing all paid - payment date logic would need receipts data)
+          matchesCategoryFilter = invoice.status === 'Paid';
+          break;
+        case 'paidLate':
+          // Paid invoices (for now, showing all paid - payment date logic would need receipts data)
+          matchesCategoryFilter = invoice.status === 'Paid';
+          break;
+        default:
+          matchesCategoryFilter = true;
+      }
+    }
+
+    return matchesMonth && matchesStatusFilter && matchesAssignedUserFilter && matchesCardFilter && matchesCategoryFilter;
   });
 
   const handleEdit = (invoice: Invoice) => {
