@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users,
@@ -13,6 +13,7 @@ import {
   CalendarCheck,
   CalendarX2,
   UserX,
+  FileDown,
 } from "lucide-react";
 import {
   Select,
@@ -53,6 +54,34 @@ export default function Debtors() {
 
   const { data: followUpStats } = useQuery<any>({
     queryKey: ["/api/debtors/followup-stats"],
+  });
+
+  const exportMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/debtors/export");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "debtors.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Debtors exported successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const categoryWise = debtorsData?.categoryWise || {
@@ -523,19 +552,31 @@ export default function Debtors() {
                   </p>
                 )}
               </div>
-              {(categoryFilter || followUpFilter) && (
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    setCategoryFilter(null);
-                    setFollowUpFilter(null);
-                  }}
-                  data-testid="button-clear-filter"
+                  onClick={() => exportMutation.mutate()}
+                  disabled={exportMutation.isPending}
+                  data-testid="button-export-debtors"
                 >
-                  Clear Filters
+                  <FileDown className="h-4 w-4 mr-2" />
+                  {exportMutation.isPending ? "Exporting..." : "Export"}
                 </Button>
-              )}
+                {(categoryFilter || followUpFilter) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setCategoryFilter(null);
+                      setFollowUpFilter(null);
+                    }}
+                    data-testid="button-clear-filter"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
             </div>
           </CardHeader>
           <CardContent>

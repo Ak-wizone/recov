@@ -5503,6 +5503,39 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Export debtors (MUST BE BEFORE /api/debtors to avoid route collision)
+  app.get("/api/debtors/export", async (req, res) => {
+    try {
+      const debtorsData = await storage.getDebtorsList(req.tenantId!);
+      const allDebtors = debtorsData.allDebtors || [];
+      
+      const data = allDebtors.map((debtor: any) => ({
+        "Customer Name": debtor.name,
+        "Category": debtor.category,
+        "Sales Person": debtor.salesPerson || "",
+        "Mobile": debtor.mobile,
+        "Email": debtor.email,
+        "Opening Balance": debtor.openingBalance,
+        "Total Invoices": debtor.totalInvoices,
+        "Total Receipts": debtor.totalReceipts,
+        "Balance Outstanding": debtor.balance,
+        "Invoice Count": debtor.invoiceCount,
+        "Receipt Count": debtor.receiptCount,
+        "Last Invoice Date": debtor.lastInvoiceDate ? new Date(debtor.lastInvoiceDate).toISOString().split('T')[0] : "",
+        "Last Payment Date": debtor.lastPaymentDate ? new Date(debtor.lastPaymentDate).toISOString().split('T')[0] : "",
+      }));
+
+      sendSecureExcelFile(res, data, {
+        filename: "debtors_export.xlsx",
+        sheetName: "Debtors",
+        title: "Debtors Data Export",
+        subject: "Debtors Data",
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get debtors list with category-wise breakdown
   app.get("/api/debtors", async (req, res) => {
     try {

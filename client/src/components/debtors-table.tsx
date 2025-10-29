@@ -21,13 +21,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen } from "lucide-react";
+import { ColumnChooser } from "@/components/ui/column-chooser";
 import { format } from "date-fns";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
@@ -66,6 +61,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [globalFilter, setGlobalFilter] = useState("");
+  const [isColumnChooserOpen, setIsColumnChooserOpen] = useState(false);
+  const [defaultColumnVisibility] = useState<Record<string, boolean>>({});
 
   const handleWhatsAppClick = (debtor: DebtorData) => {
     if (!debtor.mobile) {
@@ -357,33 +354,27 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
             data-testid="input-search-debtors"
           />
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" data-testid="button-column-chooser">
-              Columns <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                );
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button 
+          variant="outline" 
+          onClick={() => setIsColumnChooserOpen(true)}
+          data-testid="button-column-chooser"
+        >
+          Columns <ChevronDown className="ml-2 h-4 w-4" />
+        </Button>
       </div>
+      
+      <ColumnChooser
+        open={isColumnChooserOpen}
+        onOpenChange={setIsColumnChooserOpen}
+        columns={table.getAllColumns()}
+        onApply={(visibility) => {
+          table.setColumnVisibility(visibility);
+        }}
+        onReset={() => {
+          table.setColumnVisibility(defaultColumnVisibility);
+        }}
+        defaultColumnVisibility={defaultColumnVisibility}
+      />
 
       {/* Table */}
       <div className="rounded-md border">
