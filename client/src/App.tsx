@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, ProtectedRoute } from "@/lib/auth";
 import { CommandPalette } from "@/components/command-palette";
+import VoiceAssistant from "@/components/voice-assistant";
 import Layout from "@/components/layout";
 import Login from "@/pages/login";
 import Home from "@/pages/home";
@@ -124,6 +125,7 @@ function App() {
       <AuthProvider>
         <TooltipProvider>
           <CommandPalette />
+          <VoiceAssistant />
           <Toaster />
           <Router />
         </TooltipProvider>

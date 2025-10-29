@@ -2021,3 +2021,105 @@ export const insertBackupHistorySchema = createInsertSchema(backupHistory).pick(
 export type InsertBackupHistory = z.infer<typeof insertBackupHistorySchema>;
 export type BackupHistory = typeof backupHistory.$inferSelect;
 
+// Voice Assistant Tables
+
+export const assistantChatHistory = pgTable("assistant_chat_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  userMessage: text("user_message").notNull(),
+  assistantResponse: text("assistant_response").notNull(),
+  commandType: text("command_type"), // query, action, info
+  actionPerformed: text("action_performed"), // email_sent, whatsapp_sent, call_triggered, etc.
+  resultData: text("result_data"), // JSON string of query results
+  isVoiceInput: boolean("is_voice_input").notNull().default(true),
+  confidence: decimal("confidence", { precision: 5, scale: 2 }), // Speech recognition confidence
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAssistantChatHistorySchema = createInsertSchema(assistantChatHistory).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  tenantId: z.string(),
+  userId: z.string(),
+  userMessage: z.string().min(1, "User message is required"),
+  assistantResponse: z.string().min(1, "Assistant response is required"),
+  commandType: z.enum(["query", "action", "info"]).optional(),
+  actionPerformed: z.string().optional(),
+  resultData: z.string().optional(),
+  isVoiceInput: z.boolean().default(true),
+  confidence: z.string().optional(),
+});
+
+export type InsertAssistantChatHistory = z.infer<typeof insertAssistantChatHistorySchema>;
+export type AssistantChatHistory = typeof assistantChatHistory.$inferSelect;
+
+export const assistantSettings = pgTable("assistant_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  alwaysListen: boolean("always_listen").notNull().default(false),
+  wakeWord: text("wake_word").notNull().default("RECOV"),
+  wakeWordSensitivity: integer("wake_word_sensitivity").notNull().default(5), // 1-10 scale
+  voiceFeedback: boolean("voice_feedback").notNull().default(true),
+  language: text("language").notNull().default("en-IN"), // en-IN for Indian English
+  autoExecuteActions: boolean("auto_execute_actions").notNull().default(false), // Confirm before email/whatsapp
+  showSuggestions: boolean("show_suggestions").notNull().default(true),
+  theme: text("theme").notNull().default("light"), // light, dark
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAssistantSettingsSchema = createInsertSchema(assistantSettings).omit({
+  id: true,
+  updatedAt: true,
+}).extend({
+  tenantId: z.string(),
+  userId: z.string(),
+  alwaysListen: z.boolean().default(false),
+  wakeWord: z.string().default("RECOV"),
+  wakeWordSensitivity: z.number().min(1).max(10).default(5),
+  voiceFeedback: z.boolean().default(true),
+  language: z.string().default("en-IN"),
+  autoExecuteActions: z.boolean().default(false),
+  showSuggestions: z.boolean().default(true),
+  theme: z.enum(["light", "dark"]).default("light"),
+});
+
+export type InsertAssistantSettings = z.infer<typeof insertAssistantSettingsSchema>;
+export type AssistantSettings = typeof assistantSettings.$inferSelect;
+
+export const assistantCommands = pgTable("assistant_commands", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id"), // null for global commands, specific for custom
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  keywords: text("keywords").array().notNull(), // Trigger keywords
+  category: text("category").notNull(), // reports, customers, invoices, communications, analytics
+  commandType: text("command_type").notNull(), // query, action
+  action: text("action"), // API endpoint or function to call
+  responseTemplate: text("response_template"), // Template for response
+  isActive: boolean("is_active").notNull().default(true),
+  usageCount: integer("usage_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAssistantCommandSchema = createInsertSchema(assistantCommands).omit({
+  id: true,
+  createdAt: true,
+  usageCount: true,
+}).extend({
+  tenantId: z.string().optional(),
+  name: z.string().min(1, "Command name is required"),
+  description: z.string().min(1, "Description is required"),
+  keywords: z.array(z.string()).min(1, "At least one keyword is required"),
+  category: z.enum(["reports", "customers", "invoices", "communications", "analytics"]),
+  commandType: z.enum(["query", "action"]),
+  action: z.string().optional(),
+  responseTemplate: z.string().optional(),
+  isActive: z.boolean().default(true),
+});
+
+export type InsertAssistantCommand = z.infer<typeof insertAssistantCommandSchema>;
+export type AssistantCommand = typeof assistantCommands.$inferSelect;
+

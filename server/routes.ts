@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { wsManager } from "./websocket";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
 import { whatsappWebService } from "./whatsapp-web-service";
@@ -15,7 +15,7 @@ import * as XLSX from "xlsx";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 const upload = multer({ storage: multer.memoryStorage() });
@@ -8471,6 +8471,277 @@ ${profile?.legalName || 'Company'}`;
 
     } catch (error: any) {
       console.error("Failed to restore backup:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ============================================
+  // Voice Assistant Routes
+  // ============================================
+
+  // Get chat history for current user
+  app.get("/api/assistant/history", tenantMiddleware, async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const history = await db
+        .select()
+        .from(assistantChatHistory)
+        .where(
+          and(
+            eq(assistantChatHistory.tenantId, req.tenantId!),
+            eq(assistantChatHistory.userId, userId)
+          )
+        )
+        .orderBy(assistantChatHistory.createdAt)
+        .limit(50);
+
+      res.json(history);
+    } catch (error: any) {
+      console.error("Failed to fetch chat history:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Process voice/text command
+  app.post("/api/assistant/command", tenantMiddleware, async (req, res) => {
+    try {
+      const userId = (req as any).user?.id;
+      const userName = (req as any).user?.name;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { message, isVoice } = req.body;
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const normalizedMessage = message.toLowerCase().trim();
+      let response = "";
+      let commandType: "query" | "action" | "info" = "info";
+      let actionPerformed: string | null = null;
+      let resultData: any = null;
+
+      // Command Parser - Basic keyword matching
+      
+      // Due Invoices Query
+      if (
+        normalizedMessage.includes("due invoice") ||
+        normalizedMessage.includes("pending invoice") ||
+        normalizedMessage.includes("overdue")
+      ) {
+        commandType = "query";
+        
+        const dueInvoices = await db
+          .select({
+            id: invoices.id,
+            invoiceNumber: invoices.invoiceNumber,
+            customerName: invoices.customerName,
+            invoiceAmount: invoices.invoiceAmount,
+            dueDate: invoices.dueDate,
+            paidAmount: invoices.paidAmount,
+          })
+          .from(invoices)
+          .where(
+            and(
+              eq(invoices.tenantId, req.tenantId!),
+              sql`${invoices.invoice_amount} > ${invoices.paid_amount}`
+            )
+          )
+          .orderBy(invoices.dueDate)
+          .limit(10);
+
+        const count = dueInvoices.length;
+        const totalDue = dueInvoices.reduce(
+          (sum, inv) =>
+            sum +
+            (parseFloat(inv.invoiceAmount.toString()) -
+              parseFloat(inv.paidAmount.toString())),
+          0
+        );
+
+        response = `Found ${count} due invoices totaling ₹${totalDue.toFixed(
+          2
+        )}. Here are the details:\n\n`;
+        
+        dueInvoices.forEach((inv, idx) => {
+          const due =
+            parseFloat(inv.invoiceAmount.toString()) -
+            parseFloat(inv.paidAmount.toString());
+          response += `${idx + 1}. ${inv.customerName} - ${
+            inv.invoiceNumber
+          } - ₹${due.toFixed(2)}\n`;
+        });
+
+        resultData = dueInvoices;
+      }
+      
+      // Today's Collection Query
+      else if (
+        normalizedMessage.includes("collection") ||
+        normalizedMessage.includes("payment received") ||
+        normalizedMessage.includes("aaj ka")
+      ) {
+        commandType = "query";
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const todaysReceipts = await db
+          .select({
+            amount: receipts.amount,
+            customerName: receipts.customerName,
+            voucherNumber: receipts.voucherNumber,
+          })
+          .from(receipts)
+          .where(
+            and(
+              eq(receipts.tenantId, req.tenantId!),
+              sql`${receipts.date}::date = ${today.toISOString().split("T")[0]}::date`
+            )
+          );
+
+        const totalCollection = todaysReceipts.reduce(
+          (sum, r) => sum + parseFloat(r.amount.toString()),
+          0
+        );
+
+        response = `Today's collection: ₹${totalCollection.toFixed(
+          2
+        )} from ${todaysReceipts.length} payments.\n\n`;
+        
+        todaysReceipts.forEach((r, idx) => {
+          response += `${idx + 1}. ${r.customerName} - ${
+            r.voucherNumber
+          } - ₹${parseFloat(r.amount.toString()).toFixed(2)}\n`;
+        });
+
+        resultData = todaysReceipts;
+      }
+      
+      // Alpha Category Customers
+      else if (
+        normalizedMessage.includes("alpha customer") ||
+        normalizedMessage.includes("alpha category")
+      ) {
+        commandType = "query";
+        
+        const alphaCustomers = await db
+          .select({
+            id: customers.id,
+            name: customers.name,
+            category: customers.category,
+            creditLimit: customers.creditLimit,
+          })
+          .from(customers)
+          .where(
+            and(
+              eq(customers.tenantId, req.tenantId!),
+              eq(customers.category, "Alpha")
+            )
+          )
+          .limit(20);
+
+        response = `Found ${alphaCustomers.length} Alpha category customers:\n\n`;
+        
+        alphaCustomers.forEach((c, idx) => {
+          response += `${idx + 1}. ${c.name} - Credit Limit: ₹${parseFloat(
+            c.creditLimit?.toString() || "0"
+          ).toFixed(2)}\n`;
+        });
+
+        resultData = alphaCustomers;
+      }
+      
+      // Customer Ledger
+      else if (normalizedMessage.includes("ledger")) {
+        commandType = "query";
+        
+        // Try to extract customer name from message
+        const customerNameMatch = normalizedMessage.match(
+          /ledger.*?([a-z]+\s*[a-z]*)/i
+        );
+        
+        if (customerNameMatch && customerNameMatch[1]) {
+          const searchName = customerNameMatch[1].trim();
+          
+          const customer = await db
+            .select()
+            .from(customers)
+            .where(
+              and(
+                eq(customers.tenantId, req.tenantId!),
+                sql`LOWER(${customers.name}) LIKE ${`%${searchName}%`}`
+              )
+            )
+            .limit(1);
+
+          if (customer.length > 0) {
+            response = `Customer ledger for ${customer[0].name}. Please check the Ledger page for detailed transaction history.`;
+            resultData = customer[0];
+          } else {
+            response = `Customer "${searchName}" not found. Please check the spelling and try again.`;
+          }
+        } else {
+          response = "Please specify the customer name. For example: 'Show ledger for ABC Company'";
+        }
+      }
+      
+      // Send Email Action
+      else if (
+        normalizedMessage.includes("send email") ||
+        normalizedMessage.includes("email bhejo")
+      ) {
+        commandType = "action";
+        actionPerformed = "email_trigger";
+        response = "Email sending feature is available. Please specify the customer and template, or use the Email page to send emails.";
+      }
+      
+      // Send WhatsApp Action
+      else if (
+        normalizedMessage.includes("send whatsapp") ||
+        normalizedMessage.includes("whatsapp bhejo")
+      ) {
+        commandType = "action";
+        actionPerformed = "whatsapp_trigger";
+        response = "WhatsApp messaging feature is available. Please specify the customer and template, or use the WhatsApp page to send messages.";
+      }
+      
+      // Default response
+      else {
+        response = `Hi ${userName}! I can help you with:\n\n` +
+          "📋 Due invoices - Ask 'show due invoices'\n" +
+          "💰 Today's collection - Ask 'aaj ka collection'\n" +
+          "👥 Alpha customers - Ask 'alpha category customers'\n" +
+          "📊 Customer ledger - Ask 'show ledger for [customer name]'\n" +
+          "📧 Send emails and WhatsApp messages\n\n" +
+          "What would you like to know?";
+      }
+
+      // Save to chat history
+      await db.insert(assistantChatHistory).values({
+        tenantId: req.tenantId!,
+        userId,
+        userMessage: message,
+        assistantResponse: response,
+        commandType,
+        actionPerformed,
+        resultData: resultData ? JSON.stringify(resultData) : null,
+        isVoiceInput: isVoice || false,
+      });
+
+      res.json({
+        response,
+        commandType,
+        action: actionPerformed,
+        data: resultData,
+      });
+    } catch (error: any) {
+      console.error("Failed to process command:", error);
       res.status(500).json({ message: error.message });
     }
   });
