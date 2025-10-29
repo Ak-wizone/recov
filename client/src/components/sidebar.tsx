@@ -382,10 +382,10 @@ export default function Sidebar() {
 
   const toggleExpanded = (name: string) => {
     setExpandedItems((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(name)) {
-        newSet.delete(name);
-      } else {
+      const newSet = new Set<string>();
+      // If the clicked item was already expanded, collapse it (empty set)
+      // Otherwise, expand only this item (accordion behavior)
+      if (!prev.has(name)) {
         newSet.add(name);
       }
       return newSet;
