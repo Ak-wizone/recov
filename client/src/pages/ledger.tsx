@@ -478,28 +478,28 @@ export default function Ledger() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-gray-50">
-                        <TableHead className="font-bold">Date</TableHead>
-                        <TableHead className="font-bold">Particulars</TableHead>
-                        <TableHead className="font-bold">Ref No</TableHead>
-                        <TableHead className="font-bold">Vch Type</TableHead>
-                        <TableHead className="font-bold">Vch No.</TableHead>
-                        <TableHead className="font-bold text-right">Debit</TableHead>
-                        <TableHead className="font-bold text-right">Credit</TableHead>
-                        <TableHead className="font-bold text-right">Balance</TableHead>
+                      <TableRow className="bg-gray-50 dark:bg-gray-800">
+                        <TableHead className="font-bold text-gray-900 dark:text-gray-100">Date</TableHead>
+                        <TableHead className="font-bold text-gray-900 dark:text-gray-100">Particulars</TableHead>
+                        <TableHead className="font-bold text-gray-900 dark:text-gray-100">Ref No</TableHead>
+                        <TableHead className="font-bold text-gray-900 dark:text-gray-100">Vch Type</TableHead>
+                        <TableHead className="font-bold text-gray-900 dark:text-gray-100">Vch No.</TableHead>
+                        <TableHead className="font-bold text-right text-gray-900 dark:text-gray-100">Debit</TableHead>
+                        <TableHead className="font-bold text-right text-gray-900 dark:text-gray-100">Credit</TableHead>
+                        <TableHead className="font-bold text-right text-gray-900 dark:text-gray-100">Balance</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {ledgerData.transactions.map((transaction, index) => (
                         <TableRow 
                           key={index}
-                          className="hover:bg-gray-50 transition-colors"
+                          className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         >
-                          <TableCell className="font-medium">
+                          <TableCell className="font-medium text-gray-900 dark:text-gray-100">
                             {formatLedgerDate(transaction.date)}
                           </TableCell>
-                          <TableCell>{transaction.particulars}</TableCell>
-                          <TableCell className="text-sm text-gray-600">{transaction.refNo}</TableCell>
+                          <TableCell className="text-gray-900 dark:text-gray-100">{transaction.particulars}</TableCell>
+                          <TableCell className="text-sm text-gray-600 dark:text-gray-400">{transaction.refNo}</TableCell>
                           <TableCell>
                             <Badge 
                               variant="outline" 
@@ -508,16 +508,16 @@ export default function Ledger() {
                               {transaction.voucherType}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm">{transaction.voucherNo}</TableCell>
-                          <TableCell className="text-right font-medium text-red-700">
+                          <TableCell className="text-sm text-gray-900 dark:text-gray-100">{transaction.voucherNo}</TableCell>
+                          <TableCell className="text-right font-medium text-red-700 dark:text-red-400">
                             {transaction.debit > 0 ? `₹${transaction.debit.toLocaleString()}` : ''}
                           </TableCell>
-                          <TableCell className="text-right font-medium text-green-700">
+                          <TableCell className="text-right font-medium text-green-700 dark:text-green-400">
                             {transaction.credit > 0 ? `₹${transaction.credit.toLocaleString()}` : ''}
                           </TableCell>
-                          <TableCell className="text-right font-bold">
+                          <TableCell className="text-right font-bold text-gray-900 dark:text-gray-100">
                             ₹{transaction.balance.toLocaleString()}
-                            <span className={`ml-1 text-xs ${transaction.balanceType === 'Dr' ? 'text-red-600' : 'text-green-600'}`}>
+                            <span className={`ml-1 text-xs ${transaction.balanceType === 'Dr' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                               {transaction.balanceType}
                             </span>
                           </TableCell>

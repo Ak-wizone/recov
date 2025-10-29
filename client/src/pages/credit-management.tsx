@@ -137,7 +137,7 @@ export default function CreditManagement() {
         accessorKey: "customerName",
         header: "Customer Name",
         cell: ({ row }) => (
-          <div className="font-semibold text-gray-900" data-testid={`text-customerName-${row.original.customerId}`}>
+          <div className="font-semibold text-gray-900 dark:text-gray-100" data-testid={`text-customerName-${row.original.customerId}`}>
             {row.original.customerName}
           </div>
         ),
@@ -161,7 +161,7 @@ export default function CreditManagement() {
         accessorKey: "creditLimit",
         header: "Credit Limit",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-creditLimit-${row.original.customerId}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-creditLimit-${row.original.customerId}`}>
             {formatCurrency(row.original.creditLimit)}
           </span>
         ),
@@ -171,7 +171,7 @@ export default function CreditManagement() {
         accessorKey: "utilizedLimit",
         header: "Utilized Limit",
         cell: ({ row }) => (
-          <span className="text-gray-700 font-medium" data-testid={`text-utilizedLimit-${row.original.customerId}`}>
+          <span className="text-gray-700 dark:text-gray-300 font-medium" data-testid={`text-utilizedLimit-${row.original.customerId}`}>
             {formatCurrency(row.original.utilizedLimit)}
           </span>
         ),
