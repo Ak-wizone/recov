@@ -1,0 +1,95 @@
+Cards (titles + what they show)
+
+Upcoming Invoices
+
+Invoices unpaid with Invoice Due Date > Today.
+
+Shows: Invoice Count + Sum of Invoice Amount.
+
+Due Today
+
+Invoices unpaid with Invoice Due Date = Today.
+
+Shows: Invoice Count + Sum of Invoice Amount.
+
+In Grace
+
+Invoices unpaid with Invoice Due Date < Today ≤ (Invoice Due Date + Grace Days).
+
+Shows: Invoice Count + Sum of Invoice Amount.
+
+Overdue
+
+Invoices unpaid with Today > (Invoice Due Date + Grace Days).
+
+Shows: Invoice Count + Sum of Invoice Amount.
+
+Paid Late
+
+Invoices fully paid where Payment Date > (Invoice Due Date + Grace Days).
+
+Shows: Invoice Count + Sum of Invoice Amount (sum of invoice totals).
+
+Paid On Time
+
+Invoices fully paid where Payment Date ≤ (Invoice Due Date + Grace Days).
+
+Shows: Invoice Count + Sum of Invoice Amount (sum of invoice totals).
+
+Field you’ll add (in Category Rules)
+
+Grace Days (grace_days): Integer number of days after due date that counts as grace.
+
+Location: Category Rules → Payments → under “Partial Payment Threshold” block (add this new field there).
+
+Used in all calculations above.
+
+Classification logic (single-source-of-truth)
+
+Determine invoice status using these checks, in order:
+
+Paid On Time if paid_in_full = true AND payment_date ≤ due_date + grace_days.
+
+Paid Late if paid_in_full = true AND payment_date > due_date + grace_days.
+
+Due Today if paid_in_full = false AND due_date = Today.
+
+Upcoming Invoices if paid_in_full = false AND due_date > Today.
+
+In Grace if paid_in_full = false AND due_date < Today ≤ due_date + grace_days.
+
+Overdue if paid_in_full = false AND Today > due_date + grace_days.
+
+Tie-breaker: once an invoice is fully paid (meets your “paid in full” rule), it leaves the unpaid buckets and appears only in Paid On Time or Paid Late.
+
+Notes & examples
+
+If Due Date = 30 Apr:
+
+Any day before 30 Apr → Upcoming Invoices.
+
+On 30 Apr → Due Today.
+
+After 30 Apr, up to 30 Apr + Grace Days → In Grace.
+
+After 30 Apr + Grace Days (and still unpaid) → Overdue.
+
+If later fully paid:
+
+Payment on/before 30 Apr + Grace Days → Paid On Time.
+
+Payment after 30 Apr + Grace Days → Paid Late.
+
+Paid in full rule (use what fits your system):
+
+total_received ≥ invoice_total - writeoff.
+
+If you use a Partial Payment Threshold, the invoice stays in the unpaid buckets until it crosses the “paid in full” threshold.
+
+What each card displays
+
+Header metric: Invoice Count
+
+Sub metric: Sum of Invoice Amount (gross or net—pick one and keep it consistent)
+
+Optional micro-metrics: % of AR, 7-day trend, Avg. Days Past Due (for In Grace/Overdue), Avg. Days Early/Late (for Paid cards).
