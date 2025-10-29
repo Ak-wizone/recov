@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -74,8 +75,11 @@ import {
   ChevronRight,
   MoreHorizontal,
   Package,
+  Download,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
+import * as XLSX from "xlsx";
 import { TenantSummary } from "@/components/TenantSummary";
 import type { SubscriptionPlan } from "@shared/schema";
 
@@ -136,6 +140,11 @@ export default function TenantRegistrations() {
   const [changePlanDialogOpen, setChangePlanDialogOpen] = useState(false);
   const [tenantToChangePlan, setTenantToChangePlan] = useState<TenantRow | null>(null);
   const [selectedNewPlan, setSelectedNewPlan] = useState<string>("");
+  
+  // Bulk actions state
+  const [selectedTenantIds, setSelectedTenantIds] = useState<Set<string>>(new Set());
+  const [bulkPlanChangeDialogOpen, setBulkPlanChangeDialogOpen] = useState(false);
+  const [selectedBulkPlan, setSelectedBulkPlan] = useState<string>("");
 
   // Redirect tenant users to dashboard - only platform admins can access this page
   useEffect(() => {
@@ -534,8 +543,70 @@ export default function TenantRegistrations() {
     );
   };
 
+  // Selection handlers
+  const toggleSelectTenant = useCallback((tenantId: string) => {
+    setSelectedTenantIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(tenantId)) {
+        newSet.delete(tenantId);
+      } else {
+        newSet.add(tenantId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback((checked: boolean) => {
+    if (checked) {
+      // Select all non-registration-request tenants on current page
+      const tenantIds = new Set(
+        (tenants || [])
+          .filter(t => !t.isRegistrationRequest)
+          .map(t => t.id)
+      );
+      setSelectedTenantIds(tenantIds);
+    } else {
+      setSelectedTenantIds(new Set());
+    }
+  }, [tenants]);
+
+  const selectedCount = selectedTenantIds.size;
+  const allTenantsSelected = tenants && tenants.length > 0 && 
+    tenants.filter(t => !t.isRegistrationRequest).every(t => selectedTenantIds.has(t.id));
+
   // Wrap columns in useMemo to prevent re-creation on every render
   const columns = useMemo<ColumnDef<TenantRow>[]>(() => [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <div className="flex items-center justify-center">
+          <Checkbox
+            checked={allTenantsSelected}
+            onCheckedChange={(checked) => toggleSelectAll(!!checked)}
+            aria-label="Select all"
+            data-testid="checkbox-select-all"
+          />
+        </div>
+      ),
+      cell: ({ row }) => {
+        // Don't show checkbox for registration requests
+        if (row.original.isRegistrationRequest) {
+          return null;
+        }
+        return (
+          <div className="flex items-center justify-center">
+            <Checkbox
+              checked={selectedTenantIds.has(row.original.id)}
+              onCheckedChange={() => toggleSelectTenant(row.original.id)}
+              aria-label="Select row"
+              data-testid={`checkbox-select-${row.index}`}
+            />
+          </div>
+        );
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: "businessName",
       header: ({ column }) => (
@@ -786,7 +857,7 @@ export default function TenantRegistrations() {
         );
       },
     },
-  ], [handleOpenApproveDialog, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, handleOpenRejectDialog, handleOpenChangePlanDialog, approveMutation.isPending, rejectRegistrationMutation.isPending, deleteRegistrationRequestMutation.isPending, deleteTenantMutation.isPending, toggleStatusMutation.isPending, resetPasswordMutation.isPending, sendCredentialsMutation.isPending]);
+  ], [handleOpenApproveDialog, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, handleOpenRejectDialog, handleOpenChangePlanDialog, approveMutation.isPending, rejectRegistrationMutation.isPending, deleteRegistrationRequestMutation.isPending, deleteTenantMutation.isPending, toggleStatusMutation.isPending, resetPasswordMutation.isPending, sendCredentialsMutation.isPending, selectedTenantIds, toggleSelectTenant, toggleSelectAll, allTenantsSelected]);
 
   // Helper function to calculate activity status
   const getActivityStatus = (tenant: TenantRow): "active" | "at-risk" | "inactive" | "never-used" => {
