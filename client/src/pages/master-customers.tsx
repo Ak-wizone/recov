@@ -158,15 +158,15 @@ export default function MasterCustomers() {
   });
 
   const categoryColors = {
-    Alpha: "bg-green-100 text-green-800 border-green-300",
-    Beta: "bg-blue-100 text-blue-800 border-blue-300",
-    Gamma: "bg-yellow-100 text-yellow-800 border-yellow-300",
-    Delta: "bg-red-100 text-red-800 border-red-300",
+    Alpha: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
+    Beta: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700",
+    Gamma: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700",
+    Delta: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
   };
 
   const statusColors = {
-    Active: "bg-green-100 text-green-800 border-green-300",
-    Inactive: "bg-gray-100 text-gray-800 border-gray-300",
+    Active: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
+    Inactive: "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600",
   };
 
   const formatCurrency = (amount: string | null | undefined) => {
@@ -183,10 +183,10 @@ export default function MasterCustomers() {
         header: "CLIENT NAME",
         cell: ({ row }) => (
           <div>
-            <div className="font-semibold text-gray-900" data-testid={`text-clientName-${row.original.id}`}>
+            <div className="font-semibold text-gray-900 dark:text-gray-100" data-testid={`text-clientName-${row.original.id}`}>
               {row.original.clientName}
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">ID: #{row.original.id.slice(0, 8)}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ID: #{row.original.id.slice(0, 8)}</div>
           </div>
         ),
         enableSorting: true,
@@ -239,7 +239,7 @@ export default function MasterCustomers() {
         accessorKey: "primaryContactName",
         header: "PRIMARY CONTACT",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-primaryContactName-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-primaryContactName-${row.original.id}`}>
             {row.original.primaryContactName || "—"}
           </span>
         ),
@@ -249,7 +249,7 @@ export default function MasterCustomers() {
         accessorKey: "primaryMobile",
         header: "PRIMARY MOBILE",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-primaryMobile-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-primaryMobile-${row.original.id}`}>
             {row.original.primaryMobile || "—"}
           </span>
         ),
@@ -259,7 +259,7 @@ export default function MasterCustomers() {
         accessorKey: "primaryEmail",
         header: "PRIMARY EMAIL",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-primaryEmail-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-primaryEmail-${row.original.id}`}>
             {row.original.primaryEmail || "—"}
           </span>
         ),
@@ -269,7 +269,7 @@ export default function MasterCustomers() {
         accessorKey: "secondaryContactName",
         header: "SECONDARY CONTACT",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-secondaryContactName-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-secondaryContactName-${row.original.id}`}>
             {row.original.secondaryContactName || "—"}
           </span>
         ),
@@ -279,7 +279,7 @@ export default function MasterCustomers() {
         accessorKey: "secondaryMobile",
         header: "SECONDARY MOBILE",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-secondaryMobile-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-secondaryMobile-${row.original.id}`}>
             {row.original.secondaryMobile || "—"}
           </span>
         ),
@@ -289,7 +289,7 @@ export default function MasterCustomers() {
         accessorKey: "secondaryEmail",
         header: "SECONDARY EMAIL",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-secondaryEmail-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-secondaryEmail-${row.original.id}`}>
             {row.original.secondaryEmail || "—"}
           </span>
         ),
@@ -299,7 +299,7 @@ export default function MasterCustomers() {
         accessorKey: "gstNumber",
         header: "GSTIN",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-gstNumber-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-gstNumber-${row.original.id}`}>
             {row.original.gstNumber || "—"}
           </span>
         ),
@@ -309,7 +309,7 @@ export default function MasterCustomers() {
         accessorKey: "billingAddress",
         header: "BILLING ADDRESS",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-billingAddress-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-billingAddress-${row.original.id}`}>
             {row.original.billingAddress || "—"}
           </span>
         ),
@@ -319,7 +319,7 @@ export default function MasterCustomers() {
         accessorKey: "city",
         header: "CITY",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-city-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-city-${row.original.id}`}>
             {row.original.city || "—"}
           </span>
         ),
@@ -329,7 +329,7 @@ export default function MasterCustomers() {
         accessorKey: "state",
         header: "STATE",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-state-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-state-${row.original.id}`}>
             {row.original.state || "—"}
           </span>
         ),
@@ -339,7 +339,7 @@ export default function MasterCustomers() {
         accessorKey: "pincode",
         header: "PINCODE",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-pincode-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-pincode-${row.original.id}`}>
             {row.original.pincode || "—"}
           </span>
         ),
@@ -349,7 +349,7 @@ export default function MasterCustomers() {
         accessorKey: "paymentTermsDays",
         header: "PAYMENT TERMS (DAYS)",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-paymentTerms-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-paymentTerms-${row.original.id}`}>
             {row.original.paymentTermsDays}
           </span>
         ),
@@ -359,7 +359,7 @@ export default function MasterCustomers() {
         accessorKey: "creditLimit",
         header: "CREDIT LIMIT",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-creditLimit-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-creditLimit-${row.original.id}`}>
             {formatCurrency(row.original.creditLimit)}
           </span>
         ),
@@ -399,7 +399,7 @@ export default function MasterCustomers() {
         accessorKey: "interestRate",
         header: "INTEREST RATE",
         cell: ({ row }) => (
-          <span className="text-gray-700 font-medium" data-testid={`text-interestrate-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300 font-medium" data-testid={`text-interestrate-${row.original.id}`}>
             {row.original.interestRate ? `${row.original.interestRate}%` : "0%"}
           </span>
         ),
@@ -409,7 +409,7 @@ export default function MasterCustomers() {
         accessorKey: "openingBalance",
         header: "OPENING BALANCE",
         cell: ({ row }) => (
-          <span className="text-gray-700 font-medium" data-testid={`text-openingBalance-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300 font-medium" data-testid={`text-openingBalance-${row.original.id}`}>
             {formatCurrency(row.original.openingBalance)}
           </span>
         ),
@@ -419,7 +419,7 @@ export default function MasterCustomers() {
         accessorKey: "salesPerson",
         header: "SALES PERSON",
         cell: ({ row }) => (
-          <span className="text-gray-700" data-testid={`text-salesPerson-${row.original.id}`}>
+          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-salesPerson-${row.original.id}`}>
             {row.original.salesPerson || "—"}
           </span>
         ),

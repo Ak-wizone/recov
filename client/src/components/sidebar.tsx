@@ -330,6 +330,201 @@ export default function Sidebar() {
     }),
   };
 
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
+    <>
+      {/* Header */}
+      <div className="relative overflow-hidden border-b border-gray-200 dark:border-gray-800 p-6">
+        {/* Background Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 opacity-10" />
+        
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl blur opacity-50" />
+              <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-white" />
+              </div>
+            </div>
+            
+            <div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                RECOV.
+              </h1>
+              <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                GET PAYMENTS FASTER
+              </p>
+            </div>
+          </div>
+
+          {/* Close button for mobile */}
+          {isMobile && (
+            <button
+              onClick={closeMobileMenu}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className={cn(
+        "flex-1 overflow-y-auto p-3 space-y-1",
+        "scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent"
+      )}>
+        {currentNavItems.map((item) => (
+          <div key={item.name}>
+            {item.subItems ? (
+              <div>
+                <button
+                  onClick={() => toggleExpanded(item.name)}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl",
+                    "text-sm font-medium transition-all duration-200",
+                    "hover:bg-gray-100 dark:hover:bg-gray-800",
+                    "group relative overflow-hidden",
+                    expandedItems.has(item.name) && "bg-gray-100 dark:bg-gray-800"
+                  )}
+                  data-testid={`button-toggle-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+                >
+                  {/* Hover gradient effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
+                  <div className="relative flex items-center gap-3 flex-1">
+                    <div className="text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {item.icon}
+                    </div>
+                    <span className="flex-1 text-left text-gray-700 dark:text-gray-300">
+                      {item.name}
+                    </span>
+                    <ChevronDown 
+                      className={cn(
+                        "h-4 w-4 text-gray-400 transition-transform duration-200",
+                        expandedItems.has(item.name) && "rotate-180"
+                      )}
+                    />
+                  </div>
+                </button>
+
+                {/* Sub Items with Animation */}
+                <motion.div
+                  initial="closed"
+                  animate={expandedItems.has(item.name) ? "open" : "closed"}
+                  variants={subItemVariants}
+                  className="overflow-hidden"
+                >
+                  <div className="ml-8 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
+                    {item.subItems.map((subItem, index) => (
+                      <motion.div
+                        key={subItem.name}
+                        custom={index}
+                        variants={subItemChildVariants}
+                      >
+                        <Link
+                          href={subItem.path}
+                          onClick={isMobile ? closeMobileMenu : undefined}
+                          className={cn(
+                            "flex items-center gap-3 px-3 py-2 rounded-lg",
+                            "text-sm font-medium transition-all duration-200",
+                            "group relative overflow-hidden",
+                            isActive(subItem.path)
+                              ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md"
+                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          )}
+                          data-testid={`link-${subItem.name.toLowerCase().replace(/\s+/g, "-")}`}
+                        >
+                          {isActive(subItem.path) && (
+                            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 opacity-20" />
+                          )}
+                          <div className="relative z-10 flex items-center gap-3">
+                            {subItem.icon}
+                            <span>{subItem.name}</span>
+                          </div>
+                          {subItem.badge !== undefined && subItem.badge > 0 && (
+                            <span className="ml-auto px-2 py-0.5 text-xs font-bold rounded-full bg-red-500 text-white">
+                              {subItem.badge}
+                            </span>
+                          )}
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              </div>
+            ) : (
+              <Link
+                href={item.path}
+                onClick={isMobile ? closeMobileMenu : undefined}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl",
+                  "text-sm font-medium transition-all duration-200",
+                  "group relative overflow-hidden",
+                  isActive(item.path)
+                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                )}
+                data-testid={`link-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
+              >
+                {isActive(item.path) && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 opacity-20" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="relative z-10 flex items-center gap-3 flex-1">
+                  <div className={cn(
+                    "transition-colors",
+                    isActive(item.path)
+                      ? "text-white"
+                      : "text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                  )}>
+                    {item.icon}
+                  </div>
+                  <span className="flex-1">{item.name}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-red-500 text-white">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            )}
+          </div>
+        ))}
+      </nav>
+
+      {/* Footer */}
+      <div className="border-t border-gray-200 dark:border-gray-800 p-4">
+        <div className="flex items-center gap-3 px-3 py-2 mb-2">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <User className="h-5 w-5 text-white" />
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-900 rounded-full" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+              {user?.name}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {user?.email}
+            </p>
+          </div>
+        </div>
+        <Button
+          onClick={logout}
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-3 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
+          data-testid="button-logout"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Sign Out</span>
+        </Button>
+      </div>
+    </>
+  );
+
   return (
     <>
       {/* Mobile Menu Button */}
@@ -355,197 +550,34 @@ export default function Sidebar() {
         )}
       </AnimatePresence>
 
-      {/* Sidebar - Always full width (w-80), no collapse */}
+      {/* Desktop Sidebar - Always visible */}
+      <div
+        className={cn(
+          "hidden lg:flex h-screen flex-col",
+          "bg-white dark:bg-gray-900",
+          "border-r border-gray-200 dark:border-gray-800",
+          "w-80"
+        )}
+        data-testid="sidebar-desktop"
+      >
+        <SidebarContent isMobile={false} />
+      </div>
+
+      {/* Mobile Sidebar - Slide-in drawer */}
       <motion.div
         initial={false}
         animate={isMobileOpen ? "open" : "closed"}
         variants={sidebarVariants}
         className={cn(
-          "fixed lg:static top-0 left-0 z-50 h-screen flex flex-col",
+          "lg:hidden fixed top-0 left-0 z-50 h-screen flex flex-col",
           "bg-white dark:bg-gray-900",
           "border-r border-gray-200 dark:border-gray-800",
-          "shadow-xl lg:shadow-none",
-          "transition-all duration-300",
-          "w-80",
-          "lg:translate-x-0"
+          "shadow-xl",
+          "w-80"
         )}
-        data-testid="sidebar"
+        data-testid="sidebar-mobile"
       >
-        {/* Header */}
-        <div className="relative overflow-hidden border-b border-gray-200 dark:border-gray-800 p-6">
-          {/* Background Gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 opacity-10" />
-          
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl blur opacity-50" />
-                <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                  RECOV.
-                </h1>
-                <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                  GET PAYMENTS FASTER
-                </p>
-              </div>
-            </div>
-
-            {/* Close button for mobile */}
-            <button
-              onClick={closeMobileMenu}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label="Close menu"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className={cn(
-          "flex-1 overflow-y-auto p-3 space-y-1",
-          "scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-700 scrollbar-track-transparent"
-        )}>
-          {currentNavItems.map((item) => (
-            <div key={item.name}>
-              {item.subItems ? (
-                <div>
-                  <button
-                    onClick={() => toggleExpanded(item.name)}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl",
-                      "text-sm font-medium transition-all duration-200",
-                      "hover:bg-gray-100 dark:hover:bg-gray-800",
-                      "group relative overflow-hidden",
-                      expandedItems.has(item.name) && "bg-gray-100 dark:bg-gray-800"
-                    )}
-                    data-testid={`button-toggle-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
-                  >
-                    {/* Hover gradient effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    
-                    <div className="relative flex items-center gap-3 flex-1">
-                      <div className="text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        {item.icon}
-                      </div>
-                      <span className="flex-1 text-left text-gray-700 dark:text-gray-300">
-                        {item.name}
-                      </span>
-                      <ChevronDown 
-                        className={cn(
-                          "h-4 w-4 text-gray-400 transition-transform duration-200",
-                          expandedItems.has(item.name) && "rotate-180"
-                        )}
-                      />
-                    </div>
-                  </button>
-
-                  {/* Sub Items with Animation */}
-                  <motion.div
-                    initial="closed"
-                    animate={expandedItems.has(item.name) ? "open" : "closed"}
-                    variants={subItemVariants}
-                    className="overflow-hidden"
-                  >
-                    <div className="ml-8 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
-                      {item.subItems.map((subItem, index) => (
-                        <motion.div
-                          key={subItem.name}
-                          custom={index}
-                          variants={subItemChildVariants}
-                        >
-                          <Link
-                            href={subItem.path}
-                            onClick={closeMobileMenu}
-                            className={cn(
-                              "flex items-center gap-3 px-3 py-2 rounded-lg",
-                              "text-sm font-medium transition-all duration-200",
-                              "group relative overflow-hidden",
-                              isActive(subItem.path)
-                                ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md"
-                                : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                            )}
-                            data-testid={`link-${subItem.name.toLowerCase().replace(/\s+/g, "-")}`}
-                          >
-                            {!isActive(subItem.path) && (
-                              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
-                            
-                            <div className="relative flex items-center gap-3">
-                              {subItem.icon}
-                              <span>{subItem.name}</span>
-                            </div>
-                          </Link>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </motion.div>
-                </div>
-              ) : (
-                <Link
-                  href={item.path}
-                  onClick={closeMobileMenu}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-xl",
-                    "text-sm font-medium transition-all duration-200",
-                    "group relative overflow-hidden",
-                    isActive(item.path)
-                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
-                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  )}
-                  data-testid={`link-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
-                >
-                  {!isActive(item.path) && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  )}
-                  
-                  <div className="relative flex items-center gap-3">
-                    {item.icon}
-                    <span>{item.name}</span>
-                  </div>
-                </Link>
-              )}
-            </div>
-          ))}
-        </nav>
-
-        {/* Footer - User Profile Only (theme toggle removed) */}
-        <div className="border-t border-gray-200 dark:border-gray-800 p-3">
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl p-3 space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full blur opacity-50" />
-                <div className="relative w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <User className="h-5 w-5 text-white" />
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate" data-testid="text-user-name">
-                  {user?.name || "User"}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 truncate" data-testid="text-user-role">
-                  {isPlatformAdmin ? "Platform Admin" : (user?.roleName || "No Role")}
-                </p>
-              </div>
-            </div>
-            
-            <Button
-              onClick={logout}
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white dark:hover:bg-gray-800"
-              data-testid="button-logout"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </div>
+        <SidebarContent isMobile={true} />
       </motion.div>
     </>
   );
