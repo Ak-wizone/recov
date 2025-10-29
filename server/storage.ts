@@ -1195,12 +1195,13 @@ export class DatabaseStorage implements IStorage {
     endOfWeek.setDate(endOfWeek.getDate() + (7 - today.getDay()));
     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-    // Get only debtors (customers with outstanding balance)
+    // Get all debtors with outstanding balance
     const customers = await db.select().from(masterCustomers).where(eq(masterCustomers.tenantId, tenantId));
     const allInvoices = await db.select().from(invoices).where(eq(invoices.tenantId, tenantId));
     const allReceipts = await db.select().from(receipts).where(eq(receipts.tenantId, tenantId));
     
-    const debtorIds = new Set<string>();
+    // Build debtor map with balances
+    const debtorMap = new Map<string, any>();
     for (const customer of customers) {
       const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
       const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
@@ -1210,44 +1211,76 @@ export class DatabaseStorage implements IStorage {
       const balance = openingBalance + totalInvoices - totalReceipts;
       
       if (balance > 0) {
-        debtorIds.add(customer.id);
+        debtorMap.set(customer.id, {
+          id: customer.id,
+          name: customer.clientName,
+          category: customer.category,
+          mobile: customer.primaryMobile,
+          email: customer.primaryEmail,
+          balance,
+        });
       }
     }
 
-    const customersWithFollowUps = new Set(allFollowUps.map(f => f.customerId));
-    const noFollowUp = Array.from(debtorIds).filter(id => !customersWithFollowUps.has(id)).length;
+    // Initialize categories with detailed structure
+    const stats = {
+      overdue: { count: 0, totalAmount: 0, customers: [] as any[] },
+      dueToday: { count: 0, totalAmount: 0, customers: [] as any[] },
+      dueTomorrow: { count: 0, totalAmount: 0, customers: [] as any[] },
+      dueThisWeek: { count: 0, totalAmount: 0, customers: [] as any[] },
+      dueThisMonth: { count: 0, totalAmount: 0, customers: [] as any[] },
+      noFollowUp: { count: 0, totalAmount: 0, customers: [] as any[] },
+    };
 
-    let overdue = 0;
-    let dueToday = 0;
-    let dueTomorrow = 0;
-    let dueThisWeek = 0;
-    let dueThisMonth = 0;
-
+    // Categorize follow-ups
     for (const followUp of allFollowUps) {
+      const debtor = debtorMap.get(followUp.customerId);
+      if (!debtor) continue; // Skip if customer has no outstanding balance
+      
       const followUpDate = new Date(followUp.followUpDateTime);
       const followUpDay = new Date(followUpDate.getFullYear(), followUpDate.getMonth(), followUpDate.getDate());
       
+      const customerData = {
+        ...debtor,
+        followUpDate: followUp.followUpDateTime,
+        followUpType: followUp.type,
+        remarks: followUp.remarks,
+      };
+
       if (followUpDay < today) {
-        overdue++;
+        stats.overdue.count++;
+        stats.overdue.totalAmount += debtor.balance;
+        stats.overdue.customers.push(customerData);
       } else if (followUpDay.getTime() === today.getTime()) {
-        dueToday++;
+        stats.dueToday.count++;
+        stats.dueToday.totalAmount += debtor.balance;
+        stats.dueToday.customers.push(customerData);
       } else if (followUpDay.getTime() === tomorrow.getTime()) {
-        dueTomorrow++;
+        stats.dueTomorrow.count++;
+        stats.dueTomorrow.totalAmount += debtor.balance;
+        stats.dueTomorrow.customers.push(customerData);
       } else if (followUpDay > today && followUpDay <= endOfWeek) {
-        dueThisWeek++;
+        stats.dueThisWeek.count++;
+        stats.dueThisWeek.totalAmount += debtor.balance;
+        stats.dueThisWeek.customers.push(customerData);
       } else if (followUpDay > endOfWeek && followUpDay <= endOfMonth) {
-        dueThisMonth++;
+        stats.dueThisMonth.count++;
+        stats.dueThisMonth.totalAmount += debtor.balance;
+        stats.dueThisMonth.customers.push(customerData);
       }
     }
 
-    return {
-      overdue,
-      dueToday,
-      dueTomorrow,
-      dueThisWeek,
-      dueThisMonth,
-      noFollowUp,
-    };
+    // Find customers with no follow-ups
+    const customersWithFollowUps = new Set(allFollowUps.map(f => f.customerId));
+    for (const [customerId, debtor] of debtorMap) {
+      if (!customersWithFollowUps.has(customerId)) {
+        stats.noFollowUp.count++;
+        stats.noFollowUp.totalAmount += debtor.balance;
+        stats.noFollowUp.customers.push(debtor);
+      }
+    }
+
+    return stats;
   }
 
   async getDebtorsFollowUpsByCustomer(tenantId: string, customerId: string): Promise<DebtorsFollowUp[]> {
