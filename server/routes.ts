@@ -1660,6 +1660,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Invoice Status Cards (6 categories based on grace period logic)
+  app.get("/api/dashboard/invoice-status-cards", async (req, res) => {
+    try {
+      const stats = await storage.getInvoiceStatusCards(req.tenantId!);
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Risk Management: Client Risk Thermometer
   app.get("/api/risk/client-thermometer", async (req, res) => {
     try {

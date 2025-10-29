@@ -1458,6 +1458,7 @@ export const categoryRules = pgTable("category_rules", {
   gammaDays: integer("gamma_days").notNull().default(40), // Grace period: 26-65 days (5+20+40) = Gamma
   deltaDays: integer("delta_days").notNull().default(100), // Grace period: 66+ days = Delta
   partialPaymentThresholdPercent: integer("partial_payment_threshold_percent").notNull().default(80), // Exclude invoices with payment >= 80%
+  graceDays: integer("grace_days").notNull().default(7), // Days after invoice due date that counts as grace period (for Paid On Time / In Grace)
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -1467,12 +1468,14 @@ export const insertCategoryRulesSchema = createInsertSchema(categoryRules).pick(
   gammaDays: true,
   deltaDays: true,
   partialPaymentThresholdPercent: true,
+  graceDays: true,
 }).extend({
   alphaDays: z.number().min(0).max(1000),
   betaDays: z.number().min(0).max(1000),
   gammaDays: z.number().min(0).max(1000),
   deltaDays: z.number().min(0).max(1000),
   partialPaymentThresholdPercent: z.number().min(0).max(100),
+  graceDays: z.number().min(0).max(365),
 });
 
 export type InsertCategoryRules = z.infer<typeof insertCategoryRulesSchema>;

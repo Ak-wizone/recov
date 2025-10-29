@@ -20,6 +20,7 @@ const categoryRulesFormSchema = z.object({
   gammaDays: z.coerce.number().min(1, "Must be at least 1 day"),
   deltaDays: z.coerce.number().min(1, "Must be at least 1 day"),
   partialPaymentThresholdPercent: z.coerce.number().min(0, "Must be 0-100%").max(100, "Must be 0-100%"),
+  graceDays: z.coerce.number().min(0, "Must be at least 0 days").max(365, "Must be at most 365 days"),
   alphaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
   betaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
   gammaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
@@ -52,6 +53,7 @@ export default function CategoryRulesPage() {
       gammaDays: 40,
       deltaDays: 100,
       partialPaymentThresholdPercent: 80,
+      graceDays: 7,
       alphaFollowupDays: 7,
       betaFollowupDays: 4,
       gammaFollowupDays: 2,
@@ -72,6 +74,7 @@ export default function CategoryRulesPage() {
           gammaDays: categoryRules.gammaDays,
           deltaDays: categoryRules.deltaDays,
           partialPaymentThresholdPercent: categoryRules.partialPaymentThresholdPercent,
+          graceDays: categoryRules.graceDays || 7,
           alphaFollowupDays: followupRules.alphaDays,
           betaFollowupDays: followupRules.betaDays,
           gammaFollowupDays: followupRules.gammaDays,
@@ -93,6 +96,7 @@ export default function CategoryRulesPage() {
           gammaDays: data.gammaDays,
           deltaDays: data.deltaDays,
           partialPaymentThresholdPercent: data.partialPaymentThresholdPercent,
+          graceDays: data.graceDays,
         }),
         apiRequest("PUT", "/api/recovery/followup-rules", {
           alphaDays: data.alphaFollowupDays,
@@ -330,6 +334,34 @@ export default function CategoryRulesPage() {
                           </FormControl>
                           <p className="text-xs text-muted-foreground dark:text-muted-foreground">
                             Exclude invoices with payment ≥ {field.value}% from delay calculations
+                          </p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="graceDays"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-foreground dark:text-foreground">Grace Days</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                {...field}
+                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                className="bg-white dark:bg-gray-900 text-foreground dark:text-foreground border-border dark:border-border"
+                                data-testid="input-grace-days"
+                              />
+                              <span className="absolute right-3 top-2.5 text-sm text-muted-foreground dark:text-muted-foreground">
+                                days
+                              </span>
+                            </div>
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground">
+                            Days after invoice due date that counts as grace period (for Paid On Time / In Grace classification)
                           </p>
                           <FormMessage />
                         </FormItem>

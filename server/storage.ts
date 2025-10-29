@@ -1351,6 +1351,78 @@ export class DatabaseStorage implements IStorage {
     return creditData;
   }
 
+  async getInvoiceStatusCards(tenantId: string): Promise<any> {
+    const allInvoices = await db.select().from(invoices).where(eq(invoices.tenantId, tenantId));
+    const allReceipts = await db.select().from(receipts).where(eq(receipts.tenantId, tenantId));
+    const [rules] = await db.select().from(categoryRules).where(eq(categoryRules.tenantId, tenantId));
+    
+    const graceDays = rules?.graceDays || 7;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const stats = {
+      upcomingInvoices: { count: 0, totalAmount: 0 },
+      dueToday: { count: 0, totalAmount: 0 },
+      inGrace: { count: 0, totalAmount: 0 },
+      overdue: { count: 0, totalAmount: 0 },
+      paidOnTime: { count: 0, totalAmount: 0 },
+      paidLate: { count: 0, totalAmount: 0 },
+    };
+
+    for (const invoice of allInvoices) {
+      const invoiceDate = new Date(invoice.invoiceDate);
+      const paymentTerms = invoice.paymentTerms || 0;
+      const dueDate = new Date(invoiceDate);
+      dueDate.setDate(dueDate.getDate() + paymentTerms);
+      dueDate.setHours(0, 0, 0, 0);
+
+      const gracePeriodEnd = new Date(dueDate);
+      gracePeriodEnd.setDate(gracePeriodEnd.getDate() + graceDays);
+
+      const customerReceipts = allReceipts.filter(r => r.customerName === invoice.customerName);
+      const totalPaid = customerReceipts.reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
+      const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+      const isPaidInFull = invoice.status === "Paid" || totalPaid >= invoiceAmount;
+
+      if (isPaidInFull) {
+        const paidReceipts = customerReceipts.filter(r => r.customerName === invoice.customerName).sort((a, b) => 
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        const lastPaymentDate = paidReceipts.length > 0 ? new Date(paidReceipts[paidReceipts.length - 1].date) : null;
+
+        if (lastPaymentDate) {
+          lastPaymentDate.setHours(0, 0, 0, 0);
+          if (lastPaymentDate <= gracePeriodEnd) {
+            stats.paidOnTime.count++;
+            stats.paidOnTime.totalAmount += invoiceAmount;
+          } else {
+            stats.paidLate.count++;
+            stats.paidLate.totalAmount += invoiceAmount;
+          }
+        } else {
+          stats.paidOnTime.count++;
+          stats.paidOnTime.totalAmount += invoiceAmount;
+        }
+      } else {
+        if (dueDate.getTime() === today.getTime()) {
+          stats.dueToday.count++;
+          stats.dueToday.totalAmount += invoiceAmount;
+        } else if (dueDate > today) {
+          stats.upcomingInvoices.count++;
+          stats.upcomingInvoices.totalAmount += invoiceAmount;
+        } else if (today <= gracePeriodEnd) {
+          stats.inGrace.count++;
+          stats.inGrace.totalAmount += invoiceAmount;
+        } else {
+          stats.overdue.count++;
+          stats.overdue.totalAmount += invoiceAmount;
+        }
+      }
+    }
+
+    return stats;
+  }
+
   async getRoles(tenantId: string): Promise<Role[]> {
     return await db.select().from(roles).where(eq(roles.tenantId, tenantId)).orderBy(desc(roles.createdAt));
   }
