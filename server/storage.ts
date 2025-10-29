@@ -1153,6 +1153,7 @@ export class DatabaseStorage implements IStorage {
           salesPerson: customer.salesPerson,
           mobile: customer.primaryMobile,
           email: customer.primaryEmail,
+          openingBalance,
           totalInvoices,
           totalReceipts,
           balance,

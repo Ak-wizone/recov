@@ -40,6 +40,7 @@ interface DebtorData {
   salesPerson: string | null;
   mobile: string;
   email: string;
+  openingBalance: number;
   totalInvoices: number;
   totalReceipts: number;
   balance: number;
@@ -159,6 +160,15 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
       cell: ({ row }) => (
         <div className="text-sm" data-testid={`text-email-${row.original.customerId}`}>
           {row.getValue("email")}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "openingBalance",
+      header: "Opening Balance",
+      cell: ({ row }) => (
+        <div className="text-right font-medium" data-testid={`text-opening-balance-${row.original.customerId}`}>
+          {formatCurrency(row.getValue("openingBalance"))}
         </div>
       ),
     },
