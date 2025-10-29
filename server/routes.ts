@@ -8291,8 +8291,8 @@ ${profile?.legalName || 'Company'}`;
 
   // ==================== BACKUP & RESTORE ROUTES ====================
   
-  // Get Backup History (Admin Only)
-  app.get("/api/backup/history", tenantMiddleware, adminOnlyMiddleware, async (req, res) => {
+  // Get Backup History (Tenant Level)
+  app.get("/api/backup/history", tenantMiddleware, async (req, res) => {
     try {
       const history = await storage.getBackupHistory(req.tenantId!);
       res.json(history);
@@ -8302,8 +8302,8 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
-  // Create Backup (Export all tenant data to JSON) - Admin Only
-  app.post("/api/backup/create", tenantMiddleware, adminOnlyMiddleware, async (req, res) => {
+  // Create Backup (Export all tenant data to JSON) - Tenant Level
+  app.post("/api/backup/create", tenantMiddleware, async (req, res) => {
     try {
       const userId = (req as any).user?.id || "unknown";
       const userName = (req as any).user?.name || "Unknown User";
@@ -8377,8 +8377,8 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
-  // Restore Backup (Import data from JSON) - Admin Only
-  app.post("/api/backup/restore", tenantMiddleware, adminOnlyMiddleware, async (req, res) => {
+  // Restore Backup (Import data from JSON) - Tenant Level with Isolation
+  app.post("/api/backup/restore", tenantMiddleware, async (req, res) => {
     try {
       const userId = (req as any).user?.id || "unknown";
       const userName = (req as any).user?.name || "Unknown User";
