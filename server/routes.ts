@@ -8482,7 +8482,7 @@ ${profile?.legalName || 'Company'}`;
   // Get chat history for current user
   app.get("/api/assistant/history", tenantMiddleware, async (req, res) => {
     try {
-      const userId = (req as any).user?.id;
+      const userId = (req.session as any).user?.id;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -8509,8 +8509,8 @@ ${profile?.legalName || 'Company'}`;
   // Process voice/text command
   app.post("/api/assistant/command", tenantMiddleware, async (req, res) => {
     try {
-      const userId = (req as any).user?.id;
-      const userName = (req as any).user?.name;
+      const userId = (req.session as any).user?.id;
+      const userName = (req.session as any).user?.name;
       if (!userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
