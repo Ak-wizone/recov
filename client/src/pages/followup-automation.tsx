@@ -314,19 +314,8 @@ export default function FollowupAutomationPage() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-              <SheetHeader className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <SheetTitle className="text-2xl">Communication Configuration</SheetTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsConfigSheetOpen(false)}
-                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    data-testid="button-close-config"
-                  >
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
+              <SheetHeader className="space-y-3 pr-12">
+                <SheetTitle className="text-2xl">Communication Configuration</SheetTitle>
                 <SheetDescription>
                   Manage email, WhatsApp, and calling integrations for automated follow-ups
                 </SheetDescription>
