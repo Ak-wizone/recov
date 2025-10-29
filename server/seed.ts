@@ -75,7 +75,8 @@ export async function seedDatabase() {
           "Credit Control",
           "Masters",
           "Settings",
-          "Email/WhatsApp/Call Integrations"
+          "Email/WhatsApp/Call Integrations",
+          "Backup & Restore"
         ],
         color: "#8b5cf6",
         displayOrder: 2,
@@ -103,7 +104,8 @@ export async function seedDatabase() {
           "Credit Control",
           "Masters",
           "Settings",
-          "Email/WhatsApp/Call Integrations"
+          "Email/WhatsApp/Call Integrations",
+          "Backup & Restore"
         ],
         color: "#f59e0b",
         displayOrder: 3,

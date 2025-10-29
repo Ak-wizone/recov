@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/lib/auth";
 import {
   Download,
   Upload,
@@ -16,6 +17,7 @@ import {
   Calendar,
   User,
   HardDrive,
+  Building2,
 } from "lucide-react";
 import {
   Table,
@@ -55,11 +57,14 @@ interface BackupPreview {
   totalRecords: number;
   createdAt: string;
   createdBy: string;
+  tenantId: string;
+  tenantName: string;
   tables: { name: string; records: number }[];
 }
 
 export default function BackupRestorePage() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [backupPreview, setBackupPreview] = useState<BackupPreview | null>(null);
@@ -151,11 +156,23 @@ export default function BackupRestorePage() {
           throw new Error("Invalid backup file format");
         }
 
+        // Validate tenant ownership - prevent cross-tenant restores
+        if (backupData.metadata.tenantId !== user?.tenantId) {
+          toast({
+            title: "Tenant Mismatch",
+            description: "This backup belongs to a different tenant. You can only restore backups from your own account.",
+            variant: "destructive",
+          });
+          return;
+        }
+
         setSelectedFile(backupData);
         setBackupPreview({
           totalRecords: backupData.metadata.totalRecords,
           createdAt: backupData.metadata.createdAt,
           createdBy: backupData.metadata.createdBy,
+          tenantId: backupData.metadata.tenantId,
+          tenantName: backupData.metadata.tenantName || "Unknown",
           tables: Object.keys(backupData.data).map(key => ({
             name: key,
             records: Array.isArray(backupData.data[key]) ? backupData.data[key].length : 0
@@ -407,6 +424,16 @@ export default function BackupRestorePage() {
           
           {backupPreview && (
             <div className="space-y-4 my-4">
+              <div className="bg-indigo-50 dark:bg-indigo-950/20 p-3 rounded-md border border-indigo-200 dark:border-indigo-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                  <div className="text-sm text-muted-foreground dark:text-gray-400">Tenant</div>
+                </div>
+                <div className="text-lg font-semibold text-indigo-600 dark:text-indigo-400">
+                  {backupPreview.tenantName}
+                </div>
+              </div>
+              
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-blue-50 dark:bg-blue-950/20 p-3 rounded-md">
                   <div className="text-sm text-muted-foreground dark:text-gray-400">Total Records</div>
