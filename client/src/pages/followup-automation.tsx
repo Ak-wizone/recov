@@ -10,11 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Edit, Trash2, Settings2, Calendar, MessageSquare, Mail, Phone } from "lucide-react";
+import { Plus, Edit, Trash2, Settings2, Calendar, MessageSquare, Mail, Phone, Settings, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "wouter";
 
 const followupScheduleSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -107,6 +110,7 @@ interface IVRScript {
 export default function FollowupAutomationPage() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isConfigSheetOpen, setIsConfigSheetOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<FollowupSchedule | null>(null);
 
   const { data: schedules, isLoading } = useQuery<FollowupSchedule[]>({
@@ -297,14 +301,203 @@ export default function FollowupAutomationPage() {
             </p>
           </div>
         </div>
-        <Button
-          onClick={handleAddNew}
-          className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600"
-          data-testid="button-add-schedule"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Schedule
-        </Button>
+        <div className="flex gap-2">
+          <Sheet open={isConfigSheetOpen} onOpenChange={setIsConfigSheetOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                className="border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950"
+                data-testid="button-configuration"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Configuration
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+              <SheetHeader>
+                <SheetTitle className="text-2xl">Communication Configuration</SheetTitle>
+                <SheetDescription>
+                  Manage email, WhatsApp, and calling integrations for automated follow-ups
+                </SheetDescription>
+              </SheetHeader>
+              
+              <Tabs defaultValue="email" className="mt-6">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="email" className="flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    <span className="hidden sm:inline">Email</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="whatsapp" className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="hidden sm:inline">WhatsApp</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="ringg" className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    <span className="hidden sm:inline">Ringg.ai</span>
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Email Settings Tab */}
+                <TabsContent value="email" className="space-y-4 mt-4">
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Mail className="h-5 w-5 text-blue-600" />
+                        Email Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Configure Gmail OAuth2 or SMTP settings for sending emails
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link href="/email-config">
+                        <Button variant="outline" className="w-full" data-testid="button-email-config">
+                          Manage Email Settings
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Mail className="h-5 w-5 text-green-600" />
+                        Email Templates
+                      </CardTitle>
+                      <CardDescription>
+                        Create and manage email templates for different modules
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link href="/email-templates">
+                        <Button variant="outline" className="w-full" data-testid="button-email-templates">
+                          Manage Templates
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* WhatsApp Settings Tab */}
+                <TabsContent value="whatsapp" className="space-y-4 mt-4">
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <MessageSquare className="h-5 w-5 text-green-600" />
+                        WhatsApp Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Configure WhatsApp API settings for automated messaging
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link href="/whatsapp-config">
+                        <Button variant="outline" className="w-full" data-testid="button-whatsapp-config">
+                          Manage WhatsApp Settings
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <MessageSquare className="h-5 w-5 text-emerald-600" />
+                        WhatsApp Templates
+                      </CardTitle>
+                      <CardDescription>
+                        Create and manage WhatsApp message templates
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link href="/whatsapp-templates">
+                        <Button variant="outline" className="w-full" data-testid="button-whatsapp-templates">
+                          Manage Templates
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Ringg.ai Settings Tab */}
+                <TabsContent value="ringg" className="space-y-4 mt-4">
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Phone className="h-5 w-5 text-purple-600" />
+                        Ringg.ai Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Configure your Ringg.ai API key and settings
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link href="/ringg-config">
+                        <Button variant="outline" className="w-full" data-testid="button-ringg-config">
+                          Manage API Settings
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Phone className="h-5 w-5 text-orange-600" />
+                        Script Mappings
+                      </CardTitle>
+                      <CardDescription>
+                        Map Ringg.ai call scripts to different modules
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link href="/ringg-script-mappings">
+                        <Button variant="outline" className="w-full" data-testid="button-ringg-scripts">
+                          Manage Script Mappings
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Phone className="h-5 w-5 text-teal-600" />
+                        Call History
+                      </CardTitle>
+                      <CardDescription>
+                        View all call logs, recordings, and outcomes
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link href="/ringg-call-history">
+                        <Button variant="outline" className="w-full" data-testid="button-call-history">
+                          View Call History
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </SheetContent>
+          </Sheet>
+          
+          <Button
+            onClick={handleAddNew}
+            className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600"
+            data-testid="button-add-schedule"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Schedule
+          </Button>
+        </div>
       </div>
 
       {/* Schedules Table */}

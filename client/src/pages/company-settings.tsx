@@ -11,8 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Upload, Building2, Mail, FileText, ArrowRight, Phone, ListOrdered, History, MessageSquare } from "lucide-react";
-import { Link } from "wouter";
+import { Loader2, Upload, Building2 } from "lucide-react";
 import { SalesPersonManagement } from "@/components/sales-person-management";
 
 export default function CompanySettings() {
@@ -209,174 +208,30 @@ export default function CompanySettings() {
   ];
 
   return (
-    <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Company Settings</h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-2">
-          Manage your company profile and business information
-        </p>
-      </div>
-
-      {/* Email & Communication Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Mail className="h-5 w-5 text-blue-600" />
-              Email Configuration
-            </CardTitle>
-            <CardDescription>
-              Configure Gmail OAuth2 or SMTP settings for sending emails
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/email-config">
-              <Button variant="outline" className="w-full" data-testid="button-email-config">
-                Manage Email Settings
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FileText className="h-5 w-5 text-green-600" />
-              Email Templates
-            </CardTitle>
-            <CardDescription>
-              Create and manage email templates for different modules
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/email-templates">
-              <Button variant="outline" className="w-full" data-testid="button-email-templates">
-                Manage Templates
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* WhatsApp Communication Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <MessageSquare className="h-5 w-5 text-green-600" />
-              WhatsApp Configuration
-            </CardTitle>
-            <CardDescription>
-              Configure WhatsApp API settings for automated messaging
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/whatsapp-config">
-              <Button variant="outline" className="w-full" data-testid="button-whatsapp-config">
-                Manage WhatsApp Settings
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FileText className="h-5 w-5 text-emerald-600" />
-              WhatsApp Templates
-            </CardTitle>
-            <CardDescription>
-              Create and manage WhatsApp message templates
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/whatsapp-templates">
-              <Button variant="outline" className="w-full" data-testid="button-whatsapp-templates">
-                Manage Templates
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Ringg.ai Calling Agent Settings */}
-      <div>
-        <h2 className="text-xl font-bold mb-2">Ringg.ai Calling Agent</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          AI-powered voice calling for automated reminders and customer outreach
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Phone className="h-5 w-5 text-purple-600" />
-                Ringg.ai Configuration
-              </CardTitle>
-              <CardDescription>
-                Configure your Ringg.ai API key and settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/ringg-config">
-                <Button variant="outline" className="w-full" data-testid="button-ringg-config">
-                  Manage API Settings
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <ListOrdered className="h-5 w-5 text-orange-600" />
-                Script Mappings
-              </CardTitle>
-              <CardDescription>
-                Map Ringg.ai call scripts to different modules
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/ringg-script-mappings">
-                <Button variant="outline" className="w-full" data-testid="button-ringg-scripts">
-                  Manage Script Mappings
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <History className="h-5 w-5 text-teal-600" />
-                Call History
-              </CardTitle>
-              <CardDescription>
-                View all call logs, recordings, and outcomes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/ringg-call-history">
-                <Button variant="outline" className="w-full" data-testid="button-call-history">
-                  View Call History
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+    <div className="flex-1 space-y-8 p-6 overflow-auto bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center gap-3 mb-8">
+          <Building2 className="h-9 w-9 text-blue-600 dark:text-blue-400" />
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Company Settings
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Manage your company profile, business information, and team members
+            </p>
+          </div>
         </div>
-      </div>
 
-      {/* Sales Person Management */}
-      <SalesPersonManagement />
+        {/* Sales Person Management */}
+        <div className="mb-8">
+          <SalesPersonManagement />
+        </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Divider */}
+        <div className="border-t border-gray-200 dark:border-gray-800 my-8"></div>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Basic Information */}
           <Card>
             <CardHeader>
@@ -933,10 +788,12 @@ export default function CompanySettings() {
           </Card>
 
           {/* Submit Button */}
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-end gap-4 mt-8">
             <Button
               type="submit"
+              size="lg"
               disabled={mutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
               data-testid="button-save"
             >
               {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -945,6 +802,7 @@ export default function CompanySettings() {
           </div>
         </form>
       </Form>
+      </div>
     </div>
   );
 }
