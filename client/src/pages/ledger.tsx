@@ -541,45 +541,52 @@ export default function Ledger() {
               }}
             >
               <div style={{ 
-                padding: '8mm', 
+                padding: '10mm 8mm', 
                 fontFamily: 'Arial, Helvetica, sans-serif',
-                fontSize: '13px',
-                lineHeight: '1.5',
+                fontSize: '11px',
+                lineHeight: '1.4',
                 color: '#333',
                 maxWidth: '100%'
               }}>
-                {/* Header Section */}
+                {/* Header Section - Logo LEFT, Company RIGHT */}
                 <div style={{ 
-                  marginBottom: '20px', 
-                  borderBottom: '3px solid #2563eb',
-                  paddingBottom: '20px',
-                  textAlign: 'center'
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '8px',
+                  paddingBottom: '8px',
+                  borderBottom: '2px solid #2563eb'
                 }}>
-                  {companyProfile?.logo && (
-                    <div style={{ marginBottom: '12px' }}>
+                  {/* Left: Logo */}
+                  <div style={{ flex: '0 0 auto' }}>
+                    {companyProfile?.logo && (
                       <img 
                         src={companyProfile.logo} 
                         alt="Company Logo" 
                         style={{ 
-                          height: '70px', 
+                          height: '50px', 
                           width: 'auto',
-                          maxWidth: '150px',
+                          maxWidth: '120px',
                           objectFit: 'contain',
-                          margin: '0 auto'
+                          display: 'block'
                         }} 
                       />
-                    </div>
-                  )}
-                  <h1 style={{ 
-                    margin: '0 0 8px 0', 
-                    fontSize: '32px', 
-                    fontWeight: 'bold',
-                    color: '#1e40af',
-                    letterSpacing: '-0.5px',
-                    textTransform: 'uppercase'
-                  }}>
-                    {companyProfile?.legalName || 'Company Name'}
-                  </h1>
+                    )}
+                  </div>
+                  
+                  {/* Right: Company Name & GSTIN */}
+                  <div style={{ flex: '1', textAlign: 'right', paddingLeft: '15px' }}>
+                    <h1 style={{ 
+                      margin: '0 0 4px 0', 
+                      fontSize: '24px', 
+                      fontWeight: 'bold',
+                      color: '#1e40af',
+                      letterSpacing: '0.5px',
+                      textTransform: 'uppercase',
+                      lineHeight: '1.2'
+                    }}>
+                      {companyProfile?.legalName || 'Company Name'}
+                    </h1>
                   {companyProfile?.gstin && (
                     <p style={{ 
                       margin: '0 0 15px 0', 
