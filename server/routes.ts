@@ -1154,6 +1154,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate customer's debtor amount
       const customerDebtorAmount = openingBalance + invoiceAmount - receiptAmount;
 
+      // Calculate opening balance interest (if applicable)
+      const openingBalanceInterestRate = parseFloat(customer.interestRate || "0");
+      let openingBalanceInterest = 0;
+      
+      if (openingBalanceInterestRate > 0 && openingBalance > 0) {
+        // Calculate interest from customer creation date
+        const openingBalanceDate = new Date(customer.createdAt);
+        const diffTime = today.getTime() - openingBalanceDate.getTime();
+        const daysPassed = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (daysPassed > 0) {
+          openingBalanceInterest = (openingBalance * openingBalanceInterestRate * daysPassed) / (100 * 365);
+        }
+      }
+
       res.json({
         customer: {
           id: customer.id,
@@ -1183,7 +1198,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           customerOpeningBalance: openingBalance.toFixed(2),
         },
         debtorAmount: customerDebtorAmount.toFixed(2),
-        interestAmount: totalInterestAmount.toFixed(2),
+        interestAmount: (totalInterestAmount + openingBalanceInterest).toFixed(2),
+        interestBreakdown: {
+          invoiceInterest: totalInterestAmount.toFixed(2),
+          openingBalanceInterest: openingBalanceInterest.toFixed(2),
+          totalInterest: (totalInterestAmount + openingBalanceInterest).toFixed(2),
+        },
         creditInfo: {
           creditLimit: creditLimit.toFixed(2),
           utilizedCredit: utilizedCredit.toFixed(2),
