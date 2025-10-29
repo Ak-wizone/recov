@@ -536,149 +536,221 @@ export default function Ledger() {
                 position: 'absolute', 
                 left: '-9999px', 
                 visibility: 'hidden',
-                width: '200mm',
+                width: '210mm',
                 backgroundColor: '#ffffff'
               }}
             >
               <div style={{ 
-                padding: '8mm', 
-                fontFamily: 'Arial, Helvetica, sans-serif',
-                fontSize: '13px',
-                lineHeight: '1.5',
-                color: '#333',
-                maxWidth: '100%'
+                padding: '10mm 12mm', 
+                fontFamily: '"Segoe UI", Arial, Helvetica, sans-serif',
+                fontSize: '10pt',
+                lineHeight: '1.4',
+                color: '#1a1a1a',
+                maxWidth: '100%',
+                backgroundColor: '#ffffff'
               }}>
-                {/* Header Section */}
+                {/* Professional Header Section */}
                 <div style={{ 
-                  marginBottom: '20px', 
-                  borderBottom: '3px solid #2563eb',
-                  paddingBottom: '20px',
-                  textAlign: 'center'
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  padding: '25px 30px',
+                  marginBottom: '25px',
+                  borderRadius: '12px',
+                  textAlign: 'center',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                 }}>
                   {companyProfile?.logo && (
-                    <div style={{ marginBottom: '12px' }}>
+                    <div style={{ 
+                      marginBottom: '15px',
+                      backgroundColor: '#ffffff',
+                      display: 'inline-block',
+                      padding: '12px 20px',
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                    }}>
                       <img 
                         src={companyProfile.logo} 
                         alt="Company Logo" 
                         style={{ 
-                          height: '70px', 
+                          height: '60px', 
                           width: 'auto',
-                          maxWidth: '150px',
+                          maxWidth: '200px',
                           objectFit: 'contain',
-                          margin: '0 auto'
+                          display: 'block'
                         }} 
                       />
                     </div>
                   )}
                   <h1 style={{ 
-                    margin: '0 0 8px 0', 
-                    fontSize: '32px', 
-                    fontWeight: 'bold',
-                    color: '#1e40af',
-                    letterSpacing: '-0.5px',
-                    textTransform: 'uppercase'
+                    margin: '0 0 10px 0', 
+                    fontSize: '28pt', 
+                    fontWeight: '700',
+                    color: '#ffffff',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase',
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.2)'
                   }}>
                     {companyProfile?.legalName || 'Company Name'}
                   </h1>
                   {companyProfile?.gstin && (
                     <p style={{ 
-                      margin: '0 0 15px 0', 
-                      fontSize: '13px', 
-                      color: '#64748b',
-                      fontWeight: '500'
+                      margin: '0 0 5px 0', 
+                      fontSize: '10pt', 
+                      color: '#ffffff',
+                      fontWeight: '500',
+                      opacity: '0.95'
                     }}>
                       GSTIN: {companyProfile.gstin}
                     </p>
                   )}
-                  <div style={{ 
-                    backgroundColor: '#dbeafe', 
-                    padding: '12px 24px',
-                    borderRadius: '6px',
-                    border: '1px solid #93c5fd',
-                    display: 'inline-block',
-                    marginTop: '10px'
-                  }}>
-                    <p style={{ 
-                      margin: '0 0 5px 0', 
-                      fontSize: '14px', 
-                      color: '#1e40af',
-                      fontWeight: '700',
-                      letterSpacing: '1px'
-                    }}>
-                      LEDGER STATEMENT
-                    </p>
+                  {companyProfile?.regAddressLine1 && (
                     <p style={{ 
                       margin: '0', 
-                      fontSize: '12px', 
-                      color: '#475569'
+                      fontSize: '9pt', 
+                      color: '#ffffff',
+                      fontWeight: '400',
+                      opacity: '0.9',
+                      lineHeight: '1.6'
                     }}>
-                      {fromDate && toDate 
-                        ? `${format(new Date(fromDate), 'dd MMM yyyy')} - ${format(new Date(toDate), 'dd MMM yyyy')}`
-                        : 'All Transactions'
-                      }
+                      {companyProfile.regAddressLine1}
+                      {companyProfile.regCity && `, ${companyProfile.regCity}`}
+                      {companyProfile.regState && `, ${companyProfile.regState}`}
+                      {companyProfile.regPincode && ` - ${companyProfile.regPincode}`}
                     </p>
-                  </div>
+                  )}
+                </div>
+
+                {/* Document Title Section */}
+                <div style={{ 
+                  backgroundColor: '#f8fafc',
+                  padding: '18px 24px',
+                  marginBottom: '20px',
+                  borderLeft: '5px solid #667eea',
+                  borderRadius: '6px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                }}>
+                  <h2 style={{ 
+                    margin: '0 0 8px 0', 
+                    fontSize: '18pt', 
+                    color: '#1e293b',
+                    fontWeight: '700',
+                    letterSpacing: '0.5px',
+                    textTransform: 'uppercase'
+                  }}>
+                    📊 Ledger Statement
+                  </h2>
+                  <p style={{ 
+                    margin: '0', 
+                    fontSize: '10pt', 
+                    color: '#64748b',
+                    fontWeight: '500'
+                  }}>
+                    Period: {fromDate && toDate 
+                      ? `${format(new Date(fromDate), 'dd MMM yyyy')} to ${format(new Date(toDate), 'dd MMM yyyy')}`
+                      : 'All Transactions'
+                    }
+                  </p>
                 </div>
 
                 {/* Customer Information Section */}
                 <div style={{ 
-                  marginBottom: '20px',
-                  backgroundColor: '#f8fafc',
-                  padding: '18px',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0'
+                  marginBottom: '22px',
+                  background: 'linear-gradient(to right, #f8fafc 0%, #ffffff 100%)',
+                  padding: '20px 24px',
+                  borderRadius: '10px',
+                  border: '2px solid #e2e8f0',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                 }}>
-                  <h2 style={{ 
-                    margin: '0 0 14px 0', 
-                    fontSize: '18px', 
-                    fontWeight: 'bold',
-                    color: '#1e293b',
-                    borderBottom: '2px solid #cbd5e1',
-                    paddingBottom: '8px'
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '16px',
+                    paddingBottom: '12px',
+                    borderBottom: '2px solid #667eea'
                   }}>
-                    Customer Details
-                  </h2>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                    <div>
-                      <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>
-                        <span style={{ fontWeight: '700', color: '#475569' }}>Name:</span>{' '}
-                        <span style={{ color: '#1e293b' }}>{ledgerData.customer.name}</span>
+                    <div style={{
+                      width: '6px',
+                      height: '24px',
+                      backgroundColor: '#667eea',
+                      borderRadius: '3px',
+                      marginRight: '12px'
+                    }}></div>
+                    <h3 style={{ 
+                      margin: '0', 
+                      fontSize: '14pt', 
+                      fontWeight: '700',
+                      color: '#1e293b',
+                      letterSpacing: '0.3px'
+                    }}>
+                      Customer Information
+                    </h3>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px' }}>
+                    <div style={{ 
+                      padding: '10px 0',
+                      borderBottom: '1px solid #e2e8f0'
+                    }}>
+                      <p style={{ margin: '0 0 4px 0', fontSize: '8pt', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Customer Name
                       </p>
-                      {ledgerData.customer.mobile && (
-                        <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: '700', color: '#475569' }}>Mobile:</span>{' '}
-                          <span style={{ color: '#1e293b' }}>{ledgerData.customer.mobile}</span>
-                        </p>
-                      )}
-                      {ledgerData.customer.email && (
-                        <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: '700', color: '#475569' }}>Email:</span>{' '}
-                          <span style={{ color: '#1e293b' }}>{ledgerData.customer.email}</span>
-                        </p>
-                      )}
+                      <p style={{ margin: '0', fontSize: '11pt', color: '#1e293b', fontWeight: '600' }}>
+                        {ledgerData.customer.name}
+                      </p>
                     </div>
-                    <div>
-                      {ledgerData.customer.address && (
-                        <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: '700', color: '#475569' }}>Address:</span>{' '}
-                          <span style={{ color: '#1e293b' }}>{ledgerData.customer.address}</span>
+                    {ledgerData.customer.gstin && (
+                      <div style={{ 
+                        padding: '10px 0',
+                        borderBottom: '1px solid #e2e8f0'
+                      }}>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '8pt', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          GSTIN
                         </p>
-                      )}
-                      {ledgerData.customer.city && (
-                        <p style={{ margin: '0 0 8px 0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: '700', color: '#475569' }}>City:</span>{' '}
-                          <span style={{ color: '#1e293b' }}>
-                            {ledgerData.customer.city}{ledgerData.customer.state ? `, ${ledgerData.customer.state}` : ''}{ledgerData.customer.pincode ? ` - ${ledgerData.customer.pincode}` : ''}
-                          </span>
+                        <p style={{ margin: '0', fontSize: '11pt', color: '#1e293b', fontWeight: '600' }}>
+                          {ledgerData.customer.gstin}
                         </p>
-                      )}
-                      {ledgerData.customer.gstin && (
-                        <p style={{ margin: '0', fontSize: '13px' }}>
-                          <span style={{ fontWeight: '700', color: '#475569' }}>GSTIN:</span>{' '}
-                          <span style={{ color: '#1e293b' }}>{ledgerData.customer.gstin}</span>
+                      </div>
+                    )}
+                    {ledgerData.customer.mobile && (
+                      <div style={{ 
+                        padding: '10px 0',
+                        borderBottom: '1px solid #e2e8f0'
+                      }}>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '8pt', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Mobile Number
                         </p>
-                      )}
-                    </div>
+                        <p style={{ margin: '0', fontSize: '11pt', color: '#1e293b', fontWeight: '600' }}>
+                          {ledgerData.customer.mobile}
+                        </p>
+                      </div>
+                    )}
+                    {ledgerData.customer.email && (
+                      <div style={{ 
+                        padding: '10px 0',
+                        borderBottom: '1px solid #e2e8f0'
+                      }}>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '8pt', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Email Address
+                        </p>
+                        <p style={{ margin: '0', fontSize: '11pt', color: '#1e293b', fontWeight: '600' }}>
+                          {ledgerData.customer.email}
+                        </p>
+                      </div>
+                    )}
+                    {ledgerData.customer.address && (
+                      <div style={{ 
+                        padding: '10px 0',
+                        gridColumn: '1 / -1'
+                      }}>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '8pt', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          Address
+                        </p>
+                        <p style={{ margin: '0', fontSize: '11pt', color: '#1e293b', fontWeight: '600', lineHeight: '1.5' }}>
+                          {ledgerData.customer.address}
+                          {ledgerData.customer.city && `, ${ledgerData.customer.city}`}
+                          {ledgerData.customer.state && `, ${ledgerData.customer.state}`}
+                          {ledgerData.customer.pincode && ` - ${ledgerData.customer.pincode}`}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -686,81 +758,211 @@ export default function Ledger() {
                 <table style={{ 
                   width: '100%', 
                   borderCollapse: 'collapse', 
-                  fontSize: '12px',
-                  marginBottom: '20px',
-                  border: '1px solid #cbd5e1'
+                  fontSize: '9pt',
+                  marginBottom: '22px',
+                  border: '2px solid #cbd5e1',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.08)'
                 }}>
                   <thead>
                     <tr style={{ 
-                      backgroundColor: '#1e40af', 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                       color: '#ffffff'
                     }}>
-                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '700', fontSize: '12px' }}>Date</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'left', fontWeight: '700', fontSize: '12px' }}>Particulars</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', fontSize: '12px' }}>Ref No</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', fontSize: '12px' }}>Vch Type</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'center', fontWeight: '700', fontSize: '12px' }}>Vch No.</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '700', fontSize: '12px' }}>Debit (₹)</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '700', fontSize: '12px' }}>Credit (₹)</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'right', fontWeight: '700', fontSize: '12px' }}>Balance (₹)</th>
+                      <th style={{ 
+                        padding: '14px 10px', 
+                        textAlign: 'left', 
+                        fontWeight: '700', 
+                        fontSize: '9pt',
+                        borderRight: '1px solid rgba(255,255,255,0.2)',
+                        letterSpacing: '0.3px'
+                      }}>Date</th>
+                      <th style={{ 
+                        padding: '14px 10px', 
+                        textAlign: 'left', 
+                        fontWeight: '700', 
+                        fontSize: '9pt',
+                        borderRight: '1px solid rgba(255,255,255,0.2)',
+                        letterSpacing: '0.3px'
+                      }}>Particulars</th>
+                      <th style={{ 
+                        padding: '14px 10px', 
+                        textAlign: 'center', 
+                        fontWeight: '700', 
+                        fontSize: '9pt',
+                        borderRight: '1px solid rgba(255,255,255,0.2)',
+                        letterSpacing: '0.3px'
+                      }}>Ref No</th>
+                      <th style={{ 
+                        padding: '14px 10px', 
+                        textAlign: 'center', 
+                        fontWeight: '700', 
+                        fontSize: '9pt',
+                        borderRight: '1px solid rgba(255,255,255,0.2)',
+                        letterSpacing: '0.3px'
+                      }}>Vch Type</th>
+                      <th style={{ 
+                        padding: '14px 10px', 
+                        textAlign: 'center', 
+                        fontWeight: '700', 
+                        fontSize: '9pt',
+                        borderRight: '1px solid rgba(255,255,255,0.2)',
+                        letterSpacing: '0.3px'
+                      }}>Vch No.</th>
+                      <th style={{ 
+                        padding: '14px 10px', 
+                        textAlign: 'right', 
+                        fontWeight: '700', 
+                        fontSize: '9pt',
+                        borderRight: '1px solid rgba(255,255,255,0.2)',
+                        letterSpacing: '0.3px'
+                      }}>Debit ₹</th>
+                      <th style={{ 
+                        padding: '14px 10px', 
+                        textAlign: 'right', 
+                        fontWeight: '700', 
+                        fontSize: '9pt',
+                        borderRight: '1px solid rgba(255,255,255,0.2)',
+                        letterSpacing: '0.3px'
+                      }}>Credit ₹</th>
+                      <th style={{ 
+                        padding: '14px 10px', 
+                        textAlign: 'right', 
+                        fontWeight: '700', 
+                        fontSize: '9pt',
+                        letterSpacing: '0.3px'
+                      }}>Balance ₹</th>
                     </tr>
                   </thead>
                   <tbody>
                     {ledgerData.transactions.map((transaction, index) => (
                       <tr key={index} style={{ 
-                        backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8fafc',
-                        borderBottom: '1px solid #e2e8f0',
-                        pageBreakInside: 'avoid'
+                        backgroundColor: index % 2 === 0 ? '#ffffff' : '#f9fafb',
+                        borderBottom: '1px solid #e5e7eb',
+                        pageBreakInside: 'avoid',
+                        transition: 'background-color 0.2s'
                       }}>
-                        <td style={{ padding: '10px', color: '#475569', fontSize: '12px', verticalAlign: 'middle' }}>
+                        <td style={{ 
+                          padding: '12px 10px', 
+                          color: '#374151', 
+                          fontSize: '9pt', 
+                          fontWeight: '600',
+                          verticalAlign: 'middle',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>
                           {formatLedgerDate(transaction.date)}
                         </td>
-                        <td style={{ padding: '10px', color: '#1e293b', fontSize: '12px', fontWeight: '500', verticalAlign: 'middle' }}>
+                        <td style={{ 
+                          padding: '12px 10px', 
+                          color: '#111827', 
+                          fontSize: '9pt', 
+                          fontWeight: '500', 
+                          verticalAlign: 'middle',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>
                           {transaction.particulars}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '11px', verticalAlign: 'middle' }}>
+                        <td style={{ 
+                          padding: '12px 10px', 
+                          textAlign: 'center', 
+                          color: '#6b7280', 
+                          fontSize: '8pt', 
+                          verticalAlign: 'middle',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>
                           {transaction.refNo}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'center', fontSize: '11px', verticalAlign: 'middle' }}>
+                        <td style={{ 
+                          padding: '12px 10px', 
+                          textAlign: 'center', 
+                          fontSize: '8pt', 
+                          verticalAlign: 'middle',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>
                           <span style={{ 
                             display: 'inline-block',
-                            padding: '5px 12px', 
-                            borderRadius: '5px',
+                            padding: '4px 10px', 
+                            borderRadius: '4px',
                             backgroundColor: 
                               transaction.voucherType === 'Sales' || transaction.voucherType === 'Invoice' ? '#dbeafe' :
-                              transaction.voucherType === 'Receipt' || transaction.voucherType === 'Payment' ? '#dcfce7' :
+                              transaction.voucherType === 'Receipt' || transaction.voucherType === 'Payment' ? '#d1fae5' :
                               transaction.voucherType === 'Journal' ? '#fef3c7' :
                               transaction.voucherType === 'Credit Note' ? '#fce7f3' :
-                              '#f1f5f9',
+                              transaction.voucherType === 'Opening' ? '#f3f4f6' :
+                              '#e0e7ff',
                             color:
                               transaction.voucherType === 'Sales' || transaction.voucherType === 'Invoice' ? '#1e40af' :
-                              transaction.voucherType === 'Receipt' || transaction.voucherType === 'Payment' ? '#15803d' :
-                              transaction.voucherType === 'Journal' ? '#a16207' :
+                              transaction.voucherType === 'Receipt' || transaction.voucherType === 'Payment' ? '#065f46' :
+                              transaction.voucherType === 'Journal' ? '#92400e' :
                               transaction.voucherType === 'Credit Note' ? '#9f1239' :
-                              '#475569',
+                              transaction.voucherType === 'Opening' ? '#4b5563' :
+                              '#4338ca',
                             fontWeight: '700',
-                            fontSize: '10px',
-                            lineHeight: '1',
-                            whiteSpace: 'nowrap'
+                            fontSize: '7.5pt',
+                            lineHeight: '1.2',
+                            whiteSpace: 'nowrap',
+                            border: '1px solid',
+                            borderColor:
+                              transaction.voucherType === 'Sales' || transaction.voucherType === 'Invoice' ? '#93c5fd' :
+                              transaction.voucherType === 'Receipt' || transaction.voucherType === 'Payment' ? '#6ee7b7' :
+                              transaction.voucherType === 'Journal' ? '#fcd34d' :
+                              transaction.voucherType === 'Credit Note' ? '#f9a8d4' :
+                              transaction.voucherType === 'Opening' ? '#d1d5db' :
+                              '#a5b4fc'
                           }}>
                             {transaction.voucherType}
                           </span>
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'center', color: '#64748b', fontSize: '11px', verticalAlign: 'middle' }}>
+                        <td style={{ 
+                          padding: '12px 10px', 
+                          textAlign: 'center', 
+                          color: '#6b7280', 
+                          fontSize: '8.5pt',
+                          fontWeight: '500',
+                          verticalAlign: 'middle',
+                          borderRight: '1px solid #f3f4f6'
+                        }}>
                           {transaction.voucherNo}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'right', color: '#dc2626', fontWeight: '700', fontSize: '12px', verticalAlign: 'middle' }}>
-                          {transaction.debit > 0 ? transaction.debit.toLocaleString() : '-'}
+                        <td style={{ 
+                          padding: '12px 10px', 
+                          textAlign: 'right', 
+                          color: '#dc2626', 
+                          fontWeight: '700', 
+                          fontSize: '9pt', 
+                          verticalAlign: 'middle',
+                          borderRight: '1px solid #f3f4f6',
+                          fontFamily: '"Segoe UI", Arial, monospace'
+                        }}>
+                          {transaction.debit > 0 ? transaction.debit.toLocaleString('en-IN') : '—'}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'right', color: '#16a34a', fontWeight: '700', fontSize: '12px', verticalAlign: 'middle' }}>
-                          {transaction.credit > 0 ? transaction.credit.toLocaleString() : '-'}
+                        <td style={{ 
+                          padding: '12px 10px', 
+                          textAlign: 'right', 
+                          color: '#059669', 
+                          fontWeight: '700', 
+                          fontSize: '9pt', 
+                          verticalAlign: 'middle',
+                          borderRight: '1px solid #f3f4f6',
+                          fontFamily: '"Segoe UI", Arial, monospace'
+                        }}>
+                          {transaction.credit > 0 ? transaction.credit.toLocaleString('en-IN') : '—'}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold', fontSize: '12px', color: '#1e293b', verticalAlign: 'middle' }}>
-                          {transaction.balance.toLocaleString()} 
+                        <td style={{ 
+                          padding: '12px 10px', 
+                          textAlign: 'right', 
+                          fontWeight: '700', 
+                          fontSize: '9pt', 
+                          color: '#1e293b', 
+                          verticalAlign: 'middle',
+                          fontFamily: '"Segoe UI", Arial, monospace'
+                        }}>
+                          {transaction.balance.toLocaleString('en-IN')} 
                           <span style={{ 
-                            fontSize: '10px', 
+                            fontSize: '8pt', 
                             marginLeft: '4px',
-                            color: transaction.balanceType === 'Dr' ? '#dc2626' : '#16a34a',
+                            color: transaction.balanceType === 'Dr' ? '#dc2626' : '#059669',
                             fontWeight: '700'
                           }}>
                             {transaction.balanceType}
@@ -771,21 +973,48 @@ export default function Ledger() {
                   </tbody>
                   <tfoot>
                     <tr style={{ 
-                      backgroundColor: '#1e40af', 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                       color: '#ffffff',
                       fontWeight: 'bold'
                     }}>
-                      <td colSpan={5} style={{ padding: '14px 10px', fontSize: '14px', fontWeight: '700' }}>
-                        TOTAL
+                      <td colSpan={5} style={{ 
+                        padding: '16px 10px', 
+                        fontSize: '11pt', 
+                        fontWeight: '700',
+                        letterSpacing: '1px',
+                        textTransform: 'uppercase'
+                      }}>
+                        Grand Total
                       </td>
-                      <td style={{ padding: '14px 10px', textAlign: 'right', fontSize: '14px', fontWeight: '700' }}>
-                        {ledgerData.summary.totalDebits.toLocaleString()}
+                      <td style={{ 
+                        padding: '16px 10px', 
+                        textAlign: 'right', 
+                        fontSize: '11pt', 
+                        fontWeight: '700',
+                        borderLeft: '1px solid rgba(255,255,255,0.3)',
+                        fontFamily: '"Segoe UI", Arial, monospace'
+                      }}>
+                        ₹ {ledgerData.summary.totalDebits.toLocaleString('en-IN')}
                       </td>
-                      <td style={{ padding: '14px 10px', textAlign: 'right', fontSize: '14px', fontWeight: '700' }}>
-                        {ledgerData.summary.totalCredits.toLocaleString()}
+                      <td style={{ 
+                        padding: '16px 10px', 
+                        textAlign: 'right', 
+                        fontSize: '11pt', 
+                        fontWeight: '700',
+                        borderLeft: '1px solid rgba(255,255,255,0.3)',
+                        fontFamily: '"Segoe UI", Arial, monospace'
+                      }}>
+                        ₹ {ledgerData.summary.totalCredits.toLocaleString('en-IN')}
                       </td>
-                      <td style={{ padding: '14px 10px', textAlign: 'right', fontSize: '14px', fontWeight: '700' }}>
-                        {ledgerData.summary.closingBalance.toLocaleString()} {ledgerData.summary.closingBalanceType}
+                      <td style={{ 
+                        padding: '16px 10px', 
+                        textAlign: 'right', 
+                        fontSize: '11pt', 
+                        fontWeight: '700',
+                        borderLeft: '1px solid rgba(255,255,255,0.3)',
+                        fontFamily: '"Segoe UI", Arial, monospace'
+                      }}>
+                        ₹ {ledgerData.summary.closingBalance.toLocaleString('en-IN')} {ledgerData.summary.closingBalanceType}
                       </td>
                     </tr>
                   </tfoot>
@@ -794,64 +1023,140 @@ export default function Ledger() {
                 {/* Summary Section */}
                 <div style={{ 
                   display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr 1fr 1fr', 
-                  gap: '15px',
-                  marginBottom: '25px'
+                  gridTemplateColumns: 'repeat(4, 1fr)', 
+                  gap: '14px',
+                  marginBottom: '24px'
                 }}>
                   <div style={{ 
-                    backgroundColor: '#fef3c7', 
-                    padding: '18px', 
-                    borderRadius: '8px',
-                    border: '2px solid #fbbf24'
+                    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                    padding: '16px 18px', 
+                    borderRadius: '10px',
+                    border: '2px solid #fbbf24',
+                    boxShadow: '0 2px 4px rgba(251, 191, 36, 0.2)'
                   }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#92400e', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Opening Balance
-                    </p>
-                    <p style={{ margin: '0', fontSize: '20px', fontWeight: 'bold', color: '#a16207' }}>
-                      ₹{Math.abs(ledgerData.summary.openingBalance).toLocaleString()} 
-                      <span style={{ fontSize: '14px', marginLeft: '6px' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: '8px'
+                    }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: '#f59e0b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: '10px'
+                      }}>
+                        <span style={{ fontSize: '16px' }}>📝</span>
+                      </div>
+                      <p style={{ margin: '0', fontSize: '8.5pt', color: '#78350f', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Opening Balance
+                      </p>
+                    </div>
+                    <p style={{ margin: '0', fontSize: '16pt', fontWeight: '700', color: '#92400e', fontFamily: '"Segoe UI", Arial, monospace' }}>
+                      ₹{Math.abs(ledgerData.summary.openingBalance).toLocaleString('en-IN')} 
+                      <span style={{ fontSize: '10pt', marginLeft: '4px', fontWeight: '600' }}>
                         {ledgerData.summary.openingBalance >= 0 ? 'Dr' : 'Cr'}
                       </span>
                     </p>
                   </div>
                   <div style={{ 
-                    backgroundColor: '#fee2e2', 
-                    padding: '18px', 
-                    borderRadius: '8px',
-                    border: '2px solid #fecaca'
+                    background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                    padding: '16px 18px', 
+                    borderRadius: '10px',
+                    border: '2px solid #f87171',
+                    boxShadow: '0 2px 4px rgba(248, 113, 113, 0.2)'
                   }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#991b1b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Total Debits
-                    </p>
-                    <p style={{ margin: '0', fontSize: '20px', fontWeight: 'bold', color: '#dc2626' }}>
-                      ₹{ledgerData.summary.totalDebits.toLocaleString()}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: '8px'
+                    }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: '#ef4444',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: '10px'
+                      }}>
+                        <span style={{ fontSize: '16px' }}>📤</span>
+                      </div>
+                      <p style={{ margin: '0', fontSize: '8.5pt', color: '#7f1d1d', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Total Debits
+                      </p>
+                    </div>
+                    <p style={{ margin: '0', fontSize: '16pt', fontWeight: '700', color: '#991b1b', fontFamily: '"Segoe UI", Arial, monospace' }}>
+                      ₹{ledgerData.summary.totalDebits.toLocaleString('en-IN')}
                     </p>
                   </div>
                   <div style={{ 
-                    backgroundColor: '#dcfce7', 
-                    padding: '18px', 
-                    borderRadius: '8px',
-                    border: '2px solid #bbf7d0'
+                    background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+                    padding: '16px 18px', 
+                    borderRadius: '10px',
+                    border: '2px solid #34d399',
+                    boxShadow: '0 2px 4px rgba(52, 211, 153, 0.2)'
                   }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#14532d', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Total Credits
-                    </p>
-                    <p style={{ margin: '0', fontSize: '20px', fontWeight: 'bold', color: '#16a34a' }}>
-                      ₹{ledgerData.summary.totalCredits.toLocaleString()}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: '8px'
+                    }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: '#10b981',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: '10px'
+                      }}>
+                        <span style={{ fontSize: '16px' }}>📥</span>
+                      </div>
+                      <p style={{ margin: '0', fontSize: '8.5pt', color: '#064e3b', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Total Credits
+                      </p>
+                    </div>
+                    <p style={{ margin: '0', fontSize: '16pt', fontWeight: '700', color: '#065f46', fontFamily: '"Segoe UI", Arial, monospace' }}>
+                      ₹{ledgerData.summary.totalCredits.toLocaleString('en-IN')}
                     </p>
                   </div>
                   <div style={{ 
-                    backgroundColor: '#dbeafe', 
-                    padding: '18px', 
-                    borderRadius: '8px',
-                    border: '2px solid #93c5fd'
+                    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                    padding: '16px 18px', 
+                    borderRadius: '10px',
+                    border: '2px solid #60a5fa',
+                    boxShadow: '0 2px 4px rgba(96, 165, 250, 0.2)'
                   }}>
-                    <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#1e3a8a', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Closing Balance
-                    </p>
-                    <p style={{ margin: '0', fontSize: '20px', fontWeight: 'bold', color: '#1e40af' }}>
-                      ₹{ledgerData.summary.closingBalance.toLocaleString()} 
-                      <span style={{ fontSize: '14px', marginLeft: '6px' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: '8px'
+                    }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '8px',
+                        backgroundColor: '#3b82f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: '10px'
+                      }}>
+                        <span style={{ fontSize: '16px' }}>💰</span>
+                      </div>
+                      <p style={{ margin: '0', fontSize: '8.5pt', color: '#1e3a8a', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Closing Balance
+                      </p>
+                    </div>
+                    <p style={{ margin: '0', fontSize: '16pt', fontWeight: '700', color: '#1e40af', fontFamily: '"Segoe UI", Arial, monospace' }}>
+                      ₹{ledgerData.summary.closingBalance.toLocaleString('en-IN')} 
+                      <span style={{ fontSize: '10pt', marginLeft: '4px', fontWeight: '600' }}>
                         {ledgerData.summary.closingBalanceType}
                       </span>
                     </p>
