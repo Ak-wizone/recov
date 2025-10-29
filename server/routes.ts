@@ -7628,6 +7628,245 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Calculate Category Recommendations (preview only, does not apply changes)
+  app.post("/api/recovery/calculate-categories", async (req, res) => {
+    try {
+      const { filterCategories } = req.body;
+
+      // Get thresholds (cumulative grace periods)
+      const rules = await storage.getCategoryRules(req.tenantId!) || {
+        alphaDays: 5,
+        betaDays: 20,
+        gammaDays: 40,
+        deltaDays: 100,
+        partialPaymentThresholdPercent: 80
+      };
+
+      const invoices = await storage.getInvoices(req.tenantId!);
+      const receipts = await storage.getReceipts(req.tenantId!);
+      const customers = await storage.getMasterCustomers(req.tenantId!);
+      const today = new Date();
+
+      // Calculate cumulative thresholds
+      const alphaEnd = rules.alphaDays;
+      const betaEnd = rules.alphaDays + rules.betaDays;
+      const gammaEnd = rules.alphaDays + rules.betaDays + rules.gammaDays;
+
+      // Calculate max days overdue per customer (excluding invoices with partial payments >= threshold)
+      const customerOverdue = new Map<string, { maxDays: number, oldestInvoiceDate: Date | null, totalOutstanding: number, invoiceDetails: any[] }>();
+      
+      // Group receipts by customer for calculation
+      const receiptsByCustomer = new Map<string, typeof receipts>();
+      receipts.forEach(receipt => {
+        const customerReceipts = receiptsByCustomer.get(receipt.customerName) || [];
+        customerReceipts.push(receipt);
+        receiptsByCustomer.set(receipt.customerName, customerReceipts);
+      });
+
+      for (const invoice of invoices) {
+        if (invoice.status === "Paid") continue;
+
+        const invoiceDate = new Date(invoice.invoiceDate);
+        const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+        const dueDate = new Date(invoiceDate);
+        dueDate.setDate(dueDate.getDate() + paymentTerms);
+
+        const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysOverdue > 0) {
+          // Check partial payment threshold
+          const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+          const customerReceipts = receiptsByCustomer.get(invoice.customerName) || [];
+          
+          // Calculate FIFO allocation for this invoice
+          const customerInvoices = invoices.filter(inv => inv.customerName === invoice.customerName)
+            .sort((a, b) => new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime());
+          
+          let totalPaid = customerReceipts.reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
+          let cumulativeAmount = 0;
+          let allocatedToThisInvoice = 0;
+          
+          for (const inv of customerInvoices) {
+            const invAmount = parseFloat(inv.invoiceAmount.toString());
+            if (inv.id === invoice.id) {
+              const beforeThis = cumulativeAmount;
+              if (totalPaid > beforeThis) {
+                allocatedToThisInvoice = Math.min(totalPaid - beforeThis, invAmount);
+              }
+              break;
+            }
+            cumulativeAmount += invAmount;
+          }
+
+          const paymentPercent = (allocatedToThisInvoice / invoiceAmount) * 100;
+          
+          // Skip if payment percentage meets or exceeds threshold
+          if (paymentPercent >= rules.partialPaymentThresholdPercent) {
+            continue;
+          }
+
+          const current = customerOverdue.get(invoice.customerName) || { 
+            maxDays: 0, 
+            oldestInvoiceDate: null, 
+            totalOutstanding: 0,
+            invoiceDetails: []
+          };
+          
+          customerOverdue.set(invoice.customerName, {
+            maxDays: Math.max(current.maxDays, daysOverdue),
+            oldestInvoiceDate: current.oldestInvoiceDate === null || invoiceDate < current.oldestInvoiceDate ? invoiceDate : current.oldestInvoiceDate,
+            totalOutstanding: current.totalOutstanding + (invoiceAmount - allocatedToThisInvoice),
+            invoiceDetails: [...current.invoiceDetails, {
+              invoiceNumber: invoice.invoiceNumber,
+              invoiceDate: invoice.invoiceDate,
+              amount: invoiceAmount,
+              daysOverdue: daysOverdue,
+              paymentPercent: paymentPercent
+            }]
+          });
+        }
+      }
+
+      // Calculate recommendations
+      const recommendations: any[] = [];
+      const summary = {
+        totalCustomers: 0,
+        willChange: 0,
+        noChange: 0,
+        byCategory: { alpha: 0, beta: 0, gamma: 0, delta: 0 }
+      };
+
+      for (const customer of customers) {
+        // Apply category filter if specified
+        if (filterCategories && filterCategories.length > 0 && !filterCategories.includes(customer.category)) {
+          continue;
+        }
+
+        const overdueData = customerOverdue.get(customer.clientName);
+        const maxOverdue = overdueData?.maxDays || 0;
+        let recommendedCategory = customer.category;
+        let changeReason = "No overdue invoices";
+
+        if (maxOverdue > 0) {
+          // Determine new category using cumulative grace periods
+          if (maxOverdue > gammaEnd) {
+            recommendedCategory = "Delta";
+            changeReason = `Overdue ${maxOverdue} days (beyond ${gammaEnd} days)`;
+          } else if (maxOverdue > betaEnd) {
+            recommendedCategory = "Gamma";
+            changeReason = `Overdue ${maxOverdue} days (${betaEnd+1}-${gammaEnd} days)`;
+          } else if (maxOverdue > alphaEnd) {
+            recommendedCategory = "Beta";
+            changeReason = `Overdue ${maxOverdue} days (${alphaEnd+1}-${betaEnd} days)`;
+          } else {
+            recommendedCategory = "Alpha";
+            changeReason = `Overdue ${maxOverdue} days (0-${alphaEnd} days)`;
+          }
+        }
+
+        const willChange = recommendedCategory !== customer.category;
+
+        recommendations.push({
+          customerId: customer.id,
+          customerName: customer.clientName,
+          currentCategory: customer.category,
+          recommendedCategory,
+          maxDaysOverdue: maxOverdue,
+          totalOutstanding: overdueData?.totalOutstanding || 0,
+          oldestInvoiceDate: overdueData?.oldestInvoiceDate?.toISOString() || null,
+          changeReason,
+          willChange,
+          invoiceDetails: overdueData?.invoiceDetails || []
+        });
+
+        summary.totalCustomers++;
+        if (willChange) {
+          summary.willChange++;
+        } else {
+          summary.noChange++;
+        }
+        
+        // Count by recommended category
+        if (recommendedCategory === "Alpha") summary.byCategory.alpha++;
+        else if (recommendedCategory === "Beta") summary.byCategory.beta++;
+        else if (recommendedCategory === "Gamma") summary.byCategory.gamma++;
+        else if (recommendedCategory === "Delta") summary.byCategory.delta++;
+      }
+
+      res.json({
+        recommendations,
+        summary,
+        rules: {
+          alphaRange: `0-${alphaEnd} days`,
+          betaRange: `${alphaEnd+1}-${betaEnd} days`,
+          gammaRange: `${betaEnd+1}-${gammaEnd} days`,
+          deltaRange: `${gammaEnd+1}+ days`,
+          partialPaymentThreshold: `${rules.partialPaymentThresholdPercent}%`
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to calculate categories:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Apply Category Changes (after review)
+  app.post("/api/recovery/apply-category-changes", async (req, res) => {
+    try {
+      const { changes } = req.body;
+
+      if (!changes || !Array.isArray(changes) || changes.length === 0) {
+        return res.status(400).json({ message: "No changes to apply" });
+      }
+
+      const appliedChanges: any[] = [];
+
+      for (const change of changes) {
+        const { customerId, newCategory, reason, daysOverdue } = change;
+
+        const customer = await storage.getMasterCustomer(req.tenantId!, customerId);
+        if (!customer) {
+          console.warn(`Customer ${customerId} not found, skipping`);
+          continue;
+        }
+
+        if (customer.category === newCategory) {
+          continue; // Already in target category
+        }
+
+        // Update category
+        await storage.updateMasterCustomer(req.tenantId!, customerId, { category: newCategory });
+
+        // Log the change
+        await storage.logCategoryChange(req.tenantId!, {
+          customerId,
+          customerName: customer.clientName,
+          oldCategory: customer.category as "Alpha" | "Beta" | "Gamma" | "Delta",
+          newCategory: newCategory as "Alpha" | "Beta" | "Gamma" | "Delta",
+          changeType: "manual",
+          changedBy: (req as any).user?.id || "system",
+          reason: reason || "Category change applied from calculation review",
+          daysOverdue: daysOverdue,
+        });
+
+        appliedChanges.push({
+          customerName: customer.clientName,
+          oldCategory: customer.category,
+          newCategory,
+          daysOverdue
+        });
+      }
+
+      res.json({ 
+        message: `Successfully applied ${appliedChanges.length} category change(s)`,
+        appliedChanges
+      });
+    } catch (error: any) {
+      console.error("Failed to apply category changes:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Manual Category Change
   app.post("/api/recovery/manual-category-change", async (req, res) => {
     try {
