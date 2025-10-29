@@ -148,6 +148,7 @@ export default function Home() {
         <Card 
           className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-total-revenue"
+          onClick={() => setLocation('/invoices')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Revenue</CardTitle>
@@ -169,6 +170,7 @@ export default function Home() {
         <Card 
           className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-total-collections"
+          onClick={() => setLocation('/receipts')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Collections</CardTitle>
@@ -190,6 +192,7 @@ export default function Home() {
         <Card 
           className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
           data-testid="card-total-outstanding"
+          onClick={() => setLocation('/debtors')}
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Outstanding</CardTitle>
@@ -209,7 +212,7 @@ export default function Home() {
         </Card>
 
         <Card 
-          className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+          className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200" 
           data-testid="card-opening-balance"
         >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
