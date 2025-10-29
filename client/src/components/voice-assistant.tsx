@@ -50,26 +50,7 @@ interface VoiceAssistantProps {
 export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const { user } = useAuth();
   
-  // Check if user has access to Voice Assistant module
-  const { data: tenant } = useQuery<any>({
-    queryKey: ["/api/tenants/current"],
-    enabled: !!user && !!user.tenantId,
-    staleTime: 5 * 60 * 1000,
-  });
-  
-  // Don't render Voice Assistant if:
-  // 1. User is not authenticated
-  // 2. User is platform admin (no tenantId)
-  // 3. User's subscription doesn't include "RECOV Voice Assistant" module
-  if (!user || !user.tenantId) {
-    return null;
-  }
-  
-  const allowedModules = tenant?.customModules || tenant?.subscriptionPlan?.allowedModules || [];
-  if (!allowedModules.includes("RECOV Voice Assistant")) {
-    return null;
-  }
-  
+  // All hooks MUST be called before any conditional returns
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -82,43 +63,25 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   
+  // Check if user has access to Voice Assistant module
+  const { data: tenant } = useQuery<any>({
+    queryKey: ["/api/tenants/current"],
+    enabled: !!user && !!user.tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
+  
   // Load assistant settings
   const { data: assistantSettings } = useQuery({
     queryKey: ["/api/assistant/settings"],
     enabled: !!user,
   });
   
-  // Apply settings when loaded
-  useEffect(() => {
-    if (assistantSettings) {
-      const shouldListen = assistantSettings.alwaysListen;
-      setIsAlwaysListening(shouldListen);
-      
-      // Start or stop listening based on settings
-      if (shouldListen && !isListening && recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-          setIsListening(true);
-        } catch (error) {
-          console.error("Failed to start recognition:", error);
-        }
-      } else if (!shouldListen && isListening && recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-          setIsListening(false);
-        } catch (error) {
-          console.error("Failed to stop recognition:", error);
-        }
-      }
-    }
-  }, [assistantSettings]);
-
   // Fetch chat history
   const { data: chatHistory = [] } = useQuery({
     queryKey: ["/api/assistant/history"],
     enabled: isOpen,
   });
-
+  
   // Hydrate messages from chat history
   useEffect(() => {
     if (chatHistory && chatHistory.length > 0) {
@@ -265,6 +228,32 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
     }
   }, [messages]);
 
+  // Apply settings when loaded
+  useEffect(() => {
+    if (assistantSettings) {
+      const shouldListen = assistantSettings.alwaysListen;
+      setIsAlwaysListening(shouldListen);
+      
+      // Start or stop listening based on settings
+      if (shouldListen && !isListening && recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch (error) {
+          console.error("Failed to start recognition:", error);
+        }
+      } else if (!shouldListen && isListening && recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+          setIsListening(false);
+        } catch (error) {
+          console.error("Failed to stop recognition:", error);
+        }
+      }
+    }
+  }, [assistantSettings]);
+  
+  // Helper functions (must be defined on every render)
   const playBeep = () => {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
@@ -362,6 +351,19 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
     { icon: TrendingUp, label: "Collection", command: "aaj ka collection" },
     { icon: Mail, label: "Reports", command: "payment report" },
   ];
+
+  // Check access control - don't render if:
+  // 1. User is not authenticated
+  // 2. User is platform admin (no tenantId)
+  // 3. User's subscription doesn't include "RECOV Voice Assistant" module
+  if (!user || !user.tenantId) {
+    return null;
+  }
+  
+  const allowedModules = tenant?.customModules || tenant?.subscriptionPlan?.allowedModules || [];
+  if (!allowedModules.includes("RECOV Voice Assistant")) {
+    return null;
+  }
 
   return (
     <>
