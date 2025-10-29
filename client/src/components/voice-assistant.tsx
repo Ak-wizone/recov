@@ -49,6 +49,27 @@ interface VoiceAssistantProps {
 
 export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const { user } = useAuth();
+  
+  // Check if user has access to Voice Assistant module
+  const { data: tenant } = useQuery<any>({
+    queryKey: ["/api/tenants/current"],
+    enabled: !!user && !!user.tenantId,
+    staleTime: 5 * 60 * 1000,
+  });
+  
+  // Don't render Voice Assistant if:
+  // 1. User is not authenticated
+  // 2. User is platform admin (no tenantId)
+  // 3. User's subscription doesn't include "RECOV Voice Assistant" module
+  if (!user || !user.tenantId) {
+    return null;
+  }
+  
+  const allowedModules = tenant?.customModules || tenant?.subscriptionPlan?.allowedModules || [];
+  if (!allowedModules.includes("RECOV Voice Assistant")) {
+    return null;
+  }
+  
   const [isOpen, setIsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);

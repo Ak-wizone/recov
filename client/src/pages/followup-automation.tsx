@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Edit, Trash2, Settings2, Calendar, MessageSquare, Mail, Phone, Settings, ArrowRight } from "lucide-react";
+import { Plus, Edit, Trash2, Settings2, Calendar, MessageSquare, Mail, Phone, Settings, ArrowRight, X } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 
@@ -314,8 +314,19 @@ export default function FollowupAutomationPage() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle className="text-2xl">Communication Configuration</SheetTitle>
+              <SheetHeader className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <SheetTitle className="text-2xl">Communication Configuration</SheetTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsConfigSheetOpen(false)}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    data-testid="button-close-config"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
                 <SheetDescription>
                   Manage email, WhatsApp, and calling integrations for automated follow-ups
                 </SheetDescription>

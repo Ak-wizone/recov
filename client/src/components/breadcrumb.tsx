@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { ChevronRight, Home, Moon, Sun } from "lucide-react";
+import { ChevronRight, Moon, Sun } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
@@ -156,11 +156,7 @@ export function Breadcrumb() {
                   ) : isClickable && crumb.path ? (
                     <Link href={crumb.path}>
                       <span className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer">
-                        {index === 0 ? (
-                          <Home className="h-4 w-4" />
-                        ) : (
-                          crumb.name
-                        )}
+                        {crumb.name}
                       </span>
                     </Link>
                   ) : (
