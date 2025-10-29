@@ -27,11 +27,35 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Download, Mail, MessageCircle, FileText, Check, ChevronsUpDown } from "lucide-react";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import html2pdf from "html2pdf.js";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+
+const formatLedgerDate = (dateString: string): string => {
+  if (!dateString || dateString.trim() === '') {
+    return '—';
+  }
+  
+  try {
+    let date: Date;
+    
+    if (dateString.includes('/')) {
+      date = parse(dateString, 'dd/MM/yyyy', new Date());
+    } else {
+      date = new Date(dateString);
+    }
+    
+    if (!isValid(date)) {
+      return '—';
+    }
+    
+    return format(date, 'dd-MMM-yy');
+  } catch (error) {
+    return '—';
+  }
+};
 
 interface LedgerTransaction {
   date: string;
@@ -472,9 +496,7 @@ export default function Ledger() {
                           className="hover:bg-gray-50 transition-colors"
                         >
                           <TableCell className="font-medium">
-                            {transaction.voucherType === 'Opening' 
-                              ? format(new Date(transaction.date), 'dd-MMM-yy')
-                              : format(new Date(transaction.date), 'dd-MMM-yy')}
+                            {formatLedgerDate(transaction.date)}
                           </TableCell>
                           <TableCell>{transaction.particulars}</TableCell>
                           <TableCell className="text-sm text-gray-600">{transaction.refNo}</TableCell>
@@ -691,7 +713,7 @@ export default function Ledger() {
                         pageBreakInside: 'avoid'
                       }}>
                         <td style={{ padding: '10px', color: '#475569', fontSize: '12px', verticalAlign: 'middle' }}>
-                          {format(new Date(transaction.date), 'dd-MMM-yy')}
+                          {formatLedgerDate(transaction.date)}
                         </td>
                         <td style={{ padding: '10px', color: '#1e293b', fontSize: '12px', fontWeight: '500', verticalAlign: 'middle' }}>
                           {transaction.particulars}
