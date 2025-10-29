@@ -90,6 +90,7 @@ const AVAILABLE_MODULES = [
   
   // Risk & Recovery
   "Risk & Recovery",
+  "Payment Analytics",
   
   // Credit Control Submodules
   "Credit Control",
