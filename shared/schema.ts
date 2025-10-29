@@ -1562,6 +1562,67 @@ export const insertCategoryChangeLogSchema = createInsertSchema(categoryChangeLo
 export type InsertCategoryChangeLog = z.infer<typeof insertCategoryChangeLogSchema>;
 export type CategoryChangeLog = typeof categoryChangeLog.$inferSelect;
 
+// Payment Patterns - Customer payment behavior tracking
+export const paymentPatterns = pgTable("payment_patterns", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  customerId: varchar("customer_id").notNull(),
+  customerName: text("customer_name").notNull(),
+  totalInvoices: integer("total_invoices").notNull().default(0),
+  onTimeCount: integer("on_time_count").notNull().default(0),
+  lateCount: integer("late_count").notNull().default(0),
+  avgDelayDays: decimal("avg_delay_days", { precision: 10, scale: 2 }).notNull().default("0"),
+  paymentScore: integer("payment_score").notNull().default(0), // 0-100
+  paymentClassification: text("payment_classification").notNull().default("Regular"), // Star, Regular, Risky, Critical
+  highestCategoryReached: text("highest_category_reached").notNull().default("Alpha"), // Alpha, Beta, Gamma, Delta
+  alphaDays: integer("alpha_days").notNull().default(0),
+  betaDays: integer("beta_days").notNull().default(0),
+  gammaDays: integer("gamma_days").notNull().default(0),
+  deltaDays: integer("delta_days").notNull().default(0),
+  currentStreak: integer("current_streak").notNull().default(0), // Consecutive on-time payments
+  longestDelay: integer("longest_delay").notNull().default(0), // Maximum days overdue
+  lastCalculated: timestamp("last_calculated").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertPaymentPatternSchema = createInsertSchema(paymentPatterns).pick({
+  customerId: true,
+  customerName: true,
+  totalInvoices: true,
+  onTimeCount: true,
+  lateCount: true,
+  avgDelayDays: true,
+  paymentScore: true,
+  paymentClassification: true,
+  highestCategoryReached: true,
+  alphaDays: true,
+  betaDays: true,
+  gammaDays: true,
+  deltaDays: true,
+  currentStreak: true,
+  longestDelay: true,
+}).extend({
+  customerId: z.string().min(1, "Customer ID is required"),
+  customerName: z.string().min(1, "Customer name is required"),
+  totalInvoices: z.number().int().min(0).default(0),
+  onTimeCount: z.number().int().min(0).default(0),
+  lateCount: z.number().int().min(0).default(0),
+  avgDelayDays: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid delay days format").default("0"),
+  paymentScore: z.number().int().min(0).max(100).default(0),
+  paymentClassification: z.enum(["Star", "Regular", "Risky", "Critical"]).default("Regular"),
+  highestCategoryReached: z.enum(["Alpha", "Beta", "Gamma", "Delta"]).default("Alpha"),
+  alphaDays: z.number().int().min(0).default(0),
+  betaDays: z.number().int().min(0).default(0),
+  gammaDays: z.number().int().min(0).default(0),
+  deltaDays: z.number().int().min(0).default(0),
+  currentStreak: z.number().int().min(0).default(0),
+  longestDelay: z.number().int().min(0).default(0),
+});
+
+export type InsertPaymentPattern = z.infer<typeof insertPaymentPatternSchema>;
+export type PaymentPattern = typeof paymentPatterns.$inferSelect;
+
 // Legal Notice Templates - 5 template types with variable support
 export const legalNoticeTemplates = pgTable("legal_notice_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

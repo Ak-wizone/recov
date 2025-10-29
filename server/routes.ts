@@ -8433,6 +8433,196 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // ==================== PAYMENT ANALYTICS ROUTES ====================
+  
+  // Get Payment Patterns Dashboard (4 segments)
+  app.get("/api/payment-analytics/dashboard", async (req, res) => {
+    try {
+      const patterns = await storage.getPaymentPatterns(req.tenantId!);
+      const allInvoices = await storage.getInvoices(req.tenantId!);
+      const allReceipts = await storage.getReceipts(req.tenantId!);
+      const allCustomers = await storage.getMasterCustomers(req.tenantId!);
+
+      // Segment customers by classification
+      const segments = {
+        star: { count: 0, totalOutstanding: 0, customers: [] as any[] },
+        regular: { count: 0, totalOutstanding: 0, customers: [] as any[] },
+        risky: { count: 0, totalOutstanding: 0, customers: [] as any[] },
+        critical: { count: 0, totalOutstanding: 0, customers: [] as any[] },
+      };
+
+      // Calculate outstanding for each customer with pattern
+      for (const pattern of patterns) {
+        const customer = allCustomers.find(c => c.id === pattern.customerId);
+        if (!customer) continue;
+
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+
+        const openingBalance = customer.openingBalance ? parseFloat(customer.openingBalance.toString()) : 0;
+        const totalInvoices = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()), 0);
+        const totalReceipts = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount.toString()), 0);
+        const outstanding = openingBalance + totalInvoices - totalReceipts;
+
+        const customerData = {
+          customerId: customer.id,
+          customerName: customer.clientName,
+          category: customer.category,
+          outstanding: outstanding.toFixed(2),
+          paymentScore: pattern.paymentScore,
+          onTimeRate: pattern.totalInvoices > 0 ? ((pattern.onTimeCount / pattern.totalInvoices) * 100).toFixed(1) : "0",
+          avgDelayDays: parseFloat(pattern.avgDelayDays),
+        };
+
+        const classification = pattern.paymentClassification.toLowerCase();
+        if (classification === "star") {
+          segments.star.count++;
+          segments.star.totalOutstanding += outstanding;
+          segments.star.customers.push(customerData);
+        } else if (classification === "regular") {
+          segments.regular.count++;
+          segments.regular.totalOutstanding += outstanding;
+          segments.regular.customers.push(customerData);
+        } else if (classification === "risky") {
+          segments.risky.count++;
+          segments.risky.totalOutstanding += outstanding;
+          segments.risky.customers.push(customerData);
+        } else if (classification === "critical") {
+          segments.critical.count++;
+          segments.critical.totalOutstanding += outstanding;
+          segments.critical.customers.push(customerData);
+        }
+      }
+
+      // Category-wise breakdown
+      const categoryBreakdown = {
+        alpha: { star: 0, regular: 0, risky: 0, critical: 0 },
+        beta: { star: 0, regular: 0, risky: 0, critical: 0 },
+        gamma: { star: 0, regular: 0, risky: 0, critical: 0 },
+        delta: { star: 0, regular: 0, risky: 0, critical: 0 },
+      };
+
+      for (const pattern of patterns) {
+        const customer = allCustomers.find(c => c.id === pattern.customerId);
+        if (!customer) continue;
+
+        const category = customer.category.toLowerCase();
+        const classification = pattern.paymentClassification.toLowerCase();
+        
+        if (categoryBreakdown[category as keyof typeof categoryBreakdown]) {
+          categoryBreakdown[category as keyof typeof categoryBreakdown][classification as keyof typeof categoryBreakdown.alpha]++;
+        }
+      }
+
+      res.json({
+        segments,
+        categoryBreakdown,
+        totalCustomers: patterns.length,
+      });
+    } catch (error: any) {
+      console.error("Failed to get payment analytics dashboard:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get Customer Payment Scorecard
+  app.get("/api/payment-analytics/customer/:customerId", async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const pattern = await storage.getPaymentPattern(req.tenantId!, customerId);
+      
+      if (!pattern) {
+        return res.status(404).json({ message: "Payment pattern not found for this customer" });
+      }
+
+      const customer = await storage.getMasterCustomer(req.tenantId!, customerId);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      // Get invoice and receipt history
+      const allInvoices = await storage.getInvoices(req.tenantId!);
+      const allReceipts = await storage.getReceipts(req.tenantId!);
+      const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+      const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+
+      // Get category change history
+      const categoryChanges = await storage.getCategoryChangeLogs(req.tenantId!);
+      const customerCategoryHistory = categoryChanges.filter(log => log.customerId === customerId)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      // Build payment timeline
+      const timeline: any[] = [];
+      
+      // Add invoices and receipts to timeline
+      customerInvoices.forEach(inv => {
+        timeline.push({
+          type: 'invoice',
+          date: inv.invoiceDate,
+          invoiceNumber: inv.invoiceNumber,
+          amount: parseFloat(inv.invoiceAmount.toString()),
+          status: inv.status,
+        });
+      });
+
+      customerReceipts.forEach(rec => {
+        timeline.push({
+          type: 'receipt',
+          date: rec.date,
+          voucherNumber: rec.voucherNumber,
+          amount: parseFloat(rec.amount.toString()),
+          mode: rec.modeOfPayment,
+        });
+      });
+
+      timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      const onTimeRate = pattern.totalInvoices > 0 ? (pattern.onTimeCount / pattern.totalInvoices) * 100 : 0;
+
+      res.json({
+        pattern: {
+          ...pattern,
+          onTimeRate: onTimeRate.toFixed(1),
+        },
+        customer: {
+          id: customer.id,
+          name: customer.clientName,
+          category: customer.category,
+          creditLimit: customer.creditLimit,
+          primaryMobile: customer.primaryMobile,
+          primaryEmail: customer.primaryEmail,
+        },
+        timeline: timeline.slice(0, 50), // Limit to 50 most recent
+        categoryHistory: customerCategoryHistory.slice(0, 20), // Limit to 20 most recent
+      });
+    } catch (error: any) {
+      console.error("Failed to get customer payment scorecard:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get Reliable Customers Report
+  app.get("/api/payment-analytics/reliable-customers", async (req, res) => {
+    try {
+      const reliableCustomers = await storage.getReliableCustomers(req.tenantId!);
+      res.json(reliableCustomers);
+    } catch (error: any) {
+      console.error("Failed to get reliable customers:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Recalculate Payment Patterns
+  app.post("/api/payment-analytics/recalculate", async (req, res) => {
+    try {
+      const result = await storage.calculatePaymentPatterns(req.tenantId!);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Failed to recalculate payment patterns:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // ==================== BACKUP & RESTORE ROUTES ====================
   
   // Get Backup History (Tenant Level)

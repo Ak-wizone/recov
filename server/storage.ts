@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory, assistantSettings } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type PaymentPattern, type InsertPaymentPattern, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, paymentPatterns, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory, assistantSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, lt, gte, lte } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -216,6 +216,14 @@ export interface IStorage {
   updateFollowupAutomationSettings(tenantId: string, settings: any): Promise<any>;
   getCategoryChangeLogs(tenantId: string): Promise<any[]>;
   logCategoryChange(tenantId: string, log: any): Promise<any>;
+  
+  // Payment Analytics operations
+  getPaymentPatterns(tenantId: string): Promise<any[]>;
+  getPaymentPattern(tenantId: string, customerId: string): Promise<any | undefined>;
+  calculatePaymentPatterns(tenantId: string): Promise<any>;
+  updatePaymentPattern(tenantId: string, customerId: string, pattern: any): Promise<any>;
+  getReliableCustomers(tenantId: string): Promise<any[]>;
+  
   getLegalNoticeTemplates(tenantId: string): Promise<any[]>;
   getLegalNoticeTemplate(tenantId: string, id: string): Promise<any | undefined>;
   createLegalNoticeTemplate(tenantId: string, template: any): Promise<any>;
@@ -1967,6 +1975,263 @@ export class DatabaseStorage implements IStorage {
   async logCategoryChange(tenantId: string, log: InsertCategoryChangeLog): Promise<CategoryChangeLog> {
     const [created] = await db.insert(categoryChangeLog).values({ ...log, tenantId }).returning();
     return created;
+  }
+
+  // Payment Analytics operations
+  async getPaymentPatterns(tenantId: string): Promise<PaymentPattern[]> {
+    return await db.select().from(paymentPatterns).where(eq(paymentPatterns.tenantId, tenantId)).orderBy(desc(paymentPatterns.paymentScore));
+  }
+
+  async getPaymentPattern(tenantId: string, customerId: string): Promise<PaymentPattern | undefined> {
+    const [pattern] = await db.select().from(paymentPatterns).where(and(eq(paymentPatterns.tenantId, tenantId), eq(paymentPatterns.customerId, customerId)));
+    return pattern;
+  }
+
+  async calculatePaymentPatterns(tenantId: string): Promise<any> {
+    const allInvoices = await this.getInvoices(tenantId);
+    const allReceipts = await this.getReceipts(tenantId);
+    const allCustomers = await this.getMasterCustomers(tenantId);
+    const categoryRulesData = await this.getCategoryRules(tenantId);
+    const today = new Date();
+
+    const graceDays = categoryRulesData?.alphaDays || 5;
+
+    // Group receipts by customer
+    const receiptsByCustomer = new Map<string, Receipt[]>();
+    allReceipts.forEach(receipt => {
+      const existing = receiptsByCustomer.get(receipt.customerName) || [];
+      existing.push(receipt);
+      receiptsByCustomer.set(receipt.customerName, existing);
+    });
+
+    const results: any[] = [];
+
+    for (const customer of allCustomers) {
+      const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+      const customerReceipts = receiptsByCustomer.get(customer.clientName) || [];
+
+      if (customerInvoices.length === 0) continue;
+
+      let onTimeCount = 0;
+      let lateCount = 0;
+      let totalDelayDays = 0;
+      let delayCount = 0;
+      let currentStreak = 0;
+      let longestDelay = 0;
+      let highestCategory = customer.category || "Alpha";
+      
+      // Track time in each category (simplified - based on current category)
+      let alphaDays = 0, betaDays = 0, gammaDays = 0, deltaDays = 0;
+      switch (customer.category) {
+        case "Alpha": alphaDays = 30; break;
+        case "Beta": betaDays = 30; break;
+        case "Gamma": gammaDays = 30; break;
+        case "Delta": deltaDays = 30; break;
+      }
+
+      // Sort invoices by date for FIFO calculation
+      const sortedInvoices = customerInvoices.sort((a, b) => 
+        new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime()
+      );
+
+      // Calculate FIFO allocation
+      let remainingReceipts = [...customerReceipts].sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+
+      for (const invoice of sortedInvoices) {
+        const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+        const invoiceDate = new Date(invoice.invoiceDate);
+        const paymentTerms = invoice.paymentTerms ? parseInt(invoice.paymentTerms.toString()) : 0;
+        const dueDate = new Date(invoiceDate);
+        dueDate.setDate(dueDate.getDate() + paymentTerms);
+        const gracePeriodEnd = new Date(dueDate);
+        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + graceDays);
+
+        let allocatedAmount = 0;
+        let paymentDate: Date | null = null;
+
+        // Allocate receipts to this invoice (FIFO)
+        for (let i = 0; i < remainingReceipts.length; i++) {
+          const receipt = remainingReceipts[i];
+          const receiptAmount = parseFloat(receipt.amount.toString());
+          
+          if (allocatedAmount >= invoiceAmount) break;
+          
+          const amountToAllocate = Math.min(receiptAmount, invoiceAmount - allocatedAmount);
+          allocatedAmount += amountToAllocate;
+          
+          if (!paymentDate) {
+            paymentDate = new Date(receipt.date);
+          }
+          
+          // Reduce or remove receipt
+          if (amountToAllocate >= receiptAmount) {
+            remainingReceipts.splice(i, 1);
+            i--;
+          } else {
+            remainingReceipts[i] = { ...receipt, amount: (receiptAmount - amountToAllocate).toString() };
+          }
+        }
+
+        // Determine if paid, and if on-time or late
+        const isPaid = allocatedAmount >= invoiceAmount * 0.99; // Allow 1% variance
+
+        if (isPaid && paymentDate) {
+          const paymentDiff = Math.floor((paymentDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          if (paymentDiff <= graceDays) {
+            onTimeCount++;
+            currentStreak++;
+          } else {
+            lateCount++;
+            currentStreak = 0;
+            totalDelayDays += paymentDiff;
+            delayCount++;
+            if (paymentDiff > longestDelay) {
+              longestDelay = paymentDiff;
+            }
+          }
+        } else if (!isPaid && dueDate < today) {
+          // Unpaid and overdue
+          const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysOverdue > 0) {
+            lateCount++;
+            currentStreak = 0;
+            if (daysOverdue > longestDelay) {
+              longestDelay = daysOverdue;
+            }
+          }
+        }
+      }
+
+      const totalInvoices = onTimeCount + lateCount;
+      if (totalInvoices === 0) continue;
+
+      const onTimeRate = (onTimeCount / totalInvoices) * 100;
+      const avgDelayDays = delayCount > 0 ? totalDelayDays / delayCount : 0;
+
+      // Calculate payment score (0-100)
+      let paymentScore = 0;
+      paymentScore += Math.min(onTimeRate, 60); // Max 60 points for on-time rate
+      paymentScore += Math.max(0, 20 - (avgDelayDays / 5)); // Max 20 points (lose 1 per 5 days delay)
+      paymentScore += Math.min(currentStreak * 2, 10); // Max 10 points for streak
+      paymentScore += Math.max(0, 10 - (longestDelay / 10)); // Max 10 points (lose 1 per 10 days max delay)
+      paymentScore = Math.round(Math.max(0, Math.min(100, paymentScore)));
+
+      // Classify payment behavior
+      let classification = "Regular";
+      if (onTimeRate >= 80 && avgDelayDays <= 5) classification = "Star";
+      else if (onTimeRate >= 50 && avgDelayDays <= 30) classification = "Regular";
+      else if (onTimeRate >= 30 && avgDelayDays <= 60) classification = "Risky";
+      else classification = "Critical";
+
+      const patternData: InsertPaymentPattern = {
+        customerId: customer.id,
+        customerName: customer.clientName,
+        totalInvoices,
+        onTimeCount,
+        lateCount,
+        avgDelayDays: avgDelayDays.toFixed(2),
+        paymentScore,
+        paymentClassification: classification,
+        highestCategoryReached: highestCategory,
+        alphaDays,
+        betaDays,
+        gammaDays,
+        deltaDays,
+        currentStreak,
+        longestDelay,
+      };
+
+      // Upsert payment pattern
+      const existing = await this.getPaymentPattern(tenantId, customer.id);
+      if (existing) {
+        await db.update(paymentPatterns)
+          .set({ ...patternData, updatedAt: new Date(), lastCalculated: new Date() })
+          .where(and(eq(paymentPatterns.tenantId, tenantId), eq(paymentPatterns.customerId, customer.id)));
+      } else {
+        await db.insert(paymentPatterns).values({ ...patternData, tenantId });
+      }
+
+      results.push({ customerName: customer.clientName, classification, paymentScore });
+    }
+
+    return {
+      success: true,
+      processed: results.length,
+      results,
+    };
+  }
+
+  async updatePaymentPattern(tenantId: string, customerId: string, pattern: Partial<InsertPaymentPattern>): Promise<PaymentPattern | undefined> {
+    const [updated] = await db
+      .update(paymentPatterns)
+      .set({ ...pattern, updatedAt: new Date() })
+      .where(and(eq(paymentPatterns.tenantId, tenantId), eq(paymentPatterns.customerId, customerId)))
+      .returning();
+    return updated;
+  }
+
+  async getReliableCustomers(tenantId: string): Promise<any[]> {
+    // Get payment patterns with on-time rate >= 80%
+    const patterns = await db.select().from(paymentPatterns)
+      .where(eq(paymentPatterns.tenantId, tenantId))
+      .orderBy(desc(paymentPatterns.paymentScore));
+
+    const reliablePatterns = patterns.filter(p => {
+      const onTimeRate = p.totalInvoices > 0 ? (p.onTimeCount / p.totalInvoices) * 100 : 0;
+      return onTimeRate >= 80;
+    });
+
+    // Get customer details and check monthly continuity
+    const allInvoices = await this.getInvoices(tenantId);
+    const allCustomers = await this.getMasterCustomers(tenantId);
+    
+    const results = [];
+    for (const pattern of reliablePatterns) {
+      const customer = allCustomers.find(c => c.id === pattern.customerId);
+      if (!customer) continue;
+
+      const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+      
+      // Check monthly continuity (at least 1 invoice per month for last 3 months)
+      const today = new Date();
+      const threeMonthsAgo = new Date(today);
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      
+      const recentInvoices = customerInvoices.filter(inv => 
+        new Date(inv.invoiceDate) >= threeMonthsAgo
+      );
+
+      const monthlyContinuity = recentInvoices.length >= 3;
+      const onTimeRate = pattern.totalInvoices > 0 ? (pattern.onTimeCount / pattern.totalInvoices) * 100 : 0;
+
+      // Calculate outstanding balance
+      const customerReceipts = await this.getReceiptsByCustomerName(tenantId, customer.clientName);
+      const openingBalance = customer.openingBalance ? parseFloat(customer.openingBalance.toString()) : 0;
+      const totalInvoices = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()), 0);
+      const totalReceipts = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount.toString()), 0);
+      const outstanding = openingBalance + totalInvoices - totalReceipts;
+
+      results.push({
+        customerId: customer.id,
+        customerName: customer.clientName,
+        category: customer.category,
+        onTimeRate: onTimeRate.toFixed(1),
+        avgDelayDays: parseFloat(pattern.avgDelayDays),
+        paymentScore: pattern.paymentScore,
+        paymentClassification: pattern.paymentClassification,
+        totalInvoices: pattern.totalInvoices,
+        monthlyInvoices: (recentInvoices.length / 3).toFixed(1),
+        monthlyContinuity,
+        outstanding: outstanding.toFixed(2),
+        currentStreak: pattern.currentStreak,
+        lastCalculated: pattern.lastCalculated,
+      });
+    }
+
+    return results;
   }
 
   async getLegalNoticeTemplates(tenantId: string): Promise<LegalNoticeTemplate[]> {
