@@ -8542,25 +8542,22 @@ ${profile?.legalName || 'Company'}`;
             invoiceNumber: invoices.invoiceNumber,
             customerName: invoices.customerName,
             invoiceAmount: invoices.invoiceAmount,
-            dueDate: invoices.dueDate,
-            paidAmount: invoices.paidAmount,
+            invoiceDate: invoices.invoiceDate,
+            status: invoices.status,
           })
           .from(invoices)
           .where(
             and(
               eq(invoices.tenantId, req.tenantId!),
-              sql`${invoices.invoice_amount} > ${invoices.paid_amount}`
+              sql`${invoices.status} != 'Paid'`
             )
           )
-          .orderBy(invoices.dueDate)
+          .orderBy(desc(invoices.invoiceDate))
           .limit(10);
 
         const count = dueInvoices.length;
         const totalDue = dueInvoices.reduce(
-          (sum, inv) =>
-            sum +
-            (parseFloat(inv.invoiceAmount.toString()) -
-              parseFloat(inv.paidAmount.toString())),
+          (sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()),
           0
         );
 
@@ -8569,12 +8566,10 @@ ${profile?.legalName || 'Company'}`;
         )}. Here are the details:\n\n`;
         
         dueInvoices.forEach((inv, idx) => {
-          const due =
-            parseFloat(inv.invoiceAmount.toString()) -
-            parseFloat(inv.paidAmount.toString());
+          const amount = parseFloat(inv.invoiceAmount.toString());
           response += `${idx + 1}. ${inv.customerName} - ${
             inv.invoiceNumber
-          } - ₹${due.toFixed(2)}\n`;
+          } - ₹${amount.toFixed(2)} (${inv.status})\n`;
         });
 
         resultData = dueInvoices;
@@ -8635,7 +8630,8 @@ ${profile?.legalName || 'Company'}`;
             id: customers.id,
             name: customers.name,
             category: customers.category,
-            creditLimit: customers.creditLimit,
+            amountOwed: customers.amountOwed,
+            mobile: customers.mobile,
           })
           .from(customers)
           .where(
@@ -8649,9 +8645,9 @@ ${profile?.legalName || 'Company'}`;
         response = `Found ${alphaCustomers.length} Alpha category customers:\n\n`;
         
         alphaCustomers.forEach((c, idx) => {
-          response += `${idx + 1}. ${c.name} - Credit Limit: ₹${parseFloat(
-            c.creditLimit?.toString() || "0"
-          ).toFixed(2)}\n`;
+          response += `${idx + 1}. ${c.name} - Amount Owed: ₹${parseFloat(
+            c.amountOwed?.toString() || "0"
+          ).toFixed(2)} - Mobile: ${c.mobile}\n`;
         });
 
         resultData = alphaCustomers;
@@ -8703,17 +8699,21 @@ ${profile?.legalName || 'Company'}`;
           .select({
             id: invoices.id,
             customerName: invoices.customerName,
-            customerEmail: invoices.customerEmail,
             invoiceNumber: invoices.invoiceNumber,
             invoiceAmount: invoices.invoiceAmount,
-            paidAmount: invoices.paidAmount,
+            status: invoices.status,
+            customerEmail: customers.email,
           })
           .from(invoices)
+          .leftJoin(customers, and(
+            eq(customers.tenantId, invoices.tenantId),
+            eq(customers.name, invoices.customerName)
+          ))
           .where(
             and(
               eq(invoices.tenantId, req.tenantId!),
-              sql`${invoices.invoice_amount} > ${invoices.paid_amount}`,
-              sql`${invoices.customer_email} IS NOT NULL AND ${invoices.customer_email} != ''`
+              sql`${invoices.status} != 'Paid'`,
+              sql`${customers.email} IS NOT NULL AND ${customers.email} != ''`
             )
           )
           .limit(10);
@@ -8738,17 +8738,21 @@ ${profile?.legalName || 'Company'}`;
           .select({
             id: invoices.id,
             customerName: invoices.customerName,
-            customerMobile: invoices.customerMobile,
             invoiceNumber: invoices.invoiceNumber,
             invoiceAmount: invoices.invoiceAmount,
-            paidAmount: invoices.paidAmount,
+            primaryMobile: customers.mobile,
+            status: invoices.status,
           })
           .from(invoices)
+          .leftJoin(customers, and(
+            eq(customers.tenantId, invoices.tenantId),
+            eq(customers.name, invoices.customerName)
+          ))
           .where(
             and(
               eq(invoices.tenantId, req.tenantId!),
-              sql`${invoices.invoice_amount} > ${invoices.paid_amount}`,
-              sql`${invoices.customer_mobile} IS NOT NULL AND ${invoices.customer_mobile} != ''`
+              sql`${invoices.status} != 'Paid'`,
+              sql`${customers.mobile} IS NOT NULL AND ${customers.mobile} != ''`
             )
           )
           .limit(10);
@@ -8786,8 +8790,8 @@ ${profile?.legalName || 'Company'}`;
             )
             .limit(1);
 
-          if (customer.length > 0 && customer[0].mobileNumber) {
-            response = `I can trigger an AI call to ${customer[0].name} at ${customer[0].mobileNumber}. However, this requires script selection. Please use the Calls page or specify a script ID to proceed.`;
+          if (customer.length > 0 && customer[0].mobile) {
+            response = `I can trigger an AI call to ${customer[0].name} at ${customer[0].mobile}. However, this requires script selection. Please use the Calls page or specify a script ID to proceed.`;
             resultData = customer[0];
           } else {
             response = searchName 
