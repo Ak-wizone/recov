@@ -1,18 +1,7 @@
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Plus, CheckCircle, Phone, Mail, Target, TrendingUp } from "lucide-react";
-import { Link } from "wouter";
+import { Target } from "lucide-react";
 import NotificationCenter from "./notification-center";
 import { formatCurrency } from "@/lib/utils";
 
@@ -67,54 +56,6 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden md:flex items-center gap-3 mr-4" data-testid="quick-stats">
-            <Badge variant="outline" className="flex items-center gap-1">
-              <CheckCircle className="h-3 w-3 text-green-600" />
-              {dashboardData?.summary?.pendingTasks || 0} Tasks
-            </Badge>
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Phone className="h-3 w-3 text-blue-600" />
-              {dashboardData?.summary?.priorityCustomers || 0} Calls
-            </Badge>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="default" size="sm" data-testid="button-quick-add">
-                <Plus className="h-4 w-4 mr-2" />
-                Quick Add
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/action-center/tasks">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Create Task
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/action-center/call-queue">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Log Call
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/action-center/activity-log">
-                  <Mail className="h-4 w-4 mr-2" />
-                  Log Activity
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/team/targets">
-                  <Target className="h-4 w-4 mr-2" />
-                  Set Target
-                </Link>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           <NotificationCenter />
         </div>
       </div>
