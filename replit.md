@@ -63,6 +63,19 @@ The application uses `shadcn/ui` (Radix UI) with Tailwind CSS for a responsive d
     *   **Daily Targets**: Set/track collection targets, progress bars, target vs actual, achievement percentage, hourly breakdown (manager-only creation)
     *   **Notification Center**: Real-time notifications for tasks/payments/achievements, bell icon with unread count, mark as read, WebSocket integration
     *   **Role-Based Access Control**: Manager-only permissions for task assignment (to others) and target management; team members can create self-assigned tasks and view all features
+*   **Subscription Plans Management (Multi-Tenant SaaS)**:
+    *   **Platform Architecture**: Complete subscription-based multi-tenant system with module-level access control
+    *   **Subscription Plans**: Predefined plans (Starter, Professional, Enterprise) with configurable pricing, billing cycles (monthly/annual/lifetime), and module access
+    *   **15 Available Modules**: Business Overview, Customer Analytics, Leads, Quotations, Proforma Invoices, Invoices, Receipts, Payment Tracking, Action Center, Team Performance, Risk & Recovery, Credit Control, Masters, Settings, Email/WhatsApp/Call Integrations
+    *   **Plan Management UI**: Full CRUD interface for platform admins to create, edit, delete, and manage subscription plans with color branding, module selection via checkboxes, and statistics dashboard
+    *   **Tenant Plan Assignment**: Assign plans during tenant approval or change plans for existing tenants via dropdown selection in tenant management interface
+    *   **Custom Module Override**: Ability to assign custom module sets to individual tenants, overriding their subscription plan's default modules
+    *   **Dynamic Sidebar Filtering**: Navigation menu automatically shows/hides items based on tenant's allowed modules (from subscription plan or custom override)
+    *   **Statistics & Analytics**: Real-time tracking of total plans, active plans, tenant count per plan, and plan distribution analytics
+    *   **Validation & Safety**: Prevents deletion of plans with active tenants, requires plan selection during tenant approval, enforces module-based access control
+    *   **Seed Data**: Automatically provisions three default plans (Starter: ₹999, Professional: ₹2499, Enterprise: ₹4999) with progressive module access on first run
+    *   **Color-Coded Badges**: Visual plan identification with customizable color badges throughout the UI (tenant lists, approval dialogs, plan management)
+    *   **Platform Admin Controls**: Dedicated "Subscription Plans" section in platform admin navigation with full plan lifecycle management
 
 # External Dependencies
 
