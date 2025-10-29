@@ -201,7 +201,13 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
 
       recognitionRef.current.onend = () => {
         if (isAlwaysListening) {
-          recognitionRef.current?.start();
+          try {
+            setTimeout(() => {
+              recognitionRef.current?.start();
+            }, 100);
+          } catch (error) {
+            console.error("Failed to restart recognition:", error);
+          }
         } else {
           setIsListening(false);
         }
@@ -210,8 +216,10 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       // Restart recognition if it was running before re-initialization
       if (wasListening || isAlwaysListening) {
         try {
-          recognitionRef.current.start();
-          setIsListening(true);
+          setTimeout(() => {
+            recognitionRef.current?.start();
+            setIsListening(true);
+          }, 100);
         } catch (error) {
           console.error("Failed to restart recognition after re-init:", error);
         }
