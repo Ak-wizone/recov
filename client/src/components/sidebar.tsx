@@ -160,6 +160,12 @@ const navItems: NavItem[] = [
         path: "/ledger",
         icon: <BookOpen className="h-4 w-4" />,
       },
+      {
+        name: "Payment Analytics",
+        path: "/payment-analytics",
+        icon: <Activity className="h-4 w-4" />,
+        module: "Payment Analytics",
+      },
     ],
   },
   {
@@ -228,12 +234,6 @@ const navItems: NavItem[] = [
         name: "Recovery Health Test",
         path: "/risk/recovery-health",
         icon: <Heart className="h-4 w-4" />,
-      },
-      {
-        name: "Payment Analytics",
-        path: "/payment-analytics",
-        icon: <Activity className="h-4 w-4" />,
-        module: "Payment Analytics",
       },
     ],
   },
