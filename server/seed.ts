@@ -7,10 +7,10 @@ export async function seedDatabase() {
   try {
     // Create or update platform admin (no tenantId, no roleId - for managing tenant registrations)
     const existingPlatformAdmin = await storage.getUserByEmail("platform@admin.com");
-    const hashedPassword = await bcrypt.hash("platform123", 10);
 
     if (!existingPlatformAdmin) {
       console.log("Creating platform admin user...");
+      const hashedPassword = await bcrypt.hash("platform123", 10);
       
       await storage.createUser(null, {
         name: "Platform Administrator",
@@ -23,9 +23,10 @@ export async function seedDatabase() {
       console.log("✓ Platform admin created (email: platform@admin.com, password: platform123)");
     } else {
       // Reset password to ensure consistent credentials
+      // Pass raw password - updateUser will hash it
       console.log("Resetting platform admin password...");
       await storage.updateUser(null, existingPlatformAdmin.id, {
-        password: hashedPassword
+        password: "platform123"
       });
       console.log("✓ Platform admin password reset to: platform123");
     }
