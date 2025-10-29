@@ -8858,6 +8858,58 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Get assistant settings for current user
+  app.get("/api/assistant/settings", tenantMiddleware, async (req, res) => {
+    try {
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const settings = await storage.getAssistantSettings(req.tenantId!, userId);
+      
+      // Return default settings if none exist
+      if (!settings) {
+        return res.json({
+          alwaysListen: false,
+          wakeWord: "RECOV",
+          wakeWordSensitivity: 5,
+          voiceFeedback: true,
+          language: "en-IN",
+          autoExecuteActions: false,
+          showSuggestions: true,
+          theme: "light",
+        });
+      }
+
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Failed to fetch assistant settings:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update assistant settings for current user
+  app.put("/api/assistant/settings", tenantMiddleware, async (req, res) => {
+    try {
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const settings = await storage.updateAssistantSettings(
+        req.tenantId!,
+        userId,
+        req.body
+      );
+
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Failed to update assistant settings:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

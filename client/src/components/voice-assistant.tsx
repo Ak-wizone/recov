@@ -31,6 +31,7 @@ import {
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { AssistantSettings } from "@/components/assistant-settings";
 
 interface Message {
   id: string;
@@ -49,6 +50,7 @@ interface VoiceAssistantProps {
 export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -58,6 +60,37 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  // Load assistant settings
+  const { data: assistantSettings } = useQuery({
+    queryKey: ["/api/assistant/settings"],
+    enabled: !!user,
+  });
+  
+  // Apply settings when loaded
+  useEffect(() => {
+    if (assistantSettings) {
+      const shouldListen = assistantSettings.alwaysListen;
+      setIsAlwaysListening(shouldListen);
+      
+      // Start or stop listening based on settings
+      if (shouldListen && !isListening && recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch (error) {
+          console.error("Failed to start recognition:", error);
+        }
+      } else if (!shouldListen && isListening && recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+          setIsListening(false);
+        } catch (error) {
+          console.error("Failed to stop recognition:", error);
+        }
+      }
+    }
+  }, [assistantSettings]);
 
   // Fetch chat history
   const { data: chatHistory = [] } = useQuery({
@@ -118,11 +151,21 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   // Initialize Speech Recognition
   useEffect(() => {
     if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
+      // Stop existing recognition before re-initialization
+      const wasListening = isListening;
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          // Ignore stop errors
+        }
+      }
+
       const SpeechRecognition = (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = "en-IN"; // Indian English
+      recognitionRef.current.lang = assistantSettings?.language || "en-IN";
 
       recognitionRef.current.onresult = (event: any) => {
         const transcript = Array.from(event.results)
@@ -163,14 +206,28 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
           setIsListening(false);
         }
       };
+
+      // Restart recognition if it was running before re-initialization
+      if (wasListening || isAlwaysListening) {
+        try {
+          recognitionRef.current.start();
+          setIsListening(true);
+        } catch (error) {
+          console.error("Failed to restart recognition after re-init:", error);
+        }
+      }
     }
 
     return () => {
       if (recognitionRef.current) {
-        recognitionRef.current.stop();
+        try {
+          recognitionRef.current.stop();
+        } catch (error) {
+          // Ignore stop errors on cleanup
+        }
       }
     };
-  }, [isAlwaysListening, wakeWordDetected]);
+  }, [isAlwaysListening, wakeWordDetected, assistantSettings?.language]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -330,19 +387,29 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
                   <SheetDescription>Your AI-powered business helper</SheetDescription>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleAlwaysListening}
-                className={cn(isAlwaysListening && "bg-red-50 dark:bg-red-950")}
-                data-testid="button-toggle-always-listen"
-              >
-                {isAlwaysListening ? (
-                  <Mic className="h-5 w-5 text-red-500" />
-                ) : (
-                  <MicOff className="h-5 w-5" />
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsSettingsOpen(true)}
+                  data-testid="button-assistant-settings"
+                >
+                  <Settings className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleAlwaysListening}
+                  className={cn(isAlwaysListening && "bg-red-50 dark:bg-red-950")}
+                  data-testid="button-toggle-always-listen"
+                >
+                  {isAlwaysListening ? (
+                    <Mic className="h-5 w-5 text-red-500" />
+                  ) : (
+                    <MicOff className="h-5 w-5" />
+                  )}
+                </Button>
+              </div>
             </div>
           </SheetHeader>
 
@@ -575,6 +642,12 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Settings Dialog */}
+      <AssistantSettings
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </>
   );
 }
