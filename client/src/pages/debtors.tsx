@@ -375,7 +375,7 @@ export default function Debtors() {
                     <AlertCircle className="h-4 w-4 text-white" />
                   </div>
                   <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                    {followUpStats?.overdue || 0}
+                    {followUpStats?.overdue?.count || 0}
                   </div>
                   <p className="text-[10px] font-medium text-red-600 dark:text-red-400">Overdue</p>
                 </div>
@@ -398,7 +398,7 @@ export default function Debtors() {
                     <Clock className="h-4 w-4 text-white" />
                   </div>
                   <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                    {followUpStats?.dueToday || 0}
+                    {followUpStats?.dueToday?.count || 0}
                   </div>
                   <p className="text-[10px] font-medium text-orange-600 dark:text-orange-400">Due Today</p>
                 </div>
@@ -421,7 +421,7 @@ export default function Debtors() {
                     <CalendarClock className="h-4 w-4 text-white" />
                   </div>
                   <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                    {followUpStats?.dueTomorrow || 0}
+                    {followUpStats?.dueTomorrow?.count || 0}
                   </div>
                   <p className="text-[10px] font-medium text-yellow-600 dark:text-yellow-400">Tomorrow</p>
                 </div>
@@ -444,7 +444,7 @@ export default function Debtors() {
                     <CalendarCheck className="h-4 w-4 text-white" />
                   </div>
                   <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {followUpStats?.dueThisWeek || 0}
+                    {followUpStats?.dueThisWeek?.count || 0}
                   </div>
                   <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400">This Week</p>
                 </div>
@@ -467,7 +467,7 @@ export default function Debtors() {
                     <CalendarX2 className="h-4 w-4 text-white" />
                   </div>
                   <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {followUpStats?.dueThisMonth || 0}
+                    {followUpStats?.dueThisMonth?.count || 0}
                   </div>
                   <p className="text-[10px] font-medium text-purple-600 dark:text-purple-400">This Month</p>
                 </div>
@@ -490,7 +490,7 @@ export default function Debtors() {
                     <UserX className="h-4 w-4 text-white" />
                   </div>
                   <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                    {followUpStats?.noFollowUp || 0}
+                    {followUpStats?.noFollowUp?.count || 0}
                   </div>
                   <p className="text-[10px] font-medium text-gray-600 dark:text-gray-400">No Follow-Up</p>
                 </div>
