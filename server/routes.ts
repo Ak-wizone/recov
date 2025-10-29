@@ -5550,6 +5550,154 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // ============ LEDGER ROUTES ============
+
+  // Get customer ledger
+  app.get("/api/ledgers/:customerId", async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const { fromDate, toDate } = req.query;
+
+      // Get customer details
+      const customers = await storage.getMasterCustomers(req.tenantId!);
+      const customer = customers.find(c => c.id === customerId);
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      // Get all invoices and receipts for this customer
+      const allInvoices = await storage.getInvoices(req.tenantId!);
+      const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+      
+      const allReceipts = await storage.getReceipts(req.tenantId!);
+      const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+
+      // Build ALL transactions first (to calculate correct opening balance when filtered)
+      const allTransactions: any[] = [];
+      
+      // Add all invoices
+      customerInvoices.forEach(invoice => {
+        const amount = parseFloat(invoice.invoiceAmount?.toString() || '0');
+        allTransactions.push({
+          date: invoice.invoiceDate,
+          particulars: `Invoice - ${invoice.productName || 'Sales'}`,
+          refNo: invoice.invoiceNumber || '',
+          voucherType: "Sales",
+          voucherNo: invoice.invoiceNumber || '',
+          debit: amount,
+          credit: 0
+        });
+      });
+
+      // Add all receipts
+      customerReceipts.forEach(receipt => {
+        const amount = parseFloat(receipt.amount?.toString() || '0');
+        allTransactions.push({
+          date: receipt.date,
+          particulars: `Receipt - ${receipt.paymentMethod || 'Payment Received'}`,
+          refNo: receipt.receiptNumber || '',
+          voucherType: "Receipt",
+          voucherNo: receipt.receiptNumber || '',
+          debit: 0,
+          credit: amount
+        });
+      });
+
+      // Sort all transactions by date
+      allTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      // Calculate opening balance for the filtered period
+      const storedOpeningBalance = parseFloat(customer.openingBalance?.toString() || '0');
+      let effectiveOpeningBalance = storedOpeningBalance;
+      
+      if (fromDate) {
+        const filterFromDate = new Date(fromDate as string);
+        // Add all transactions before fromDate to opening balance
+        allTransactions.forEach(txn => {
+          const txnDate = new Date(txn.date);
+          if (txnDate < filterFromDate) {
+            effectiveOpeningBalance += (txn.debit - txn.credit);
+          }
+        });
+      }
+
+      // Build displayed transactions (with date filter applied)
+      const displayedTransactions: any[] = [];
+      
+      // Add opening balance row
+      if (effectiveOpeningBalance !== 0 || !fromDate) {
+        displayedTransactions.push({
+          date: fromDate || customer.createdAt || new Date().toISOString(),
+          particulars: "Opening Balance",
+          refNo: "",
+          voucherType: "Opening",
+          voucherNo: "",
+          debit: effectiveOpeningBalance > 0 ? effectiveOpeningBalance : 0,
+          credit: effectiveOpeningBalance < 0 ? Math.abs(effectiveOpeningBalance) : 0,
+          balance: Math.abs(effectiveOpeningBalance),
+          balanceType: effectiveOpeningBalance >= 0 ? 'Dr' : 'Cr'
+        });
+      }
+
+      // Add transactions within date range
+      allTransactions.forEach(txn => {
+        const txnDate = new Date(txn.date);
+        
+        // Apply date filters
+        if (fromDate && txnDate < new Date(fromDate as string)) return;
+        if (toDate && txnDate > new Date(toDate as string)) return;
+        
+        displayedTransactions.push({
+          ...txn,
+          balance: 0, // Will be calculated
+          balanceType: 'Dr'
+        });
+      });
+
+      // Calculate running balance for displayed transactions
+      let runningBalance = effectiveOpeningBalance;
+      let totalDebitsInPeriod = 0;
+      let totalCreditsInPeriod = 0;
+      
+      displayedTransactions.forEach(txn => {
+        if (txn.voucherType !== 'Opening') {
+          totalDebitsInPeriod += txn.debit;
+          totalCreditsInPeriod += txn.credit;
+        }
+        runningBalance += (txn.debit - txn.credit);
+        txn.balance = Math.abs(runningBalance);
+        txn.balanceType = runningBalance >= 0 ? 'Dr' : 'Cr';
+      });
+
+      const closingBalance = runningBalance;
+
+      res.json({
+        customer: {
+          name: customer.clientName || '',
+          gstin: customer.gstNumber || '',
+          address: customer.billingAddress || '',
+          city: customer.city || '',
+          state: customer.state || '',
+          pincode: customer.pincode || '',
+          mobile: customer.primaryMobile || '',
+          email: customer.primaryEmail || ''
+        },
+        transactions: displayedTransactions,
+        summary: {
+          openingBalance: effectiveOpeningBalance,
+          totalDebits: totalDebitsInPeriod,
+          totalCredits: totalCreditsInPeriod,
+          closingBalance: Math.abs(closingBalance),
+          closingBalanceType: closingBalance >= 0 ? 'Dr' : 'Cr'
+        }
+      });
+    } catch (error: any) {
+      console.error("Ledger error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // ============ CREDIT MANAGEMENT ROUTES ============
 
   // Get credit management data
