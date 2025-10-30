@@ -48,6 +48,7 @@ import {
   BookOpen,
   Lightbulb,
   Zap,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -91,6 +92,8 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [commandQueue, setCommandQueue] = useState<string[]>([]);
   
   // Check if user has access to Voice Assistant module
   const { data: tenant } = useQuery<any>({
@@ -140,6 +143,21 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       setMessages(loadedMessages);
     }
   }, [chatHistory]);
+
+  // Clear history mutation
+  const clearHistoryMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", "/api/assistant/history");
+      if (!res.ok) {
+        throw new Error("Failed to clear history");
+      }
+      return await res.json();
+    },
+    onSuccess: () => {
+      setMessages([]);
+      queryClient.invalidateQueries({ queryKey: ["/api/assistant/history"] });
+    },
+  });
 
   // Process command mutation
   const processCommandMutation = useMutation({
@@ -250,12 +268,23 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
         }
         setInterimTranscript(interim);
 
-        // Check for wake word
+        // Check for wake word with confidence-based sensitivity
         if (isAlwaysListening && !wakeWordDetected) {
-          if (
-            transcript.toLowerCase().includes("hey recov") ||
-            transcript.toLowerCase().includes("recov")
-          ) {
+          const sensitivity = assistantSettings?.wakeWordSensitivity || 5;
+          const transcriptLower = transcript.toLowerCase();
+          
+          // Calculate match confidence (1-10 scale)
+          let matchConfidence = 0;
+          if (transcriptLower.includes("hey recov")) {
+            matchConfidence = 10; // Exact match
+          } else if (transcriptLower.includes("recov")) {
+            matchConfidence = 7; // Partial match
+          } else if (transcriptLower.includes("hey") || transcriptLower.includes("ok")) {
+            matchConfidence = 3; // Weak match
+          }
+          
+          // Trigger if confidence meets or exceeds sensitivity threshold
+          if (matchConfidence >= sensitivity) {
             setWakeWordDetected(true);
             setIsOpen(true);
             setAssistantStatus("listening");
@@ -449,6 +478,20 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       }
     }
   }, [assistantSettings]);
+
+  // Online/Offline detection
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -656,6 +699,27 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   };
 
   const handleVoiceCommand = async (transcript: string) => {
+    // Check for interrupt command
+    if (transcript.toLowerCase().includes("stop") || transcript.toLowerCase().includes("रुको")) {
+      // Stop speech synthesis
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      setIsSpeaking(false);
+      setIsProcessing(false);
+      setAssistantStatus("idle");
+      stopListening();
+      
+      const interruptMessage: Message = {
+        id: Date.now().toString(),
+        type: "assistant",
+        content: "⏸️ रुक गया। मैं सुन रहा हूं।",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, interruptMessage]);
+      return;
+    }
+
     stopListening();
     setIsProcessing(true);
     setAssistantStatus("processing");
@@ -798,6 +862,26 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {messages.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (confirm("Clear all command history? This cannot be undone.")) {
+                        clearHistoryMutation.mutate();
+                      }
+                    }}
+                    disabled={clearHistoryMutation.isPending}
+                    data-testid="button-clear-history"
+                    title="Clear History"
+                  >
+                    {clearHistoryMutation.isPending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-5 w-5 text-slate-500 hover:text-red-500" />
+                    )}
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
@@ -832,6 +916,18 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
           </SheetHeader>
 
           <Separator />
+
+          {/* Offline Indicator */}
+          {!isOnline && (
+            <div className="px-6 py-3 bg-orange-50 dark:bg-orange-950/20 border-b border-orange-200 dark:border-orange-800">
+              <div className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+                <p className="text-sm font-medium">
+                  ⚠️ Offline - Voice commands will be queued
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Quick Actions */}
           <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900">

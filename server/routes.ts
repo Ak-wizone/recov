@@ -8865,6 +8865,30 @@ ${profile?.legalName || 'Company'}`;
   // Voice Assistant Routes
   // ============================================
 
+  // Delete chat history for current user
+  app.delete("/api/assistant/history", tenantMiddleware, async (req, res) => {
+    try {
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      await db
+        .delete(assistantChatHistory)
+        .where(
+          and(
+            eq(assistantChatHistory.tenantId, req.tenantId!),
+            eq(assistantChatHistory.userId, userId)
+          )
+        );
+
+      res.json({ success: true, message: "History cleared successfully" });
+    } catch (error: any) {
+      console.error("Error clearing chat history:", error);
+      res.status(500).json({ message: "Failed to clear history" });
+    }
+  });
+
   // Get chat history for current user
   app.get("/api/assistant/history", tenantMiddleware, async (req, res) => {
     try {
@@ -8912,7 +8936,151 @@ ${profile?.legalName || 'Company'}`;
       let actionPerformed: string | null = null;
       let resultData: any = null;
 
-      // Command Parser - Basic keyword matching
+      // ============================================
+      // Smart Command Parsing Utilities
+      // ============================================
+      
+      // Parse numbers from text (e.g., "fifty thousand" -> 50000)
+      const parseNumberFromText = (text: string): number | null => {
+        const wordNumbers: Record<string, number> = {
+          // Basic digits
+          'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+          'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+          // Teens
+          'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+          'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19,
+          // Tens
+          'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50,
+          'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
+          // Multipliers
+          'hundred': 100, 'thousand': 1000, 'lakh': 100000, 'lac': 100000, 
+          'million': 1000000, 'crore': 10000000, 'karod': 10000000,
+          // Hindi numbers
+          'ek': 1, 'do': 2, 'teen': 3, 'char': 4, 'panch': 5,
+          'chhe': 6, 'saat': 7, 'aath': 8, 'nau': 9, 'das': 10,
+          'sau': 100, 'hazaar': 1000
+        };
+
+        // Normalize: remove hyphens, commas, extra spaces, handle plurals
+        const normalized = text.toLowerCase()
+          .replace(/-/g, ' ')
+          .replace(/,/g, '')
+          .replace(/lakhs?/g, 'lakh')
+          .replace(/crores?/g, 'crore')
+          .replace(/thousands?/g, 'thousand')
+          .replace(/millions?/g, 'million')
+          .replace(/billions?/g, 'billion')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        // Handle direct numbers with comprehensive suffix support
+        // Order matters: longer patterns first to avoid partial matches
+        const directMatch = normalized.match(/^(\d+(?:\.\d+)?)\s*(crore|karod|million|billion|thousand|hundred|lakh|lac|cr|mn|bn|[kKlL])?$/);
+        if (directMatch) {
+          let num = parseFloat(directMatch[1]);
+          const suffix = directMatch[2]?.toLowerCase();
+          
+          // Map suffixes to multipliers
+          const multipliers: Record<string, number> = {
+            'k': 1000,
+            'l': 100000,
+            'lakh': 100000,
+            'lac': 100000,
+            'cr': 10000000,
+            'crore': 10000000,
+            'karod': 10000000,
+            'mn': 1000000,
+            'million': 1000000,
+            'bn': 1000000000,
+            'billion': 1000000000,
+            'thousand': 1000,
+            'hundred': 100
+          };
+          
+          if (suffix && multipliers[suffix]) {
+            num *= multipliers[suffix];
+          }
+          return num;
+        }
+
+        // Handle word numbers
+        const words = normalized.split(/\s+/);
+        let total = 0;
+        let current = 0;
+        let foundNumber = false;
+
+        for (const word of words) {
+          const num = wordNumbers[word];
+          if (num !== undefined) {
+            foundNumber = true;
+            if (num >= 100) {
+              // Multiplier
+              current = current || 1;
+              current *= num;
+              if (num >= 1000) {
+                total += current;
+                current = 0;
+              }
+            } else {
+              // Regular number (including zero)
+              current += num;
+            }
+          }
+        }
+        total += current;
+        
+        // Return total if we found any number word (including zero)
+        // or null if no number words were found
+        return foundNumber ? total : null;
+      };
+
+      // Parse dates from text (e.g., "last week", "yesterday", "7 days ago")
+      const parseDateFromText = (text: string): { startDate: Date; endDate: Date } | null => {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        if (text.includes('today') || text.includes('aaj')) {
+          return { startDate: today, endDate: today };
+        }
+        
+        if (text.includes('yesterday') || text.includes('kal')) {
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          return { startDate: yesterday, endDate: yesterday };
+        }
+        
+        if (text.includes('last week') || text.includes('pichle hafte')) {
+          const lastWeekStart = new Date(today);
+          lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+          return { startDate: lastWeekStart, endDate: today };
+        }
+        
+        if (text.includes('last month') || text.includes('pichle mahine')) {
+          const lastMonthStart = new Date(today);
+          lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
+          return { startDate: lastMonthStart, endDate: today };
+        }
+        
+        // Handle "last X days"
+        const daysMatch = text.match(/last\s+(\d+)\s+days?|(\d+)\s+din/i);
+        if (daysMatch) {
+          const days = parseInt(daysMatch[1] || daysMatch[2]);
+          const startDate = new Date(today);
+          startDate.setDate(startDate.getDate() - days);
+          return { startDate, endDate: today };
+        }
+        
+        return null;
+      };
+
+      // Parse amount with currency symbols
+      const parseAmount = (text: string): number | null => {
+        // Remove currency symbols
+        const cleaned = text.replace(/[₹$,]/g, '');
+        return parseNumberFromText(cleaned);
+      };
+
+      // Command Parser - Enhanced keyword matching with smart parsing
       
       // Follow-ups Menu Query - Interactive options
       if (
