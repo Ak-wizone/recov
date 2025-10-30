@@ -9575,11 +9575,14 @@ ${profile?.legalName || 'Company'}`;
         resultData = deltaData.debtors;
       }
       
-      // Due Invoices Query
+      // Due Invoices Query - Enhanced with Hindi/mixed language
       else if (
         normalizedMessage.includes("due invoice") ||
         normalizedMessage.includes("pending invoice") ||
-        normalizedMessage.includes("unpaid")
+        normalizedMessage.includes("unpaid") ||
+        normalizedMessage.includes("bacha hua") ||
+        normalizedMessage.includes("baki") ||
+        normalizedMessage.match(/\b(due|pending|baki|bacha)\b/i)
       ) {
         commandType = "query";
         
@@ -9622,11 +9625,15 @@ ${profile?.legalName || 'Company'}`;
         resultData = dueInvoices;
       }
       
-      // Today's Collection Query
+      // Today's Collection Query - Enhanced with Hindi/informal
       else if (
         normalizedMessage.includes("collection") ||
         normalizedMessage.includes("payment received") ||
-        normalizedMessage.includes("aaj ka")
+        normalizedMessage.includes("aaj ka") ||
+        normalizedMessage.includes("aaj kitna") ||
+        normalizedMessage.includes("aaj ki collection") ||
+        normalizedMessage.includes("total collection") ||
+        (normalizedMessage.includes("today") && normalizedMessage.includes("collection"))
       ) {
         commandType = "query";
         
@@ -9665,10 +9672,13 @@ ${profile?.legalName || 'Company'}`;
         resultData = todaysReceipts;
       }
       
-      // Alpha Category Customers
+      // Alpha Category Customers - Enhanced with Hindi/informal language
       else if (
         normalizedMessage.includes("alpha customer") ||
-        normalizedMessage.includes("alpha category")
+        normalizedMessage.includes("alpha category") ||
+        normalizedMessage.includes("alpha wale") ||
+        normalizedMessage.includes("alpha ke customer") ||
+        normalizedMessage === "alpha"
       ) {
         commandType = "query";
         
