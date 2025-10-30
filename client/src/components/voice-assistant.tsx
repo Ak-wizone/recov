@@ -212,6 +212,8 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
         // Don't log 'aborted' errors when user intentionally stops
         if (errorType === 'aborted' && !isAlwaysListening) {
           setIsListening(false);
+          setAssistantStatus("idle");
+          setInterimTranscript("");
           isRestartingRef.current = false; // Clear restart flag to allow manual recovery
           return;
         }
@@ -221,8 +223,10 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
           console.error("Speech recognition error:", errorType);
         }
         
-        // Reset listening state and flags for errors to allow recovery
+        // Reset listening state, status, and flags for errors to allow recovery
         setIsListening(false);
+        setAssistantStatus("idle");
+        setInterimTranscript("");
         isRestartingRef.current = false;
         
         // Reset retry count on permission errors to allow fresh start
@@ -289,6 +293,8 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
           attemptRestart(retryCountRef.current);
         } else {
           setIsListening(false);
+          setAssistantStatus("idle");
+          setInterimTranscript("");
         }
       };
 
@@ -480,9 +486,13 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
         isRestartingRef.current = false;
         recognitionRef.current.stop();
         setIsListening(false);
+        setAssistantStatus("idle");
+        setInterimTranscript("");
       } catch (error) {
         console.error("Failed to stop recognition:", error);
         setIsListening(false);
+        setAssistantStatus("idle");
+        setInterimTranscript("");
         isRestartingRef.current = false;
       }
     }
@@ -678,6 +688,61 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
           </div>
 
           <Separator />
+
+          {/* Status Indicator & Real-time Transcript */}
+          {(assistantStatus !== "idle" || interimTranscript) && (
+            <>
+              <div className="px-6 py-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-l-4 border-blue-500">
+                <div className="flex items-center gap-3">
+                  {/* Status Icon with Animation */}
+                  <div className="relative">
+                    {assistantStatus === "listening" && (
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        className="h-3 w-3 rounded-full bg-blue-500"
+                      />
+                    )}
+                    {assistantStatus === "processing" && (
+                      <Loader2 className="h-4 w-4 text-purple-600 animate-spin" />
+                    )}
+                    {assistantStatus === "speaking" && (
+                      <motion.div
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ repeat: Infinity, duration: 0.8 }}
+                        className="h-3 w-3 rounded-full bg-green-500"
+                      />
+                    )}
+                    {assistantStatus === "done" && (
+                      <div className="h-3 w-3 rounded-full bg-green-600" />
+                    )}
+                  </div>
+
+                  {/* Status Text */}
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">
+                      {assistantStatus === "listening" && "Listening..."}
+                      {assistantStatus === "processing" && "Processing..."}
+                      {assistantStatus === "speaking" && "Speaking..."}
+                      {assistantStatus === "done" && "Done!"}
+                    </p>
+                    
+                    {/* Real-time Transcript */}
+                    {interimTranscript && assistantStatus === "listening" && (
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-xs text-slate-600 dark:text-slate-400 italic mt-1"
+                      >
+                        "{interimTranscript}"
+                      </motion.p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <Separator />
+            </>
+          )}
 
           {/* Messages */}
           <ScrollArea className="flex-1 px-6" ref={scrollRef}>
