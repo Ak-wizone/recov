@@ -14,6 +14,11 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Mic,
   MicOff,
   Send,
@@ -29,6 +34,10 @@ import {
   TrendingUp,
   RefreshCw,
   HelpCircle,
+  ChevronDown,
+  Clock,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -70,6 +79,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const maxRetries = 5;
   const isRestartingRef = useRef(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
   // Check if user has access to Voice Assistant module
   const { data: tenant } = useQuery<any>({
@@ -784,6 +794,81 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
           </div>
 
           <Separator />
+
+          {/* Recent Commands History */}
+          {messages.filter(m => m.type === "user").length > 0 && (
+            <>
+              <Collapsible open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+                <div className="px-6 py-3 bg-slate-50 dark:bg-slate-900">
+                  <CollapsibleTrigger className="w-full flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 font-medium hover:text-slate-900 dark:hover:text-slate-100 transition-colors">
+                    <span className="flex items-center gap-2">
+                      <Clock className="h-3 w-3" />
+                      Recent Commands ({Math.min(messages.filter(m => m.type === "user").length, 10)})
+                    </span>
+                    <ChevronDown className={cn("h-4 w-4 transition-transform", isHistoryOpen && "rotate-180")} />
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent className="mt-3 space-y-2">
+                    {messages
+                      .filter(m => m.type === "user")
+                      .slice(-10)
+                      .reverse()
+                      .map((cmd, idx) => {
+                        // Find the corresponding assistant response
+                        const cmdIndex = messages.findIndex(m => m.id === cmd.id);
+                        const response = cmdIndex >= 0 && cmdIndex < messages.length - 1 
+                          ? messages[cmdIndex + 1] 
+                          : null;
+                        const isError = response?.action === "error";
+                        
+                        return (
+                          <motion.div
+                            key={cmd.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className={cn(
+                              "flex items-start justify-between gap-2 p-2 rounded border text-xs",
+                              isError 
+                                ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800" 
+                                : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                            )}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-1">
+                                {cmd.isVoice && <Mic className="h-3 w-3 text-blue-500 flex-shrink-0" />}
+                                {isError ? (
+                                  <XCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
+                                ) : response ? (
+                                  <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
+                                ) : null}
+                                <span className="text-slate-500 dark:text-slate-400 text-xs">
+                                  {cmd.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              <p className="text-slate-900 dark:text-white line-clamp-2 break-words">
+                                {cmd.content}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 flex-shrink-0"
+                              onClick={() => handleSendMessage(cmd.content)}
+                              disabled={isProcessing}
+                              data-testid={`button-rerun-command-${idx}`}
+                            >
+                              <RefreshCw className="h-3 w-3" />
+                            </Button>
+                          </motion.div>
+                        );
+                      })}
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+              <Separator />
+            </>
+          )}
 
           {/* Status Indicator & Real-time Transcript */}
           {(assistantStatus !== "idle" || interimTranscript) && (
