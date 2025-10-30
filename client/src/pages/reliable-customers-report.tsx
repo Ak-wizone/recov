@@ -61,11 +61,13 @@ export default function ReliableCustomersReport() {
     queryKey: ["/api/payment-analytics/reliable-customers"],
   });
 
-  // Filter customers based on search
-  const filteredCustomers = customers.filter(customer =>
-    customer.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter customers based on search (only if data is loaded)
+  const filteredCustomers = customers && customers.length > 0
+    ? customers.filter(customer =>
+        customer?.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer?.category?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : [];
 
   const handleExportExcel = () => {
     try {
@@ -119,6 +121,25 @@ export default function ReliableCustomersReport() {
       description: "WhatsApp sharing will be integrated with your WhatsApp configuration",
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6">
+            <div className="h-10 w-64 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+            <div className="h-6 w-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            ))}
+          </div>
+          <div className="h-96 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
