@@ -59,6 +59,8 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const [inputText, setInputText] = useState("");
   const [isAlwaysListening, setIsAlwaysListening] = useState(false);
   const [wakeWordDetected, setWakeWordDetected] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+  const [assistantStatus, setAssistantStatus] = useState<"idle" | "listening" | "processing" | "speaking" | "done">("idle");
   
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -165,6 +167,15 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
           .map((result: any) => result[0].transcript)
           .join("");
 
+        // Get interim (non-final) transcript for real-time display
+        let interim = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (!event.results[i].isFinal) {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        setInterimTranscript(interim);
+
         // Check for wake word
         if (isAlwaysListening && !wakeWordDetected) {
           if (
@@ -173,6 +184,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
           ) {
             setWakeWordDetected(true);
             setIsOpen(true);
+            setAssistantStatus("listening");
             playBeep();
             return;
           }
@@ -181,6 +193,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
         // Process command if wake word detected or manually activated
         if (wakeWordDetected || !isAlwaysListening) {
           if (event.results[event.results.length - 1].isFinal) {
+            setInterimTranscript(""); // Clear interim transcript
             handleVoiceCommand(transcript);
             setWakeWordDetected(false);
           }
@@ -379,12 +392,16 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const speak = (text: string, isVoiceResponse: boolean = false) => {
     // Only speak if voice feedback is enabled and response was from voice command
     if (!assistantSettings?.voiceFeedback && isVoiceResponse) {
+      setAssistantStatus("done");
+      setTimeout(() => setAssistantStatus("idle"), 2000);
       return;
     }
 
     // Check if browser supports speech synthesis
     if (!('speechSynthesis' in window)) {
       console.warn("Speech synthesis not supported in this browser");
+      setAssistantStatus("done");
+      setTimeout(() => setAssistantStatus("idle"), 2000);
       return;
     }
 
@@ -415,16 +432,20 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
     utterance.pitch = 1.0; // Normal pitch
     utterance.volume = 0.8; // Slightly lower volume
 
-    // Update speaking state
+    // Update speaking state and status
     setIsSpeaking(true);
+    setAssistantStatus("speaking");
     
     utterance.onend = () => {
       setIsSpeaking(false);
+      setAssistantStatus("done");
+      setTimeout(() => setAssistantStatus("idle"), 2000);
     };
     
     utterance.onerror = (event) => {
       console.error("Speech synthesis error:", event.error);
       setIsSpeaking(false);
+      setAssistantStatus("idle");
     };
 
     window.speechSynthesis.speak(utterance);
@@ -436,6 +457,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
         isRestartingRef.current = true;
         recognitionRef.current.start();
         setIsListening(true);
+        setAssistantStatus("listening");
         playBeep();
         retryCountRef.current = 0; // Reset retry count on manual start
         
@@ -446,6 +468,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       } catch (error) {
         console.error("Failed to start recognition:", error);
         isRestartingRef.current = false;
+        setAssistantStatus("idle");
       }
     }
   };
@@ -478,6 +501,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const handleVoiceCommand = async (transcript: string) => {
     stopListening();
     setIsProcessing(true);
+    setAssistantStatus("processing");
 
     const userMessage: Message = {
       id: Date.now().toString(),
