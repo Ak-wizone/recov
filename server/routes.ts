@@ -8514,10 +8514,61 @@ ${profile?.legalName || 'Company'}`;
         }
       }
 
+      // Convert segments object to array format for frontend
+      const segmentsArray = [
+        {
+          classification: "Star",
+          customerCount: segments.star.count,
+          totalOutstanding: parseFloat(segments.star.totalOutstanding.toFixed(2)),
+          avgPaymentScore: segments.star.count > 0 
+            ? segments.star.customers.reduce((sum, c) => sum + c.paymentScore, 0) / segments.star.count 
+            : 0,
+        },
+        {
+          classification: "Regular",
+          customerCount: segments.regular.count,
+          totalOutstanding: parseFloat(segments.regular.totalOutstanding.toFixed(2)),
+          avgPaymentScore: segments.regular.count > 0 
+            ? segments.regular.customers.reduce((sum, c) => sum + c.paymentScore, 0) / segments.regular.count 
+            : 0,
+        },
+        {
+          classification: "Risky",
+          customerCount: segments.risky.count,
+          totalOutstanding: parseFloat(segments.risky.totalOutstanding.toFixed(2)),
+          avgPaymentScore: segments.risky.count > 0 
+            ? segments.risky.customers.reduce((sum, c) => sum + c.paymentScore, 0) / segments.risky.count 
+            : 0,
+        },
+        {
+          classification: "Critical",
+          customerCount: segments.critical.count,
+          totalOutstanding: parseFloat(segments.critical.totalOutstanding.toFixed(2)),
+          avgPaymentScore: segments.critical.count > 0 
+            ? segments.critical.customers.reduce((sum, c) => sum + c.paymentScore, 0) / segments.critical.count 
+            : 0,
+        },
+      ];
+
+      // Calculate summary statistics
+      const totalOutstanding = segments.star.totalOutstanding + segments.regular.totalOutstanding + segments.risky.totalOutstanding + segments.critical.totalOutstanding;
+      const totalCustomers = patterns.length;
+      const avgOnTimeRate = totalCustomers > 0
+        ? patterns.reduce((sum, p) => sum + (p.totalInvoices > 0 ? (p.onTimeCount / p.totalInvoices) * 100 : 0), 0) / totalCustomers
+        : 0;
+      const avgPaymentScore = totalCustomers > 0
+        ? patterns.reduce((sum, p) => sum + p.paymentScore, 0) / totalCustomers
+        : 0;
+
       res.json({
-        segments,
+        segments: segmentsArray,
+        summary: {
+          totalCustomers,
+          avgOnTimeRate,
+          totalOutstanding: parseFloat(totalOutstanding.toFixed(2)),
+          avgPaymentScore,
+        },
         categoryBreakdown,
-        totalCustomers: patterns.length,
       });
     } catch (error: any) {
       console.error("Failed to get payment analytics dashboard:", error);

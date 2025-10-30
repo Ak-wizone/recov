@@ -57,71 +57,114 @@ import {
 } from "@tanstack/react-table";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const AVAILABLE_MODULES = [
-  // Core Modules
-  "Business Overview",
-  "Customer Analytics",
-  
-  // Sales Modules
-  "Leads",
-  "Quotations",
-  "Proforma Invoices",
-  "Invoices",
-  "Receipts",
-  
-  // Payment Tracking Submodules
-  "Payment Tracking",
-  "Debtors",
-  "Credit Management",
-  "Ledger",
-  
-  // Action Center Submodules
-  "Action Center",
-  "Daily Dashboard",
-  "Task Manager",
-  "Call Queue",
-  "Activity Logs",
-  
-  // Team Performance Submodules
-  "Team Performance",
-  "Leaderboard",
-  "Daily Targets",
-  "Notification Center",
-  
-  // Risk & Recovery
-  "Risk & Recovery",
-  "Payment Analytics",
-  
-  // Credit Control Submodules
-  "Credit Control",
-  "Category Management",
-  "Follow-up Rules",
-  "Category Calculation",
-  "Urgent Actions",
-  "Follow-up Automation",
-  
-  // Masters Submodules
-  "Masters",
-  "Customers",
-  "Items",
-  "Banks",
-  "Voucher Types",
-  
-  // Settings Submodules
-  "Settings",
-  "Company Profile",
-  "User Management",
-  "Roles Management",
-  "Backup & Restore",
-  "Communication Schedules",
-  "Audit Logs",
-  
-  // Communication Integration
-  "Email/WhatsApp/Call Integrations",
-  
-  // AI Features
-  "RECOV Voice Assistant",
-];
+// Module hierarchy with parent-child relationships
+const MODULE_HIERARCHY = {
+  "Core": {
+    color: "text-blue-600 dark:text-blue-400",
+    modules: [
+      { name: "Business Overview", isParent: false },
+      { name: "Customer Analytics", isParent: false },
+    ]
+  },
+  "Sales": {
+    color: "text-green-600 dark:text-green-400",
+    modules: [
+      { name: "Leads", isParent: false },
+      { name: "Quotations", isParent: false },
+      { name: "Proforma Invoices", isParent: false },
+      { name: "Invoices", isParent: false },
+      { name: "Receipts", isParent: false },
+    ]
+  },
+  "Payment Tracking": {
+    color: "text-purple-600 dark:text-purple-400",
+    modules: [
+      { name: "Payment Tracking", isParent: true, children: ["Debtors", "Credit Management", "Ledger", "Payment Analytics"] },
+      { name: "Debtors", isParent: false, parent: "Payment Tracking" },
+      { name: "Credit Management", isParent: false, parent: "Payment Tracking" },
+      { name: "Ledger", isParent: false, parent: "Payment Tracking" },
+      { name: "Payment Analytics", isParent: false, parent: "Payment Tracking" },
+    ]
+  },
+  "Action Center": {
+    color: "text-orange-600 dark:text-orange-400",
+    modules: [
+      { name: "Action Center", isParent: true, children: ["Daily Dashboard", "Task Manager", "Call Queue", "Activity Logs"] },
+      { name: "Daily Dashboard", isParent: false, parent: "Action Center" },
+      { name: "Task Manager", isParent: false, parent: "Action Center" },
+      { name: "Call Queue", isParent: false, parent: "Action Center" },
+      { name: "Activity Logs", isParent: false, parent: "Action Center" },
+    ]
+  },
+  "Team Performance": {
+    color: "text-pink-600 dark:text-pink-400",
+    modules: [
+      { name: "Team Performance", isParent: true, children: ["Leaderboard", "Daily Targets", "Notification Center"] },
+      { name: "Leaderboard", isParent: false, parent: "Team Performance" },
+      { name: "Daily Targets", isParent: false, parent: "Team Performance" },
+      { name: "Notification Center", isParent: false, parent: "Team Performance" },
+    ]
+  },
+  "Risk & Recovery": {
+    color: "text-red-600 dark:text-red-400",
+    modules: [
+      { name: "Risk & Recovery", isParent: true, children: ["Client Risk Thermometer", "Payment Risk Forecaster", "Recovery Health Test"] },
+      { name: "Client Risk Thermometer", isParent: false, parent: "Risk & Recovery" },
+      { name: "Payment Risk Forecaster", isParent: false, parent: "Risk & Recovery" },
+      { name: "Recovery Health Test", isParent: false, parent: "Risk & Recovery" },
+    ]
+  },
+  "Credit Control": {
+    color: "text-indigo-600 dark:text-indigo-400",
+    modules: [
+      { name: "Credit Control", isParent: true, children: ["Category Management", "Follow-up Rules", "Category Calculation", "Urgent Actions", "Follow-up Automation"] },
+      { name: "Category Management", isParent: false, parent: "Credit Control" },
+      { name: "Follow-up Rules", isParent: false, parent: "Credit Control" },
+      { name: "Category Calculation", isParent: false, parent: "Credit Control" },
+      { name: "Urgent Actions", isParent: false, parent: "Credit Control" },
+      { name: "Follow-up Automation", isParent: false, parent: "Credit Control" },
+    ]
+  },
+  "Masters": {
+    color: "text-cyan-600 dark:text-cyan-400",
+    modules: [
+      { name: "Masters", isParent: true, children: ["Customers", "Items", "Banks", "Voucher Types"] },
+      { name: "Customers", isParent: false, parent: "Masters" },
+      { name: "Items", isParent: false, parent: "Masters" },
+      { name: "Banks", isParent: false, parent: "Masters" },
+      { name: "Voucher Types", isParent: false, parent: "Masters" },
+    ]
+  },
+  "Settings": {
+    color: "text-gray-600 dark:text-gray-400",
+    modules: [
+      { name: "Settings", isParent: true, children: ["Company Profile", "User Management", "Roles Management", "Backup & Restore", "Communication Schedules", "Audit Logs"] },
+      { name: "Company Profile", isParent: false, parent: "Settings" },
+      { name: "User Management", isParent: false, parent: "Settings" },
+      { name: "Roles Management", isParent: false, parent: "Settings" },
+      { name: "Backup & Restore", isParent: false, parent: "Settings" },
+      { name: "Communication Schedules", isParent: false, parent: "Settings" },
+      { name: "Audit Logs", isParent: false, parent: "Settings" },
+    ]
+  },
+  "Communication": {
+    color: "text-teal-600 dark:text-teal-400",
+    modules: [
+      { name: "Email/WhatsApp/Call Integrations", isParent: false },
+    ]
+  },
+  "AI Features": {
+    color: "text-violet-600 dark:text-violet-400",
+    modules: [
+      { name: "RECOV Voice Assistant", isParent: false },
+    ]
+  },
+};
+
+// Flatten module hierarchy for validation
+const AVAILABLE_MODULES = Object.values(MODULE_HIERARCHY).flatMap(
+  category => category.modules.map(m => m.name)
+);
 
 const planFormSchema = z.object({
   name: z.string().min(1, "Plan name is required"),
@@ -677,25 +720,63 @@ export default function SubscriptionPlans() {
             {/* Allowed Modules */}
             <div>
               <Label className="mb-2 block">Allowed Modules *</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded-md p-4 max-h-64 overflow-y-auto">
-                {AVAILABLE_MODULES.map((module) => (
-                  <div key={module} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`module-${module}`}
-                      checked={form.watch("allowedModules").includes(module)}
-                      onCheckedChange={(checked) => {
-                        const current = form.watch("allowedModules");
-                        if (checked) {
-                          form.setValue("allowedModules", [...current, module]);
-                        } else {
-                          form.setValue("allowedModules", current.filter(m => m !== module));
-                        }
-                      }}
-                      data-testid={`checkbox-module-${module.toLowerCase().replace(/\s+/g, "-")}`}
-                    />
-                    <Label htmlFor={`module-${module}`} className="text-sm font-normal cursor-pointer">
-                      {module}
-                    </Label>
+              <div className="border rounded-md p-4 max-h-96 overflow-y-auto space-y-4">
+                {Object.entries(MODULE_HIERARCHY).map(([categoryName, categoryData]) => (
+                  <div key={categoryName}>
+                    {/* Category Header */}
+                    <h3 className={`text-lg font-bold mb-3 ${categoryData.color}`}>
+                      {categoryName}
+                    </h3>
+                    
+                    {/* Modules in this category */}
+                    <div className="space-y-2">
+                      {categoryData.modules.map((moduleInfo) => (
+                        <div 
+                          key={moduleInfo.name} 
+                          className={moduleInfo.parent ? "ml-6" : ""}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`module-${moduleInfo.name}`}
+                              checked={form.watch("allowedModules").includes(moduleInfo.name)}
+                              onCheckedChange={(checked) => {
+                                const current = form.watch("allowedModules");
+                                let updated = [...current];
+                                
+                                if (checked) {
+                                  // Add the module
+                                  if (!updated.includes(moduleInfo.name)) {
+                                    updated.push(moduleInfo.name);
+                                  }
+                                  
+                                  // Auto-select parent if this is a sub-module
+                                  if (moduleInfo.parent && !updated.includes(moduleInfo.parent)) {
+                                    updated.push(moduleInfo.parent);
+                                  }
+                                } else {
+                                  // Remove the module
+                                  updated = updated.filter(m => m !== moduleInfo.name);
+                                  
+                                  // If this is a parent module, remove all children too
+                                  if (moduleInfo.isParent && moduleInfo.children) {
+                                    updated = updated.filter(m => !moduleInfo.children?.includes(m));
+                                  }
+                                }
+                                
+                                form.setValue("allowedModules", updated);
+                              }}
+                              data-testid={`checkbox-module-${moduleInfo.name.toLowerCase().replace(/\s+/g, "-")}`}
+                            />
+                            <Label 
+                              htmlFor={`module-${moduleInfo.name}`} 
+                              className={`cursor-pointer ${moduleInfo.isParent ? 'font-semibold text-base' : 'text-sm font-normal'}`}
+                            >
+                              {moduleInfo.name}
+                            </Label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
