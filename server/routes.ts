@@ -5808,8 +5808,9 @@ ${profile?.legalName || 'Company'}`;
         if (txn.voucherType !== 'Opening') {
           totalDebitsInPeriod += txn.debit;
           totalCreditsInPeriod += txn.credit;
+          runningBalance += (txn.debit - txn.credit);
         }
-        runningBalance += (txn.debit - txn.credit);
+        // For Opening Balance, just set the balance as-is
         txn.balance = Math.abs(runningBalance);
         txn.balanceType = runningBalance >= 0 ? 'Dr' : 'Cr';
       });
