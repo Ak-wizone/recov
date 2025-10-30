@@ -9822,7 +9822,230 @@ ${profile?.legalName || 'Company'}`;
         response = "WhatsApp messaging feature is available. Please specify the customer and template, or use the WhatsApp page to send messages.";
       }
       
-      // Default response
+      // ============================================
+      // CONVERSATIONAL NAVIGATION
+      // When user says just module name, ask clarifying questions
+      // ============================================
+      
+      // Dashboard Module - Conversational
+      else if (
+        (normalizedMessage === "dashboard" || 
+         normalizedMessage === "show dashboard" ||
+         normalizedMessage.match(/^dashboard$/i) ||
+         normalizedMessage.match(/^(open|go to|navigate to)\s+dashboard$/i))
+      ) {
+        commandType = "info";
+        response = `📊 **Dashboard ke baare me kya jaanna chahte hain?**\n\n`;
+        response += `💡 Aap yeh puch sakte hain:\n\n`;
+        response += `📈 **Revenue & Collections:**\n`;
+        response += `  • "Show today's collection"\n`;
+        response += `  • "Total revenue"\n`;
+        response += `  • "Outstanding balance"\n\n`;
+        response += `📄 **Invoices:**\n`;
+        response += `  • "Due invoices"\n`;
+        response += `  • "Paid invoices"\n`;
+        response += `  • "Upcoming invoices"\n\n`;
+        response += `👥 **Customers:**\n`;
+        response += `  • "Total customers"\n`;
+        response += `  • "Alpha category customers"\n`;
+        response += `  • "Top 10 debtors"\n\n`;
+        response += `🔔 **Recent Activity:**\n`;
+        response += `  • "Recent payments"\n`;
+        response += `  • "Today's follow-ups"`;
+      }
+      
+      // Customers Module - Conversational
+      else if (
+        (normalizedMessage === "customers" || 
+         normalizedMessage === "customer" ||
+         normalizedMessage.match(/^(show|list)\s+customers?$/i) ||
+         normalizedMessage.match(/^(open|go to)\s+customers?$/i))
+      ) {
+        commandType = "info";
+        response = `👥 **Customers ke baare me kya dekhna hai?**\n\n`;
+        response += `💡 Main aapko yeh bata sakta hoon:\n\n`;
+        response += `📊 **Summary:**\n`;
+        response += `  • "Total customers"\n`;
+        response += `  • "Active customers"\n\n`;
+        response += `🏷️ **Categories:**\n`;
+        response += `  • "Alpha category customers"\n`;
+        response += `  • "Beta category customers"\n`;
+        response += `  • "Gamma category customers"\n`;
+        response += `  • "Delta category customers"\n\n`;
+        response += `💰 **Debtors:**\n`;
+        response += `  • "Top 10 debtors"\n`;
+        response += `  • "Customers with highest balance"\n\n`;
+        response += `📖 **Details:**\n`;
+        response += `  • "Show ledger for [customer name]"\n`;
+        response += `  • "Customer details for [name]"`;
+      }
+      
+      // Invoices Module - Conversational
+      else if (
+        (normalizedMessage === "invoices" || 
+         normalizedMessage === "invoice" ||
+         normalizedMessage.match(/^(show|list)\s+invoices?$/i) ||
+         normalizedMessage.match(/^(open|go to)\s+invoices?$/i))
+      ) {
+        commandType = "info";
+        response = `📄 **Invoices ke baare me kya jaanna hai?**\n\n`;
+        response += `💡 Kripya specify karein:\n\n`;
+        response += `📅 **Status:**\n`;
+        response += `  • "Due invoices"\n`;
+        response += `  • "Paid invoices"\n`;
+        response += `  • "Pending invoices"\n`;
+        response += `  • "Overdue invoices"\n\n`;
+        response += `🗓️ **Time Period:**\n`;
+        response += `  • "Today's invoices"\n`;
+        response += `  • "This week's invoices"\n`;
+        response += `  • "This month's invoices"\n\n`;
+        response += `👤 **Customer:**\n`;
+        response += `  • "Invoices for [customer name]"\n\n`;
+        response += `💵 **Amount:**\n`;
+        response += `  • "Invoices above 1 lakh"\n`;
+        response += `  • "Invoices above [amount]"`;
+      }
+      
+      // Receipts Module - Conversational
+      else if (
+        (normalizedMessage === "receipts" || 
+         normalizedMessage === "receipt" ||
+         normalizedMessage === "payments" ||
+         normalizedMessage === "payment" ||
+         normalizedMessage.match(/^(show|list)\s+(receipts?|payments?)$/i))
+      ) {
+        commandType = "info";
+        response = `💵 **Receipts/Payments ke baare me kya puchna hai?**\n\n`;
+        response += `💡 Aap yeh dekh sakte hain:\n\n`;
+        response += `📊 **Collections:**\n`;
+        response += `  • "Today's collection"\n`;
+        response += `  • "This week's collection"\n`;
+        response += `  • "This month's collection"\n\n`;
+        response += `👤 **Customer:**\n`;
+        response += `  • "Payments from [customer name]"\n`;
+        response += `  • "Recent payments"\n\n`;
+        response += `💰 **Amount:**\n`;
+        response += `  • "Payments above 50000"\n`;
+        response += `  • "Large payments"`;
+      }
+      
+      // Debtors/Payment Tracking - Conversational
+      else if (
+        (normalizedMessage === "debtors" || 
+         normalizedMessage === "debtor" ||
+         normalizedMessage === "outstanding" ||
+         normalizedMessage.match(/^(show|list)\s+debtors?$/i) ||
+         normalizedMessage.match(/^payment tracking$/i))
+      ) {
+        commandType = "info";
+        response = `💰 **Debtors ke baare me kya information chahiye?**\n\n`;
+        response += `💡 Main yeh bata sakta hoon:\n\n`;
+        response += `📊 **Top Debtors:**\n`;
+        response += `  • "Top 10 debtors"\n`;
+        response += `  • "Top 20 debtors"\n`;
+        response += `  • "Highest outstanding customers"\n\n`;
+        response += `🏷️ **By Category:**\n`;
+        response += `  • "Alpha category customers"\n`;
+        response += `  • "Beta category customers"\n`;
+        response += `  • "Gamma category customers"\n`;
+        response += `  • "Delta category customers"\n\n`;
+        response += `📖 **Ledger:**\n`;
+        response += `  • "Show ledger for [customer name]"\n`;
+        response += `  • "Customer outstanding balance"\n\n`;
+        response += `📞 **Follow-ups:**\n`;
+        response += `  • "Today's follow-ups"\n`;
+        response += `  • "Overdue follow-ups"`;
+      }
+      
+      // Ledger - Conversational
+      else if (
+        (normalizedMessage === "ledger" || 
+         normalizedMessage.match(/^(show|open)\s+ledger$/i))
+      ) {
+        commandType = "info";
+        response = `📖 **Ledger ke baare me kya dekhna chahte hain?**\n\n`;
+        response += `💡 Kripya customer specify karein:\n\n`;
+        response += `📋 **Commands:**\n`;
+        response += `  • "Show ledger for [customer name]"\n`;
+        response += `  • "Ledger of [customer name]"\n`;
+        response += `  • "[Customer name] ka ledger"\n\n`;
+        response += `💰 **Additional Info:**\n`;
+        response += `  • "Outstanding balance for [customer]"\n`;
+        response += `  • "Payment history of [customer]"`;
+      }
+      
+      // Leads Module - Conversational
+      else if (
+        (normalizedMessage === "leads" || 
+         normalizedMessage === "lead" ||
+         normalizedMessage.match(/^(show|list)\s+leads?$/i))
+      ) {
+        commandType = "info";
+        response = `🎯 **Leads ke baare me kya jaanna hai?**\n\n`;
+        response += `💡 Aap yeh puch sakte hain:\n\n`;
+        response += `📊 **Summary:**\n`;
+        response += `  • "Total leads"\n`;
+        response += `  • "Hot leads"\n`;
+        response += `  • "Warm leads"\n`;
+        response += `  • "Cold leads"\n\n`;
+        response += `📅 **Status:**\n`;
+        response += `  • "New leads"\n`;
+        response += `  • "Contacted leads"\n`;
+        response += `  • "Qualified leads"\n`;
+        response += `  • "Converted leads"\n\n`;
+        response += `🗓️ **Time:**\n`;
+        response += `  • "Today's leads"\n`;
+        response += `  • "This week's leads"`;
+      }
+      
+      // Quotations Module - Conversational
+      else if (
+        (normalizedMessage === "quotations" || 
+         normalizedMessage === "quotation" ||
+         normalizedMessage === "quotes" ||
+         normalizedMessage.match(/^(show|list)\s+quotations?$/i))
+      ) {
+        commandType = "info";
+        response = `📝 **Quotations ke baare me kya dekhna hai?**\n\n`;
+        response += `💡 Main yeh bata sakta hoon:\n\n`;
+        response += `📊 **Summary:**\n`;
+        response += `  • "Total quotations"\n`;
+        response += `  • "Pending quotations"\n`;
+        response += `  • "Approved quotations"\n\n`;
+        response += `🗓️ **Time:**\n`;
+        response += `  • "Today's quotations"\n`;
+        response += `  • "This week's quotations"\n`;
+        response += `  • "This month's quotations"\n\n`;
+        response += `👤 **Customer:**\n`;
+        response += `  • "Quotations for [customer name]"`;
+      }
+      
+      // Action Center - Conversational
+      else if (
+        (normalizedMessage === "action center" || 
+         normalizedMessage === "actions" ||
+         normalizedMessage === "tasks" ||
+         normalizedMessage.match(/^(show|open)\s+action center$/i))
+      ) {
+        commandType = "info";
+        response = `🎯 **Action Center me kya dekhna chahte hain?**\n\n`;
+        response += `💡 Available options:\n\n`;
+        response += `✅ **Tasks:**\n`;
+        response += `  • "My tasks"\n`;
+        response += `  • "Pending tasks"\n`;
+        response += `  • "Completed tasks"\n\n`;
+        response += `📞 **Calls:**\n`;
+        response += `  • "Call queue"\n`;
+        response += `  • "Today's calls"\n\n`;
+        response += `📋 **Follow-ups:**\n`;
+        response += `  • "Today's follow-ups"\n`;
+        response += `  • "Overdue follow-ups"\n\n`;
+        response += `🎯 **Targets:**\n`;
+        response += `  • "My daily target"\n`;
+        response += `  • "Target progress"`;
+      }
+      
+      // Default response for unrecognized commands
       else {
         response = `Hi ${userName}! I can help you with:\n\n` +
           "📋 Queries:\n" +
