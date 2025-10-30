@@ -62,6 +62,9 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const retryCountRef = useRef(0);
+  const maxRetries = 5;
+  const isRestartingRef = useRef(false);
   
   // Check if user has access to Voice Assistant module
   const { data: tenant } = useQuery<any>({
@@ -179,19 +182,92 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error);
+        // Handle different error types
+        const errorType = event.error;
+        
+        // Don't log or handle 'no-speech' - it's just when user isn't speaking
+        if (errorType === 'no-speech') {
+          return;
+        }
+        
+        // Don't log 'aborted' errors when user intentionally stops
+        if (errorType === 'aborted' && !isAlwaysListening) {
+          setIsListening(false);
+          isRestartingRef.current = false; // Clear restart flag to allow manual recovery
+          return;
+        }
+        
+        // Log only real errors (not aborted, not no-speech)
+        if (errorType !== 'aborted') {
+          console.error("Speech recognition error:", errorType);
+        }
+        
+        // Reset listening state and flags for errors to allow recovery
         setIsListening(false);
+        isRestartingRef.current = false;
+        
+        // Reset retry count on permission errors to allow fresh start
+        if (errorType === 'not-allowed' || errorType === 'service-not-allowed') {
+          retryCountRef.current = 0;
+        }
+      };
+
+      // Helper function for retry logic with exponential backoff
+      const attemptRestart = (currentRetry: number) => {
+        if (!isAlwaysListening || currentRetry >= maxRetries) {
+          setIsListening(false);
+          isRestartingRef.current = false;
+          if (currentRetry >= maxRetries) {
+            console.warn("Max speech recognition retries reached. Please check mic permissions or toggle listening.");
+          }
+          retryCountRef.current = 0;
+          return;
+        }
+
+        // Calculate exponential backoff delay
+        const baseDelay = 500;
+        const delay = baseDelay * Math.pow(2, currentRetry);
+        const maxDelay = 5000;
+        const actualDelay = Math.min(delay, maxDelay);
+
+        setTimeout(() => {
+          if (recognitionRef.current && isAlwaysListening && !isRestartingRef.current) {
+            try {
+              isRestartingRef.current = true;
+              recognitionRef.current.start();
+              
+              // Set listening state to true after successful start
+              setIsListening(true);
+              
+              // Clear restarting flag after short delay to prevent duplicate starts
+              setTimeout(() => {
+                isRestartingRef.current = false;
+              }, 500);
+              
+              // Reset retry count on successful start after 2 seconds
+              setTimeout(() => {
+                retryCountRef.current = 0;
+              }, 2000);
+            } catch (error) {
+              // Handle synchronous errors (NotAllowedError, InvalidStateError, etc.)
+              console.error("Failed to restart recognition:", error);
+              isRestartingRef.current = false;
+              setIsListening(false);
+              
+              // Increment retry count and recursively schedule next retry
+              const nextRetry = currentRetry + 1;
+              retryCountRef.current = nextRetry;
+              attemptRestart(nextRetry);
+            }
+          }
+        }, actualDelay);
       };
 
       recognitionRef.current.onend = () => {
+        isRestartingRef.current = false;
+        
         if (isAlwaysListening) {
-          try {
-            setTimeout(() => {
-              recognitionRef.current?.start();
-            }, 100);
-          } catch (error) {
-            console.error("Failed to restart recognition:", error);
-          }
+          attemptRestart(retryCountRef.current);
         } else {
           setIsListening(false);
         }
@@ -201,11 +277,20 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       if (wasListening || isAlwaysListening) {
         try {
           setTimeout(() => {
-            recognitionRef.current?.start();
-            setIsListening(true);
-          }, 100);
+            if (recognitionRef.current && !isRestartingRef.current) {
+              isRestartingRef.current = true;
+              recognitionRef.current.start();
+              setIsListening(true);
+              
+              // Reset restarting flag after successful start
+              setTimeout(() => {
+                isRestartingRef.current = false;
+              }, 500);
+            }
+          }, 500); // Increased delay to 500ms for more stability
         } catch (error) {
           console.error("Failed to restart recognition after re-init:", error);
+          isRestartingRef.current = false;
         }
       }
     }
@@ -273,17 +358,37 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   };
 
   const startListening = () => {
-    if (recognitionRef.current && !isListening) {
-      recognitionRef.current.start();
-      setIsListening(true);
-      playBeep();
+    if (recognitionRef.current && !isListening && !isRestartingRef.current) {
+      try {
+        isRestartingRef.current = true;
+        recognitionRef.current.start();
+        setIsListening(true);
+        playBeep();
+        retryCountRef.current = 0; // Reset retry count on manual start
+        
+        // Reset restarting flag after successful start
+        setTimeout(() => {
+          isRestartingRef.current = false;
+        }, 500);
+      } catch (error) {
+        console.error("Failed to start recognition:", error);
+        isRestartingRef.current = false;
+      }
     }
   };
 
   const stopListening = () => {
     if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
+      try {
+        retryCountRef.current = 0; // Reset retry count on manual stop
+        isRestartingRef.current = false;
+        recognitionRef.current.stop();
+        setIsListening(false);
+      } catch (error) {
+        console.error("Failed to stop recognition:", error);
+        setIsListening(false);
+        isRestartingRef.current = false;
+      }
     }
   };
 
