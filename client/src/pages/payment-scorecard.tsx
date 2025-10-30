@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -106,16 +106,14 @@ export default function PaymentScorecard() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
   const [open, setOpen] = useState(false);
 
-  // Get customer ID from URL params if available
-  const params = new URLSearchParams(window.location.search);
-  const urlCustomerId = params.get("customerId");
-
   // Set customer ID from URL on mount
-  useState(() => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlCustomerId = params.get("customerId");
     if (urlCustomerId && !selectedCustomerId) {
       setSelectedCustomerId(urlCustomerId);
     }
-  });
+  }, []);
 
   const { data: customers = [], isLoading: isLoadingCustomers } = useQuery<MasterCustomer[]>({
     queryKey: ["/api/masters/customers"],
@@ -127,7 +125,7 @@ export default function PaymentScorecard() {
   });
 
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
-  const config = scorecard ? getClassificationConfig(scorecard.metrics.classification) : null;
+  const config = scorecard?.metrics?.classification ? getClassificationConfig(scorecard.metrics.classification) : null;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
