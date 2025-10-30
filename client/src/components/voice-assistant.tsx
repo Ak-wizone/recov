@@ -19,6 +19,13 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Mic,
   MicOff,
   Send,
@@ -38,6 +45,9 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
+  BookOpen,
+  Lightbulb,
+  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -80,6 +90,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const isRestartingRef = useRef(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   
   // Check if user has access to Voice Assistant module
   const { data: tenant } = useQuery<any>({
@@ -747,6 +758,14 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
                 <Button
                   variant="ghost"
                   size="icon"
+                  onClick={() => setIsHelpOpen(true)}
+                  data-testid="button-assistant-help"
+                >
+                  <HelpCircle className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setIsSettingsOpen(true)}
                   data-testid="button-assistant-settings"
                 >
@@ -1155,7 +1174,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
               </Button>
               <Button
                 size="icon"
-                onClick={handleSendMessage}
+                onClick={() => handleSendMessage()}
                 disabled={!inputText.trim() || isProcessing}
                 data-testid="button-send-message"
               >
@@ -1165,6 +1184,171 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Help Dialog */}
+      <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-2xl">
+              <BookOpen className="h-6 w-6 text-blue-500" />
+              Voice Assistant Help
+            </DialogTitle>
+            <DialogDescription>
+              Learn how to use RECOV Voice Assistant effectively
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            {/* Quick Tips */}
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-slate-900 dark:text-white mb-2">Quick Tips</h3>
+                  <ul className="text-sm text-slate-700 dark:text-slate-300 space-y-1">
+                    <li>• Say <strong>"Hey RECOV"</strong> to activate (if always-listening is ON)</li>
+                    <li>• You can type OR speak your commands</li>
+                    <li>• Speak clearly and naturally in Hindi or English</li>
+                    <li>• Use the <strong>Recent Commands</strong> panel to rerun previous queries</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Invoice Management */}
+            <div>
+              <h3 className="flex items-center gap-2 font-semibold text-lg mb-3 text-slate-900 dark:text-white">
+                <FileText className="h-5 w-5 text-emerald-500" />
+                Invoice Management
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                {[
+                  "due invoices dikhao",
+                  "overdue invoices kitne hain",
+                  "pending invoices list",
+                  "today's invoices",
+                  "इस महीने के invoices",
+                  "invoice status check karo"
+                ].map((cmd, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      handleSendMessage(cmd);
+                      setIsHelpOpen(false);
+                    }}
+                    className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 text-left transition-colors"
+                  >
+                    <Zap className="h-3 w-3 text-blue-500 flex-shrink-0" />
+                    <span className="text-slate-700 dark:text-slate-300">{cmd}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Customer Management */}
+            <div>
+              <h3 className="flex items-center gap-2 font-semibold text-lg mb-3 text-slate-900 dark:text-white">
+                <Users className="h-5 w-5 text-purple-500" />
+                Customer Management
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                {[
+                  "alpha category customers",
+                  "beta category list",
+                  "gamma customers dikhao",
+                  "delta category kitne hain",
+                  "सभी customers की list",
+                  "customer details check karo"
+                ].map((cmd, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      handleSendMessage(cmd);
+                      setIsHelpOpen(false);
+                    }}
+                    className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 text-left transition-colors"
+                  >
+                    <Zap className="h-3 w-3 text-purple-500 flex-shrink-0" />
+                    <span className="text-slate-700 dark:text-slate-300">{cmd}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Collections & Reports */}
+            <div>
+              <h3 className="flex items-center gap-2 font-semibold text-lg mb-3 text-slate-900 dark:text-white">
+                <TrendingUp className="h-5 w-5 text-green-500" />
+                Collections & Reports
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                {[
+                  "aaj ka collection",
+                  "today's collection report",
+                  "payment report dikhao",
+                  "collection summary",
+                  "इस हफ्ते का collection",
+                  "monthly collection"
+                ].map((cmd, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      handleSendMessage(cmd);
+                      setIsHelpOpen(false);
+                    }}
+                    className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 text-left transition-colors"
+                  >
+                    <Zap className="h-3 w-3 text-green-500 flex-shrink-0" />
+                    <span className="text-slate-700 dark:text-slate-300">{cmd}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Communication */}
+            <div>
+              <h3 className="flex items-center gap-2 font-semibold text-lg mb-3 text-slate-900 dark:text-white">
+                <MessageSquare className="h-5 w-5 text-orange-500" />
+                Communication
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                {[
+                  "email reminder bhejo",
+                  "whatsapp message send karo",
+                  "due customers ko reminder",
+                  "payment reminder send",
+                  "bulk email भेजो",
+                  "follow-up message"
+                ].map((cmd, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      handleSendMessage(cmd);
+                      setIsHelpOpen(false);
+                    }}
+                    className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 text-left transition-colors"
+                  >
+                    <Zap className="h-3 w-3 text-orange-500 flex-shrink-0" />
+                    <span className="text-slate-700 dark:text-slate-300">{cmd}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Pro Tips */}
+            <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Pro Tips 🚀</h3>
+              <ul className="text-sm text-slate-700 dark:text-slate-300 space-y-2">
+                <li>• <strong>Mix Hindi & English:</strong> "alpha customers ka list dikhao"</li>
+                <li>• <strong>Be specific:</strong> "last 7 days ke due invoices" instead of just "invoices"</li>
+                <li>• <strong>Use retry:</strong> If command fails, click the retry button for quick rerun</li>
+                <li>• <strong>Voice feedback:</strong> Enable TTS in Settings for spoken responses</li>
+                <li>• <strong>Keyboard shortcut:</strong> Press Enter to send typed commands</li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Settings Dialog */}
       <AssistantSettings
