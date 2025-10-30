@@ -449,6 +449,49 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       }
     }
   }, [assistantSettings]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ctrl+Shift+V - Toggle Voice Assistant
+      if (event.ctrlKey && event.shiftKey && event.key === 'V') {
+        event.preventDefault();
+        setIsOpen(prev => !prev);
+        return;
+      }
+
+      // Only handle these if assistant is open
+      if (!isOpen) return;
+
+      // Escape - Close assistant
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsOpen(false);
+        return;
+      }
+
+      // Ctrl+M - Toggle microphone
+      if (event.ctrlKey && event.key === 'm') {
+        event.preventDefault();
+        if (isListening) {
+          stopListening();
+        } else {
+          startListening();
+        }
+        return;
+      }
+
+      // Ctrl+H - Open help
+      if (event.ctrlKey && event.key === 'h' && isOpen) {
+        event.preventDefault();
+        setIsHelpOpen(true);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isListening]);
   
   // Helper functions (must be defined on every render)
   const playBeep = () => {
@@ -1335,6 +1378,36 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
               </div>
             </div>
 
+            {/* Keyboard Shortcuts */}
+            <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+              <h3 className="flex items-center gap-2 font-semibold text-slate-900 dark:text-white mb-3">
+                <span className="text-lg">⌨️</span>
+                Keyboard Shortcuts
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <kbd className="px-2 py-1 bg-white dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-600 font-mono text-xs">Ctrl+Shift+V</kbd>
+                  <span className="text-slate-700 dark:text-slate-300">Toggle Assistant</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <kbd className="px-2 py-1 bg-white dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-600 font-mono text-xs">Escape</kbd>
+                  <span className="text-slate-700 dark:text-slate-300">Close Assistant</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <kbd className="px-2 py-1 bg-white dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-600 font-mono text-xs">Ctrl+M</kbd>
+                  <span className="text-slate-700 dark:text-slate-300">Toggle Microphone</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <kbd className="px-2 py-1 bg-white dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-600 font-mono text-xs">Ctrl+H</kbd>
+                  <span className="text-slate-700 dark:text-slate-300">Open Help</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <kbd className="px-2 py-1 bg-white dark:bg-slate-800 rounded border border-slate-300 dark:border-slate-600 font-mono text-xs">Enter</kbd>
+                  <span className="text-slate-700 dark:text-slate-300">Send Message</span>
+                </div>
+              </div>
+            </div>
+
             {/* Pro Tips */}
             <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Pro Tips 🚀</h3>
@@ -1343,7 +1416,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
                 <li>• <strong>Be specific:</strong> "last 7 days ke due invoices" instead of just "invoices"</li>
                 <li>• <strong>Use retry:</strong> If command fails, click the retry button for quick rerun</li>
                 <li>• <strong>Voice feedback:</strong> Enable TTS in Settings for spoken responses</li>
-                <li>• <strong>Keyboard shortcut:</strong> Press Enter to send typed commands</li>
+                <li>• <strong>Quick access:</strong> Use keyboard shortcuts for faster navigation</li>
               </ul>
             </div>
           </div>
