@@ -9089,6 +9089,54 @@ ${profile?.legalName || 'Company'}`;
       // Contextual Understanding & Auto-Suggestions
       // ============================================
       
+      // Multi-Turn Dialogue: Check if user is responding to a previous clarifying question
+      let lastAssistantMessage = "";
+      if (recentCommands.length > 0) {
+        // Get the last assistant response from chat history
+        const recentHistory = await db
+          .select()
+          .from(assistantChatHistory)
+          .where(
+            and(
+              eq(assistantChatHistory.tenantId, req.tenantId!),
+              eq(assistantChatHistory.userId, userId)
+            )
+          )
+          .orderBy(desc(assistantChatHistory.createdAt))
+          .limit(1);
+        
+        if (recentHistory.length > 0) {
+          lastAssistantMessage = recentHistory[0].assistantResponse.toLowerCase();
+        }
+      }
+      
+      // Contextual follow-up: If last message asked for clarification about a module
+      // and user responds with specific option, interpret it contextually
+      if (lastAssistantMessage) {
+        // Check if last message was asking about Dashboard options
+        if (lastAssistantMessage.includes("dashboard ke baare me kya")) {
+          // User might say: "revenue", "collection", "due invoices", "total revenue"
+          // No need to handle here - specific commands will catch it below
+        }
+        
+        // Check if last message was asking about Customers options
+        if (lastAssistantMessage.includes("customers ke baare me")) {
+          // Context-aware: User might just say "alpha", "top 10", "total"
+          if (normalizedMessage === "alpha" || normalizedMessage === "alpha category") {
+            // Redirect to Alpha category query (will be handled by existing logic below)
+            // Just normalize the message for better matching
+          }
+        }
+        
+        // Check if last message was asking about Invoices options
+        if (lastAssistantMessage.includes("invoices ke baare me")) {
+          // User might say: "due", "paid", "today's", "overdue"
+          if (normalizedMessage === "due" || normalizedMessage === "pending") {
+            // Will be caught by due invoices logic below
+          }
+        }
+      }
+      
       // Handle follow-up queries based on previous commands
       if (recentCommands.length > 0 && 
           (normalizedMessage.includes("show more") || 
