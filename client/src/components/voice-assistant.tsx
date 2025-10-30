@@ -27,6 +27,8 @@ import {
   FileText,
   Users,
   TrendingUp,
+  RefreshCw,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -122,6 +124,10 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const processCommandMutation = useMutation({
     mutationFn: async (data: { message: string; isVoice: boolean }) => {
       const res = await apiRequest("POST", "/api/assistant/command", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to process command");
+      }
       return await res.json();
     },
     onSuccess: (response: any, variables: { message: string; isVoice: boolean }) => {
@@ -139,6 +145,53 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       // Speak the response if it was a voice command
       if (variables.isVoice && response.response) {
         speak(response.response, true);
+      }
+    },
+    onError: (error: Error, variables: { message: string; isVoice: boolean }) => {
+      let errorMessage = "मुझे समझ नहीं आया। कृपया दोबारा कोशिश करें।";
+      let suggestions: string[] = [];
+
+      // Categorize errors and provide helpful messages
+      if (error.message.includes("network") || error.message.includes("fetch") || error.message.toLowerCase().includes("failed to fetch")) {
+        errorMessage = "❌ **नेटवर्क एरर**: इंटरनेट कनेक्शन चेक करें और दोबारा कोशिश करें।";
+        suggestions = ["इंटरनेट कनेक्शन चेक करें", "पेज को रीफ्रेश करें"];
+      } else if (error.message.includes("No customer found") || (error.message.includes("not found") && !error.message.includes("Failed to process"))) {
+        errorMessage = "❌ **कस्टमर नहीं मिला**: इस नाम से कोई कस्टमर नहीं मिला।";
+        suggestions = ["पूरा नाम बोलें", "स्पेलिंग चेक करें", "'सभी कस्टमर दिखाओ' कहें"];
+      } else if (error.message.toLowerCase().includes("unrecognized")) {
+        errorMessage = "❓ **कमांड समझ नहीं आई**: कृपया दोबारा कोशिश करें।";
+        suggestions = [
+          "उदाहरण: 'due invoices dikhao'",
+          "उदाहरण: 'alpha category customers'",
+          "उदाहरण: 'aaj ka collection'",
+        ];
+      } else if (error.message.includes("permission") || error.message.includes("mic")) {
+        errorMessage = "🎤 **माइक Permission चाहिए**: ब्राउज़र में माइक एक्सेस allow करें।";
+        suggestions = ["ब्राउज़र सेटिंग्स में जाएं", "माइक एक्सेस allow करें"];
+      } else if (error.message.includes("Failed to process command")) {
+        // Generic server error - don't treat as unrecognized command
+        errorMessage = "❌ **Server Error**: कमांड process नहीं हो सका। कृपया दोबारा कोशिश करें।";
+        suggestions = ["दोबारा कोशिश करें", "थोड़ी देर बाद कोशिश करें"];
+      } else {
+        errorMessage = `❌ **एरर**: ${error.message}`;
+        suggestions = ["दोबारा कोशिश करें", "साफ़ शब्दों में बोलें"];
+      }
+
+      const errorAssistantMessage: Message = {
+        id: Date.now().toString() + "-assistant-error",
+        type: "assistant",
+        content: errorMessage + (suggestions.length > 0 ? "\n\n**सुझाव:**\n" + suggestions.map(s => `• ${s}`).join("\n") : ""),
+        timestamp: new Date(),
+        action: "error",
+        data: { error: error.message, suggestions },
+      };
+
+      setMessages((prev) => [...prev, errorAssistantMessage]);
+
+      // Speak error message if it was a voice command
+      if (variables.isVoice) {
+        const spokenError = errorMessage.replace(/[❌❓🎤*]/g, "").split(":")[0]; // Remove emojis and formatting
+        speak(spokenError, true);
       }
     },
   });
@@ -457,9 +510,28 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
     window.speechSynthesis.speak(utterance);
   };
 
-  const startListening = () => {
+  const startListening = async () => {
     if (recognitionRef.current && !isListening && !isRestartingRef.current) {
       try {
+        // Check microphone permission first
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          try {
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+          } catch (permError: any) {
+            const permErrorMessage: Message = {
+              id: Date.now().toString() + "-perm-error",
+              type: "assistant",
+              content: "🎤 **माइक Permission Required**\n\nवॉइस असिस्टेंट काम करने के लिए माइक एक्सेस चाहिए।\n\n**कैसे allow करें:**\n• Browser के Address Bar में Lock/Info icon पर click करें\n• Microphone को 'Allow' में set करें\n• Page को Reload करें",
+              timestamp: new Date(),
+              action: "error",
+              data: { error: "mic_permission_denied", suggestions: ["माइक permission allow करें", "Page reload करें"] },
+            };
+            setMessages((prev) => [...prev, permErrorMessage]);
+            speak("माइक permission चाहिए। ब्राउज़र सेटिंग्स में allow करें।", false);
+            return;
+          }
+        }
+
         isRestartingRef.current = true;
         recognitionRef.current.start();
         setIsListening(true);
@@ -471,10 +543,21 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
         setTimeout(() => {
           isRestartingRef.current = false;
         }, 500);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to start recognition:", error);
         isRestartingRef.current = false;
         setAssistantStatus("idle");
+        
+        // Show user-friendly error
+        const startErrorMessage: Message = {
+          id: Date.now().toString() + "-start-error",
+          type: "assistant",
+          content: `❌ **माइक शुरू नहीं हो सका**\n\n${error.message || "अज्ञात एरर"}\n\n**सुझाव:**\n• माइक connected है check करें\n• दूसरा app माइक use कर रहा है तो बंद करें\n• Page को reload करें`,
+          timestamp: new Date(),
+          action: "error",
+          data: { error: error.message },
+        };
+        setMessages((prev) => [...prev, startErrorMessage]);
       }
     }
   };
@@ -523,12 +606,18 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
 
     setMessages((prev) => [...prev, userMessage]);
 
-    await processCommandMutation.mutateAsync({
-      message: transcript,
-      isVoice: true,
-    });
-
-    setIsProcessing(false);
+    try {
+      await processCommandMutation.mutateAsync({
+        message: transcript,
+        isVoice: true,
+      });
+    } finally {
+      setIsProcessing(false);
+      // Only reset status if not speaking (TTS might be active)
+      if (assistantStatus !== "speaking") {
+        setAssistantStatus("idle");
+      }
+    }
   };
 
   const handleSendMessage = async (commandText?: string) => {
@@ -548,13 +637,20 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       setInputText("");
     }
     setIsProcessing(true);
+    setAssistantStatus("processing");
 
-    await processCommandMutation.mutateAsync({
-      message: messageToSend,
-      isVoice: false,
-    });
-
-    setIsProcessing(false);
+    try {
+      await processCommandMutation.mutateAsync({
+        message: messageToSend,
+        isVoice: false,
+      });
+    } finally {
+      setIsProcessing(false);
+      // Only reset status if not speaking (TTS might be active)
+      if (assistantStatus !== "speaking") {
+        setAssistantStatus("idle");
+      }
+    }
   };
 
   const quickActions = [
@@ -773,6 +869,8 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
                         "max-w-[80%] rounded-lg px-4 py-2",
                         message.type === "user"
                           ? "bg-blue-600 text-white"
+                          : message.action === "error"
+                          ? "bg-red-50 dark:bg-red-950/30 text-red-900 dark:text-red-100 border-2 border-red-200 dark:border-red-800"
                           : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
                       )}
                     >
@@ -839,6 +937,41 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
                           )}
                           {message.data.email && (
                             <div className="text-slate-600 dark:text-slate-400">✉️ {message.data.email}</div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Retry Button for Errors */}
+                      {message.type === "assistant" && message.action === "error" && (
+                        <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-800 flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 border-red-300 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                            onClick={() => {
+                              // Find the previous user message to retry
+                              const messageIndex = messages.findIndex(m => m.id === message.id);
+                              if (messageIndex > 0) {
+                                const previousUserMessage = messages[messageIndex - 1];
+                                if (previousUserMessage.type === "user") {
+                                  handleSendMessage(previousUserMessage.content);
+                                }
+                              }
+                            }}
+                          >
+                            <RefreshCw className="h-3 w-3 mr-1" />
+                            Retry
+                          </Button>
+                          {message.data?.suggestions && message.data.suggestions.length > 0 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7 border-red-300 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                              onClick={() => handleSendMessage("help")}
+                            >
+                              <HelpCircle className="h-3 w-3 mr-1" />
+                              Get Help
+                            </Button>
                           )}
                         </div>
                       )}
