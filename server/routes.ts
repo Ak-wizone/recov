@@ -8918,6 +8918,7 @@ ${profile?.legalName || 'Company'}`;
 
   // Process voice/text command
   app.post("/api/assistant/command", tenantMiddleware, async (req, res) => {
+    const startTime = Date.now(); // Track response time
     try {
       const userId = (req.session as any).user?.id;
       const userName = (req.session as any).user?.name;
@@ -8925,7 +8926,7 @@ ${profile?.legalName || 'Company'}`;
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const { message, isVoice } = req.body;
+      const { message, isVoice, context, previousCommands = [] } = req.body;
       if (!message || typeof message !== "string") {
         return res.status(400).json({ message: "Message is required" });
       }
@@ -8935,6 +8936,10 @@ ${profile?.legalName || 'Company'}`;
       let commandType: "query" | "action" | "info" = "info";
       let actionPerformed: string | null = null;
       let resultData: any = null;
+      
+      // Contextual understanding: Use context and previous commands for better responses
+      const pageContext = context || "";
+      const recentCommands = Array.isArray(previousCommands) ? previousCommands : [];
 
       // ============================================
       // Smart Command Parsing Utilities
@@ -9079,6 +9084,82 @@ ${profile?.legalName || 'Company'}`;
         const cleaned = text.replace(/[₹$,]/g, '');
         return parseNumberFromText(cleaned);
       };
+
+      // ============================================
+      // Contextual Understanding & Auto-Suggestions
+      // ============================================
+      
+      // Handle follow-up queries based on previous commands
+      if (recentCommands.length > 0 && 
+          (normalizedMessage.includes("show more") || 
+           normalizedMessage.includes("details") || 
+           normalizedMessage.includes("aur dikha"))) {
+        const lastCommand = recentCommands[recentCommands.length - 1].toLowerCase();
+        
+        // If last command was about customers, expand on that
+        if (lastCommand.includes("customer")) {
+          response = `💡 Previous command was about customers. You can ask:\n`;
+          response += `• "Show customer details for [name]"\n`;
+          response += `• "Total customers"\n`;
+          response += `• "Alpha category customers"`;
+          commandType = "info";
+        }
+        // If last command was about invoices
+        else if (lastCommand.includes("invoice")) {
+          response = `💡 Previous command was about invoices. You can ask:\n`;
+          response += `• "Due invoices"\n`;
+          response += `• "Today's invoices"\n`;
+          response += `• "Invoice details for [customer]"`;
+          commandType = "info";
+        }
+      }
+      
+      // Page-specific context suggestions
+      if (normalizedMessage.includes("what can i") || 
+          normalizedMessage.includes("help") || 
+          normalizedMessage.includes("kya kar sakte")) {
+        
+        if (pageContext.includes("Dashboard")) {
+          response = `📊 **Dashboard Commands:**\n\n`;
+          response += `• "Show today's collection"\n`;
+          response += `• "Due invoices"\n`;
+          response += `• "Total customers"\n`;
+          response += `• "Outstanding balance"`;
+          commandType = "info";
+        } 
+        else if (pageContext.includes("Invoices")) {
+          response = `📄 **Invoice Commands:**\n\n`;
+          response += `• "Due invoices"\n`;
+          response += `• "Paid invoices"\n`;
+          response += `• "Invoice for [customer name]"\n`;
+          response += `• "Today's invoices"`;
+          commandType = "info";
+        }
+        else if (pageContext.includes("Debtors")) {
+          response = `💰 **Debtor Commands:**\n\n`;
+          response += `• "Alpha category customers"\n`;
+          response += `• "Top 10 debtors"\n`;
+          response += `• "Customer ledger for [name]"\n`;
+          response += `• "Send email to overdue customers"`;
+          commandType = "info";
+        }
+        else if (pageContext.includes("Ledger")) {
+          response = `📖 **Ledger Commands:**\n\n`;
+          response += `• "Show ledger for [customer name]"\n`;
+          response += `• "Customer details"\n`;
+          response += `• "Outstanding balance"`;
+          commandType = "info";
+        }
+        else {
+          response = `💡 **Popular Commands:**\n\n`;
+          response += `• "Show today's collection"\n`;
+          response += `• "Due invoices"\n`;
+          response += `• "Follow ups"\n`;
+          response += `• "Alpha category customers"\n`;
+          response += `• "Send email to overdue customers"`;
+          commandType = "info";
+        }
+      }
 
       // Command Parser - Enhanced keyword matching with smart parsing
       
@@ -9768,6 +9849,25 @@ ${profile?.legalName || 'Company'}`;
         isVoiceInput: isVoice || false,
       });
 
+      // Track analytics - Success case (graceful degradation)
+      try {
+        const responseTime = Date.now() - startTime;
+        await db.insert(assistantAnalytics).values({
+          tenantId: req.tenantId!,
+          userId,
+          command: message,
+          normalizedCommand: normalizedMessage,
+          commandType,
+          isSuccess: true,
+          responseTime,
+          isVoiceInput: isVoice || false,
+          pageContext: pageContext || null,
+        });
+      } catch (analyticsError) {
+        // Fail silently - don't break command processing
+        console.error("Failed to track analytics (success):", analyticsError);
+      }
+
       res.json({
         response,
         commandType,
@@ -9776,6 +9876,32 @@ ${profile?.legalName || 'Company'}`;
       });
     } catch (error: any) {
       console.error("Failed to process command:", error);
+      
+      // Track analytics - Error case (graceful degradation)
+      try {
+        const responseTime = Date.now() - startTime;
+        const userId = (req.session as any).user?.id;
+        const { message: userMessage, isVoice, context } = req.body;
+        
+        if (userId && userMessage) {
+          await db.insert(assistantAnalytics).values({
+            tenantId: req.tenantId!,
+            userId,
+            command: userMessage,
+            normalizedCommand: userMessage.toLowerCase().trim(),
+            commandType: "info",
+            isSuccess: false,
+            errorMessage: error.message,
+            responseTime,
+            isVoiceInput: isVoice || false,
+            pageContext: context || null,
+          });
+        }
+      } catch (analyticsError) {
+        // Fail silently - don't break error handling
+        console.error("Failed to track analytics (error):", analyticsError);
+      }
+      
       res.status(500).json({ message: error.message });
     }
   });
@@ -9828,6 +9954,91 @@ ${profile?.legalName || 'Company'}`;
       res.json(settings);
     } catch (error: any) {
       console.error("Failed to update assistant settings:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get assistant analytics for current user
+  app.get("/api/assistant/analytics", tenantMiddleware, async (req, res) => {
+    try {
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get analytics data from the last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const analytics = await db
+        .select()
+        .from(assistantAnalytics)
+        .where(
+          and(
+            eq(assistantAnalytics.tenantId, req.tenantId!),
+            eq(assistantAnalytics.userId, userId),
+            sql`${assistantAnalytics.createdAt} >= ${thirtyDaysAgo}`
+          )
+        )
+        .orderBy(desc(assistantAnalytics.createdAt));
+
+      // Calculate statistics
+      const totalCommands = analytics.length;
+      const successfulCommands = analytics.filter(a => a.isSuccess).length;
+      const failedCommands = totalCommands - successfulCommands;
+      const successRate = totalCommands > 0 ? (successfulCommands / totalCommands) * 100 : 0;
+      
+      const avgResponseTime = totalCommands > 0
+        ? analytics.reduce((sum, a) => sum + (a.responseTime || 0), 0) / totalCommands
+        : 0;
+
+      // Most used commands
+      const commandCounts: Record<string, number> = {};
+      analytics.forEach(a => {
+        const cmd = a.normalizedCommand || a.command;
+        commandCounts[cmd] = (commandCounts[cmd] || 0) + 1;
+      });
+
+      const mostUsedCommands = Object.entries(commandCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([command, count]) => ({ command, count }));
+
+      // Command types distribution
+      const commandTypes = {
+        query: analytics.filter(a => a.commandType === "query").length,
+        action: analytics.filter(a => a.commandType === "action").length,
+        info: analytics.filter(a => a.commandType === "info").length,
+      };
+
+      // Voice vs text
+      const voiceCommands = analytics.filter(a => a.isVoiceInput).length;
+      const textCommands = totalCommands - voiceCommands;
+
+      // Recent errors
+      const recentErrors = analytics
+        .filter(a => !a.isSuccess && a.errorMessage)
+        .slice(0, 5)
+        .map(a => ({
+          command: a.command,
+          error: a.errorMessage,
+          timestamp: a.createdAt,
+        }));
+
+      res.json({
+        totalCommands,
+        successfulCommands,
+        failedCommands,
+        successRate: Math.round(successRate * 100) / 100,
+        avgResponseTime: Math.round(avgResponseTime),
+        mostUsedCommands,
+        commandTypes,
+        voiceCommands,
+        textCommands,
+        recentErrors,
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch assistant analytics:", error);
       res.status(500).json({ message: error.message });
     }
   });

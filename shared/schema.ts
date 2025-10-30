@@ -2187,3 +2187,38 @@ export const insertAssistantCommandSchema = createInsertSchema(assistantCommands
 export type InsertAssistantCommand = z.infer<typeof insertAssistantCommandSchema>;
 export type AssistantCommand = typeof assistantCommands.$inferSelect;
 
+// Assistant Analytics Tracking
+export const assistantAnalytics = pgTable("assistant_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  command: text("command").notNull(), // The actual command text
+  normalizedCommand: text("normalized_command"), // Lowercase, trimmed version
+  commandType: text("command_type"), // query, action, info
+  isSuccess: boolean("is_success").notNull().default(true),
+  errorMessage: text("error_message"), // Error details if failed
+  responseTime: integer("response_time"), // Milliseconds
+  isVoiceInput: boolean("is_voice_input").notNull().default(false),
+  pageContext: text("page_context"), // Which page was user on
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAssistantAnalyticsSchema = createInsertSchema(assistantAnalytics).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  tenantId: z.string(),
+  userId: z.string(),
+  command: z.string().min(1, "Command is required"),
+  normalizedCommand: z.string().optional(),
+  commandType: z.enum(["query", "action", "info"]).optional(),
+  isSuccess: z.boolean().default(true),
+  errorMessage: z.string().optional(),
+  responseTime: z.number().int().optional(),
+  isVoiceInput: z.boolean().default(false),
+  pageContext: z.string().optional(),
+});
+
+export type InsertAssistantAnalytics = z.infer<typeof insertAssistantAnalyticsSchema>;
+export type AssistantAnalytics = typeof assistantAnalytics.$inferSelect;
+

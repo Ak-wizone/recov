@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,7 @@ interface VoiceAssistantProps {
 
 export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const { user } = useAuth();
+  const [location] = useLocation();
   
   // All hooks MUST be called before any conditional returns
   const [isOpen, setIsOpen] = useState(false);
@@ -83,6 +85,8 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const [wakeWordDetected, setWakeWordDetected] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState("");
   const [assistantStatus, setAssistantStatus] = useState<"idle" | "listening" | "processing" | "speaking" | "done">("idle");
+  const [previousCommands, setPreviousCommands] = useState<string[]>([]);
+  const [currentContext, setCurrentContext] = useState<string>("");
   
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -114,6 +118,44 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
     enabled: isOpen,
   });
   
+  // Detect current page context
+  useEffect(() => {
+    const path = location;
+    let context = "";
+    
+    if (path === "/" || path === "/dashboard") {
+      context = "Dashboard - View overview stats, recent activity, financial summary";
+    } else if (path.startsWith("/customers")) {
+      context = "Customers - Manage customer master data, view customer details";
+    } else if (path.startsWith("/leads")) {
+      context = "Leads - Manage leads, convert to customers";
+    } else if (path.startsWith("/quotations")) {
+      context = "Quotations - Create and manage quotations";
+    } else if (path.startsWith("/proforma")) {
+      context = "Proforma Invoices - Manage proforma invoices";
+    } else if (path.startsWith("/invoices")) {
+      context = "Invoices - Create invoices, view invoice details";
+    } else if (path.startsWith("/receipts")) {
+      context = "Receipts - Record payments, view receipt details";
+    } else if (path.startsWith("/debtors")) {
+      context = "Debtors - View outstanding balances, payment tracking";
+    } else if (path.startsWith("/ledger")) {
+      context = "Customer Ledger - View transaction history for customers";
+    } else if (path.startsWith("/payment-analytics")) {
+      context = "Payment Analytics - Analyze payment patterns, reliability";
+    } else if (path.startsWith("/credit-control")) {
+      context = "Credit Control - Configure recovery settings, follow-up rules";
+    } else if (path.startsWith("/action-center")) {
+      context = "Action Center - Daily tasks, call queue, activity logging";
+    } else if (path.startsWith("/team-performance")) {
+      context = "Team Performance - Leaderboard, targets, team metrics";
+    } else if (path.startsWith("/users")) {
+      context = "Users - Manage users, roles, permissions";
+    }
+    
+    setCurrentContext(context);
+  }, [location]);
+
   // Hydrate messages from chat history
   useEffect(() => {
     if (chatHistory && chatHistory.length > 0) {
@@ -161,8 +203,12 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
 
   // Process command mutation
   const processCommandMutation = useMutation({
-    mutationFn: async (data: { message: string; isVoice: boolean }) => {
-      const res = await apiRequest("POST", "/api/assistant/command", data);
+    mutationFn: async (data: { message: string; isVoice: boolean; context?: string; previousCommands?: string[] }) => {
+      const res = await apiRequest("POST", "/api/assistant/command", {
+        ...data,
+        context: currentContext,
+        previousCommands: previousCommands.slice(-3), // Send last 3 commands for context
+      });
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.message || "Failed to process command");
@@ -170,6 +216,9 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       return await res.json();
     },
     onSuccess: (response: any, variables: { message: string; isVoice: boolean }) => {
+      // Add to previous commands for context
+      setPreviousCommands((prev) => [...prev, variables.message]);
+      
       const assistantMessage: Message = {
         id: Date.now().toString() + "-assistant",
         type: "assistant",
