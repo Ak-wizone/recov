@@ -65,6 +65,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
   const retryCountRef = useRef(0);
   const maxRetries = 5;
   const isRestartingRef = useRef(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   
   // Check if user has access to Voice Assistant module
   const { data: tenant } = useQuery<any>({
@@ -121,7 +122,7 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       const res = await apiRequest("POST", "/api/assistant/command", data);
       return await res.json();
     },
-    onSuccess: (response: any) => {
+    onSuccess: (response: any, variables: { message: string; isVoice: boolean }) => {
       const assistantMessage: Message = {
         id: Date.now().toString() + "-assistant",
         type: "assistant",
@@ -132,6 +133,11 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
       };
       setMessages((prev) => [...prev, assistantMessage]);
       queryClient.invalidateQueries({ queryKey: ["/api/assistant/history"] });
+      
+      // Speak the response if it was a voice command
+      if (variables.isVoice && response.response) {
+        speak(response.response, true);
+      }
     },
   });
 
@@ -313,6 +319,19 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
     }
   }, [messages]);
 
+  // Load voices when component mounts
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      // Load voices (required for Chrome)
+      window.speechSynthesis.getVoices();
+      
+      // Add event listener for when voices are loaded
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }, []);
+
   // Apply settings when loaded
   useEffect(() => {
     if (assistantSettings) {
@@ -355,6 +374,60 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
     
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.1);
+  };
+
+  const speak = (text: string, isVoiceResponse: boolean = false) => {
+    // Only speak if voice feedback is enabled and response was from voice command
+    if (!assistantSettings?.voiceFeedback && isVoiceResponse) {
+      return;
+    }
+
+    // Check if browser supports speech synthesis
+    if (!('speechSynthesis' in window)) {
+      console.warn("Speech synthesis not supported in this browser");
+      return;
+    }
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Set language based on settings
+    const lang = assistantSettings?.language || "en-IN";
+    utterance.lang = lang;
+    
+    // Get available voices and select appropriate one
+    const voices = window.speechSynthesis.getVoices();
+    let selectedVoice = voices.find(voice => voice.lang.startsWith(lang.split('-')[0]));
+    
+    // Fallback to any voice if specific language not found
+    if (!selectedVoice && voices.length > 0) {
+      selectedVoice = voices.find(voice => voice.lang.startsWith('en')) || voices[0];
+    }
+    
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+    
+    // Set speech parameters
+    utterance.rate = 1.0; // Normal speed
+    utterance.pitch = 1.0; // Normal pitch
+    utterance.volume = 0.8; // Slightly lower volume
+
+    // Update speaking state
+    setIsSpeaking(true);
+    
+    utterance.onend = () => {
+      setIsSpeaking(false);
+    };
+    
+    utterance.onerror = (event) => {
+      console.error("Speech synthesis error:", event.error);
+      setIsSpeaking(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
   };
 
   const startListening = () => {
@@ -519,7 +592,14 @@ export default function VoiceAssistant({ className }: VoiceAssistantProps) {
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <SheetTitle className="text-xl">RECOV Assistant</SheetTitle>
+                  <div className="flex items-center gap-2">
+                    <SheetTitle className="text-xl">RECOV Assistant</SheetTitle>
+                    {isSpeaking && (
+                      <Badge variant="secondary" className="text-xs animate-pulse">
+                        Speaking...
+                      </Badge>
+                    )}
+                  </div>
                   <SheetDescription>Your AI-powered business helper</SheetDescription>
                 </div>
               </div>
