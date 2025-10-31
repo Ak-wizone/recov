@@ -440,8 +440,18 @@ async function autoProvisionTenant(requestId: string, baseUrl: string): Promise<
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Apply tenant-aware middleware to all API routes
-  app.use('/api', tenantMiddleware);
+  // Public endpoints (BEFORE middleware)
+  // Public API for pricing page - Get active subscription plans
+  app.get("/api/public/plans", async (req, res) => {
+    try {
+      const plans = await storage.getActiveSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      console.error("Failed to fetch active subscription plans:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Public tenant registration endpoint
   app.post("/api/register-tenant", async (req, res) => {
     try {
@@ -1499,18 +1509,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ========== PUBLIC API ==========
-  
-  // Public endpoint for pricing page - Get active subscription plans
-  app.get("/api/public/plans", async (req, res) => {
-    try {
-      const plans = await storage.getActiveSubscriptionPlans();
-      res.json(plans);
-    } catch (error: any) {
-      console.error("Failed to fetch active subscription plans:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
+  // Apply tenant-aware middleware to all API routes EXCEPT public endpoints
+  app.use('/api', tenantMiddleware);
 
   // ========== SUBSCRIPTION PLANS API (Platform Admin Only) ==========
 
