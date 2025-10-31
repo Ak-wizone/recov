@@ -7,16 +7,16 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, MapPin, FileText, CreditCard, Upload, AlertCircle } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { Building2, Mail, MapPin, FileText, Phone, CreditCard } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useLocation } from "wouter";
 
 const registrationSchema = z.object({
   businessName: z.string().min(1, "Business name is required"),
   email: z.string().email("Invalid email address"),
+  mobileNumber: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits"),
   businessAddress: z.string().min(1, "Business address is required"),
   city: z.string().min(1, "City is required"),
   state: z.string().optional(),
@@ -25,24 +25,42 @@ const registrationSchema = z.object({
   gstNumber: z.string().optional(),
   industryType: z.string().optional(),
   planType: z.enum(["6_months_demo", "annual_subscription", "lifetime"]),
+  selectedPlanId: z.string().min(1, "Please select a subscription plan"),
   existingAccountingSoftware: z.string().optional(),
   paymentMethod: z.enum(["qr_code", "payu", "bank_transfer"]),
 });
 
 type RegistrationFormValues = z.infer<typeof registrationSchema>;
 
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: string;
+  billingCycle: string;
+  isActive: boolean;
+}
+
 export default function RegisterTenant() {
   const { toast } = useToast();
-  const [paymentReceipt, setPaymentReceipt] = useState<File | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [location] = useLocation();
   const [emailExists, setEmailExists] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
+
+  // Get plan ID from URL query parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const planIdFromUrl = urlParams.get('plan');
+
+  // Fetch active subscription plans
+  const { data: plans } = useQuery<SubscriptionPlan[]>({
+    queryKey: ['/api/public/plans'],
+  });
 
   const form = useForm<RegistrationFormValues>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
       businessName: "",
       email: "",
+      mobileNumber: "",
       businessAddress: "",
       city: "",
       state: "",
@@ -51,10 +69,21 @@ export default function RegisterTenant() {
       gstNumber: "",
       industryType: "",
       planType: "6_months_demo",
+      selectedPlanId: planIdFromUrl || "",
       existingAccountingSoftware: "",
-      paymentMethod: "qr_code",
+      paymentMethod: "payu",
     },
   });
+
+  // Pre-select plan if provided in URL
+  useEffect(() => {
+    if (planIdFromUrl && plans && plans.length > 0) {
+      const selectedPlan = plans.find(p => p.id === planIdFromUrl);
+      if (selectedPlan) {
+        form.setValue('selectedPlanId', planIdFromUrl);
+      }
+    }
+  }, [planIdFromUrl, plans, form]);
 
   // Watch email field for changes
   const emailValue = form.watch("email");
@@ -86,17 +115,12 @@ export default function RegisterTenant() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegistrationFormValues) => {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (value) formData.append(key, value);
-      });
-      if (paymentReceipt) {
-        formData.append("paymentReceipt", paymentReceipt);
-      }
-
       const response = await fetch("/api/register-tenant", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
       });
 
       if (!response.ok) {
@@ -106,12 +130,16 @@ export default function RegisterTenant() {
 
       return response.json();
     },
-    onSuccess: () => {
-      setIsSubmitted(true);
-      toast({
-        title: "Registration Submitted!",
-        description: "We'll review your application and get back to you soon.",
-      });
+    onSuccess: (data) => {
+      // Redirect to PayU payment page
+      if (data.paymentUrl) {
+        window.location.href = data.paymentUrl;
+      } else {
+        toast({
+          title: "Registration Submitted!",
+          description: "Proceeding to payment...",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -123,29 +151,18 @@ export default function RegisterTenant() {
   });
 
   const onSubmit = (data: RegistrationFormValues) => {
+    if (emailExists) {
+      toast({
+        title: "Email Already Registered",
+        description: "This email is already registered. Please use a different email or login.",
+        variant: "destructive",
+      });
+      return;
+    }
     registerMutation.mutate(data);
   };
 
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-        <Card className="w-full max-w-2xl">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <CardTitle className="text-2xl">Registration Submitted!</CardTitle>
-            <CardDescription className="text-base mt-2">
-              Thank you for registering. We'll review your application and activate your account within 24-48 hours.
-              You'll receive an email confirmation once your account is ready.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
+  const selectedPlan = plans?.find(p => p.id === form.watch('selectedPlanId'));
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
@@ -154,13 +171,25 @@ export default function RegisterTenant() {
           <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
             <Building2 className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           </div>
-          <CardTitle className="text-3xl font-bold">Client Registration</CardTitle>
+          <CardTitle className="text-3xl font-bold" data-testid="heading-registration">
+            Tenant Registration
+          </CardTitle>
           <CardDescription className="text-base">
-            Complete the form below to register your company
+            Complete the form below and proceed to payment
           </CardDescription>
         </CardHeader>
 
         <CardContent>
+          {selectedPlan && (
+            <Alert className="mb-6 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+              <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <AlertDescription className="text-blue-900 dark:text-blue-100">
+                <strong>Selected Plan:</strong> {selectedPlan.name} - ₹{parseInt(selectedPlan.price).toLocaleString('en-IN')}/{selectedPlan.billingCycle}
+                {selectedPlan.name === "Starter" && <span className="ml-2 text-green-600 dark:text-green-400 font-semibold">(7 Days Free Trial)</span>}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -171,14 +200,10 @@ export default function RegisterTenant() {
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
                         <Building2 className="w-4 h-4" />
-                        Business Name
+                        Business Name *
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Enter your business name"
-                          {...field}
-                          data-testid="input-business-name"
-                        />
+                        <Input placeholder="Enter your business name" {...field} data-testid="input-business-name" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -192,26 +217,62 @@ export default function RegisterTenant() {
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
                         <Mail className="w-4 h-4" />
-                        Email Address
-                        {checkingEmail && <span className="text-xs text-gray-500">(checking...)</span>}
+                        Business Email *
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="enter your email"
-                          {...field}
-                          data-testid="input-email"
-                          className={emailExists ? "border-red-500" : ""}
-                        />
+                        <Input type="email" placeholder="business@example.com" {...field} data-testid="input-email" />
                       </FormControl>
                       {emailExists && (
-                        <Alert variant="destructive" className="mt-2">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>
-                            This email is already registered. Please use a different email or contact support.
-                          </AlertDescription>
-                        </Alert>
+                        <p className="text-sm text-red-600 dark:text-red-400">This email is already registered</p>
                       )}
+                      {checkingEmail && (
+                        <p className="text-sm text-gray-500">Checking...</p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="mobileNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Phone className="w-4 h-4" />
+                        Mobile Number *
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="10-digit mobile number" {...field} maxLength={10} data-testid="input-mobile" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="selectedPlanId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <CreditCard className="w-4 h-4" />
+                        Subscription Plan *
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-plan">
+                            <SelectValue placeholder="Select a plan" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {plans?.map((plan) => (
+                            <SelectItem key={plan.id} value={plan.id}>
+                              {plan.name} - ₹{parseInt(plan.price).toLocaleString('en-IN')}/{plan.billingCycle}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -225,14 +286,10 @@ export default function RegisterTenant() {
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
-                      Business Address
+                      Business Address *
                     </FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="enter your address"
-                        {...field}
-                        data-testid="input-address"
-                      />
+                      <Input placeholder="Full business address" {...field} data-testid="input-address" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -245,13 +302,9 @@ export default function RegisterTenant() {
                   name="city"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>City</FormLabel>
+                      <FormLabel>City *</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="City"
-                          {...field}
-                          data-testid="input-city"
-                        />
+                        <Input placeholder="City" {...field} data-testid="input-city" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -265,11 +318,7 @@ export default function RegisterTenant() {
                     <FormItem>
                       <FormLabel>State</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="State"
-                          {...field}
-                          data-testid="input-state"
-                        />
+                        <Input placeholder="State" {...field} data-testid="input-state" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -281,13 +330,9 @@ export default function RegisterTenant() {
                   name="pincode"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Pincode</FormLabel>
+                      <FormLabel>Pincode *</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Pincode"
-                          {...field}
-                          data-testid="input-pincode"
-                        />
+                        <Input placeholder="Pincode" {...field} data-testid="input-pincode" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -303,14 +348,10 @@ export default function RegisterTenant() {
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
                         <FileText className="w-4 h-4" />
-                        PAN Number
+                        PAN Number (Optional)
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="ABCDE1234F"
-                          {...field}
-                          data-testid="input-pan"
-                        />
+                        <Input placeholder="PAN Number" {...field} data-testid="input-pan" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -322,16 +363,9 @@ export default function RegisterTenant() {
                   name="gstNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        GST Number
-                      </FormLabel>
+                      <FormLabel>GST Number (Optional)</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="22ABCDE1234F1Z5"
-                          {...field}
-                          data-testid="input-gst"
-                        />
+                        <Input placeholder="GST Number" {...field} data-testid="input-gst" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -339,151 +373,29 @@ export default function RegisterTenant() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="industryType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Industry Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-industry">
-                            <SelectValue placeholder="Select your industry" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="manufacturing">Manufacturing</SelectItem>
-                          <SelectItem value="retail">Retail</SelectItem>
-                          <SelectItem value="services">Services</SelectItem>
-                          <SelectItem value="it">IT & Software</SelectItem>
-                          <SelectItem value="healthcare">Healthcare</SelectItem>
-                          <SelectItem value="education">Education</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="planType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4" />
-                        Plan Type
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-plan">
-                            <SelectValue placeholder="6 months demo" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="6_months_demo">6 months demo</SelectItem>
-                          <SelectItem value="annual_subscription">Annual Subscription</SelectItem>
-                          <SelectItem value="lifetime">Lifetime</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <div className="flex justify-between items-center pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => window.location.href = '/pricing'}
+                  data-testid="button-back"
+                >
+                  Back to Plans
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={registerMutation.isPending || emailExists}
+                  className="bg-blue-600 hover:bg-blue-700 min-w-[200px]"
+                  data-testid="button-proceed-payment"
+                >
+                  {registerMutation.isPending ? "Processing..." : "Proceed to Payment"}
+                </Button>
               </div>
 
-              <FormField
-                control={form.control}
-                name="existingAccountingSoftware"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Existing Accounting Software</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g., Tally, QuickBooks, Zoho Books"
-                        {...field}
-                        data-testid="input-accounting-software"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4">Payment Information</h3>
-
-                <FormField
-                  control={form.control}
-                  name="paymentMethod"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Select Payment Method</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-2"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="qr_code" id="qr_code" data-testid="radio-qr-code" />
-                            <Label htmlFor="qr_code" className="flex items-center gap-2 cursor-pointer">
-                              <span className="text-2xl">📱</span>
-                              Pay via QR Code
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="payu" id="payu" data-testid="radio-payu" />
-                            <Label htmlFor="payu" className="flex items-center gap-2 cursor-pointer">
-                              <CreditCard className="w-5 h-5" />
-                              Pay via PayU
-                            </Label>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {form.watch("paymentMethod") === "qr_code" && (
-                  <div className="mt-4 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border">
-                    <p className="text-sm font-medium mb-3">Scan this QR code to make payment:</p>
-                    <div className="flex justify-center bg-white dark:bg-gray-900 p-4 rounded">
-                      <div className="w-64 h-64 border-2 border-gray-300 flex items-center justify-center">
-                        <p className="text-gray-400 text-sm text-center">
-                          QR Code<br />Placeholder
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-6">
-                      <Label className="flex items-center gap-2 mb-2">
-                        <Upload className="w-4 h-4" />
-                        Upload Payment Receipt/Screenshot *
-                      </Label>
-                      <Input
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => setPaymentReceipt(e.target.files?.[0] || null)}
-                        data-testid="input-receipt-upload"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-                disabled={registerMutation.isPending || emailExists}
-                data-testid="button-complete-registration"
-              >
-                {registerMutation.isPending ? "Submitting..." : "Complete Registration"}
-              </Button>
+              <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4">
+                By proceeding, you agree to our Terms of Service and Privacy Policy. 
+                You'll be redirected to a secure PayU payment page.
+              </p>
             </form>
           </Form>
         </CardContent>
