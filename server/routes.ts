@@ -880,6 +880,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== PLATFORM STATISTICS API (Platform Admin Only) ==========
+  
+  // Get platform-wide statistics (aggregated across all tenants)
+  app.get("/api/platform/statistics", adminOnlyMiddleware, async (req, res) => {
+    try {
+      // Get total customers across all tenants
+      const totalCustomers = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(customers);
+      
+      // Get total invoices and their sum across all tenants
+      const invoiceStats = await db
+        .select({
+          count: sql<number>`count(*)::int`,
+          total: sql<string>`COALESCE(SUM(${invoices.invoiceAmount}), 0)`
+        })
+        .from(invoices);
+      
+      // Get total receipts and their sum across all tenants
+      const receiptStats = await db
+        .select({
+          count: sql<number>`count(*)::int`,
+          total: sql<string>`COALESCE(SUM(${receipts.amount}), 0)`
+        })
+        .from(receipts);
+      
+      res.json({
+        customers: {
+          total: totalCustomers[0]?.count || 0
+        },
+        invoices: {
+          count: invoiceStats[0]?.count || 0,
+          totalAmount: invoiceStats[0]?.total || "0"
+        },
+        receipts: {
+          count: receiptStats[0]?.count || 0,
+          totalAmount: receiptStats[0]?.total || "0"
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch platform statistics:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Get today's active users (users who logged in today)
+  app.get("/api/platform/active-users", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const activeUsers = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(users)
+        .where(
+          and(
+            sql`${users.tenantId} IS NOT NULL`, // Exclude platform admins
+            sql`${users.lastLoginAt} >= ${today}`
+          )
+        );
+      
+      res.json({
+        activeToday: activeUsers[0]?.count || 0
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch active users:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // ========== SUBSCRIPTION PLANS API (Platform Admin Only) ==========
 
   // Get all subscription plans
@@ -1198,6 +1268,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isValidPassword) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
+
+      // Update last login timestamp for activity tracking
+      await db
+        .update(users)
+        .set({ lastLoginAt: new Date() })
+        .where(eq(users.id, user.id));
 
       // Store user and tenantId in session
       (req.session as any).user = {

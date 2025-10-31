@@ -1092,6 +1092,7 @@ export const users = pgTable("users", {
   roleId: varchar("role_id").references(() => roles.id, { onDelete: "set null" }),
   status: text("status").notNull().default("Active"), // Active, Inactive
   password: text("password"),
+  lastLoginAt: timestamp("last_login_at"), // Track user activity for platform statistics
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
