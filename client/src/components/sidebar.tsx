@@ -99,7 +99,7 @@ const platformAdminNavItems: NavItem[] = [
 const navItems: NavItem[] = [
   {
     name: "Business Overview",
-    path: "/",
+    path: "/dashboard",
     icon: <LayoutDashboard className="h-5 w-5" />,
     module: "Business Overview",
   },

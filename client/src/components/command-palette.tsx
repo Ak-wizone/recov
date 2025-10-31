@@ -59,7 +59,7 @@ const navigationItems: NavigationItem[] = [
   // Core
   {
     name: "Business Overview",
-    path: "/",
+    path: "/dashboard",
     icon: <LayoutDashboard className="h-4 w-4" />,
     keywords: ["dashboard", "home", "overview", "main"],
     category: "Core",

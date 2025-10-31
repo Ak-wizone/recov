@@ -59,10 +59,12 @@ import BackupRestore from "@/pages/backup-restore";
 import Pricing from "@/pages/pricing";
 import PaymentSuccess from "@/pages/payment-success";
 import PaymentFailed from "@/pages/payment-failed";
+import Landing from "@/pages/landing";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/" component={Landing} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/register-tenant" component={RegisterTenant} />
       <Route path="/register" component={RegisterTenant} />
@@ -80,7 +82,7 @@ function Router() {
         <ProtectedRoute>
           <Layout>
             <Switch>
-              <Route path="/" component={Home} />
+              <Route path="/dashboard" component={Home} />
               <Route path="/customer-analytics" component={CustomerAnalytics} />
               <Route path="/leads" component={Leads} />
               <Route path="/quotations" component={Quotations} />
