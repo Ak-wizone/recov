@@ -55,6 +55,52 @@ const CREDENTIAL_EMAIL_TEMPLATE = `
 </div>
 `;
 
+// Payment receipt email template
+const PAYMENT_RECEIPT_EMAIL_TEMPLATE = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="color: #28a745; margin: 0;">Payment Successful</h1>
+    <p style="color: #666; font-size: 16px; margin-top: 10px;">Thank you for your payment!</p>
+  </div>
+  
+  <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #28a745;">
+    <h3 style="margin-top: 0; color: #333; font-size: 18px;">Payment Receipt</h3>
+    <p style="margin: 10px 0; color: #444;"><strong>Business Name:</strong> {businessName}</p>
+    <p style="margin: 10px 0; color: #444;"><strong>Email:</strong> {email}</p>
+    <p style="margin: 10px 0; color: #444;"><strong>Transaction ID:</strong> {transactionId}</p>
+    <p style="margin: 10px 0; color: #444;"><strong>Payment Date:</strong> {paymentDate}</p>
+  </div>
+  
+  <div style="background-color: #ffffff; border: 2px solid #e0e0e0; padding: 25px; border-radius: 8px; margin: 25px 0;">
+    <h3 style="margin-top: 0; color: #333; font-size: 18px;">Subscription Details</h3>
+    <p style="margin: 10px 0; color: #444;"><strong>Plan:</strong> {planName}</p>
+    <p style="margin: 10px 0; color: #444;"><strong>Billing Cycle:</strong> {billingCycle}</p>
+    <p style="margin: 10px 0; color: #444; font-size: 20px;"><strong>Amount Paid:</strong> <span style="color: #28a745;">₹{amount}</span></p>
+    {trialInfo}
+  </div>
+  
+  <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ffc107;">
+    <p style="margin: 0; color: #856404; font-size: 14px;">
+      <strong>Note:</strong> This is a payment confirmation receipt, not a GST invoice. 
+      Your login credentials have been sent in a separate email.
+    </p>
+  </div>
+  
+  <p style="color: #666; font-size: 16px; margin-top: 30px;">
+    Your RECOV. account is now active. Check your inbox for login credentials to get started.
+  </p>
+  
+  <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+    <p style="margin: 5px 0; color: #333;">Thank you for choosing RECOV.!</p>
+    <p style="margin: 5px 0; color: #333;"><strong>Team RECOV.</strong></p>
+    <p style="margin: 15px 0; color: #666;"><strong>WIZONE IT NETWORK INDIA PVT LTD</strong></p>
+    <p style="margin: 5px 0; color: #666;">📞 7500 22 33 55</p>
+    <p style="margin: 5px 0; color: #666;">📞 9258 299 527</p>
+    <p style="margin: 5px 0; color: #666;">📞 9258 299 518</p>
+  </div>
+</div>
+`;
+
 // Helper function to send tenant credentials email
 async function sendTenantCredentials(
   tenantBusinessName: string,
@@ -98,6 +144,66 @@ async function sendTenantCredentials(
     return {
       success: false,
       message: error.message || "Failed to send credentials email"
+    };
+  }
+}
+
+// Helper function to send payment receipt email
+async function sendPaymentReceipt(
+  businessName: string,
+  email: string,
+  transactionId: string,
+  amount: string,
+  planName: string,
+  billingCycle: string,
+  paymentDate: string,
+  hasTrial: boolean
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // Get platform admin's email configuration (tenantId = null)
+    const platformEmailConfig = await storage.getEmailConfig(null);
+    
+    if (!platformEmailConfig) {
+      return {
+        success: false,
+        message: "Platform email configuration not found"
+      };
+    }
+
+    // Trial info HTML
+    const trialInfo = hasTrial 
+      ? '<p style="margin: 10px 0; color: #28a745; font-weight: bold;">🎉 Includes 7 Days Free Trial</p>'
+      : '';
+
+    // Render the email template
+    const emailBody = renderTemplate(PAYMENT_RECEIPT_EMAIL_TEMPLATE, {
+      businessName,
+      email,
+      transactionId,
+      paymentDate,
+      planName,
+      billingCycle,
+      amount: parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+      trialInfo,
+    });
+
+    // Send the email
+    await sendEmail(
+      platformEmailConfig,
+      email,
+      "Payment Successful - RECOV. Subscription Receipt",
+      emailBody
+    );
+
+    return {
+      success: true,
+      message: "Payment receipt email sent successfully"
+    };
+  } catch (error: any) {
+    console.error("Failed to send payment receipt email:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to send receipt email"
     };
   }
 }
@@ -296,6 +402,27 @@ async function autoProvisionTenant(requestId: string, baseUrl: string): Promise<
       result.defaultPassword,
       baseUrl
     );
+
+    // Send payment receipt email
+    const paymentDate = new Date().toLocaleDateString('en-IN', { 
+      day: '2-digit', 
+      month: 'long', 
+      year: 'numeric' 
+    });
+
+    const receiptResult = await sendPaymentReceipt(
+      request.businessName,
+      request.email,
+      request.transactionId || request.paymentId || 'N/A',
+      request.paymentAmount || '0',
+      plan.name,
+      plan.billingCycle,
+      paymentDate,
+      plan.name === "Starter"
+    );
+
+    console.log("📧 Credentials email:", emailResult.message);
+    console.log("📧 Receipt email:", receiptResult.message);
 
     return {
       success: true,
