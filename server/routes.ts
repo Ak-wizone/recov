@@ -211,7 +211,8 @@ async function sendPaymentReceipt(
 // PayU Payment Helper Functions
 function generatePayUHash(data: Record<string, string>, salt: string): string {
   // PayU hash format: sha512(key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||salt)
-  const hashString = `${data.key}|${data.txnid}|${data.amount}|${data.productinfo}|${data.firstname}|${data.email}|${data.udf1}|${data.udf2}|${data.udf3}|${data.udf4}|${data.udf5}||||||${salt}`;
+  // Note: 6 empty pipes (||||||) after udf5 before salt
+  const hashString = `${data.key}|${data.txnid}|${data.amount}|${data.productinfo}|${data.firstname}|${data.email}|${data.udf1 || ''}|${data.udf2 || ''}|${data.udf3 || ''}|${data.udf4 || ''}|${data.udf5 || ''}||||||${salt}`;
   return crypto.createHash('sha512').update(hashString).digest('hex');
 }
 
