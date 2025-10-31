@@ -495,7 +495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get PayU credentials from environment
       const PAYU_MERCHANT_KEY = process.env.PAYU_MERCHANT_KEY;
       const PAYU_SALT_KEY = process.env.PAYU_SALT_KEY;
-      const PAYU_MODE = process.env.PAYU_MODE || 'test'; // 'test' or 'live'
+      const PAYU_MODE = (process.env.PAYU_MODE || 'test').toLowerCase(); // 'test' or 'live'
 
       if (!PAYU_MERCHANT_KEY || !PAYU_SALT_KEY) {
         return res.status(500).json({ 
