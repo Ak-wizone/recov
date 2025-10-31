@@ -17,6 +17,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import crypto from "crypto";
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -101,15 +102,27 @@ async function sendTenantCredentials(
   }
 }
 
+// PayU Payment Helper Functions
+function generatePayUHash(data: Record<string, string>, salt: string): string {
+  // PayU hash format: sha512(key|txnid|amount|productinfo|firstname|email|||||||||||salt)
+  const hashString = `${data.key}|${data.txnid}|${data.amount}|${data.productinfo}|${data.firstname}|${data.email}|||||||||||${salt}`;
+  return crypto.createHash('sha512').update(hashString).digest('hex');
+}
+
+function verifyPayUHash(data: Record<string, string>, salt: string, receivedHash: string): boolean {
+  // Reverse hash format for verification: sha512(salt|status||||||||||email|firstname|productinfo|amount|txnid|key)
+  const hashString = `${salt}|${data.status}||||||||||${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
+  const calculatedHash = crypto.createHash('sha512').update(hashString).digest('hex');
+  return calculatedHash === receivedHash;
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply tenant-aware middleware to all API routes
   app.use('/api', tenantMiddleware);
   // Public tenant registration endpoint
-  app.post("/api/register-tenant", upload.single("paymentReceipt"), async (req, res) => {
+  app.post("/api/register-tenant", async (req, res) => {
     try {
-      const registrationData = {
-        ...req.body,
-      };
+      const registrationData = req.body;
 
       const result = insertRegistrationRequestSchema.safeParse(registrationData);
       if (!result.success) {
@@ -117,28 +130,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: error.message });
       }
 
-      // Store file upload if provided
-      let paymentReceiptUrl = null;
-      if (req.file) {
-        // In production, upload to object storage
-        // For now, we'll store base64 encoded data
-        paymentReceiptUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+      // Get selected subscription plan to determine amount
+      const [selectedPlan] = await db
+        .select()
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, result.data.selectedPlanId))
+        .limit(1);
+
+      if (!selectedPlan) {
+        return res.status(400).json({ message: "Invalid subscription plan selected" });
       }
 
-      // Create registration request
+      // Generate unique transaction ID
+      const txnid = `TXN${Date.now()}${Math.random().toString(36).substring(7).toUpperCase()}`;
+      
+      // Payment amount (convert to string for PayU)
+      const amount = parseFloat(selectedPlan.price).toFixed(2);
+
+      // Create registration request with payment details
       const [request] = await db
         .insert(registrationRequests)
         .values({
           ...result.data,
-          paymentReceiptUrl,
+          paymentStatus: 'pending',
+          paymentId: txnid,
+          transactionId: txnid,
+          paymentAmount: amount,
         })
         .returning();
 
-      res.json({
-        success: true,
-        requestId: request.id,
-        message: "Registration request submitted successfully",
-      });
+      // Get PayU credentials from environment
+      const PAYU_MERCHANT_KEY = process.env.PAYU_MERCHANT_KEY;
+      const PAYU_SALT_KEY = process.env.PAYU_SALT_KEY;
+      const PAYU_MODE = process.env.PAYU_MODE || 'test'; // 'test' or 'live'
+
+      if (!PAYU_MERCHANT_KEY || !PAYU_SALT_KEY) {
+        return res.status(500).json({ 
+          message: "Payment gateway is not configured. Please contact support." 
+        });
+      }
+
+      // PayU URLs
+      const payuUrl = PAYU_MODE === 'live' 
+        ? 'https://secure.payu.in/_payment' 
+        : 'https://test.payu.in/_payment';
+      
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const surl = `${baseUrl}/api/payment/payu/success`;
+      const furl = `${baseUrl}/api/payment/payu/failure`;
+
+      // Prepare PayU payment data
+      const paymentData = {
+        key: PAYU_MERCHANT_KEY,
+        txnid: txnid,
+        amount: amount,
+        productinfo: `${selectedPlan.name} Subscription - RECOV.`,
+        firstname: result.data.businessName.split(' ')[0] || result.data.businessName,
+        email: result.data.email,
+        phone: result.data.mobileNumber,
+        surl: surl,
+        furl: furl,
+        udf1: request.id, // Store registration request ID for reference
+        udf2: selectedPlan.id,
+        udf3: selectedPlan.name,
+        udf4: '',
+        udf5: '',
+      };
+
+      // Generate hash
+      const hash = generatePayUHash(paymentData, PAYU_SALT_KEY);
+
+      // Create HTML form that auto-submits to PayU
+      const paymentFormHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Redirecting to Payment Gateway...</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .loader {
+      text-align: center;
+      color: white;
+    }
+    .spinner {
+      border: 4px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top: 4px solid white;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="loader">
+    <div class="spinner"></div>
+    <h2>Redirecting to secure payment gateway...</h2>
+    <p>Please wait while we redirect you to PayU</p>
+  </div>
+  <form id="payuForm" method="post" action="${payuUrl}">
+    <input type="hidden" name="key" value="${paymentData.key}" />
+    <input type="hidden" name="txnid" value="${paymentData.txnid}" />
+    <input type="hidden" name="amount" value="${paymentData.amount}" />
+    <input type="hidden" name="productinfo" value="${paymentData.productinfo}" />
+    <input type="hidden" name="firstname" value="${paymentData.firstname}" />
+    <input type="hidden" name="email" value="${paymentData.email}" />
+    <input type="hidden" name="phone" value="${paymentData.phone}" />
+    <input type="hidden" name="surl" value="${paymentData.surl}" />
+    <input type="hidden" name="furl" value="${paymentData.furl}" />
+    <input type="hidden" name="hash" value="${hash}" />
+    <input type="hidden" name="udf1" value="${paymentData.udf1}" />
+    <input type="hidden" name="udf2" value="${paymentData.udf2}" />
+    <input type="hidden" name="udf3" value="${paymentData.udf3}" />
+    <input type="hidden" name="udf4" value="${paymentData.udf4}" />
+    <input type="hidden" name="udf5" value="${paymentData.udf5}" />
+  </form>
+  <script>
+    document.getElementById('payuForm').submit();
+  </script>
+</body>
+</html>`;
+
+      // Return the HTML form that will auto-submit
+      res.setHeader('Content-Type', 'text/html');
+      res.send(paymentFormHtml);
+      
     } catch (error: any) {
       console.error("Registration error:", error);
       res.status(500).json({ message: error.message || "Registration failed" });
