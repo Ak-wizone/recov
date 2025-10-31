@@ -664,6 +664,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         productinfo: payuData.productinfo,
         amount: payuData.amount,
         txnid: payuData.txnid,
+        udf1: payuData.udf1 || '',
+        udf2: payuData.udf2 || '',
+        udf3: payuData.udf3 || '',
+        udf4: payuData.udf4 || '',
+        udf5: payuData.udf5 || '',
       };
 
       const receivedHash = payuData.hash;
