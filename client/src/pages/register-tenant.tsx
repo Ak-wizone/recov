@@ -124,16 +124,34 @@ export default function RegisterTenant() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Registration failed");
+        try {
+          const error = await response.json();
+          throw new Error(error.message || "Registration failed");
+        } catch {
+          throw new Error("Registration failed");
+        }
       }
 
-      return response.json();
+      // Check if response is HTML (PayU payment form) or JSON
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("text/html")) {
+        // Return the HTML to be rendered
+        const html = await response.text();
+        return { type: 'html', content: html };
+      } else {
+        // Return JSON response
+        const json = await response.json();
+        return { type: 'json', content: json };
+      }
     },
     onSuccess: (data) => {
-      // Redirect to PayU payment page
-      if (data.paymentUrl) {
-        window.location.href = data.paymentUrl;
+      if (data.type === 'html') {
+        // Inject the PayU payment form HTML and it will auto-submit
+        const container = document.createElement('div');
+        container.innerHTML = data.content;
+        document.body.appendChild(container);
+      } else if (data.type === 'json' && data.content.paymentUrl) {
+        window.location.href = data.content.paymentUrl;
       } else {
         toast({
           title: "Registration Submitted!",
