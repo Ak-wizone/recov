@@ -274,6 +274,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PayU Success Callback
+  app.post("/api/payment/payu/success", async (req, res) => {
+    try {
+      const payuData = req.body;
+      console.log("PayU Success Callback Data:", payuData);
+
+      const PAYU_MERCHANT_KEY = process.env.PAYU_MERCHANT_KEY!;
+      const PAYU_SALT_KEY = process.env.PAYU_SALT_KEY!;
+
+      // Verify hash
+      const verificationData = {
+        key: PAYU_MERCHANT_KEY,
+        status: payuData.status,
+        email: payuData.email,
+        firstname: payuData.firstname,
+        productinfo: payuData.productinfo,
+        amount: payuData.amount,
+        txnid: payuData.txnid,
+      };
+
+      const receivedHash = payuData.hash;
+      const isValid = verifyPayUHash(verificationData, PAYU_SALT_KEY, receivedHash);
+
+      if (!isValid) {
+        console.error("Invalid PayU hash received");
+        return res.redirect('/payment-failed?reason=invalid_hash');
+      }
+
+      // Get registration request ID from udf1
+      const registrationRequestId = payuData.udf1;
+
+      if (!registrationRequestId) {
+        console.error("No registration request ID found in PayU callback");
+        return res.redirect('/payment-failed?reason=missing_registration_id');
+      }
+
+      // Update registration request with payment details
+      await db
+        .update(registrationRequests)
+        .set({
+          paymentStatus: payuData.status === 'success' ? 'completed' : 'failed',
+          transactionId: payuData.mihpayid || payuData.txnid,
+          paymentAmount: payuData.amount,
+        })
+        .where(eq(registrationRequests.id, registrationRequestId));
+
+      if (payuData.status === 'success') {
+        // Trigger auto-tenant provisioning
+        // This will be handled by the auto-provisioning logic
+        return res.redirect(`/payment-success?txnid=${payuData.txnid}&requestId=${registrationRequestId}`);
+      } else {
+        return res.redirect(`/payment-failed?txnid=${payuData.txnid}&reason=${payuData.error_Message || 'payment_failed'}`);
+      }
+      
+    } catch (error: any) {
+      console.error("PayU success callback error:", error);
+      return res.redirect('/payment-failed?reason=server_error');
+    }
+  });
+
+  // PayU Failure Callback
+  app.post("/api/payment/payu/failure", async (req, res) => {
+    try {
+      const payuData = req.body;
+      console.log("PayU Failure Callback Data:", payuData);
+
+      // Get registration request ID from udf1
+      const registrationRequestId = payuData.udf1;
+
+      if (registrationRequestId) {
+        // Update registration request status
+        await db
+          .update(registrationRequests)
+          .set({
+            paymentStatus: 'failed',
+            transactionId: payuData.mihpayid || payuData.txnid,
+          })
+          .where(eq(registrationRequests.id, registrationRequestId));
+      }
+
+      return res.redirect(`/payment-failed?txnid=${payuData.txnid}&reason=${payuData.error_Message || 'payment_failed'}`);
+      
+    } catch (error: any) {
+      console.error("PayU failure callback error:", error);
+      return res.redirect('/payment-failed?reason=server_error');
+    }
+  });
+
   // Get registration status
   app.get("/api/registration-status/:requestId", async (req, res) => {
     try {
