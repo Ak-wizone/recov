@@ -146,10 +146,11 @@ export default function RegisterTenant() {
     },
     onSuccess: (data) => {
       if (data.type === 'html') {
-        // Inject the PayU payment form HTML and it will auto-submit
-        const container = document.createElement('div');
-        container.innerHTML = data.content;
-        document.body.appendChild(container);
+        // Replace the entire document with the PayU payment form HTML
+        // This allows the auto-submit script to execute properly
+        document.open();
+        document.write(data.content);
+        document.close();
       } else if (data.type === 'json' && data.content.paymentUrl) {
         window.location.href = data.content.paymentUrl;
       } else {
