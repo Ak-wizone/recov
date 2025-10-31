@@ -116,6 +116,202 @@ function verifyPayUHash(data: Record<string, string>, salt: string, receivedHash
   return calculatedHash === receivedHash;
 }
 
+// Auto-provision tenant after successful payment
+async function autoProvisionTenant(requestId: string, baseUrl: string): Promise<{ success: boolean; message: string; tenant?: any }> {
+  try {
+    // Get the registration request
+    const [request] = await db
+      .select()
+      .from(registrationRequests)
+      .where(eq(registrationRequests.id, requestId));
+
+    if (!request) {
+      return { success: false, message: "Registration request not found" };
+    }
+
+    if (request.status === "approved") {
+      return { success: false, message: "Tenant already provisioned" };
+    }
+
+    if (request.paymentStatus !== "completed") {
+      return { success: false, message: "Payment not completed" };
+    }
+
+    // Get the selected subscription plan
+    const [plan] = await db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.id, request.selectedPlanId!))
+      .limit(1);
+
+    if (!plan) {
+      return { success: false, message: "Subscription plan not found" };
+    }
+
+    // Generate slug from business name
+    const slug = request.businessName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    // Check for duplicates
+    const existingTenantByEmail = await db
+      .select()
+      .from(tenants)
+      .where(eq(tenants.email, request.email))
+      .limit(1);
+
+    if (existingTenantByEmail.length > 0) {
+      return { success: false, message: "A tenant with this email already exists" };
+    }
+
+    const existingTenantBySlug = await db
+      .select()
+      .from(tenants)
+      .where(eq(tenants.slug, slug))
+      .limit(1);
+
+    if (existingTenantBySlug.length > 0) {
+      return { success: false, message: "A tenant with this business name already exists" };
+    }
+
+    const existingUser = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, request.email))
+      .limit(1);
+
+    if (existingUser.length > 0) {
+      return { success: false, message: "A user with this email already exists" };
+    }
+
+    // Create default password
+    const emailPrefix = request.email.split('@')[0];
+    const defaultPassword = `${emailPrefix}@#$405`;
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+
+    // Calculate trial end date for Starter plan (7 days)
+    let trialEndDate = null;
+    if (plan.name === "Starter") {
+      trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 7);
+    }
+
+    // Use transaction to ensure atomicity
+    const result = await db.transaction(async (tx) => {
+      // Create tenant
+      const [tenant] = await tx
+        .insert(tenants)
+        .values({
+          slug,
+          businessName: request.businessName,
+          email: request.email,
+          businessAddress: request.businessAddress,
+          city: request.city,
+          state: request.state,
+          pincode: request.pincode,
+          panNumber: request.panNumber,
+          gstNumber: request.gstNumber,
+          industryType: request.industryType,
+          planType: request.planType,
+          subscriptionPlanId: plan.id,
+          existingAccountingSoftware: request.existingAccountingSoftware,
+          status: "active",
+          isActive: true,
+          activatedAt: new Date(),
+        })
+        .returning();
+
+      // Create Admin role
+      const [adminRole] = await tx
+        .insert(roles)
+        .values({
+          tenantId: tenant.id,
+          name: "Admin",
+          description: "Full system access",
+          permissions: [
+            "customers.view", "customers.create", "customers.edit", "customers.delete",
+            "invoices.view", "invoices.create", "invoices.edit", "invoices.delete",
+            "receipts.view", "receipts.create", "receipts.edit", "receipts.delete",
+            "leads.view", "leads.create", "leads.edit", "leads.delete",
+            "quotations.view", "quotations.create", "quotations.edit", "quotations.delete",
+            "users.view", "users.create", "users.edit", "users.delete",
+            "roles.view", "roles.create", "roles.edit", "roles.delete",
+            "settings.view", "settings.edit",
+          ],
+        })
+        .returning();
+
+      // Create first admin user
+      const [user] = await tx
+        .insert(users)
+        .values({
+          tenantId: tenant.id,
+          name: request.businessName + " Admin",
+          email: request.email,
+          password: hashedPassword,
+          roleId: adminRole.id,
+          status: "Active",
+        })
+        .returning();
+
+      // Create company profile
+      await tx
+        .insert(companyProfile)
+        .values({
+          tenantId: tenant.id,
+          legalName: request.businessName,
+          entityType: "Private Limited",
+          gstin: request.gstNumber || null,
+          pan: request.panNumber || null,
+          regAddressLine1: request.businessAddress,
+          regCity: request.city,
+          regState: request.state || "",
+          regPincode: request.pincode,
+          primaryContactName: request.businessName + " Admin",
+          primaryContactEmail: request.email,
+          primaryContactMobile: request.mobileNumber || "0000000000",
+          email: request.email,
+          industryType: request.industryType || null,
+          planType: request.planType,
+        });
+
+      // Update registration request
+      await tx
+        .update(registrationRequests)
+        .set({
+          status: "approved",
+          tenantId: tenant.id,
+          reviewedAt: new Date(),
+        })
+        .where(eq(registrationRequests.id, requestId));
+
+      return { tenant, user, adminRole, defaultPassword };
+    });
+
+    // Send credentials email
+    const emailResult = await sendTenantCredentials(
+      result.tenant.businessName,
+      result.user.email,
+      result.defaultPassword,
+      baseUrl
+    );
+
+    return {
+      success: true,
+      message: "Tenant provisioned successfully",
+      tenant: result.tenant
+    };
+
+  } catch (error: any) {
+    console.error("Auto-provision error:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to provision tenant"
+    };
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply tenant-aware middleware to all API routes
   app.use('/api', tenantMiddleware);
@@ -322,8 +518,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (payuData.status === 'success') {
         // Trigger auto-tenant provisioning
-        // This will be handled by the auto-provisioning logic
-        return res.redirect(`/payment-success?txnid=${payuData.txnid}&requestId=${registrationRequestId}`);
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const provisionResult = await autoProvisionTenant(registrationRequestId, baseUrl);
+        
+        if (provisionResult.success) {
+          console.log("✅ Tenant auto-provisioned successfully:", provisionResult.tenant?.businessName);
+          return res.redirect(`/payment-success?txnid=${payuData.txnid}&requestId=${registrationRequestId}`);
+        } else {
+          console.error("❌ Auto-provision failed:", provisionResult.message);
+          // Still redirect to success page but log the error
+          return res.redirect(`/payment-success?txnid=${payuData.txnid}&requestId=${registrationRequestId}&warning=provisioning_delayed`);
+        }
       } else {
         return res.redirect(`/payment-failed?txnid=${payuData.txnid}&reason=${payuData.error_Message || 'payment_failed'}`);
       }
