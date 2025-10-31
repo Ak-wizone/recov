@@ -217,12 +217,20 @@ function generatePayUHash(data: Record<string, string>, salt: string): string {
 }
 
 function verifyPayUHash(data: Record<string, string>, salt: string, receivedHash: string): boolean {
-  // Reverse hash format for verification: sha512(salt|status|||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
-  const hashString = `${salt}|${data.status}|||||${data.udf5 || ''}|${data.udf4 || ''}|${data.udf3 || ''}|${data.udf2 || ''}|${data.udf1 || ''}|${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
+  // Debug: Log UDF values
+  console.log('UDF Values in callback:');
+  console.log('udf1:', data.udf1, 'Type:', typeof data.udf1);
+  console.log('udf2:', data.udf2, 'Type:', typeof data.udf2);
+  console.log('udf3:', data.udf3, 'Type:', typeof data.udf3);
+  console.log('udf4:', data.udf4, 'Type:', typeof data.udf4);
+  console.log('udf5:', data.udf5, 'Type:', typeof data.udf5);
+  
+  // Reverse hash format for verification: sha512(salt|status||||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
+  const hashString = `${salt}|${data.status}||||||${data.udf5 || ''}|${data.udf4 || ''}|${data.udf3 || ''}|${data.udf2 || ''}|${data.udf1 || ''}|${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
   const calculatedHash = crypto.createHash('sha512').update(hashString).digest('hex');
   
   // Debug logging
-  const debugHashString = `SALT|${data.status}|||||${data.udf5 || ''}|${data.udf4 || ''}|${data.udf3 || ''}|${data.udf2 || ''}|${data.udf1 || ''}|${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
+  const debugHashString = `SALT|${data.status}||||||${data.udf5 || ''}|${data.udf4 || ''}|${data.udf3 || ''}|${data.udf2 || ''}|${data.udf1 || ''}|${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
   console.log('Response Hash Debug:');
   console.log('Expected hash string format:', debugHashString);
   console.log('Calculated hash:', calculatedHash);
