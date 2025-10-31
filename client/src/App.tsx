@@ -57,6 +57,8 @@ import AuditLogs from "@/pages/audit-logs";
 import SubscriptionPlans from "@/pages/subscription-plans";
 import BackupRestore from "@/pages/backup-restore";
 import Pricing from "@/pages/pricing";
+import PaymentSuccess from "@/pages/payment-success";
+import PaymentFailed from "@/pages/payment-failed";
 
 function Router() {
   return (
@@ -64,6 +66,8 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/register-tenant" component={RegisterTenant} />
       <Route path="/register" component={RegisterTenant} />
+      <Route path="/payment-success" component={PaymentSuccess} />
+      <Route path="/payment-failed" component={PaymentFailed} />
       <Route path="/login" component={Login} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password/:token" component={ResetPassword} />
