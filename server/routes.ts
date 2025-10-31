@@ -950,6 +950,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== PUBLIC API ==========
+  
+  // Public endpoint for pricing page - Get active subscription plans
+  app.get("/api/public/plans", async (req, res) => {
+    try {
+      const plans = await storage.getActiveSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      console.error("Failed to fetch active subscription plans:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // ========== SUBSCRIPTION PLANS API (Platform Admin Only) ==========
 
   // Get all subscription plans

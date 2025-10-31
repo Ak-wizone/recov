@@ -56,11 +56,14 @@ import DailyTargets from "@/pages/daily-targets";
 import AuditLogs from "@/pages/audit-logs";
 import SubscriptionPlans from "@/pages/subscription-plans";
 import BackupRestore from "@/pages/backup-restore";
+import Pricing from "@/pages/pricing";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/pricing" component={Pricing} />
       <Route path="/register-tenant" component={RegisterTenant} />
+      <Route path="/register" component={RegisterTenant} />
       <Route path="/login" component={Login} />
       <Route path="/forgot-password" component={ForgotPassword} />
       <Route path="/reset-password/:token" component={ResetPassword} />
