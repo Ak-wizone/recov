@@ -14,11 +14,13 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Activity
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { SkeletonDashboard } from "@/components/ui/skeleton";
+import { useAuth } from "@/lib/auth";
 
 interface BusinessOverviewData {
   financialSnapshot: {
@@ -86,6 +88,24 @@ interface BusinessOverviewData {
   };
 }
 
+interface PlatformStatistics {
+  customers: {
+    total: number;
+  };
+  invoices: {
+    count: number;
+    totalAmount: string;
+  };
+  receipts: {
+    count: number;
+    totalAmount: string;
+  };
+}
+
+interface ActiveUsersData {
+  activeToday: number;
+}
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 // Smart formatter for displaying amounts in Lakhs or Crores
@@ -104,33 +124,198 @@ const formatAmount = (value: number): string => {
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
+  
+  const isPlatformAdmin = !!(user && !user.tenantId);
   
   const { data: dashboardData, isLoading } = useQuery<BusinessOverviewData>({
     queryKey: ['/api/dashboard/business-overview'],
+    enabled: !isPlatformAdmin,
   });
 
   const { data: invoiceStatusCards } = useQuery<any>({
     queryKey: ['/api/dashboard/invoice-status-cards'],
+    enabled: !isPlatformAdmin,
+  });
+  
+  const { data: platformStats, isLoading: isPlatformStatsLoading } = useQuery<PlatformStatistics>({
+    queryKey: ['/api/platform/statistics'],
+    enabled: isPlatformAdmin,
+  });
+  
+  const { data: activeUsersData, isLoading: isActiveUsersLoading } = useQuery<ActiveUsersData>({
+    queryKey: ['/api/platform/active-users'],
+    enabled: isPlatformAdmin,
   });
 
-  if (isLoading) {
+  if (isLoading || isPlatformStatsLoading) {
     return (
       <div className="container mx-auto p-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Business Overview</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Complete view of your business operations</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            {isPlatformAdmin ? "Platform Overview" : "Business Overview"}
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
+            {isPlatformAdmin ? "Aggregated statistics across all tenants" : "Complete view of your business operations"}
+          </p>
         </div>
         <SkeletonDashboard />
       </div>
     );
   }
 
-  if (!dashboardData) {
+  if (isPlatformAdmin && !platformStats) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-500">No platform data available</p>
+      </div>
+    );
+  }
+
+  if (!isPlatformAdmin && !dashboardData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-gray-500">No data available</p>
       </div>
     );
+  }
+  
+  if (isPlatformAdmin && platformStats) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Platform Overview</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Aggregated statistics across all tenants</p>
+          </div>
+        </div>
+        
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card 
+            className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200" 
+            data-testid="card-total-customers"
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Customers</CardTitle>
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <Users className="h-5 w-5 text-blue-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                {platformStats.customers.total.toLocaleString("en-IN")}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Across all tenants</p>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200" 
+            data-testid="card-total-invoices"
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Invoices</CardTitle>
+              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                <FileText className="h-5 w-5 text-green-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+                {platformStats.invoices.count.toLocaleString("en-IN")}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                ₹{parseFloat(platformStats.invoices.totalAmount).toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200" 
+            data-testid="card-total-receipts"
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Receipts</CardTitle>
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <ReceiptIcon className="h-5 w-5 text-purple-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                {platformStats.receipts.count.toLocaleString("en-IN")}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                ₹{parseFloat(platformStats.receipts.totalAmount).toLocaleString("en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200" 
+            data-testid="card-active-users"
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Active Users Today</CardTitle>
+              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+                <Activity className="h-5 w-5 text-orange-500" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+                {activeUsersData?.activeToday || 0}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Users logged in today</p>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <BarChart3 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              Platform Administration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Manage tenants, subscription plans, and monitor platform-wide activity from the navigation menu.
+            </p>
+            <div className="grid md:grid-cols-3 gap-4">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/platform/tenants')}>
+                <CardContent className="pt-6">
+                  <Users className="h-8 w-8 text-blue-600 dark:text-blue-400 mb-2" />
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Tenant Management</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">View and manage all tenants</p>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/platform/subscription-plans')}>
+                <CardContent className="pt-6">
+                  <Wallet className="h-8 w-8 text-green-600 dark:text-green-400 mb-2" />
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Subscription Plans</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Configure pricing and features</p>
+                </CardContent>
+              </Card>
+              <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setLocation('/platform/pending-requests')}>
+                <CardContent className="pt-6">
+                  <AlertCircle className="h-8 w-8 text-orange-600 dark:text-orange-400 mb-2" />
+                  <h3 className="font-semibold text-gray-900 dark:text-white">Pending Requests</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Review tenant registration requests</p>
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!dashboardData) {
+    return null;
   }
 
   return (
