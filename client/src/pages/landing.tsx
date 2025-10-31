@@ -67,46 +67,10 @@ const features = [
     color: "bg-blue-100 text-blue-600"
   },
   {
-    icon: Users,
-    title: "Lead Management",
-    description: "Capture, track, and convert leads with intelligent assignment",
-    color: "bg-purple-100 text-purple-600"
-  },
-  {
-    icon: FileText,
-    title: "Smart Invoicing",
-    description: "Auto-calculated invoices with FIFO allocation and interest tracking",
-    color: "bg-green-100 text-green-600"
-  },
-  {
-    icon: Receipt,
-    title: "Receipt Tracking",
-    description: "Seamless payment collection with multiple voucher types",
-    color: "bg-amber-100 text-amber-600"
-  },
-  {
     icon: Wallet,
     title: "Credit Management",
     description: "Monitor credit limits, utilization, and customer behavior",
     color: "bg-pink-100 text-pink-600"
-  },
-  {
-    icon: BookOpen,
-    title: "Customer Ledger",
-    description: "Complete transaction history with PDF export and sharing",
-    color: "bg-indigo-100 text-indigo-600"
-  },
-  {
-    icon: Target,
-    title: "Action Center",
-    description: "Daily tasks, call queues, and priority follow-ups",
-    color: "bg-red-100 text-red-600"
-  },
-  {
-    icon: Award,
-    title: "Team Performance",
-    description: "Leaderboards, targets, and achievement tracking",
-    color: "bg-orange-100 text-orange-600"
   },
   {
     icon: AlertCircle,
@@ -297,7 +261,7 @@ export default function Landing() {
               </span>
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              15+ integrated modules designed to streamline operations and boost productivity
+              Powerful integrated modules designed to streamline operations and boost productivity
             </p>
           </motion.div>
 
