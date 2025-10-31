@@ -210,14 +210,14 @@ async function sendPaymentReceipt(
 
 // PayU Payment Helper Functions
 function generatePayUHash(data: Record<string, string>, salt: string): string {
-  // PayU hash format: sha512(key|txnid|amount|productinfo|firstname|email|||||||||||salt)
-  const hashString = `${data.key}|${data.txnid}|${data.amount}|${data.productinfo}|${data.firstname}|${data.email}|||||||||||${salt}`;
+  // PayU hash format: sha512(key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||salt)
+  const hashString = `${data.key}|${data.txnid}|${data.amount}|${data.productinfo}|${data.firstname}|${data.email}|${data.udf1}|${data.udf2}|${data.udf3}|${data.udf4}|${data.udf5}||||||${salt}`;
   return crypto.createHash('sha512').update(hashString).digest('hex');
 }
 
 function verifyPayUHash(data: Record<string, string>, salt: string, receivedHash: string): boolean {
-  // Reverse hash format for verification: sha512(salt|status||||||||||email|firstname|productinfo|amount|txnid|key)
-  const hashString = `${salt}|${data.status}||||||||||${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
+  // Reverse hash format for verification: sha512(salt|status|||||udf5|udf4|udf3|udf2|udf1|email|firstname|productinfo|amount|txnid|key)
+  const hashString = `${salt}|${data.status}|||||${data.udf5}|${data.udf4}|${data.udf3}|${data.udf2}|${data.udf1}|${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
   const calculatedHash = crypto.createHash('sha512').update(hashString).digest('hex');
   return calculatedHash === receivedHash;
 }
