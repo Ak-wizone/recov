@@ -535,6 +535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hash = generatePayUHash(paymentData, PAYU_SALT_KEY);
 
       // Debug: Log hash calculation details
+      const hashStringForDebug = `${paymentData.key}|${paymentData.txnid}|${paymentData.amount}|${paymentData.productinfo}|${paymentData.firstname}|${paymentData.email}|${paymentData.udf1}|${paymentData.udf2}|${paymentData.udf3}|${paymentData.udf4}|${paymentData.udf5}||||||SALT`;
       console.log('PayU Payment Data:', {
         key: paymentData.key,
         txnid: paymentData.txnid,
@@ -546,9 +547,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         udf1: paymentData.udf1,
         udf2: paymentData.udf2,
         udf3: paymentData.udf3,
+        udf4: paymentData.udf4,
+        udf5: paymentData.udf5,
         mode: PAYU_MODE,
         url: payuUrl
       });
+      console.log('Hash String (with SALT hidden):', hashStringForDebug);
       console.log('Generated Hash:', hash);
 
       // Create HTML form that auto-submits to PayU
