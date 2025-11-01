@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
 import type { Tenant, SubscriptionPlan } from "@shared/schema";
 
@@ -59,7 +60,7 @@ type TenantWithPlan = Tenant & {
   subscriptionPlan: SubscriptionPlan | null;
 };
 
-// Module mapping configuration
+// Module mapping configuration for subscription plan filtering
 const MODULE_MAPPING: Record<string, string> = {
   "Business Overview": "Business Overview",
   "Customer Analytics": "Customer Analytics",
@@ -79,6 +80,68 @@ const MODULE_MAPPING: Record<string, string> = {
   "Email/WhatsApp/Call Integrations": "Email/WhatsApp/Call Integrations",
   "Backup & Restore": "Backup & Restore",
   "Audit Trial Logs": "Settings",
+};
+
+// Module to Permission mapping for permission checking
+// Maps navigation module names to actual permission module names
+// Only modules with exact permission matches are included
+// Modules without dedicated permissions will be hidden (secure by default)
+const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
+  // Dashboard & Analytics
+  "Business Overview": "Business Overview",
+  "Customer Analytics": "Customer Analytics",
+  
+  // Sales & Quotations
+  "Leads": "Leads",
+  "Quotations": "Quotations",
+  "Proforma Invoices": "Proforma Invoices",
+  
+  // Financial
+  "Invoices": "Invoices",
+  "Receipts": "Receipts",
+  
+  // Payment Tracking - Only exact matches
+  "Debtors": "Debtors",
+  "Ledger": "Ledger",
+  // Note: Credit Management, Payment Analytics have no dedicated permissions yet
+  
+  // Action Center - Parent permission covers all sub-items
+  "Action Center": "Action Center",
+  "Daily Dashboard": "Action Center",
+  "Task Manager": "Action Center",
+  "Call Queue": "Action Center",
+  "Activity Logs": "Action Center",
+  
+  // Team Performance - Parent permission covers all sub-items
+  "Team Performance": "Team Performance",
+  "Leaderboard": "Team Performance",
+  "Daily Targets": "Team Performance",
+  
+  // Risk & Recovery - Not mapped (no dedicated permissions)
+  // "Risk & Recovery": undefined,
+  // "Client Risk Thermometer": undefined,
+  // "Payment Risk Forecaster": undefined,
+  // "Recovery Health Test": undefined,
+  
+  // Credit Control - Only exact match
+  "Credit Control": "Credit Control",
+  // Sub-items have no dedicated permissions, only parent Credit Control permission
+  "Category Management": "Credit Control",
+  "Category Calculation": "Credit Control",
+  "Urgent Actions": "Credit Control",
+  "Follow-up Automation": "Credit Control",
+  
+  // Masters
+  "Customers": "Masters - Customers",
+  "Items": "Masters - Items",
+  "Company Profile": "Company Profile",
+  
+  // Settings - Parent permission covers settings-related items
+  "User Management": "User Management",
+  "Roles Management": "Roles Management",
+  "Communication Schedules": "Settings",
+  "Backup & Restore": "Settings",
+  "Audit Logs": "Settings",
 };
 
 // Platform Admin navigation items
@@ -352,6 +415,7 @@ export default function Sidebar() {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { hasPermission } = usePermissions();
   
   // Determine which navigation to show based on user type
   const isPlatformAdmin = user && !user.tenantId;
@@ -378,7 +442,26 @@ export default function Sidebar() {
     return allowedModules.includes(moduleName);
   };
 
-  // Filter navigation items based on allowed modules
+  // Helper function to check if user has VIEW permission for a module
+  const hasViewPermission = (moduleName: string): boolean => {
+    // Map nav module name to permission module name
+    const permissionModuleName = NAV_TO_PERMISSION_MODULE[moduleName];
+    
+    // If no mapping exists, deny access (secure by default)
+    if (!permissionModuleName) {
+      return false;
+    }
+    
+    // Check if user has VIEW permission for this module
+    try {
+      return hasPermission(permissionModuleName as any, "view");
+    } catch {
+      // If permission check fails, deny access (secure by default)
+      return false;
+    }
+  };
+
+  // Filter navigation items based on allowed modules AND user permissions
   const filteredNavItems = useMemo(() => {
     if (isPlatformAdmin) {
       return platformAdminNavItems;
@@ -388,24 +471,48 @@ export default function Sidebar() {
       return [];
     }
 
-    return navItems.filter((item) => {
-      if (!item.module) {
-        return true;
-      }
-      return isModuleAccessible(item.module);
-    }).map((item) => {
-      // Also filter sub-items based on module access
-      if (item.subItems) {
-        return {
-          ...item,
-          subItems: item.subItems.filter((subItem) =>
-            !subItem.module || isModuleAccessible(subItem.module)
-          )
-        };
-      }
-      return item;
-    });
-  }, [isPlatformAdmin, tenant]);
+    return navItems
+      .map((item) => {
+        // For items with sub-items, filter the sub-items first
+        if (item.subItems) {
+          const filteredSubItems = item.subItems.filter((subItem) => {
+            if (!subItem.module) {
+              return true;
+            }
+            // Check both module access AND user permission for sub-items
+            if (!isModuleAccessible(subItem.module)) {
+              return false;
+            }
+            return hasViewPermission(subItem.module);
+          });
+
+          // Show parent item if it has any accessible sub-items
+          if (filteredSubItems.length > 0) {
+            return {
+              ...item,
+              subItems: filteredSubItems,
+            };
+          }
+          return null;
+        }
+
+        // For items without sub-items, check module and permission directly
+        if (!item.module) {
+          return item;
+        }
+        
+        if (!isModuleAccessible(item.module)) {
+          return null;
+        }
+        
+        if (!hasViewPermission(item.module)) {
+          return null;
+        }
+
+        return item;
+      })
+      .filter((item): item is NavItem => item !== null);
+  }, [isPlatformAdmin, tenant, hasPermission]);
 
   const currentNavItems = filteredNavItems;
 
