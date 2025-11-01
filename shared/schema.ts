@@ -1074,6 +1074,17 @@ export const roles = pgTable("roles", {
   name: text("name").notNull(),
   description: text("description"),
   permissions: text("permissions").array().notNull().default(sql`ARRAY[]::text[]`),
+  // Field-level permissions
+  canViewGP: boolean("can_view_gp").notNull().default(false), // Can view Gross Profit columns in Invoice module
+  // Action permissions for communication and other actions
+  canSendEmail: boolean("can_send_email").notNull().default(true),
+  canSendWhatsApp: boolean("can_send_whatsapp").notNull().default(true),
+  canSendSMS: boolean("can_send_sms").notNull().default(true),
+  canTriggerCall: boolean("can_trigger_call").notNull().default(true),
+  canSendReminder: boolean("can_send_reminder").notNull().default(true),
+  canShareDocuments: boolean("can_share_documents").notNull().default(true),
+  // Dashboard card visibility permissions (array of allowed card IDs)
+  allowedDashboardCards: text("allowed_dashboard_cards").array().notNull().default(sql`ARRAY['revenue', 'collections', 'outstanding', 'interest', 'invoices', 'receipts', 'customers', 'debtors', 'recent-activity', 'charts']::text[]`),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => ({
   uniqueRolePerTenant: sql`CONSTRAINT unique_role_per_tenant UNIQUE (tenant_id, name)`,
@@ -1083,14 +1094,53 @@ export const insertRoleSchema = createInsertSchema(roles).pick({
   name: true,
   description: true,
   permissions: true,
+  canViewGP: true,
+  canSendEmail: true,
+  canSendWhatsApp: true,
+  canSendSMS: true,
+  canTriggerCall: true,
+  canSendReminder: true,
+  canShareDocuments: true,
+  allowedDashboardCards: true,
 }).extend({
   name: z.string().min(1, "Role name is required"),
   description: z.string().optional(),
   permissions: z.array(z.string()).min(1, "At least one permission is required"),
+  canViewGP: z.boolean().default(false),
+  canSendEmail: z.boolean().default(true),
+  canSendWhatsApp: z.boolean().default(true),
+  canSendSMS: z.boolean().default(true),
+  canTriggerCall: z.boolean().default(true),
+  canSendReminder: z.boolean().default(true),
+  canShareDocuments: z.boolean().default(true),
+  allowedDashboardCards: z.array(z.string()).default(['revenue', 'collections', 'outstanding', 'interest', 'invoices', 'receipts', 'customers', 'debtors', 'recent-activity', 'charts']),
 });
 
 export type InsertRole = z.infer<typeof insertRoleSchema>;
 export type Role = typeof roles.$inferSelect;
+
+// User Column Preferences table for saving column visibility per user per module
+export const userColumnPreferences = pgTable("user_column_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  moduleName: text("module_name").notNull(), // e.g., "invoices", "receipts", "debtors"
+  visibleColumns: text("visible_columns").array().notNull(), // Array of column keys that should be visible
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  uniqueUserModule: sql`CONSTRAINT unique_user_module UNIQUE (user_id, module_name)`,
+}));
+
+export const insertUserColumnPreferenceSchema = createInsertSchema(userColumnPreferences).pick({
+  moduleName: true,
+  visibleColumns: true,
+}).extend({
+  moduleName: z.string().min(1, "Module name is required"),
+  visibleColumns: z.array(z.string()).min(1, "At least one column must be visible"),
+});
+
+export type InsertUserColumnPreference = z.infer<typeof insertUserColumnPreferenceSchema>;
+export type UserColumnPreference = typeof userColumnPreferences.$inferSelect;
 
 // Users table for user management
 export const users = pgTable("users", {

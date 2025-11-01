@@ -7124,6 +7124,47 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // ============ USER COLUMN PREFERENCES ROUTES ============
+
+  // Get user's column preferences for a specific module
+  app.get("/api/user-preferences/columns/:module", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const moduleName = req.params.module;
+      
+      const preference = await storage.getUserColumnPreference(sessionUser.id, moduleName);
+      res.json(preference || { visibleColumns: [] });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Save/Update user's column preferences for a module
+  app.post("/api/user-preferences/columns/:module", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const moduleName = req.params.module;
+      const { visibleColumns } = req.body;
+
+      if (!Array.isArray(visibleColumns)) {
+        return res.status(400).json({ message: "visibleColumns must be an array" });
+      }
+
+      const savedPreference = await storage.saveUserColumnPreference(sessionUser.id, moduleName, visibleColumns);
+      res.json(savedPreference);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // ============ EMAIL CONFIGURATION ROUTES ============
 
   // Get current email configuration (without sensitive data)
