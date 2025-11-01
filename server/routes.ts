@@ -1429,6 +1429,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get allowed modules for current tenant (based on subscription plan or custom override)
+  app.get("/api/tenants/allowed-modules", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Platform admins have access to all modules
+      if (!sessionUser.tenantId) {
+        return res.json([
+          "Business Overview",
+          "Customer Analytics",
+          "Leads",
+          "Quotations",
+          "Proforma Invoices",
+          "Invoices",
+          "Receipts",
+          "Payment Tracking",
+          "Action Center",
+          "Team Performance",
+          "Risk & Recovery",
+          "Credit Control",
+          "Masters",
+          "Settings",
+          "Integrations"
+        ]);
+      }
+
+      // Fetch tenant
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, sessionUser.tenantId))
+        .limit(1);
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // If tenant has custom modules override, return those
+      if (tenant.customModules && tenant.customModules.length > 0) {
+        return res.json(tenant.customModules);
+      }
+
+      // Otherwise fetch from subscription plan
+      if (tenant.subscriptionPlanId) {
+        const [plan] = await db
+          .select()
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, tenant.subscriptionPlanId))
+          .limit(1);
+
+        if (plan && plan.allowedModules) {
+          return res.json(plan.allowedModules);
+        }
+      }
+
+      // Default: return empty array if no plan assigned
+      res.json([]);
+    } catch (error: any) {
+      console.error("Failed to fetch allowed modules:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get all tenants (admin only)
   app.get("/api/tenants", adminOnlyMiddleware, async (req, res) => {
     try {
