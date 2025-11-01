@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
+import { requirePermission, requireAnyPermission } from "./permissions";
 import { wsManager } from "./websocket";
 import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics } from "@shared/schema";
 import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
@@ -1881,6 +1882,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({ lastLoginAt: new Date() })
         .where(eq(users.id, user.id));
 
+      // Fetch role permissions if user has a role
+      let permissions: string[] = [];
+      if (user.roleId && user.tenantId) {
+        const role = await storage.getRole(user.tenantId, user.roleId);
+        if (role) {
+          permissions = role.permissions || [];
+        }
+      }
+
       // Store user and tenantId in session
       (req.session as any).user = {
         id: user.id,
@@ -1889,6 +1899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         roleId: user.roleId,
         roleName: user.roleName,
         tenantId: user.tenantId,
+        permissions,
       };
 
       // Save session before responding
@@ -1932,9 +1943,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Account is inactive" });
       }
 
-      // Return user without password
+      // Fetch role permissions if user has a role
+      let permissions: string[] = [];
+      if (user.roleId && user.tenantId) {
+        const role = await storage.getRole(user.tenantId, user.roleId);
+        if (role) {
+          permissions = role.permissions || [];
+        }
+      }
+
+      // Return user without password, including permissions
       const { password: _, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      res.json({
+        ...userWithoutPassword,
+        permissions,
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -3894,7 +3917,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Get all invoices
-  app.get("/api/invoices", async (req, res) => {
+  app.get("/api/invoices", requirePermission("Invoices", "view"), async (req, res) => {
     try {
       const invoices = await storage.getInvoices(req.tenantId!);
       res.json(invoices);
@@ -4292,7 +4315,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk delete invoices (MUST BE BEFORE /:id)
-  app.post("/api/invoices/bulk-delete", async (req, res) => {
+  app.post("/api/invoices/bulk-delete", requirePermission("Invoices", "delete"), async (req, res) => {
     try {
       const { ids } = req.body;
       if (!Array.isArray(ids)) {
@@ -4315,7 +4338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create invoice
-  app.post("/api/invoices", async (req, res) => {
+  app.post("/api/invoices", requirePermission("Invoices", "create"), async (req, res) => {
     try {
       const result = insertInvoiceSchema.safeParse(req.body);
       if (!result.success) {
@@ -4347,7 +4370,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update invoice
-  app.put("/api/invoices/:id", async (req, res) => {
+  app.put("/api/invoices/:id", requirePermission("Invoices", "edit"), async (req, res) => {
     try {
       const result = insertInvoiceSchema.partial().safeParse(req.body);
       if (!result.success) {
@@ -5020,7 +5043,7 @@ ${profile?.legalName || 'Company'}`;
   // ============ RECEIPT ROUTES ============
 
   // Get all receipts
-  app.get("/api/receipts", async (req, res) => {
+  app.get("/api/receipts", requirePermission("Receipts", "view"), async (req, res) => {
     try {
       const receipts = await storage.getReceipts(req.tenantId!);
       res.json(receipts);
@@ -5157,7 +5180,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Bulk delete receipts (MUST BE BEFORE /:id)
-  app.post("/api/receipts/bulk-delete", async (req, res) => {
+  app.post("/api/receipts/bulk-delete", requirePermission("Receipts", "delete"), async (req, res) => {
     try {
       const { ids } = req.body;
       if (!Array.isArray(ids)) {
@@ -5180,7 +5203,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Create receipt
-  app.post("/api/receipts", async (req, res) => {
+  app.post("/api/receipts", requirePermission("Receipts", "create"), async (req, res) => {
     try {
       const result = insertReceiptSchema.safeParse(req.body);
       if (!result.success) {
@@ -5206,7 +5229,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Update receipt
-  app.put("/api/receipts/:id", async (req, res) => {
+  app.put("/api/receipts/:id", requirePermission("Receipts", "edit"), async (req, res) => {
     try {
       const result = insertReceiptSchema.partial().safeParse(req.body);
       if (!result.success) {
@@ -5235,7 +5258,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Delete receipt
-  app.delete("/api/receipts/:id", async (req, res) => {
+  app.delete("/api/receipts/:id", requirePermission("Receipts", "delete"), async (req, res) => {
     try {
       // Get the receipt first to know the customer name
       const receipt = await storage.getReceipt(req.tenantId!, req.params.id);
@@ -5282,7 +5305,7 @@ ${profile?.legalName || 'Company'}`;
   // ============ LEAD ROUTES ============
 
   // Get all leads
-  app.get("/api/leads", async (req, res) => {
+  app.get("/api/leads", requirePermission("Leads", "view"), async (req, res) => {
     try {
       const leads = await storage.getLeads(req.tenantId!);
       res.json(leads);
@@ -5514,7 +5537,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Bulk delete leads (MUST BE BEFORE /:id)
-  app.post("/api/leads/bulk-delete", async (req, res) => {
+  app.post("/api/leads/bulk-delete", requirePermission("Leads", "delete"), async (req, res) => {
     try {
       const { ids } = req.body;
       if (!Array.isArray(ids)) {
@@ -5537,7 +5560,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Create lead
-  app.post("/api/leads", async (req, res) => {
+  app.post("/api/leads", requirePermission("Leads", "create"), async (req, res) => {
     try {
       const result = insertLeadSchema.safeParse(req.body);
       if (!result.success) {
@@ -5560,7 +5583,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Update lead
-  app.put("/api/leads/:id", async (req, res) => {
+  app.put("/api/leads/:id", requirePermission("Leads", "edit"), async (req, res) => {
     try {
       const result = insertLeadSchema.partial().safeParse(req.body);
       if (!result.success) {
@@ -5586,7 +5609,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Partial update lead (for inline editing)
-  app.patch("/api/leads/:id", async (req, res) => {
+  app.patch("/api/leads/:id", requirePermission("Leads", "edit"), async (req, res) => {
     try {
       const result = insertLeadSchema.partial().safeParse(req.body);
       if (!result.success) {
@@ -5612,7 +5635,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Delete lead
-  app.delete("/api/leads/:id", async (req, res) => {
+  app.delete("/api/leads/:id", requirePermission("Leads", "delete"), async (req, res) => {
     try {
       const deleted = await storage.deleteLead(req.tenantId!, req.params.id);
       if (!deleted) {
@@ -6565,7 +6588,7 @@ ${profile?.legalName || 'Company'}`;
   // ============ ROLES ROUTES ============
   
   // Get all roles
-  app.get("/api/roles", async (req, res) => {
+  app.get("/api/roles", requirePermission("Roles Management", "view"), async (req, res) => {
     try {
       const roles = await storage.getRoles(req.tenantId!);
       res.json(roles);
@@ -6668,7 +6691,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Create role
-  app.post("/api/roles", async (req, res) => {
+  app.post("/api/roles", requirePermission("Roles Management", "create"), async (req, res) => {
     try {
       const validation = insertRoleSchema.safeParse(req.body);
       if (!validation.success) {
@@ -6683,7 +6706,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Update role
-  app.put("/api/roles/:id", async (req, res) => {
+  app.put("/api/roles/:id", requirePermission("Roles Management", "edit"), async (req, res) => {
     try {
       const validation = insertRoleSchema.partial().safeParse(req.body);
       if (!validation.success) {
@@ -6701,7 +6724,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Delete role
-  app.delete("/api/roles/:id", async (req, res) => {
+  app.delete("/api/roles/:id", requirePermission("Roles Management", "delete"), async (req, res) => {
     try {
       const success = await storage.deleteRole(req.tenantId!, req.params.id);
       if (!success) {
@@ -6731,7 +6754,7 @@ ${profile?.legalName || 'Company'}`;
   // ============ USERS ROUTES ============
   
   // Get all users
-  app.get("/api/users", async (req, res) => {
+  app.get("/api/users", requirePermission("User Management", "view"), async (req, res) => {
     try {
       const users = await storage.getUsers(req.tenantId!);
       res.json(users);
@@ -6849,7 +6872,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Create user
-  app.post("/api/users", async (req, res) => {
+  app.post("/api/users", requirePermission("User Management", "create"), async (req, res) => {
     try {
       const validation = insertUserSchema.safeParse(req.body);
       if (!validation.success) {
@@ -6864,7 +6887,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Update user
-  app.put("/api/users/:id", async (req, res) => {
+  app.put("/api/users/:id", requirePermission("User Management", "edit"), async (req, res) => {
     try {
       const validation = insertUserSchema.partial().safeParse(req.body);
       if (!validation.success) {
@@ -6882,7 +6905,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Delete user
-  app.delete("/api/users/:id", async (req, res) => {
+  app.delete("/api/users/:id", requirePermission("User Management", "delete"), async (req, res) => {
     try {
       const success = await storage.deleteUser(req.tenantId!, req.params.id);
       if (!success) {

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { apiRequest } from "./queryClient";
+import { PermissionProvider } from "@/hooks/use-permissions";
 
 interface User {
   id: string;
@@ -12,6 +13,7 @@ interface User {
   roleName: string | null;
   tenantId: string | null;
   status: string;
+  permissions?: string[];
 }
 
 interface AuthContextType {
@@ -48,7 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user: user || null, isLoading, logout }}>
-      {children}
+      <PermissionProvider permissions={user?.permissions || []}>
+        {children}
+      </PermissionProvider>
     </AuthContext.Provider>
   );
 }
