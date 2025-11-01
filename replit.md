@@ -23,7 +23,13 @@ The application uses `shadcn/ui` (Radix UI) with Tailwind CSS for a responsive d
 *   **Invoice Module**: Features auto-calculated Final G.P. and percentage, FIFO receipt allocation, and period-based interest calculation with a detailed breakdown UI and A4 print format.
 *   **Proforma Invoice Module**: Full CRUD operations with grid features, enforcing one PI per quotation.
 *   **Enhanced Import System**: Universal editable import preview for various modules with inline error correction, smart parsing, and duplicate detection.
-*   **User Management & RBAC**: Granular, module-specific permissions (View, Create, Edit, Delete, Export, Import, Print) across 13 modules.
+*   **User Management & RBAC**: 
+    *   **Module-Specific Permissions**: Granular permissions (View, Create, Edit, Delete, Export, Import, Print) across 13+ modules
+    *   **Field-Level Access Control**: canViewGP flag to hide Gross Profit (G.P.) columns in Invoice module for users without permission
+    *   **Action Button Permissions**: Granular control over communication actions (Email, WhatsApp, SMS, Call, Reminder, Share) via actionPermissions JSON field
+    *   **Dashboard Card Access**: allowedDashboardCards array controls which analytics cards are visible on Business Overview dashboard
+    *   **User Column Preferences**: Per-user, per-module column visibility saved via user_column_preferences table, enabling personalized views
+    *   **Smart Redirect Logic**: Auto-redirect users without Business Overview permission to their first accessible module with location guard preventing infinite loops
 *   **Credit Control & Recovery System**:
     *   **Cumulative Grace Period Logic**: Categories determined by cumulative days (Alpha: 0-X days, Beta: X+1 to X+Y days, Gamma: X+Y+1 to X+Y+Z days, Delta: beyond X+Y+Z days)
     *   **Partial Payment Threshold**: Invoices with payment percentage ≥ configured threshold (default 80%) are excluded from delay calculations and auto-upgrade logic

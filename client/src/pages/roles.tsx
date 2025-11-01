@@ -51,6 +51,35 @@ import {
   ColumnDef,
 } from "@tanstack/react-table";
 
+const DASHBOARD_CARDS = [
+  "Total Revenue",
+  "Total Collections",
+  "Total Outstanding",
+  "Total Opening Balance",
+  "Upcoming Invoices",
+  "Due Today",
+  "In Grace",
+  "Overdue",
+  "Paid On Time",
+  "Paid Late",
+  "Outstanding by Category",
+  "Top 5 Customers by Revenue",
+  "Top 5 Customers by Outstanding",
+  "Overdue Invoices",
+  "Recent Invoices",
+  "Recent Receipts",
+  "Customer Analytics"
+];
+
+const ACTION_PERMISSIONS = [
+  { key: "canEmail", label: "Email" },
+  { key: "canWhatsApp", label: "WhatsApp" },
+  { key: "canSMS", label: "SMS" },
+  { key: "canCall", label: "Call" },
+  { key: "canReminder", label: "Reminder" },
+  { key: "canShare", label: "Share" },
+];
+
 const MODULES_WITH_PERMISSIONS = [
   {
     module: "Business Overview",
@@ -126,6 +155,23 @@ const roleFormSchema = z.object({
   name: z.string().min(1, "Role name is required"),
   description: z.string().optional(),
   permissions: z.array(z.string()).min(1, "At least one permission is required"),
+  canViewGP: z.boolean().optional().default(true),
+  allowedDashboardCards: z.array(z.string()).optional().default([]),
+  actionPermissions: z.object({
+    canEmail: z.boolean().optional().default(true),
+    canWhatsApp: z.boolean().optional().default(true),
+    canSMS: z.boolean().optional().default(true),
+    canCall: z.boolean().optional().default(true),
+    canReminder: z.boolean().optional().default(true),
+    canShare: z.boolean().optional().default(true),
+  }).optional().default({
+    canEmail: true,
+    canWhatsApp: true,
+    canSMS: true,
+    canCall: true,
+    canReminder: true,
+    canShare: true,
+  }),
 });
 
 type RoleFormValues = z.infer<typeof roleFormSchema>;
@@ -172,6 +218,16 @@ export default function Roles() {
       name: "",
       description: "",
       permissions: [],
+      canViewGP: true,
+      allowedDashboardCards: [],
+      actionPermissions: {
+        canEmail: true,
+        canWhatsApp: true,
+        canSMS: true,
+        canCall: true,
+        canReminder: true,
+        canShare: true,
+      },
     },
   });
 
@@ -300,7 +356,21 @@ export default function Roles() {
   });
 
   const handleAdd = () => {
-    form.reset({ name: "", description: "", permissions: [] });
+    form.reset({
+      name: "",
+      description: "",
+      permissions: [],
+      canViewGP: true,
+      allowedDashboardCards: [],
+      actionPermissions: {
+        canEmail: true,
+        canWhatsApp: true,
+        canSMS: true,
+        canCall: true,
+        canReminder: true,
+        canShare: true,
+      },
+    });
     setIsAddDialogOpen(true);
   };
 
@@ -310,6 +380,16 @@ export default function Roles() {
       name: role.name,
       description: role.description || "",
       permissions: role.permissions,
+      canViewGP: role.canViewGP !== undefined ? role.canViewGP : true,
+      allowedDashboardCards: role.allowedDashboardCards || [],
+      actionPermissions: role.actionPermissions || {
+        canEmail: true,
+        canWhatsApp: true,
+        canSMS: true,
+        canCall: true,
+        canReminder: true,
+        canShare: true,
+      },
     });
     setIsEditDialogOpen(true);
   };
@@ -472,6 +552,16 @@ export default function Roles() {
   };
 
   const selectedPermissions = form.watch("permissions") || [];
+  const canViewGP = form.watch("canViewGP");
+  const allowedDashboardCards = form.watch("allowedDashboardCards") || [];
+  const actionPermissions = form.watch("actionPermissions") || {
+    canEmail: true,
+    canWhatsApp: true,
+    canSMS: true,
+    canCall: true,
+    canReminder: true,
+    canShare: true,
+  };
 
   return (
     <div className="p-8 space-y-6">
@@ -693,6 +783,80 @@ export default function Roles() {
               {form.formState.errors.permissions && (
                 <p className="text-sm text-red-500 mt-2">{form.formState.errors.permissions.message}</p>
               )}
+            </div>
+
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold">Field-Level Access Control</Label>
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="canViewGP"
+                    checked={canViewGP}
+                    onCheckedChange={(checked) => {
+                      form.setValue("canViewGP", !!checked);
+                    }}
+                    data-testid="checkbox-can-view-gp"
+                  />
+                  <Label htmlFor="canViewGP" className="cursor-pointer font-normal">
+                    Can View Gross Profit (G.P.) in Invoices
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold">Dashboard Card Access</Label>
+              <p className="text-xs text-muted-foreground mt-1 mb-3">
+                Select which dashboard cards this role can view on Business Overview
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {DASHBOARD_CARDS.map((card) => (
+                  <div key={card} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`dashboard-${card}`}
+                      checked={allowedDashboardCards.includes(card)}
+                      onCheckedChange={(checked) => {
+                        const current = allowedDashboardCards;
+                        const updated = checked
+                          ? [...current, card]
+                          : current.filter((c) => c !== card);
+                        form.setValue("allowedDashboardCards", updated);
+                      }}
+                      data-testid={`checkbox-dashboard-${card.toLowerCase().replace(/\s+/g, "-")}`}
+                    />
+                    <Label htmlFor={`dashboard-${card}`} className="cursor-pointer text-sm font-normal">
+                      {card}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <Label className="text-base font-semibold">Communication & Action Permissions</Label>
+              <p className="text-xs text-muted-foreground mt-1 mb-3">
+                Control which communication actions this role can perform
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {ACTION_PERMISSIONS.map((action) => (
+                  <div key={action.key} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`action-${action.key}`}
+                      checked={actionPermissions[action.key as keyof typeof actionPermissions]}
+                      onCheckedChange={(checked) => {
+                        form.setValue("actionPermissions", {
+                          ...actionPermissions,
+                          [action.key]: !!checked,
+                        });
+                      }}
+                      data-testid={`checkbox-action-${action.key.toLowerCase()}`}
+                    />
+                    <Label htmlFor={`action-${action.key}`} className="cursor-pointer text-sm font-normal">
+                      {action.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <DialogFooter>
