@@ -146,6 +146,26 @@ export default function Roles() {
     queryKey: ["/api/roles"],
   });
 
+  // Fetch allowed modules for current tenant
+  const { data: allowedModules = [] } = useQuery<string[]>({
+    queryKey: ["/api/tenants/allowed-modules"],
+  });
+
+  // Filter modules based on tenant's subscription
+  const filteredModules = MODULES_WITH_PERMISSIONS.filter(moduleConfig => {
+    // If no modules loaded yet or tenant has all modules, show all
+    if (allowedModules.length === 0) return true;
+    
+    // Check if the module is in the allowed list
+    // Handle variations like "Masters - Customers" vs "Masters", "Risk Management - X" vs "Risk & Recovery"
+    return allowedModules.some(allowedModule => {
+      if (moduleConfig.module === allowedModule) return true;
+      if (moduleConfig.module.startsWith("Masters") && allowedModule === "Masters") return true;
+      if (moduleConfig.module.startsWith("Risk Management") && allowedModule === "Risk & Recovery") return true;
+      return false;
+    });
+  });
+
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
     defaultValues: {
@@ -634,7 +654,7 @@ export default function Roles() {
             <div>
               <Label>Permissions * (Select operations for each module)</Label>
               <div className="mt-3 space-y-4 max-h-96 overflow-y-auto border rounded-lg p-4">
-                {MODULES_WITH_PERMISSIONS.map((moduleItem) => (
+                {filteredModules.map((moduleItem) => (
                   <div key={moduleItem.module} className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4 text-blue-500" />
