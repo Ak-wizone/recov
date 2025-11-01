@@ -53,6 +53,8 @@ interface LeadTableProps {
   onCall?: (lead: Lead) => void;
   onFollowUp?: (lead: Lead) => void;
   onBulkDelete?: (ids: string[]) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export function LeadTable({
@@ -65,6 +67,8 @@ export function LeadTable({
   onCall,
   onFollowUp,
   onBulkDelete,
+  canEdit = true,
+  canDelete = true,
 }: LeadTableProps) {
   const { toast } = useToast();
   const [sortField, setSortField] = useState<keyof Lead | null>(null);
@@ -906,13 +910,15 @@ export function LeadTable({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                              onClick={() => onEdit(lead)}
-                              data-testid={`button-edit-${lead.id}`}
-                            >
-                              <Edit className="mr-2 h-4 w-4 text-yellow-600" />
-                              Edit Lead
-                            </DropdownMenuItem>
+                            {canEdit && (
+                              <DropdownMenuItem
+                                onClick={() => onEdit(lead)}
+                                data-testid={`button-edit-${lead.id}`}
+                              >
+                                <Edit className="mr-2 h-4 w-4 text-yellow-600" />
+                                Edit Lead
+                              </DropdownMenuItem>
+                            )}
                             {onFollowUp && (
                               <DropdownMenuItem
                                 onClick={() => onFollowUp(lead)}
@@ -922,15 +928,19 @@ export function LeadTable({
                                 Schedule Follow-Up
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onDelete(lead)}
-                              className="text-red-600 focus:text-red-600"
-                              data-testid={`button-delete-${lead.id}`}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete Lead
-                            </DropdownMenuItem>
+                            {canDelete && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onClick={() => onDelete(lead)}
+                                  className="text-red-600 focus:text-red-600"
+                                  data-testid={`button-delete-${lead.id}`}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete Lead
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>

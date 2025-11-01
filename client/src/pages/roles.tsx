@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Role } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -131,6 +132,7 @@ type RoleFormValues = z.infer<typeof roleFormSchema>;
 
 export default function Roles() {
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -401,22 +403,26 @@ export default function Roles() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleEdit(row.original)}
-            data-testid={`button-edit-${row.index}`}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleDelete(row.original)}
-            data-testid={`button-delete-${row.index}`}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {hasPermission("Roles Management", "edit") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEdit(row.original)}
+              data-testid={`button-edit-${row.index}`}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {hasPermission("Roles Management", "delete") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(row.original)}
+              data-testid={`button-delete-${row.index}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       ),
     },
@@ -486,28 +492,38 @@ export default function Roles() {
       </div>
 
       <div className="flex flex-wrap gap-4">
-        <Button onClick={handleAdd} data-testid="button-add-role">
-          <Plus className="mr-2 h-4 w-4" />
-          Add Role
-        </Button>
-        <Button variant="outline" onClick={() => exportMutation.mutate()} data-testid="button-export">
-          <FileDown className="mr-2 h-4 w-4" />
-          Export
-        </Button>
-        <Button variant="outline" onClick={() => downloadTemplateMutation.mutate()} data-testid="button-download-template">
-          <FileDown className="mr-2 h-4 w-4" />
-          Download Template
-        </Button>
-        <Button variant="outline" onClick={() => document.getElementById("import-file-roles")?.click()} data-testid="button-import">
-          <FileUp className="mr-2 h-4 w-4" />
-          Import
-        </Button>
-        <input id="import-file-roles" type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
-        <Button variant="outline" onClick={handlePrint} data-testid="button-print">
-          <Printer className="mr-2 h-4 w-4" />
-          Print PDF
-        </Button>
-        {Object.keys(rowSelection).length > 0 && (
+        {hasPermission("Roles Management", "create") && (
+          <Button onClick={handleAdd} data-testid="button-add-role">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Role
+          </Button>
+        )}
+        {hasPermission("Roles Management", "export") && (
+          <Button variant="outline" onClick={() => exportMutation.mutate()} data-testid="button-export">
+            <FileDown className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+        )}
+        {hasPermission("Roles Management", "import") && (
+          <>
+            <Button variant="outline" onClick={() => downloadTemplateMutation.mutate()} data-testid="button-download-template">
+              <FileDown className="mr-2 h-4 w-4" />
+              Download Template
+            </Button>
+            <Button variant="outline" onClick={() => document.getElementById("import-file-roles")?.click()} data-testid="button-import">
+              <FileUp className="mr-2 h-4 w-4" />
+              Import
+            </Button>
+            <input id="import-file-roles" type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
+          </>
+        )}
+        {hasPermission("Roles Management", "print") && (
+          <Button variant="outline" onClick={handlePrint} data-testid="button-print">
+            <Printer className="mr-2 h-4 w-4" />
+            Print PDF
+          </Button>
+        )}
+        {hasPermission("Roles Management", "delete") && Object.keys(rowSelection).length > 0 && (
           <Button variant="destructive" onClick={handleBulkDelete} data-testid="button-bulk-delete">
             <Trash2 className="mr-2 h-4 w-4" />
             Delete Selected ({Object.keys(rowSelection).length})

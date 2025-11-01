@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Lead } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/use-permissions";
 import { LeadTable } from "@/components/lead-table";
 import { LeadFormDialog } from "@/components/lead-form-dialog";
 import { LeadFollowUpDialog } from "@/components/lead-followup-dialog";
@@ -55,6 +56,7 @@ type FollowUpFilter = "overdue" | "today" | "tomorrow" | "thisWeek" | "thisMonth
 
 export default function Leads() {
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
   const [followUpFilter, setFollowUpFilter] = useState<FollowUpFilter>(null);
   const [leadStatusFilter, setLeadStatusFilter] = useState<string | null>(null);
   const [assignedUserFilter, setAssignedUserFilter] = useState<string | null>(null);
@@ -443,51 +445,59 @@ export default function Leads() {
               <p className="text-sm text-gray-500 mt-1">Track and manage all business leads</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button
-                onClick={handleAddNew}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-5"
-                data-testid="button-add-lead"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                Add Lead
-              </Button>
-              <Button
-                onClick={() => {
-                  const a = document.createElement("a");
-                  a.href = "/api/leads/template";
-                  a.download = "leads_template.xlsx";
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  toast({
-                    title: "Success",
-                    description: "Template downloaded successfully",
-                  });
-                }}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 px-5 py-5"
-                data-testid="button-download-template"
-              >
-                <FileDown className="mr-2 h-4 w-4" />
-                Template
-              </Button>
-              <Button
-                onClick={() => setIsImportDialogOpen(true)}
-                className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-5 py-5"
-                data-testid="button-import-leads"
-              >
-                <FileUp className="mr-2 h-4 w-4" />
-                Import
-              </Button>
-              <Button
-                onClick={() => exportMutation.mutate()}
-                variant="outline"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50 px-5 py-5"
-                data-testid="button-export-leads"
-              >
-                <FileDown className="mr-2 h-4 w-4" />
-                Export
-              </Button>
+              {hasPermission("Leads", "create") && (
+                <Button
+                  onClick={handleAddNew}
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-5"
+                  data-testid="button-add-lead"
+                >
+                  <Plus className="mr-2 h-5 w-5" />
+                  Add Lead
+                </Button>
+              )}
+              {hasPermission("Leads", "import") && (
+                <>
+                  <Button
+                    onClick={() => {
+                      const a = document.createElement("a");
+                      a.href = "/api/leads/template";
+                      a.download = "leads_template.xlsx";
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      toast({
+                        title: "Success",
+                        description: "Template downloaded successfully",
+                      });
+                    }}
+                    variant="outline"
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50 px-5 py-5"
+                    data-testid="button-download-template"
+                  >
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Template
+                  </Button>
+                  <Button
+                    onClick={() => setIsImportDialogOpen(true)}
+                    className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-5 py-5"
+                    data-testid="button-import-leads"
+                  >
+                    <FileUp className="mr-2 h-4 w-4" />
+                    Import
+                  </Button>
+                </>
+              )}
+              {hasPermission("Leads", "export") && (
+                <Button
+                  onClick={() => exportMutation.mutate()}
+                  variant="outline"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50 px-5 py-5"
+                  data-testid="button-export-leads"
+                >
+                  <FileDown className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -962,6 +972,8 @@ export default function Leads() {
           onCall={handleCall}
           onBulkDelete={handleBulkDelete}
           onFollowUp={handleFollowUp}
+          canEdit={hasPermission("Leads", "edit")}
+          canDelete={hasPermission("Leads", "delete")}
         />
       </div>
 

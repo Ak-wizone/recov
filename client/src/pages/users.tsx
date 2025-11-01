@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { User, Role } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/use-permissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -71,6 +72,7 @@ type UserFormValues = z.infer<typeof userFormSchema>;
 
 function Users() {
   const { toast } = useToast();
+  const { hasPermission } = usePermissions();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -372,22 +374,26 @@ function Users() {
       header: "Actions",
       cell: ({ row }) => (
         <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleEdit(row.original)}
-            data-testid={`button-edit-${row.index}`}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleDelete(row.original)}
-            data-testid={`button-delete-${row.index}`}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          {hasPermission("User Management", "edit") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEdit(row.original)}
+              data-testid={`button-edit-${row.index}`}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
+          {hasPermission("User Management", "delete") && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(row.original)}
+              data-testid={`button-delete-${row.index}`}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       ),
     },
@@ -493,28 +499,38 @@ function Users() {
       </div>
 
       <div className="flex flex-wrap gap-4">
-        <Button onClick={handleAdd} data-testid="button-add-user">
-          <Plus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
-        <Button variant="outline" onClick={() => exportMutation.mutate()} data-testid="button-export">
-          <FileDown className="mr-2 h-4 w-4" />
-          Export
-        </Button>
-        <Button variant="outline" onClick={() => downloadTemplateMutation.mutate()} data-testid="button-download-template">
-          <FileDown className="mr-2 h-4 w-4" />
-          Download Template
-        </Button>
-        <Button variant="outline" onClick={() => document.getElementById("import-file-users")?.click()} data-testid="button-import">
-          <FileUp className="mr-2 h-4 w-4" />
-          Import
-        </Button>
-        <input id="import-file-users" type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
-        <Button variant="outline" onClick={handlePrint} data-testid="button-print">
-          <Printer className="mr-2 h-4 w-4" />
-          Print PDF
-        </Button>
-        {Object.keys(rowSelection).length > 0 && (
+        {hasPermission("User Management", "create") && (
+          <Button onClick={handleAdd} data-testid="button-add-user">
+            <Plus className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
+        )}
+        {hasPermission("User Management", "export") && (
+          <Button variant="outline" onClick={() => exportMutation.mutate()} data-testid="button-export">
+            <FileDown className="mr-2 h-4 w-4" />
+            Export
+          </Button>
+        )}
+        {hasPermission("User Management", "import") && (
+          <>
+            <Button variant="outline" onClick={() => downloadTemplateMutation.mutate()} data-testid="button-download-template">
+              <FileDown className="mr-2 h-4 w-4" />
+              Download Template
+            </Button>
+            <Button variant="outline" onClick={() => document.getElementById("import-file-users")?.click()} data-testid="button-import">
+              <FileUp className="mr-2 h-4 w-4" />
+              Import
+            </Button>
+            <input id="import-file-users" type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
+          </>
+        )}
+        {hasPermission("User Management", "print") && (
+          <Button variant="outline" onClick={handlePrint} data-testid="button-print">
+            <Printer className="mr-2 h-4 w-4" />
+            Print PDF
+          </Button>
+        )}
+        {hasPermission("User Management", "delete") && Object.keys(rowSelection).length > 0 && (
           <Button variant="destructive" onClick={handleBulkDelete} data-testid="button-bulk-delete">
             <Trash2 className="mr-2 h-4 w-4" />
             Delete Selected ({Object.keys(rowSelection).length})
