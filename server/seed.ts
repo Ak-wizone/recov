@@ -173,3 +173,58 @@ export async function seedDatabase() {
     console.error("Error seeding database:", error);
   }
 }
+
+export async function createTenantUsers() {
+  console.log("Creating users for all tenants...");
+  
+  try {
+    const { db } = await import("./db");
+    const { tenants } = await import("../shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    // Get all active tenants
+    const allTenants = await db.select().from(tenants).where(eq(tenants.status, "active"));
+    
+    console.log(`Found ${allTenants.length} active tenants`);
+    
+    const defaultPassword = "Welcome@123";
+    let created = 0;
+    let skipped = 0;
+    
+    for (const tenant of allTenants) {
+      try {
+        // Check if user already exists for this tenant
+        const existingUser = await storage.getUserByEmail(tenant.email);
+        
+        if (existingUser && existingUser.tenantId === tenant.id) {
+          console.log(`⊘ Skipped ${tenant.email} (already exists)`);
+          skipped++;
+          continue;
+        }
+        
+        // Create user with default password
+        await storage.createUser(tenant.id, {
+          name: tenant.businessName || "Admin User",
+          email: tenant.email,
+          mobile: null,
+          status: "Active",
+          password: defaultPassword
+        });
+        
+        console.log(`✓ Created user for ${tenant.businessName} (${tenant.email})`);
+        created++;
+      } catch (error) {
+        console.error(`✗ Failed to create user for ${tenant.email}:`, error.message);
+      }
+    }
+    
+    console.log(`\n✓ User creation complete!`);
+    console.log(`  - Created: ${created} users`);
+    console.log(`  - Skipped: ${skipped} users`);
+    console.log(`  - Default password for all: ${defaultPassword}`);
+    
+  } catch (error) {
+    console.error("Error creating tenant users:", error);
+    throw error;
+  }
+}
