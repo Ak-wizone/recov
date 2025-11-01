@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -21,6 +22,7 @@ import { Link, useLocation } from "wouter";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { SkeletonDashboard } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
+import { getFirstAccessibleRoute, hasBusinessOverviewAccess } from "@/lib/navigation-utils";
 
 interface BusinessOverviewData {
   financialSnapshot: {
@@ -123,10 +125,27 @@ const formatAmount = (value: number): string => {
 };
 
 export default function Home() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user } = useAuth();
   
   const isPlatformAdmin = !!(user && !user.tenantId);
+  
+  // Auto-redirect if user doesn't have Business Overview permission
+  useEffect(() => {
+    // Only redirect if we're on the dashboard route
+    if (location !== "/" && location !== "/dashboard") {
+      return;
+    }
+    
+    if (user && !isPlatformAdmin && user.permissions) {
+      if (!hasBusinessOverviewAccess(user.permissions)) {
+        const firstRoute = getFirstAccessibleRoute(user.permissions);
+        if (firstRoute !== "/dashboard") {
+          setLocation(firstRoute);
+        }
+      }
+    }
+  }, [user, isPlatformAdmin, location, setLocation]);
   
   const { data: dashboardData, isLoading } = useQuery<BusinessOverviewData>({
     queryKey: ['/api/dashboard/business-overview'],
