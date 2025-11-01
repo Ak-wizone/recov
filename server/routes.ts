@@ -2096,12 +2096,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Account is inactive" });
       }
 
-      // Fetch role permissions if user has a role
+      // Fetch role data if user has a role
       let permissions: string[] = [];
+      let canViewGP = true;
+      let allowedDashboardCards: string[] = [];
+      let actionPermissions = {
+        canEmail: true,
+        canWhatsApp: true,
+        canSMS: true,
+        canCall: true,
+        canReminder: true,
+        canShare: true,
+      };
+
       if (user.roleId && user.tenantId) {
         const role = await storage.getRole(user.tenantId, user.roleId);
         if (role) {
           permissions = role.permissions || [];
+          canViewGP = role.canViewGP !== undefined ? role.canViewGP : true;
+          allowedDashboardCards = role.allowedDashboardCards || [];
+          actionPermissions = role.actionPermissions || actionPermissions;
         }
       }
 
@@ -2144,11 +2158,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
       }
 
-      // Return user without password, including permissions
+      // Return user without password, including all role data
       const { password: _, ...userWithoutPassword } = user;
       res.json({
         ...userWithoutPassword,
         permissions,
+        canViewGP,
+        allowedDashboardCards,
+        actionPermissions,
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });

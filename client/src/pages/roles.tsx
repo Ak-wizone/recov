@@ -52,6 +52,7 @@ import {
 } from "@tanstack/react-table";
 
 const DASHBOARD_CARDS = [
+  // Business Overview Cards
   "Total Revenue",
   "Total Collections",
   "Total Outstanding",
@@ -68,7 +69,21 @@ const DASHBOARD_CARDS = [
   "Overdue Invoices",
   "Recent Invoices",
   "Recent Receipts",
-  "Customer Analytics"
+  "Customer Analytics",
+  // Payment Risk Forecaster Cards
+  "High Risk",
+  "Medium Risk",
+  "Low Risk",
+  // Debtors Cards
+  "Alpha",
+  "Beta",
+  "Gamma",
+  "Delta",
+  // Daily Dashboard Cards
+  "Pending Tasks",
+  "Overdue Tasks",
+  "Priority Customers",
+  "Collection Progress",
 ];
 
 const ACTION_PERMISSIONS = [

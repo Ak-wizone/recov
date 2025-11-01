@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, MessageSquare, Mail, Phone, Calculator } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/lib/auth";
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -32,12 +33,15 @@ export function InvoiceTable({
   onBulkDelete,
   onFiltersChange,
 }: InvoiceTableProps) {
+  const { user, canPerformAction } = useAuth();
   
   const statusColors = {
     Paid: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
     Unpaid: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
     Partial: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
   };
+
+  const canViewGP = user?.canViewGP !== undefined ? user.canViewGP : true;
 
   const columns: ColumnDef<Invoice>[] = useMemo(
     () => [
@@ -335,30 +339,36 @@ export function InvoiceTable({
             >
               <Calculator className="h-4 w-4 text-indigo-500" />
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onWhatsApp?.(row.original)}
-              data-testid={`button-whatsapp-${row.original.id}`}
-            >
-              <MessageSquare className="h-4 w-4 text-green-500" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEmail?.(row.original)}
-              data-testid={`button-email-${row.original.id}`}
-            >
-              <Mail className="h-4 w-4 text-blue-500" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onCall?.(row.original)}
-              data-testid={`button-call-${row.original.id}`}
-            >
-              <Phone className="h-4 w-4 text-purple-500" />
-            </Button>
+            {canPerformAction("canWhatsApp") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onWhatsApp?.(row.original)}
+                data-testid={`button-whatsapp-${row.original.id}`}
+              >
+                <MessageSquare className="h-4 w-4 text-green-500" />
+              </Button>
+            )}
+            {canPerformAction("canEmail") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEmail?.(row.original)}
+                data-testid={`button-email-${row.original.id}`}
+              >
+                <Mail className="h-4 w-4 text-blue-500" />
+              </Button>
+            )}
+            {canPerformAction("canCall") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onCall?.(row.original)}
+                data-testid={`button-call-${row.original.id}`}
+              >
+                <Phone className="h-4 w-4 text-purple-500" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -379,8 +389,15 @@ export function InvoiceTable({
         ),
         enableHiding: false,
       },
-    ],
-    [onEdit, onDelete, onCalculator, onWhatsApp, onEmail, onCall]
+    ].filter(column => {
+      // Hide G.P. columns if user doesn't have permission
+      if (!canViewGP && column.accessorKey) {
+        const gpColumns = ['gp', 'finalGp', 'finalGpPercentage'];
+        return !gpColumns.includes(column.accessorKey as string);
+      }
+      return true;
+    }),
+    [onEdit, onDelete, onCalculator, onWhatsApp, onEmail, onCall, canViewGP]
   );
 
   const handleBulkDelete = async (rows: Invoice[]) => {

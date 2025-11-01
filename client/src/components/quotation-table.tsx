@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/lib/auth";
 
 interface QuotationTableProps {
   quotations: Quotation[];
@@ -53,6 +54,7 @@ export function QuotationTable({
   onWhatsApp,
   onCall,
 }: QuotationTableProps) {
+  const { canPerformAction } = useAuth();
   const [sortField, setSortField] = useState<keyof Quotation | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -386,7 +388,7 @@ export function QuotationTable({
                           <Download className="h-4 w-4" />
                         </Button>
                       )}
-                      {onEmail && (
+                      {onEmail && canPerformAction("canEmail") && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -397,7 +399,7 @@ export function QuotationTable({
                           <Mail className="h-4 w-4" />
                         </Button>
                       )}
-                      {onCall && (
+                      {onCall && canPerformAction("canCall") && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -408,7 +410,7 @@ export function QuotationTable({
                           <Phone className="h-4 w-4" />
                         </Button>
                       )}
-                      {onWhatsApp && (
+                      {onWhatsApp && canPerformAction("canWhatsApp") && (
                         <Button
                           variant="ghost"
                           size="sm"

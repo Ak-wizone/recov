@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingDown, Calendar, AlertCircle, BarChart3 } from "lucide-react";
 import { RiskThermometer } from "@/components/risk-thermometer";
+import { useAuth } from "@/lib/auth";
 
 interface ForecastData {
   forecasts: Array<{
@@ -24,7 +25,16 @@ interface ForecastData {
   };
 }
 
+const shouldShowCard = (cardName: string, allowedCards: string[] | undefined, isPlatformAdmin: boolean): boolean => {
+  if (isPlatformAdmin) return true;
+  if (!allowedCards || allowedCards.length === 0) return true;
+  return allowedCards.includes(cardName);
+};
+
 export default function PaymentRiskForecaster() {
+  const { user } = useAuth();
+  const isPlatformAdmin = !!(user && !user.tenantId);
+
   const { data: forecastData, isLoading } = useQuery<ForecastData>({
     queryKey: ['/api/risk/payment-forecaster'],
   });
@@ -64,38 +74,44 @@ export default function PaymentRiskForecaster() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-l-4 border-l-red-500" data-testid="card-forecast-high-risk">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">High Risk (≥70%)</CardTitle>
-            <AlertCircle className="h-5 w-5 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">{forecastData.summary.highRisk}</div>
-            <p className="text-xs text-gray-500 mt-1">Likely to get stuck</p>
-          </CardContent>
-        </Card>
+        {shouldShowCard("High Risk", user?.allowedDashboardCards, isPlatformAdmin) && (
+          <Card className="border-l-4 border-l-red-500" data-testid="card-forecast-high-risk">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">High Risk (≥70%)</CardTitle>
+              <AlertCircle className="h-5 w-5 text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-red-600">{forecastData.summary.highRisk}</div>
+              <p className="text-xs text-gray-500 mt-1">Likely to get stuck</p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="border-l-4 border-l-yellow-500" data-testid="card-forecast-medium-risk">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Medium Risk (30-70%)</CardTitle>
-            <TrendingDown className="h-5 w-5 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-yellow-600">{forecastData.summary.mediumRisk}</div>
-            <p className="text-xs text-gray-500 mt-1">Moderate delay expected</p>
-          </CardContent>
-        </Card>
+        {shouldShowCard("Medium Risk", user?.allowedDashboardCards, isPlatformAdmin) && (
+          <Card className="border-l-4 border-l-yellow-500" data-testid="card-forecast-medium-risk">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Medium Risk (30-70%)</CardTitle>
+              <TrendingDown className="h-5 w-5 text-yellow-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-yellow-600">{forecastData.summary.mediumRisk}</div>
+              <p className="text-xs text-gray-500 mt-1">Moderate delay expected</p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="border-l-4 border-l-green-500" data-testid="card-forecast-low-risk">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Low Risk (&lt;30%)</CardTitle>
-            <BarChart3 className="h-5 w-5 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">{forecastData.summary.lowRisk}</div>
-            <p className="text-xs text-gray-500 mt-1">Low delay probability</p>
-          </CardContent>
-        </Card>
+        {shouldShowCard("Low Risk", user?.allowedDashboardCards, isPlatformAdmin) && (
+          <Card className="border-l-4 border-l-green-500" data-testid="card-forecast-low-risk">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Low Risk (&lt;30%)</CardTitle>
+              <BarChart3 className="h-5 w-5 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600">{forecastData.summary.lowRisk}</div>
+              <p className="text-xs text-gray-500 mt-1">Low delay probability</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Forecast List */}

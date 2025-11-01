@@ -14,12 +14,23 @@ interface User {
   tenantId: string | null;
   status: string;
   permissions?: string[];
+  canViewGP?: boolean;
+  allowedDashboardCards?: string[];
+  actionPermissions?: {
+    canEmail: boolean;
+    canWhatsApp: boolean;
+    canSMS: boolean;
+    canCall: boolean;
+    canReminder: boolean;
+    canShare: boolean;
+  };
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   logout: () => void;
+  canPerformAction: (action: keyof User["actionPermissions"]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,8 +59,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logoutMutation.mutate();
   };
 
+  const canPerformAction = (action: keyof User["actionPermissions"]): boolean => {
+    // Platform admins can perform all actions
+    if (user && !user.tenantId) return true;
+    
+    // If actionPermissions not set, allow all actions (backward compatibility)
+    if (!user?.actionPermissions) return true;
+    
+    // Otherwise, check the specific permission
+    return user.actionPermissions[action] !== false;
+  };
+
   return (
-    <AuthContext.Provider value={{ user: user || null, isLoading, logout }}>
+    <AuthContext.Provider value={{ user: user || null, isLoading, logout, canPerformAction }}>
       <PermissionProvider permissions={user?.permissions || []}>
         {children}
       </PermissionProvider>

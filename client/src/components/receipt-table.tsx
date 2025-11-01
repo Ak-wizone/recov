@@ -5,6 +5,7 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, MessageSquare, Mail } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/lib/auth";
 
 interface ReceiptTableProps {
   receipts: Receipt[];
@@ -27,6 +28,7 @@ export function ReceiptTable({
   onCall,
   onBulkDelete,
 }: ReceiptTableProps) {
+  const { canPerformAction } = useAuth();
   
   const columns: ColumnDef<Receipt>[] = useMemo(
     () => [
@@ -124,22 +126,26 @@ export function ReceiptTable({
         header: "Actions",
         cell: ({ row }) => (
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onWhatsApp?.(row.original)}
-              data-testid={`button-whatsapp-${row.original.id}`}
-            >
-              <MessageSquare className="h-4 w-4 text-green-500" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEmail?.(row.original)}
-              data-testid={`button-email-${row.original.id}`}
-            >
-              <Mail className="h-4 w-4 text-blue-500" />
-            </Button>
+            {canPerformAction("canWhatsApp") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onWhatsApp?.(row.original)}
+                data-testid={`button-whatsapp-${row.original.id}`}
+              >
+                <MessageSquare className="h-4 w-4 text-green-500" />
+              </Button>
+            )}
+            {canPerformAction("canEmail") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onEmail?.(row.original)}
+                data-testid={`button-email-${row.original.id}`}
+              >
+                <Mail className="h-4 w-4 text-blue-500" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -161,7 +167,7 @@ export function ReceiptTable({
         enableHiding: false,
       },
     ],
-    [onEdit, onDelete, onWhatsApp, onEmail]
+    [onEdit, onDelete, onWhatsApp, onEmail, canPerformAction]
   );
 
   const handleBulkDelete = async (rows: Receipt[]) => {

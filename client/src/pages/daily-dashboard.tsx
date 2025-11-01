@@ -9,8 +9,15 @@ import { CheckCircle2, Clock, AlertCircle, Users, Target, TrendingUp, Phone } fr
 import { Link } from "wouter";
 import { formatCurrency } from "@/lib/utils";
 
+const shouldShowCard = (cardName: string, allowedCards: string[] | undefined, isPlatformAdmin: boolean): boolean => {
+  if (isPlatformAdmin) return true;
+  if (!allowedCards || allowedCards.length === 0) return true;
+  return allowedCards.includes(cardName);
+};
+
 export default function DailyDashboard() {
   const { user } = useAuth();
+  const isPlatformAdmin = !!(user && !user.tenantId);
   const currentHour = new Date().getHours();
   
   const greeting = currentHour < 12 ? "Good Morning" : currentHour < 17 ? "Good Afternoon" : "Good Evening";
@@ -57,57 +64,65 @@ export default function DailyDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg" data-testid="card-pending-tasks">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="h-5 w-5" />
-              Pending Tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{summary.pendingTasks || 0}</div>
-            <p className="text-blue-100 text-sm mt-1">Tasks to complete today</p>
-          </CardContent>
-        </Card>
+        {shouldShowCard("Pending Tasks", user?.allowedDashboardCards, isPlatformAdmin) && (
+          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg" data-testid="card-pending-tasks">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Pending Tasks
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold">{summary.pendingTasks || 0}</div>
+              <p className="text-blue-100 text-sm mt-1">Tasks to complete today</p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0 shadow-lg" data-testid="card-overdue-tasks">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Overdue Tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{summary.overdueTasks || 0}</div>
-            <p className="text-red-100 text-sm mt-1">Requires immediate attention</p>
-          </CardContent>
-        </Card>
+        {shouldShowCard("Overdue Tasks", user?.allowedDashboardCards, isPlatformAdmin) && (
+          <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white border-0 shadow-lg" data-testid="card-overdue-tasks">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                Overdue Tasks
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold">{summary.overdueTasks || 0}</div>
+              <p className="text-red-100 text-sm mt-1">Requires immediate attention</p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg" data-testid="card-priority-customers">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Priority Customers
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{summary.priorityCustomers || 0}</div>
-            <p className="text-orange-100 text-sm mt-1">Overdue &gt; 30 days</p>
-          </CardContent>
-        </Card>
+        {shouldShowCard("Priority Customers", user?.allowedDashboardCards, isPlatformAdmin) && (
+          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg" data-testid="card-priority-customers">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Priority Customers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold">{summary.priorityCustomers || 0}</div>
+              <p className="text-orange-100 text-sm mt-1">Overdue &gt; 30 days</p>
+            </CardContent>
+          </Card>
+        )}
 
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg" data-testid="card-collection-progress">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Target className="h-5 w-5" />
-              Collection Progress
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-4xl font-bold">{Math.round(summary.collectionProgress || 0)}%</div>
-            <p className="text-green-100 text-sm mt-1">of daily target</p>
-          </CardContent>
-        </Card>
+        {shouldShowCard("Collection Progress", user?.allowedDashboardCards, isPlatformAdmin) && (
+          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg" data-testid="card-collection-progress">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Collection Progress
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-4xl font-bold">{Math.round(summary.collectionProgress || 0)}%</div>
+              <p className="text-green-100 text-sm mt-1">of daily target</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

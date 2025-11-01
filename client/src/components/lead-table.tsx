@@ -42,6 +42,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 
 interface LeadTableProps {
   leads: Lead[];
@@ -71,6 +72,7 @@ export function LeadTable({
   canDelete = true,
 }: LeadTableProps) {
   const { toast } = useToast();
+  const { canPerformAction } = useAuth();
   const [sortField, setSortField] = useState<keyof Lead | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -869,7 +871,7 @@ export function LeadTable({
                     )}
                     <TableCell className="py-4">
                       <div className="flex items-center gap-2">
-                        {onCall && (
+                        {onCall && canPerformAction("canCall") && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -880,24 +882,28 @@ export function LeadTable({
                             <Phone className="h-4 w-4" />
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-[#25D366] hover:text-[#25D366] hover:bg-green-50"
-                          onClick={() => onWhatsApp(lead)}
-                          data-testid={`button-whatsapp-${lead.id}`}
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-blue-500 hover:text-blue-500 hover:bg-blue-50"
-                          onClick={() => onEmail(lead)}
-                          data-testid={`button-email-${lead.id}`}
-                        >
-                          <Mail className="h-4 w-4" />
-                        </Button>
+                        {canPerformAction("canWhatsApp") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-[#25D366] hover:text-[#25D366] hover:bg-green-50"
+                            onClick={() => onWhatsApp(lead)}
+                            data-testid={`button-whatsapp-${lead.id}`}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {canPerformAction("canEmail") && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-blue-500 hover:text-blue-500 hover:bg-blue-50"
+                            onClick={() => onEmail(lead)}
+                            data-testid={`button-email-${lead.id}`}
+                          >
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                        )}
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button

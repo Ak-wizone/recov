@@ -27,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/lib/auth";
 
 interface ProformaInvoiceTableProps {
   invoices: ProformaInvoice[];
@@ -51,6 +52,7 @@ export function ProformaInvoiceTable({
   onWhatsApp,
   onCall,
 }: ProformaInvoiceTableProps) {
+  const { canPerformAction } = useAuth();
   const [sortField, setSortField] = useState<keyof ProformaInvoice | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -376,7 +378,7 @@ export function ProformaInvoiceTable({
                           <Download className="h-4 w-4" />
                         </Button>
                       )}
-                      {onEmail && (
+                      {onEmail && canPerformAction("canEmail") && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -387,7 +389,7 @@ export function ProformaInvoiceTable({
                           <Mail className="h-4 w-4" />
                         </Button>
                       )}
-                      {onWhatsApp && (
+                      {onWhatsApp && canPerformAction("canWhatsApp") && (
                         <Button
                           variant="ghost"
                           size="sm"

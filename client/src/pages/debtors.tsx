@@ -29,10 +29,19 @@ import { DebtorsFollowUpDialog } from "@/components/debtors-followup-dialog";
 import { EmailDialog } from "@/components/email-dialog";
 import { CallDialog } from "@/components/call-dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
 import { isToday, isThisWeek, isThisMonth, isWithinInterval, parseISO } from "date-fns";
+
+const shouldShowCard = (cardName: string, allowedCards: string[] | undefined, isPlatformAdmin: boolean): boolean => {
+  if (isPlatformAdmin) return true;
+  if (!allowedCards || allowedCards.length === 0) return true;
+  return allowedCards.includes(cardName);
+};
 
 export default function Debtors() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isPlatformAdmin = !!(user && !user.tenantId);
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
@@ -289,92 +298,100 @@ export default function Debtors() {
         {/* Category Cards */}
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {/* Alpha Card */}
-          <Card
-            className={`cursor-pointer transition-all hover:shadow-lg ${
-              categoryFilter === "Alpha" ? "ring-2 ring-green-500" : ""
-            }`}
-            onClick={() => setCategoryFilter(categoryFilter === "Alpha" ? null : "Alpha")}
-            data-testid="card-category-alpha"
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-t-lg">
-              <CardTitle className="text-xs font-medium">ALPHA</CardTitle>
-              <Users className="h-3 w-3" />
-            </CardHeader>
-            <CardContent className="pt-3 pb-3 px-4">
-              <div className="text-xl font-bold" data-testid="text-alpha-count">
-                {categoryWise.Alpha.count} Debtors
-              </div>
-              <div className="text-sm font-semibold text-green-600 dark:text-green-400 mt-1" data-testid="text-alpha-balance">
-                {formatCurrency(categoryWise.Alpha.totalBalance)}
-              </div>
-            </CardContent>
-          </Card>
+          {shouldShowCard("Alpha", user?.allowedDashboardCards, isPlatformAdmin) && (
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-lg ${
+                categoryFilter === "Alpha" ? "ring-2 ring-green-500" : ""
+              }`}
+              onClick={() => setCategoryFilter(categoryFilter === "Alpha" ? null : "Alpha")}
+              data-testid="card-category-alpha"
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-t-lg">
+                <CardTitle className="text-xs font-medium">ALPHA</CardTitle>
+                <Users className="h-3 w-3" />
+              </CardHeader>
+              <CardContent className="pt-3 pb-3 px-4">
+                <div className="text-xl font-bold" data-testid="text-alpha-count">
+                  {categoryWise.Alpha.count} Debtors
+                </div>
+                <div className="text-sm font-semibold text-green-600 dark:text-green-400 mt-1" data-testid="text-alpha-balance">
+                  {formatCurrency(categoryWise.Alpha.totalBalance)}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Beta Card */}
-          <Card
-            className={`cursor-pointer transition-all hover:shadow-lg ${
-              categoryFilter === "Beta" ? "ring-2 ring-blue-500" : ""
-            }`}
-            onClick={() => setCategoryFilter(categoryFilter === "Beta" ? null : "Beta")}
-            data-testid="card-category-beta"
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-t-lg">
-              <CardTitle className="text-xs font-medium">BETA</CardTitle>
-              <Users className="h-3 w-3" />
-            </CardHeader>
-            <CardContent className="pt-3 pb-3 px-4">
-              <div className="text-xl font-bold" data-testid="text-beta-count">
-                {categoryWise.Beta.count} Debtors
-              </div>
-              <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-1" data-testid="text-beta-balance">
-                {formatCurrency(categoryWise.Beta.totalBalance)}
-              </div>
-            </CardContent>
-          </Card>
+          {shouldShowCard("Beta", user?.allowedDashboardCards, isPlatformAdmin) && (
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-lg ${
+                categoryFilter === "Beta" ? "ring-2 ring-blue-500" : ""
+              }`}
+              onClick={() => setCategoryFilter(categoryFilter === "Beta" ? null : "Beta")}
+              data-testid="card-category-beta"
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-t-lg">
+                <CardTitle className="text-xs font-medium">BETA</CardTitle>
+                <Users className="h-3 w-3" />
+              </CardHeader>
+              <CardContent className="pt-3 pb-3 px-4">
+                <div className="text-xl font-bold" data-testid="text-beta-count">
+                  {categoryWise.Beta.count} Debtors
+                </div>
+                <div className="text-sm font-semibold text-blue-600 dark:text-blue-400 mt-1" data-testid="text-beta-balance">
+                  {formatCurrency(categoryWise.Beta.totalBalance)}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Gamma Card */}
-          <Card
-            className={`cursor-pointer transition-all hover:shadow-lg ${
-              categoryFilter === "Gamma" ? "ring-2 ring-yellow-500" : ""
-            }`}
-            onClick={() => setCategoryFilter(categoryFilter === "Gamma" ? null : "Gamma")}
-            data-testid="card-category-gamma"
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-t-lg">
-              <CardTitle className="text-xs font-medium">GAMMA</CardTitle>
-              <Users className="h-3 w-3" />
-            </CardHeader>
-            <CardContent className="pt-3 pb-3 px-4">
-              <div className="text-xl font-bold" data-testid="text-gamma-count">
-                {categoryWise.Gamma.count} Debtors
-              </div>
-              <div className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 mt-1" data-testid="text-gamma-balance">
-                {formatCurrency(categoryWise.Gamma.totalBalance)}
-              </div>
-            </CardContent>
-          </Card>
+          {shouldShowCard("Gamma", user?.allowedDashboardCards, isPlatformAdmin) && (
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-lg ${
+                categoryFilter === "Gamma" ? "ring-2 ring-yellow-500" : ""
+              }`}
+              onClick={() => setCategoryFilter(categoryFilter === "Gamma" ? null : "Gamma")}
+              data-testid="card-category-gamma"
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4 bg-gradient-to-br from-yellow-500 to-yellow-600 text-white rounded-t-lg">
+                <CardTitle className="text-xs font-medium">GAMMA</CardTitle>
+                <Users className="h-3 w-3" />
+              </CardHeader>
+              <CardContent className="pt-3 pb-3 px-4">
+                <div className="text-xl font-bold" data-testid="text-gamma-count">
+                  {categoryWise.Gamma.count} Debtors
+                </div>
+                <div className="text-sm font-semibold text-yellow-600 dark:text-yellow-400 mt-1" data-testid="text-gamma-balance">
+                  {formatCurrency(categoryWise.Gamma.totalBalance)}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Delta Card */}
-          <Card
-            className={`cursor-pointer transition-all hover:shadow-lg ${
-              categoryFilter === "Delta" ? "ring-2 ring-red-500" : ""
-            }`}
-            onClick={() => setCategoryFilter(categoryFilter === "Delta" ? null : "Delta")}
-            data-testid="card-category-delta"
-          >
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-t-lg">
-              <CardTitle className="text-xs font-medium">DELTA</CardTitle>
-              <Users className="h-3 w-3" />
-            </CardHeader>
-            <CardContent className="pt-3 pb-3 px-4">
-              <div className="text-xl font-bold" data-testid="text-delta-count">
-                {categoryWise.Delta.count} Debtors
-              </div>
-              <div className="text-sm font-semibold text-red-600 dark:text-red-400 mt-1" data-testid="text-delta-balance">
-                {formatCurrency(categoryWise.Delta.totalBalance)}
-              </div>
-            </CardContent>
-          </Card>
+          {shouldShowCard("Delta", user?.allowedDashboardCards, isPlatformAdmin) && (
+            <Card
+              className={`cursor-pointer transition-all hover:shadow-lg ${
+                categoryFilter === "Delta" ? "ring-2 ring-red-500" : ""
+              }`}
+              onClick={() => setCategoryFilter(categoryFilter === "Delta" ? null : "Delta")}
+              data-testid="card-category-delta"
+            >
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-t-lg">
+                <CardTitle className="text-xs font-medium">DELTA</CardTitle>
+                <Users className="h-3 w-3" />
+              </CardHeader>
+              <CardContent className="pt-3 pb-3 px-4">
+                <div className="text-xl font-bold" data-testid="text-delta-count">
+                  {categoryWise.Delta.count} Debtors
+                </div>
+                <div className="text-sm font-semibold text-red-600 dark:text-red-400 mt-1" data-testid="text-delta-balance">
+                  {formatCurrency(categoryWise.Delta.totalBalance)}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Follow-up Status Cards */}
@@ -389,142 +406,154 @@ export default function Debtors() {
           </div>
           <div className="grid gap-2 md:grid-cols-3 lg:grid-cols-6">
             {/* Overdue Card */}
-            <Card 
-              className={`cursor-pointer transition-all ${
-                followUpFilter === "overdue" 
-                  ? "bg-red-100 dark:bg-red-900 border-red-300 dark:border-red-700 ring-2 ring-red-500" 
-                  : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900"
-              }`}
-              onClick={() => setFollowUpFilter(followUpFilter === "overdue" ? null : "overdue")}
-              data-testid="card-followup-overdue"
-            >
-              <CardContent className="pt-3 pb-3 px-3">
-                <div className="flex flex-col items-center text-center space-y-1">
-                  <div className="p-2 bg-red-500 rounded-full">
-                    <AlertCircle className="h-4 w-4 text-white" />
+            {shouldShowCard("Overdue", user?.allowedDashboardCards, isPlatformAdmin) && (
+              <Card 
+                className={`cursor-pointer transition-all ${
+                  followUpFilter === "overdue" 
+                    ? "bg-red-100 dark:bg-red-900 border-red-300 dark:border-red-700 ring-2 ring-red-500" 
+                    : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900"
+                }`}
+                onClick={() => setFollowUpFilter(followUpFilter === "overdue" ? null : "overdue")}
+                data-testid="card-followup-overdue"
+              >
+                <CardContent className="pt-3 pb-3 px-3">
+                  <div className="flex flex-col items-center text-center space-y-1">
+                    <div className="p-2 bg-red-500 rounded-full">
+                      <AlertCircle className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                      {followUpStats?.overdue?.count || 0}
+                    </div>
+                    <p className="text-[10px] font-medium text-red-600 dark:text-red-400">Overdue</p>
                   </div>
-                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                    {followUpStats?.overdue?.count || 0}
-                  </div>
-                  <p className="text-[10px] font-medium text-red-600 dark:text-red-400">Overdue</p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Due Today Card */}
-            <Card 
-              className={`cursor-pointer transition-all ${
-                followUpFilter === "dueToday" 
-                  ? "bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700 ring-2 ring-orange-500" 
-                  : "bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900"
-              }`}
-              onClick={() => setFollowUpFilter(followUpFilter === "dueToday" ? null : "dueToday")}
-              data-testid="card-followup-today"
-            >
-              <CardContent className="pt-3 pb-3 px-3">
-                <div className="flex flex-col items-center text-center space-y-1">
-                  <div className="p-2 bg-orange-500 rounded-full">
-                    <Clock className="h-4 w-4 text-white" />
+            {shouldShowCard("Due Today", user?.allowedDashboardCards, isPlatformAdmin) && (
+              <Card 
+                className={`cursor-pointer transition-all ${
+                  followUpFilter === "dueToday" 
+                    ? "bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700 ring-2 ring-orange-500" 
+                    : "bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900"
+                }`}
+                onClick={() => setFollowUpFilter(followUpFilter === "dueToday" ? null : "dueToday")}
+                data-testid="card-followup-today"
+              >
+                <CardContent className="pt-3 pb-3 px-3">
+                  <div className="flex flex-col items-center text-center space-y-1">
+                    <div className="p-2 bg-orange-500 rounded-full">
+                      <Clock className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                      {followUpStats?.dueToday?.count || 0}
+                    </div>
+                    <p className="text-[10px] font-medium text-orange-600 dark:text-orange-400">Due Today</p>
                   </div>
-                  <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                    {followUpStats?.dueToday?.count || 0}
-                  </div>
-                  <p className="text-[10px] font-medium text-orange-600 dark:text-orange-400">Due Today</p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Tomorrow Card */}
-            <Card 
-              className={`cursor-pointer transition-all ${
-                followUpFilter === "dueTomorrow" 
-                  ? "bg-yellow-100 dark:bg-yellow-900 border-yellow-300 dark:border-yellow-700 ring-2 ring-yellow-500" 
-                  : "bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900"
-              }`}
-              onClick={() => setFollowUpFilter(followUpFilter === "dueTomorrow" ? null : "dueTomorrow")}
-              data-testid="card-followup-tomorrow"
-            >
-              <CardContent className="pt-3 pb-3 px-3">
-                <div className="flex flex-col items-center text-center space-y-1">
-                  <div className="p-2 bg-yellow-500 rounded-full">
-                    <CalendarClock className="h-4 w-4 text-white" />
+            {shouldShowCard("Tomorrow", user?.allowedDashboardCards, isPlatformAdmin) && (
+              <Card 
+                className={`cursor-pointer transition-all ${
+                  followUpFilter === "dueTomorrow" 
+                    ? "bg-yellow-100 dark:bg-yellow-900 border-yellow-300 dark:border-yellow-700 ring-2 ring-yellow-500" 
+                    : "bg-yellow-50 dark:bg-yellow-950 border-yellow-200 dark:border-yellow-800 hover:bg-yellow-100 dark:hover:bg-yellow-900"
+                }`}
+                onClick={() => setFollowUpFilter(followUpFilter === "dueTomorrow" ? null : "dueTomorrow")}
+                data-testid="card-followup-tomorrow"
+              >
+                <CardContent className="pt-3 pb-3 px-3">
+                  <div className="flex flex-col items-center text-center space-y-1">
+                    <div className="p-2 bg-yellow-500 rounded-full">
+                      <CalendarClock className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                      {followUpStats?.dueTomorrow?.count || 0}
+                    </div>
+                    <p className="text-[10px] font-medium text-yellow-600 dark:text-yellow-400">Tomorrow</p>
                   </div>
-                  <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                    {followUpStats?.dueTomorrow?.count || 0}
-                  </div>
-                  <p className="text-[10px] font-medium text-yellow-600 dark:text-yellow-400">Tomorrow</p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* This Week Card */}
-            <Card 
-              className={`cursor-pointer transition-all ${
-                followUpFilter === "dueThisWeek" 
-                  ? "bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 ring-2 ring-blue-500" 
-                  : "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900"
-              }`}
-              onClick={() => setFollowUpFilter(followUpFilter === "dueThisWeek" ? null : "dueThisWeek")}
-              data-testid="card-followup-week"
-            >
-              <CardContent className="pt-3 pb-3 px-3">
-                <div className="flex flex-col items-center text-center space-y-1">
-                  <div className="p-2 bg-blue-500 rounded-full">
-                    <CalendarCheck className="h-4 w-4 text-white" />
+            {shouldShowCard("This Week", user?.allowedDashboardCards, isPlatformAdmin) && (
+              <Card 
+                className={`cursor-pointer transition-all ${
+                  followUpFilter === "dueThisWeek" 
+                    ? "bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 ring-2 ring-blue-500" 
+                    : "bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900"
+                }`}
+                onClick={() => setFollowUpFilter(followUpFilter === "dueThisWeek" ? null : "dueThisWeek")}
+                data-testid="card-followup-week"
+              >
+                <CardContent className="pt-3 pb-3 px-3">
+                  <div className="flex flex-col items-center text-center space-y-1">
+                    <div className="p-2 bg-blue-500 rounded-full">
+                      <CalendarCheck className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {followUpStats?.dueThisWeek?.count || 0}
+                    </div>
+                    <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400">This Week</p>
                   </div>
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {followUpStats?.dueThisWeek?.count || 0}
-                  </div>
-                  <p className="text-[10px] font-medium text-blue-600 dark:text-blue-400">This Week</p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* This Month Card */}
-            <Card 
-              className={`cursor-pointer transition-all ${
-                followUpFilter === "dueThisMonth" 
-                  ? "bg-purple-100 dark:bg-purple-900 border-purple-300 dark:border-purple-700 ring-2 ring-purple-500" 
-                  : "bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900"
-              }`}
-              onClick={() => setFollowUpFilter(followUpFilter === "dueThisMonth" ? null : "dueThisMonth")}
-              data-testid="card-followup-month"
-            >
-              <CardContent className="pt-3 pb-3 px-3">
-                <div className="flex flex-col items-center text-center space-y-1">
-                  <div className="p-2 bg-purple-500 rounded-full">
-                    <CalendarX2 className="h-4 w-4 text-white" />
+            {shouldShowCard("This Month", user?.allowedDashboardCards, isPlatformAdmin) && (
+              <Card 
+                className={`cursor-pointer transition-all ${
+                  followUpFilter === "dueThisMonth" 
+                    ? "bg-purple-100 dark:bg-purple-900 border-purple-300 dark:border-purple-700 ring-2 ring-purple-500" 
+                    : "bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900"
+                }`}
+                onClick={() => setFollowUpFilter(followUpFilter === "dueThisMonth" ? null : "dueThisMonth")}
+                data-testid="card-followup-month"
+              >
+                <CardContent className="pt-3 pb-3 px-3">
+                  <div className="flex flex-col items-center text-center space-y-1">
+                    <div className="p-2 bg-purple-500 rounded-full">
+                      <CalendarX2 className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      {followUpStats?.dueThisMonth?.count || 0}
+                    </div>
+                    <p className="text-[10px] font-medium text-purple-600 dark:text-purple-400">This Month</p>
                   </div>
-                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {followUpStats?.dueThisMonth?.count || 0}
-                  </div>
-                  <p className="text-[10px] font-medium text-purple-600 dark:text-purple-400">This Month</p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* No Follow-Up Card */}
-            <Card 
-              className={`cursor-pointer transition-all ${
-                followUpFilter === "noFollowUp" 
-                  ? "bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 ring-2 ring-gray-500" 
-                  : "bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-900"
-              }`}
-              onClick={() => setFollowUpFilter(followUpFilter === "noFollowUp" ? null : "noFollowUp")}
-              data-testid="card-followup-none"
-            >
-              <CardContent className="pt-3 pb-3 px-3">
-                <div className="flex flex-col items-center text-center space-y-1">
-                  <div className="p-2 bg-gray-500 rounded-full">
-                    <UserX className="h-4 w-4 text-white" />
+            {shouldShowCard("No Follow-Up", user?.allowedDashboardCards, isPlatformAdmin) && (
+              <Card 
+                className={`cursor-pointer transition-all ${
+                  followUpFilter === "noFollowUp" 
+                    ? "bg-gray-100 dark:bg-gray-900 border-gray-300 dark:border-gray-700 ring-2 ring-gray-500" 
+                    : "bg-gray-50 dark:bg-gray-950 border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-900"
+                }`}
+                onClick={() => setFollowUpFilter(followUpFilter === "noFollowUp" ? null : "noFollowUp")}
+                data-testid="card-followup-none"
+              >
+                <CardContent className="pt-3 pb-3 px-3">
+                  <div className="flex flex-col items-center text-center space-y-1">
+                    <div className="p-2 bg-gray-500 rounded-full">
+                      <UserX className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+                      {followUpStats?.noFollowUp?.count || 0}
+                    </div>
+                    <p className="text-[10px] font-medium text-gray-600 dark:text-gray-400">No Follow-Up</p>
                   </div>
-                  <div className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-                    {followUpStats?.noFollowUp?.count || 0}
-                  </div>
-                  <p className="text-[10px] font-medium text-gray-600 dark:text-gray-400">No Follow-Up</p>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 

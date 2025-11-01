@@ -34,6 +34,7 @@ import { format } from "date-fns";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { useAuth } from "@/lib/auth";
 
 interface DebtorData {
   customerId: string;
@@ -65,6 +66,7 @@ interface DebtorsTableProps {
 export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: DebtorsTableProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { canPerformAction } = useAuth();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -339,33 +341,39 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           >
             <Activity className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleWhatsAppClick(row.original)}
-            className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
-            data-testid={`button-whatsapp-${row.original.customerId}`}
-          >
-            <MessageSquare className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleEmailClick(row.original)}
-            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
-            data-testid={`button-email-${row.original.customerId}`}
-          >
-            <Mail className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onOpenCall(row.original)}
-            className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950"
-            data-testid={`button-call-${row.original.customerId}`}
-          >
-            <Phone className="h-4 w-4" />
-          </Button>
+          {canPerformAction("canWhatsApp") && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleWhatsAppClick(row.original)}
+              className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
+              data-testid={`button-whatsapp-${row.original.customerId}`}
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+          )}
+          {canPerformAction("canEmail") && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleEmailClick(row.original)}
+              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
+              data-testid={`button-email-${row.original.customerId}`}
+            >
+              <Mail className="h-4 w-4" />
+            </Button>
+          )}
+          {canPerformAction("canCall") && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenCall(row.original)}
+              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950"
+              data-testid={`button-call-${row.original.customerId}`}
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
