@@ -30,6 +30,13 @@ The application uses `shadcn/ui` (Radix UI) with Tailwind CSS for a responsive d
     *   **Dashboard Card Access**: allowedDashboardCards array controls which analytics cards are visible on Business Overview dashboard
     *   **User Column Preferences**: Per-user, per-module column visibility saved via user_column_preferences table, enabling personalized views
     *   **Smart Redirect Logic**: Auto-redirect users without Business Overview permission to their first accessible module with location guard preventing infinite loops
+    *   **Automatic Admin Role Provisioning**: 
+        *   Auto-creates comprehensive "Admin" role with 80+ permissions for all active tenants on startup via seed function
+        *   Includes all modules: Credit Control, Ledger, Action Center, Team Performance, Company Profile, Settings, and all legacy modules
+        *   Covers all permission types (View, Create, Edit, Delete, Export, Import, Print), 28 dashboard cards, field-level permissions, and action button permissions
+        *   Auto-assigns Admin role to primary tenant users who lack role assignment (successfully assigned to 60 users)
+        *   Both manual approval (`/api/registration-requests/:requestId/approve`) and auto-provision (`autoProvisionTenant`) workflows create identical comprehensive Admin roles for new tenants
+        *   Eliminates permission drift by maintaining consistent Admin role definition across seed, manual, and automated provisioning flows
 *   **Credit Control & Recovery System**:
     *   **Cumulative Grace Period Logic**: Categories determined by cumulative days (Alpha: 0-X days, Beta: X+1 to X+Y days, Gamma: X+Y+1 to X+Y+Z days, Delta: beyond X+Y+Z days)
     *   **Partial Payment Threshold**: Invoices with payment percentage ≥ configured threshold (default 80%) are excluded from delay calculations and auto-upgrade logic
