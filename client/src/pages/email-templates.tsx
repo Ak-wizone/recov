@@ -48,6 +48,7 @@ export default function EmailTemplates() {
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<EmailTemplate | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewingTemplate, setPreviewingTemplate] = useState<EmailTemplate | null>(null);
   const subjectInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -292,8 +293,18 @@ export default function EmailTemplates() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => setPreviewingTemplate(template)}
+                        data-testid={`button-preview-${template.id}`}
+                        title="Preview Template"
+                      >
+                        <Eye className="h-4 w-4 text-blue-500" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleEdit(template)}
                         data-testid={`button-edit-${template.id}`}
+                        title="Edit Template"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -302,6 +313,7 @@ export default function EmailTemplates() {
                         size="sm"
                         onClick={() => handleDelete(template)}
                         data-testid={`button-delete-${template.id}`}
+                        title="Delete Template"
                       >
                         <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
@@ -566,6 +578,46 @@ export default function EmailTemplates() {
               type="button"
               onClick={() => setIsPreviewOpen(false)}
               data-testid="button-close-preview"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!previewingTemplate} onOpenChange={() => setPreviewingTemplate(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Email Preview
+            </DialogTitle>
+            <DialogDescription>
+              {previewingTemplate?.name} - {moduleLabels[previewingTemplate?.module || "leads"]}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto border rounded-lg p-4 bg-white dark:bg-gray-950">
+            <div className="space-y-4">
+              <div className="border-b pb-3">
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Subject:</div>
+                <div className="font-semibold text-lg" data-testid="preview-grid-subject">
+                  {previewingTemplate?.subject || "No subject"}
+                </div>
+              </div>
+              <div className="border rounded p-4 bg-gray-50 dark:bg-gray-900">
+                <div 
+                  className="prose prose-sm dark:prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: previewingTemplate?.body || "<p>No content</p>" }}
+                  data-testid="preview-grid-body"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => setPreviewingTemplate(null)}
+              data-testid="button-close-grid-preview"
             >
               Close
             </Button>
