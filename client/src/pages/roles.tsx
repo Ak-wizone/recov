@@ -36,7 +36,15 @@ import {
   Shield,
   CheckSquare,
   Printer,
+  ChevronDown,
 } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -51,39 +59,56 @@ import {
   ColumnDef,
 } from "@tanstack/react-table";
 
-const DASHBOARD_CARDS = [
-  // Business Overview Cards
-  "Total Revenue",
-  "Total Collections",
-  "Total Outstanding",
-  "Total Opening Balance",
-  "Upcoming Invoices",
-  "Due Today",
-  "In Grace",
-  "Overdue",
-  "Paid On Time",
-  "Paid Late",
-  "Outstanding by Category",
-  "Top 5 Customers by Revenue",
-  "Top 5 Customers by Outstanding",
-  "Overdue Invoices",
-  "Recent Invoices",
-  "Recent Receipts",
-  "Customer Analytics",
-  // Payment Risk Forecaster Cards
-  "High Risk",
-  "Medium Risk",
-  "Low Risk",
-  // Debtors Cards
-  "Alpha",
-  "Beta",
-  "Gamma",
-  "Delta",
-  // Daily Dashboard Cards
-  "Pending Tasks",
-  "Overdue Tasks",
-  "Priority Customers",
-  "Collection Progress",
+// Categorized dashboard cards for better organization
+const DASHBOARD_CARD_CATEGORIES = [
+  {
+    category: "Business Overview",
+    cards: [
+      "Total Revenue",
+      "Total Collections",
+      "Total Outstanding",
+      "Total Opening Balance",
+      "Upcoming Invoices",
+      "Due Today",
+      "In Grace",
+      "Overdue",
+      "Paid On Time",
+      "Paid Late",
+      "Outstanding by Category",
+      "Top 5 Customers by Revenue",
+      "Top 5 Customers by Outstanding",
+      "Overdue Invoices",
+      "Recent Invoices",
+      "Recent Receipts",
+      "Customer Analytics",
+    ]
+  },
+  {
+    category: "Payment Tracking",
+    cards: [
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Delta",
+    ]
+  },
+  {
+    category: "Risk & Recovery",
+    cards: [
+      "High Risk",
+      "Medium Risk",
+      "Low Risk",
+    ]
+  },
+  {
+    category: "Action Center",
+    cards: [
+      "Pending Tasks",
+      "Overdue Tasks",
+      "Priority Customers",
+      "Collection Progress",
+    ]
+  }
 ];
 
 const ACTION_PERMISSIONS = [
@@ -95,100 +120,179 @@ const ACTION_PERMISSIONS = [
   { key: "canShare", label: "Share" },
 ];
 
-const MODULES_WITH_PERMISSIONS = [
+// Categorized modules for better organization and quick selection
+const MODULE_CATEGORIES = [
   {
-    module: "Business Overview",
-    operations: ["View"]
+    category: "Dashboard & Analytics",
+    modules: [
+      {
+        module: "Business Overview",
+        operations: ["View"]
+      },
+      {
+        module: "Customer Analytics",
+        operations: ["View"]
+      },
+    ]
   },
   {
-    module: "Customer Analytics",
-    operations: ["View"]
+    category: "Sales & Quotations",
+    modules: [
+      {
+        module: "Leads",
+        operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+      },
+      {
+        module: "Quotations",
+        operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+      },
+      {
+        module: "Proforma Invoices",
+        operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+      },
+    ]
   },
   {
-    module: "Leads",
-    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+    category: "Financial Management",
+    modules: [
+      {
+        module: "Invoices",
+        operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+      },
+      {
+        module: "Receipts",
+        operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+      },
+    ]
   },
   {
-    module: "Quotations",
-    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+    category: "Payment Tracking",
+    modules: [
+      {
+        module: "Debtors",
+        operations: ["View", "Export", "Print"]
+      },
+      {
+        module: "Ledger",
+        operations: ["View", "Export", "Print"]
+      },
+      {
+        module: "Credit Management",
+        operations: ["View", "Export", "Print"]
+      },
+      {
+        module: "Payment Analytics",
+        operations: ["View", "Export", "Print"]
+      },
+    ]
   },
   {
-    module: "Proforma Invoices",
-    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+    category: "Action Center & Team",
+    modules: [
+      {
+        module: "Action Center",
+        operations: ["View", "Create", "Edit", "Delete"]
+      },
+      {
+        module: "Team Performance",
+        operations: ["View", "Create", "Edit", "Delete"]
+      },
+    ]
   },
   {
-    module: "Invoices",
-    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+    category: "Risk & Recovery",
+    modules: [
+      {
+        module: "Risk Management - Client Risk Thermometer",
+        operations: ["View"]
+      },
+      {
+        module: "Risk Management - Payment Risk Forecaster",
+        operations: ["View"]
+      },
+      {
+        module: "Risk Management - Recovery Health Test",
+        operations: ["View"]
+      },
+    ]
   },
   {
-    module: "Receipts",
-    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+    category: "Credit Control",
+    modules: [
+      {
+        module: "Credit Control",
+        operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+      },
+    ]
   },
   {
-    module: "Debtors",
-    operations: ["View", "Export", "Print"]
+    category: "Masters",
+    modules: [
+      {
+        module: "Masters - Customers",
+        operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+      },
+      {
+        module: "Masters - Items",
+        operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+      },
+    ]
   },
   {
-    module: "Masters - Customers",
-    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+    category: "Settings & Administration",
+    modules: [
+      {
+        module: "Company Profile",
+        operations: ["View", "Edit"]
+      },
+      {
+        module: "Settings",
+        operations: ["View", "Edit"]
+      },
+      {
+        module: "User Management",
+        operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+      },
+      {
+        module: "Roles Management",
+        operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+      },
+      {
+        module: "Communication Schedules",
+        operations: ["View", "Create", "Edit", "Delete"]
+      },
+      {
+        module: "Backup & Restore",
+        operations: ["View", "Create", "Delete"]
+      },
+      {
+        module: "Audit Logs",
+        operations: ["View", "Export", "Print"]
+      },
+    ]
   },
   {
-    module: "Masters - Items",
-    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+    category: "Integrations",
+    modules: [
+      {
+        module: "Email/WhatsApp/Call Integrations",
+        operations: ["View", "Edit"]
+      },
+    ]
   },
   {
-    module: "Risk Management - Client Risk Thermometer",
-    operations: ["View"]
-  },
-  {
-    module: "Risk Management - Payment Risk Forecaster",
-    operations: ["View"]
-  },
-  {
-    module: "Risk Management - Recovery Health Test",
-    operations: ["View"]
-  },
-  {
-    module: "Credit Control",
-    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
-  },
-  {
-    module: "Action Center",
-    operations: ["View", "Create", "Edit", "Delete"]
-  },
-  {
-    module: "Team Performance",
-    operations: ["View", "Create", "Edit", "Delete"]
-  },
-  {
-    module: "Ledger",
-    operations: ["View", "Export", "Print"]
-  },
-  {
-    module: "Company Profile",
-    operations: ["View", "Edit"]
-  },
-  {
-    module: "Settings",
-    operations: ["View", "Edit"]
-  },
-  {
-    module: "Company Settings",
-    operations: ["View", "Edit"]
-  },
-  {
-    module: "User Management",
-    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
-  },
-  {
-    module: "Roles Management",
-    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
-  },
-  {
-    module: "Reports",
-    operations: ["View", "Export", "Print"]
-  },
+    category: "Reports",
+    modules: [
+      {
+        module: "Reports",
+        operations: ["View", "Export", "Print"]
+      },
+    ]
+  }
 ];
+
+// Flatten for backward compatibility
+const MODULES_WITH_PERMISSIONS = MODULE_CATEGORIES.flatMap(cat => cat.modules);
 
 const roleFormSchema = z.object({
   name: z.string().min(1, "Role name is required"),
@@ -236,20 +340,26 @@ export default function Roles() {
     queryKey: ["/api/tenants/allowed-modules"],
   });
 
-  // Filter modules based on tenant's subscription
-  const filteredModules = MODULES_WITH_PERMISSIONS.filter(moduleConfig => {
-    // If no modules loaded yet or tenant has all modules, show all
-    if (allowedModules.length === 0) return true;
-    
-    // Check if the module is in the allowed list
-    // Handle variations like "Masters - Customers" vs "Masters", "Risk Management - X" vs "Risk & Recovery"
-    return allowedModules.some(allowedModule => {
-      if (moduleConfig.module === allowedModule) return true;
-      if (moduleConfig.module.startsWith("Masters") && allowedModule === "Masters") return true;
-      if (moduleConfig.module.startsWith("Risk Management") && allowedModule === "Risk & Recovery") return true;
-      return false;
-    });
-  });
+  // Filter MODULE_CATEGORIES based on tenant's subscription
+  const filteredModuleCategories = MODULE_CATEGORIES.map(category => ({
+    ...category,
+    modules: category.modules.filter(moduleConfig => {
+      // If no modules loaded yet or tenant has all modules, show all
+      if (allowedModules.length === 0) return true;
+      
+      // Check if the module is in the allowed list
+      // Handle variations like "Masters - Customers" vs "Masters", "Risk Management - X" vs "Risk & Recovery"
+      return allowedModules.some(allowedModule => {
+        if (moduleConfig.module === allowedModule) return true;
+        if (moduleConfig.module.startsWith("Masters") && allowedModule === "Masters") return true;
+        if (moduleConfig.module.startsWith("Risk Management") && allowedModule === "Risk & Recovery") return true;
+        return false;
+      });
+    })
+  })).filter(category => category.modules.length > 0);
+
+  // Flatten for backward compatibility
+  const filteredModules = filteredModuleCategories.flatMap(cat => cat.modules);
 
   const form = useForm<RoleFormValues>({
     resolver: zodResolver(roleFormSchema),
@@ -421,13 +531,13 @@ export default function Roles() {
       permissions: role.permissions,
       canViewGP: role.canViewGP !== undefined ? role.canViewGP : true,
       allowedDashboardCards: role.allowedDashboardCards || [],
-      actionPermissions: role.actionPermissions || {
-        canEmail: true,
-        canWhatsApp: true,
-        canSMS: true,
-        canCall: true,
-        canReminder: true,
-        canShare: true,
+      actionPermissions: {
+        canEmail: role.canSendEmail !== undefined ? role.canSendEmail : true,
+        canWhatsApp: role.canSendWhatsApp !== undefined ? role.canSendWhatsApp : true,
+        canSMS: role.canSendSMS !== undefined ? role.canSendSMS : true,
+        canCall: role.canTriggerCall !== undefined ? role.canTriggerCall : true,
+        canReminder: role.canSendReminder !== undefined ? role.canSendReminder : true,
+        canShare: role.canShareDocuments !== undefined ? role.canShareDocuments : true,
       },
     });
     setIsEditDialogOpen(true);
@@ -780,48 +890,175 @@ export default function Roles() {
               <Textarea id="description" {...form.register("description")} data-testid="input-description" />
             </div>
 
-            <div>
-              <Label>Permissions * (Select operations for each module)</Label>
-              <div className="mt-3 space-y-4 max-h-96 overflow-y-auto border rounded-lg p-4">
-                {filteredModules.map((moduleItem) => (
-                  <div key={moduleItem.module} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Shield className="h-4 w-4 text-blue-500" />
-                      <h4 className="font-semibold text-sm">{moduleItem.module}</h4>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2 ml-6">
-                      {moduleItem.operations.map((operation) => {
-                        const permissionKey = `${moduleItem.module} - ${operation}`;
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <Label className="text-base font-semibold">Permissions *</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Select module operations, dashboard cards, and communication actions
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="grant-all" className="cursor-pointer text-sm font-medium">
+                    Grant All Permissions
+                  </Label>
+                  <Switch
+                    id="grant-all"
+                    checked={
+                      selectedPermissions.length === filteredModules.flatMap(m => m.operations.map(op => `${m.module} - ${op}`)).length &&
+                      allowedDashboardCards.length === DASHBOARD_CARD_CATEGORIES.flatMap(c => c.cards).length &&
+                      Object.values(actionPermissions).every(v => v === true)
+                    }
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        const allModulePermissions = filteredModules.flatMap(m => 
+                          m.operations.map(op => `${m.module} - ${op}`)
+                        );
+                        const allDashboardCards = DASHBOARD_CARD_CATEGORIES.flatMap(c => c.cards);
+                        form.setValue("permissions", allModulePermissions);
+                        form.setValue("allowedDashboardCards", allDashboardCards);
+                        form.setValue("actionPermissions", {
+                          canEmail: true,
+                          canWhatsApp: true,
+                          canSMS: true,
+                          canCall: true,
+                          canReminder: true,
+                          canShare: true,
+                        });
+                      } else {
+                        form.setValue("permissions", []);
+                        form.setValue("allowedDashboardCards", []);
+                        form.setValue("actionPermissions", {
+                          canEmail: false,
+                          canWhatsApp: false,
+                          canSMS: false,
+                          canCall: false,
+                          canReminder: false,
+                          canShare: false,
+                        });
+                      }
+                    }}
+                    data-testid="switch-grant-all"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <h4 className="font-semibold text-sm mb-2">Module Permissions</h4>
+                  <div className="max-h-96 overflow-y-auto border rounded-lg">
+                    <Accordion type="multiple" className="w-full" defaultValue={filteredModuleCategories.map((_, i) => `category-${i}`)}>
+                      {filteredModuleCategories.map((category, categoryIndex) => {
+                        const categoryPermissions = category.modules.flatMap(m => 
+                          m.operations.map(op => `${m.module} - ${op}`)
+                        );
+                        const allCategorySelected = categoryPermissions.every(p => selectedPermissions.includes(p));
+                        
                         return (
-                          <div key={operation} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`permission-${moduleItem.module}-${operation}`}
-                              checked={selectedPermissions.includes(permissionKey)}
-                              onCheckedChange={(checked) => {
-                                const current = selectedPermissions;
-                                const updated = checked
-                                  ? [...current, permissionKey]
-                                  : current.filter((p) => p !== permissionKey);
-                                form.setValue("permissions", updated);
-                              }}
-                              data-testid={`checkbox-permission-${moduleItem.module.toLowerCase().replace(/\s+/g, "-")}-${operation.toLowerCase()}`}
-                            />
-                            <Label 
-                              htmlFor={`permission-${moduleItem.module}-${operation}`} 
-                              className="cursor-pointer text-xs"
-                            >
-                              {operation}
-                            </Label>
-                          </div>
+                          <AccordionItem key={categoryIndex} value={`category-${categoryIndex}`}>
+                            <AccordionTrigger className="px-4 hover:bg-muted/50">
+                              <div className="flex items-center justify-between w-full pr-4">
+                                <div className="flex items-center gap-2">
+                                  <Shield className="h-4 w-4 text-blue-500" />
+                                  <span className="font-semibold text-sm">{category.category}</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    ({category.modules.length} modules)
+                                  </span>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant={allCategorySelected ? "secondary" : "outline"}
+                                  size="sm"
+                                  className="h-7 text-xs mr-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const current = selectedPermissions;
+                                    if (allCategorySelected) {
+                                      const updated = current.filter(p => !categoryPermissions.includes(p));
+                                      form.setValue("permissions", updated);
+                                    } else {
+                                      const updated = Array.from(new Set([...current, ...categoryPermissions]));
+                                      form.setValue("permissions", updated);
+                                    }
+                                  }}
+                                  data-testid={`button-select-category-${category.category.toLowerCase().replace(/\s+/g, "-")}`}
+                                >
+                                  {allCategorySelected ? "Deselect All" : "Select All"}
+                                </Button>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-4 pb-4">
+                              <div className="space-y-4">
+                                {category.modules.map((moduleItem) => {
+                                  const modulePermissions = moduleItem.operations.map(op => `${moduleItem.module} - ${op}`);
+                                  const allModuleSelected = modulePermissions.every(p => selectedPermissions.includes(p));
+                                  
+                                  return (
+                                    <div key={moduleItem.module} className="space-y-2 pl-2">
+                                      <div className="flex items-center justify-between">
+                                        <h5 className="font-medium text-sm">{moduleItem.module}</h5>
+                                        <Button
+                                          type="button"
+                                          variant={allModuleSelected ? "secondary" : "ghost"}
+                                          size="sm"
+                                          className="h-6 text-xs"
+                                          onClick={() => {
+                                            const current = selectedPermissions;
+                                            if (allModuleSelected) {
+                                              const updated = current.filter(p => !modulePermissions.includes(p));
+                                              form.setValue("permissions", updated);
+                                            } else {
+                                              const updated = Array.from(new Set([...current, ...modulePermissions]));
+                                              form.setValue("permissions", updated);
+                                            }
+                                          }}
+                                          data-testid={`button-select-module-${moduleItem.module.toLowerCase().replace(/\s+/g, "-")}`}
+                                        >
+                                          {allModuleSelected ? "Deselect All" : "Select All"}
+                                        </Button>
+                                      </div>
+                                      <div className="grid grid-cols-4 gap-2 ml-4">
+                                        {moduleItem.operations.map((operation) => {
+                                          const permissionKey = `${moduleItem.module} - ${operation}`;
+                                          return (
+                                            <div key={operation} className="flex items-center space-x-2">
+                                              <Checkbox
+                                                id={`permission-${moduleItem.module}-${operation}`}
+                                                checked={selectedPermissions.includes(permissionKey)}
+                                                onCheckedChange={(checked) => {
+                                                  const current = selectedPermissions;
+                                                  const updated = checked
+                                                    ? [...current, permissionKey]
+                                                    : current.filter((p) => p !== permissionKey);
+                                                  form.setValue("permissions", updated);
+                                                }}
+                                                data-testid={`checkbox-permission-${moduleItem.module.toLowerCase().replace(/\s+/g, "-")}-${operation.toLowerCase()}`}
+                                              />
+                                              <Label 
+                                                htmlFor={`permission-${moduleItem.module}-${operation}`} 
+                                                className="cursor-pointer text-xs"
+                                              >
+                                                {operation}
+                                              </Label>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
                         );
                       })}
-                    </div>
+                    </Accordion>
                   </div>
-                ))}
+                  {form.formState.errors.permissions && (
+                    <p className="text-sm text-red-500 mt-2">{form.formState.errors.permissions.message}</p>
+                  )}
+                </div>
               </div>
-              {form.formState.errors.permissions && (
-                <p className="text-sm text-red-500 mt-2">{form.formState.errors.permissions.message}</p>
-              )}
             </div>
 
             <div className="border-t pt-4">
@@ -848,26 +1085,58 @@ export default function Roles() {
               <p className="text-xs text-muted-foreground mt-1 mb-3">
                 Select which dashboard cards this role can view on Business Overview
               </p>
-              <div className="grid grid-cols-2 gap-2">
-                {DASHBOARD_CARDS.map((card) => (
-                  <div key={card} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`dashboard-${card}`}
-                      checked={allowedDashboardCards.includes(card)}
-                      onCheckedChange={(checked) => {
-                        const current = allowedDashboardCards;
-                        const updated = checked
-                          ? [...current, card]
-                          : current.filter((c) => c !== card);
-                        form.setValue("allowedDashboardCards", updated);
-                      }}
-                      data-testid={`checkbox-dashboard-${card.toLowerCase().replace(/\s+/g, "-")}`}
-                    />
-                    <Label htmlFor={`dashboard-${card}`} className="cursor-pointer text-sm font-normal">
-                      {card}
-                    </Label>
-                  </div>
-                ))}
+              <div className="space-y-4 max-h-64 overflow-y-auto border rounded-lg p-4">
+                {DASHBOARD_CARD_CATEGORIES.map((cardCategory, index) => {
+                  const allCategoryCardsSelected = cardCategory.cards.every(c => allowedDashboardCards.includes(c));
+                  
+                  return (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h5 className="font-semibold text-sm text-blue-600">{cardCategory.category}</h5>
+                        <Button
+                          type="button"
+                          variant={allCategoryCardsSelected ? "secondary" : "ghost"}
+                          size="sm"
+                          className="h-6 text-xs"
+                          onClick={() => {
+                            const current = allowedDashboardCards;
+                            if (allCategoryCardsSelected) {
+                              const updated = current.filter(c => !cardCategory.cards.includes(c));
+                              form.setValue("allowedDashboardCards", updated);
+                            } else {
+                              const updated = Array.from(new Set([...current, ...cardCategory.cards]));
+                              form.setValue("allowedDashboardCards", updated);
+                            }
+                          }}
+                          data-testid={`button-select-dashboard-category-${cardCategory.category.toLowerCase().replace(/\s+/g, "-")}`}
+                        >
+                          {allCategoryCardsSelected ? "Deselect All" : "Select All"}
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 ml-4">
+                        {cardCategory.cards.map((card) => (
+                          <div key={card} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`dashboard-${card}`}
+                              checked={allowedDashboardCards.includes(card)}
+                              onCheckedChange={(checked) => {
+                                const current = allowedDashboardCards;
+                                const updated = checked
+                                  ? [...current, card]
+                                  : current.filter((c) => c !== card);
+                                form.setValue("allowedDashboardCards", updated);
+                              }}
+                              data-testid={`checkbox-dashboard-${card.toLowerCase().replace(/\s+/g, "-")}`}
+                            />
+                            <Label htmlFor={`dashboard-${card}`} className="cursor-pointer text-xs font-normal">
+                              {card}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
