@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Plus, Pencil, Trash2, Mail, Info, ArrowLeft } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Mail, Info, ArrowLeft, Eye } from "lucide-react";
 import { Link } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { VariablePicker } from "@/components/variable-picker";
@@ -47,6 +47,7 @@ export default function EmailTemplates() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<EmailTemplate | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const subjectInputRef = useRef<HTMLInputElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -454,28 +455,41 @@ export default function EmailTemplates() {
               />
 
               <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleDialogClose}
-                  data-testid="button-cancel"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                  data-testid="button-submit"
-                >
-                  {(createMutation.isPending || updateMutation.isPending) ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {editingTemplate ? "Updating..." : "Creating..."}
-                    </>
-                  ) : (
-                    editingTemplate ? "Update Template" : "Create Template"
-                  )}
-                </Button>
+                <div className="flex justify-between w-full">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsPreviewOpen(true)}
+                    data-testid="button-preview"
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleDialogClose}
+                      data-testid="button-cancel"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                      data-testid="button-submit"
+                    >
+                      {(createMutation.isPending || updateMutation.isPending) ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {editingTemplate ? "Updating..." : "Creating..."}
+                        </>
+                      ) : (
+                        editingTemplate ? "Update Template" : "Create Template"
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </DialogFooter>
             </form>
           </Form>
@@ -518,6 +532,46 @@ export default function EmailTemplates() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5" />
+              Email Preview
+            </DialogTitle>
+            <DialogDescription>
+              Preview of how your email will appear
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto border rounded-lg p-4 bg-white dark:bg-gray-950">
+            <div className="space-y-4">
+              <div className="border-b pb-3">
+                <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Subject:</div>
+                <div className="font-semibold text-lg" data-testid="preview-subject">
+                  {form.watch("subject") || "No subject"}
+                </div>
+              </div>
+              <div className="border rounded p-4 bg-gray-50 dark:bg-gray-900">
+                <div 
+                  className="prose prose-sm dark:prose-invert max-w-none"
+                  dangerouslySetInnerHTML={{ __html: form.watch("body") || "<p>No content</p>" }}
+                  data-testid="preview-body"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={() => setIsPreviewOpen(false)}
+              data-testid="button-close-preview"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
