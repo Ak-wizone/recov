@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +18,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Loader2, Plus, Pencil, Trash2, Mail, Info, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { VariablePicker } from "@/components/variable-picker";
 
 const moduleColors: Record<string, string> = {
   leads: "bg-blue-500",
@@ -46,6 +47,8 @@ export default function EmailTemplates() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
   const [deletingTemplate, setDeletingTemplate] = useState<EmailTemplate | null>(null);
+  const subjectInputRef = useRef<HTMLInputElement>(null);
+  const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: templates, isLoading } = useQuery<EmailTemplate[]>({
     queryKey: ["/api/email-templates"],
@@ -129,6 +132,53 @@ export default function EmailTemplates() {
       });
     },
   });
+
+  // Insert variable at cursor position
+  const insertVariableAtCursor = (fieldName: "subject" | "body", variable: string) => {
+    const currentValue = form.getValues(fieldName);
+    const ref = fieldName === "subject" ? subjectInputRef : bodyTextareaRef;
+    
+    if (ref.current) {
+      const start = ref.current.selectionStart || 0;
+      const end = ref.current.selectionEnd || 0;
+      const newValue = currentValue.substring(0, start) + variable + currentValue.substring(end);
+      form.setValue(fieldName, newValue);
+      
+      // Set cursor position after inserted variable
+      setTimeout(() => {
+        ref.current?.focus();
+        ref.current?.setSelectionRange(start + variable.length, start + variable.length);
+      }, 0);
+    } else {
+      // If no cursor position, append to end
+      form.setValue(fieldName, currentValue + variable);
+    }
+  };
+
+  // Handle variable insertion from picker
+  const handleInsertVariable = (variable: string) => {
+    // Determine which field is currently focused
+    if (document.activeElement === subjectInputRef.current) {
+      insertVariableAtCursor("subject", variable);
+    } else if (document.activeElement === bodyTextareaRef.current) {
+      insertVariableAtCursor("body", variable);
+    } else {
+      // Default to body if nothing is focused
+      insertVariableAtCursor("body", variable);
+    }
+  };
+
+  // Handle drag and drop
+  const handleDrop = (e: React.DragEvent, fieldName: "subject" | "body") => {
+    e.preventDefault();
+    const variable = e.dataTransfer.getData("text/plain");
+    insertVariableAtCursor(fieldName, variable);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  };
 
   const handleCreate = () => {
     form.reset({
@@ -270,19 +320,21 @@ export default function EmailTemplates() {
       </div>
 
       <Dialog open={isCreateDialogOpen || !!editingTemplate} onOpenChange={handleDialogClose}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
               {editingTemplate ? "Edit Email Template" : "Create Email Template"}
             </DialogTitle>
             <DialogDescription>
-              Configure email template for automated communications
+              Configure email template for automated communications. Click or drag variables from the right panel into your template.
             </DialogDescription>
           </DialogHeader>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="module"
@@ -338,12 +390,15 @@ export default function EmailTemplates() {
                     <FormControl>
                       <Input
                         {...field}
+                        ref={subjectInputRef}
+                        onDrop={(e) => handleDrop(e, "subject")}
+                        onDragOver={handleDragOver}
                         placeholder="Welcome to {companyName}"
                         data-testid="input-subject"
                       />
                     </FormControl>
                     <FormDescription>
-                      Use {"{variableName}"} for dynamic values
+                      Drag variables here or click to insert
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -355,30 +410,26 @@ export default function EmailTemplates() {
                 name="body"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email Body *</FormLabel>
+                    <FormLabel>Email Body * (HTML Supported)</FormLabel>
                     <FormControl>
                       <Textarea
                         {...field}
-                        rows={8}
-                        placeholder="Dear {customerName},&#10;&#10;Thank you for your business..."
+                        ref={bodyTextareaRef}
+                        onDrop={(e) => handleDrop(e, "body")}
+                        onDragOver={handleDragOver}
+                        rows={12}
+                        placeholder="<p>Dear {customerName},</p>&#10;<p>Thank you for your business...</p>"
+                        className="font-mono text-sm"
                         data-testid="textarea-body"
                       />
                     </FormControl>
                     <FormDescription>
-                      Use {"{variableName}"} for dynamic values
+                      Supports HTML formatting. Drag variables here or click to insert
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              <Alert>
-                <Info className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>Available variables:</strong> {"{customerName}"}, {"{companyName}"}, {"{amount}"}, 
-                  {"{invoiceNumber}"}, {"{quotationNumber}"}, {"{dueDate}"}, {"{date}"}, and more depending on the module.
-                </AlertDescription>
-              </Alert>
 
               <FormField
                 control={form.control}
@@ -428,6 +479,15 @@ export default function EmailTemplates() {
               </DialogFooter>
             </form>
           </Form>
+        </div>
+        
+        <div className="hidden lg:block">
+          <VariablePicker
+            module={form.watch("module") || "leads"}
+            onInsertVariable={handleInsertVariable}
+          />
+        </div>
+      </div>
         </DialogContent>
       </Dialog>
 
