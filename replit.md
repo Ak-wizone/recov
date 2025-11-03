@@ -48,6 +48,13 @@ The application uses `shadcn/ui` (Radix UI) with Tailwind CSS for a responsive d
         *   Active/inactive status for easy schedule management
 *   **Communication Integrations**:
     *   **Email**: Nodemailer integration with support for Gmail OAuth2/SMTP, template management, variable substitution, and module-specific quick-access email buttons. Includes platform-level email configuration for tenant credential emails.
+    *   **Enhanced Email Template System**:
+        *   **Comprehensive Variable System**: 35+ variables across 8 modules (leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management, followup_automation) including company branding, customer details, and transaction-specific data
+        *   **Visual Variable Picker**: Drag-and-drop component with search, module filtering, and one-click insertion at cursor position
+        *   **Professional HTML Templates**: 16 seed templates (2 per module) with responsive design, inline CSS, and proper variable usage
+        *   **Intelligent Variable Enrichment**: Backend system (server/email-utils.ts) automatically fetches and merges company profile, customer data, and transaction details with proper override handling
+        *   **Absolute URL Generation**: Links (quotationLink, paymentLink) use baseUrl from request origin for reliable email delivery
+        *   **2-Column Editor Layout**: Split view with template editor on left and collapsible variable picker on right for efficient workflow
     *   **WhatsApp**: Enterprise-grade messaging via multi-provider support (Twilio, WATI, Meta, etc.), comprehensive configuration, and message templates with automatic data enrichment.
     *   **Ringg.ai AI Calling**: AI-powered voice calling system with configuration, script mapping, call triggering, call history (recordings, transcripts), and webhook integration.
 *   **Communication Schedules**: Automated scheduling for calls, emails, and WhatsApp messages with flexible frequency, time-based scheduling, and JSON-based filter conditions.

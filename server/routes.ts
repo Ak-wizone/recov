@@ -5,7 +5,8 @@ import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { requirePermission, requireAnyPermission } from "./permissions";
 import { wsManager } from "./websocket";
 import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics } from "@shared/schema";
-import { createTransporter, renderTemplate, sendEmail, testEmailConnection } from "./email-service";
+import { createTransporter, sendEmail, testEmailConnection } from "./email-service";
+import { getEnrichedEmailVariables, renderTemplate } from "./email-utils";
 import { sendWhatsAppMessage } from "./whatsapp-service";
 import { whatsappWebService } from "./whatsapp-web-service";
 import { ringgService } from "./ringg-service";
@@ -7492,7 +7493,20 @@ ${profile?.legalName || 'Company'}`;
   // Send email
   app.post("/api/send-email", async (req, res) => {
     try {
-      const { to, templateId, templateData, subject, body, quotationId, invoiceId, receiptId } = req.body;
+      const { 
+        to, 
+        templateId, 
+        templateData, 
+        subject, 
+        body, 
+        quotationId, 
+        invoiceId, 
+        receiptId,
+        leadId,
+        piId,
+        customerId,
+        module 
+      } = req.body;
 
       if (!to) {
         return res.status(400).json({ message: "Recipient email address is required" });
@@ -7507,217 +7521,50 @@ ${profile?.legalName || 'Company'}`;
         return res.status(400).json({ message: "Email configuration is not active" });
       }
 
-      let enrichedData = templateData || {};
+      // Determine module type and data ID from request
+      let moduleType = module;
+      let dataId: string | undefined;
 
-      // Enrich data for quotation emails
-      if (quotationId) {
-        const quotation = await storage.getQuotation(req.tenantId!, quotationId);
-        if (!quotation) {
-          return res.status(404).json({ message: "Quotation not found" });
+      if (!moduleType) {
+        if (quotationId) {
+          moduleType = 'quotations';
+          dataId = quotationId;
+        } else if (invoiceId) {
+          moduleType = 'invoices';
+          dataId = invoiceId;
+        } else if (receiptId) {
+          moduleType = 'receipts';
+          dataId = receiptId;
+        } else if (leadId) {
+          moduleType = 'leads';
+          dataId = leadId;
+        } else if (piId) {
+          moduleType = 'proforma_invoices';
+          dataId = piId;
+        } else if (customerId) {
+          moduleType = 'debtors';
+          dataId = customerId;
         }
-
-        const items = await storage.getQuotationItems(req.tenantId!, quotationId);
-        const companyProfile = await storage.getCompanyProfile(req.tenantId!);
-        const quotationSettings = await storage.getQuotationSettings(req.tenantId!);
-
-        // Format items table HTML
-        const itemsHtml = items.map((item, index) => {
-          const taxableAmount = parseFloat(item.rate) * parseFloat(item.quantity);
-          const taxAmount = (taxableAmount * parseFloat(item.taxPercent)) / 100;
-          return `
-            <tr>
-              <td>${index + 1}</td>
-              <td>${item.itemName}</td>
-              <td>-</td>
-              <td>${item.quantity} ${item.unit}</td>
-              <td>₹${parseFloat(item.rate).toFixed(2)}</td>
-              <td>₹${taxableAmount.toFixed(2)}</td>
-              <td>${item.taxPercent}%</td>
-              <td>₹${parseFloat(item.amount).toFixed(2)}</td>
-            </tr>
-          `;
-        }).join('');
-
-        // Calculate average tax percent
-        const avgTaxPercent = items.length > 0 
-          ? (items.reduce((sum, item) => sum + parseFloat(item.taxPercent || '0'), 0) / items.length).toFixed(2)
-          : '0';
-
-        // Convert amount to words (simple implementation)
-        const numberToWords = (num: number): string => {
-          const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-          const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-          const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-          
-          if (num === 0) return 'Zero';
-          if (num < 10) return ones[num];
-          if (num >= 10 && num < 20) return teens[num - 10];
-          if (num >= 20 && num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + ones[num % 10] : '');
-          if (num >= 100 && num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 !== 0 ? ' ' + numberToWords(num % 100) : '');
-          if (num >= 1000 && num < 100000) return numberToWords(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 !== 0 ? ' ' + numberToWords(num % 1000) : '');
-          if (num >= 100000) return numberToWords(Math.floor(num / 100000)) + ' Lakh' + (num % 100000 !== 0 ? ' ' + numberToWords(num % 100000) : '');
-          return '';
-        };
-
-        const amountInWords = 'INR ' + numberToWords(Math.floor(parseFloat(quotation.grandTotal))) + ' Only';
-
-        enrichedData = {
-          ...enrichedData,
-          // Quotation details
-          quotationNumber: quotation.quotationNumber,
-          quotationDate: new Date(quotation.quotationDate).toLocaleDateString('en-IN'),
-          validUntil: new Date(quotation.validUntil).toLocaleDateString('en-IN'),
-          leadName: quotation.leadName,
-          leadEmail: quotation.leadEmail,
-          leadMobile: quotation.leadMobile,
-          subtotal: parseFloat(quotation.subtotal).toFixed(2),
-          totalTax: parseFloat(quotation.totalTax).toFixed(2),
-          grandTotal: parseFloat(quotation.grandTotal).toFixed(2),
-          taxPercent: avgTaxPercent,
-          amountInWords,
-          items: itemsHtml,
-          termsAndConditions: quotationSettings?.termsAndConditions || 'No terms specified',
-          // Company details
-          companyLegalName: companyProfile?.legalName || '',
-          companyEntityType: companyProfile?.entityType || '',
-          companyAddress: companyProfile?.regAddressLine1 || '',
-          companyCity: companyProfile?.regCity || '',
-          companyState: companyProfile?.regState || '',
-          companyPincode: companyProfile?.regPincode || '',
-          companyPhone: companyProfile?.primaryContactMobile || '',
-          companyEmail: companyProfile?.primaryContactEmail || '',
-          companyGSTIN: companyProfile?.gstin || '',
-          // Banking details
-          bankName: companyProfile?.bankName || '',
-          branchName: companyProfile?.branchName || '',
-          accountNumber: companyProfile?.accountNumber || '',
-          ifscCode: companyProfile?.ifscCode || '',
-        };
       }
 
-      // Enrich data for invoice emails
-      if (invoiceId) {
-        const invoice = await storage.getInvoice(req.tenantId!, invoiceId);
-        if (!invoice) {
-          return res.status(404).json({ message: "Invoice not found" });
-        }
+      // Get baseUrl from request origin for absolute links
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
 
-        const companyProfile = await storage.getCompanyProfile(req.tenantId!);
-        const quotationSettings = await storage.getQuotationSettings(req.tenantId!);
+      // Get enriched variables using the new email-utils system
+      const enrichedData = await getEnrichedEmailVariables(
+        req.tenantId!,
+        moduleType || 'general',
+        baseUrl,
+        dataId,
+        templateData
+      );
 
-        // Convert amount to words (simple implementation)
-        const numberToWords = (num: number): string => {
-          const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-          const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-          const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-          
-          if (num === 0) return 'Zero';
-          if (num < 10) return ones[num];
-          if (num >= 10 && num < 20) return teens[num - 10];
-          if (num >= 20 && num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + ones[num % 10] : '');
-          if (num >= 100 && num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 !== 0 ? ' ' + numberToWords(num % 100) : '');
-          if (num >= 1000 && num < 100000) return numberToWords(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 !== 0 ? ' ' + numberToWords(num % 1000) : '');
-          if (num >= 100000) return numberToWords(Math.floor(num / 100000)) + ' Lakh' + (num % 100000 !== 0 ? ' ' + numberToWords(num % 100000) : '');
-          return '';
-        };
-
-        const amountInWords = 'INR ' + numberToWords(Math.floor(parseFloat(invoice.invoiceAmount))) + ' Only';
-
-        enrichedData = {
-          ...enrichedData,
-          // Invoice details
-          invoiceNumber: invoice.invoiceNumber,
-          invoiceDate: new Date(invoice.invoiceDate).toLocaleDateString('en-IN'),
-          customerName: invoice.customerName,
-          customerMobile: invoice.primaryMobile || 'N/A',
-          customerCity: invoice.city || 'N/A',
-          customerPincode: invoice.pincode || 'N/A',
-          invoiceAmount: parseFloat(invoice.invoiceAmount).toFixed(2),
-          gp: parseFloat(invoice.gp).toFixed(2),
-          status: invoice.status,
-          category: invoice.category || 'N/A',
-          paymentTerms: invoice.paymentTerms?.toString() || 'N/A',
-          creditLimit: invoice.creditLimit ? parseFloat(invoice.creditLimit).toFixed(2) : 'N/A',
-          salesPerson: invoice.salesPerson || 'N/A',
-          amountInWords,
-          termsAndConditions: quotationSettings?.termsAndConditions || 'No terms specified',
-          // Company details
-          companyLegalName: companyProfile?.legalName || '',
-          companyEntityType: companyProfile?.entityType || '',
-          companyAddress: companyProfile?.regAddressLine1 || '',
-          companyCity: companyProfile?.regCity || '',
-          companyState: companyProfile?.regState || '',
-          companyPincode: companyProfile?.regPincode || '',
-          companyPhone: companyProfile?.primaryContactMobile || '',
-          companyEmail: companyProfile?.primaryContactEmail || '',
-          companyGSTIN: companyProfile?.gstin || '',
-          // Banking details
-          bankName: companyProfile?.bankName || '',
-          branchName: companyProfile?.branchName || '',
-          accountNumber: companyProfile?.accountNumber || '',
-          ifscCode: companyProfile?.ifscCode || '',
-        };
-      }
-
-      // Enrich data for receipt emails
-      if (receiptId) {
-        const receipt = await storage.getReceipt(req.tenantId!, receiptId);
-        if (!receipt) {
-          return res.status(404).json({ message: "Receipt not found" });
-        }
-
-        const companyProfile = await storage.getCompanyProfile(req.tenantId!);
-
-        // Convert amount to words (simple implementation)
-        const numberToWords = (num: number): string => {
-          const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-          const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-          const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-          
-          if (num === 0) return 'Zero';
-          if (num < 10) return ones[num];
-          if (num >= 10 && num < 20) return teens[num - 10];
-          if (num >= 20 && num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? ' ' + ones[num % 10] : '');
-          if (num >= 100 && num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 !== 0 ? ' ' + numberToWords(num % 100) : '');
-          if (num >= 1000 && num < 100000) return numberToWords(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 !== 0 ? ' ' + numberToWords(num % 1000) : '');
-          if (num >= 100000) return numberToWords(Math.floor(num / 100000)) + ' Lakh' + (num % 100000 !== 0 ? ' ' + numberToWords(num % 100000) : '');
-          return '';
-        };
-
-        const amountInWords = 'INR ' + numberToWords(Math.floor(parseFloat(receipt.amount))) + ' Only';
-
-        enrichedData = {
-          ...enrichedData,
-          // Receipt details
-          voucherNumber: receipt.voucherNumber,
-          voucherType: receipt.voucherType || 'Receipt',
-          customerName: receipt.customerName,
-          receiptDate: new Date(receipt.date).toLocaleDateString('en-IN'),
-          amount: parseFloat(receipt.amount).toFixed(2),
-          remarks: receipt.remarks || 'No remarks',
-          amountInWords,
-          // Company details
-          companyLegalName: companyProfile?.legalName || '',
-          companyEntityType: companyProfile?.entityType || '',
-          companyAddress: companyProfile?.regAddressLine1 || '',
-          companyCity: companyProfile?.regCity || '',
-          companyState: companyProfile?.regState || '',
-          companyPincode: companyProfile?.regPincode || '',
-          companyPhone: companyProfile?.primaryContactMobile || '',
-          companyEmail: companyProfile?.primaryContactEmail || '',
-          companyGSTIN: companyProfile?.gstin || '',
-          // Banking details
-          bankName: companyProfile?.bankName || '',
-          branchName: companyProfile?.branchName || '',
-          accountNumber: companyProfile?.accountNumber || '',
-          ifscCode: companyProfile?.ifscCode || '',
-        };
-      }
-
+      // Render email subject and body
       let emailSubject: string;
       let emailBody: string;
 
       if (templateId) {
+        // Use template from database
         const template = await storage.getEmailTemplate(req.tenantId!, templateId);
         if (!template) {
           return res.status(404).json({ message: "Email template not found" });
@@ -7726,9 +7573,9 @@ ${profile?.legalName || 'Company'}`;
         emailSubject = renderTemplate(template.subject, enrichedData);
         emailBody = renderTemplate(template.body, enrichedData);
       } else if (subject && body) {
-        // Apply enriched data to subject and body if quotationId, invoiceId, or receiptId was provided
-        emailSubject = (quotationId || invoiceId || receiptId) ? renderTemplate(subject, enrichedData) : subject;
-        emailBody = (quotationId || invoiceId || receiptId) ? renderTemplate(body, enrichedData) : body;
+        // Use provided subject and body, apply variable substitution if data is available
+        emailSubject = dataId ? renderTemplate(subject, enrichedData) : subject;
+        emailBody = dataId ? renderTemplate(body, enrichedData) : body;
       } else {
         return res.status(400).json({ 
           message: "Either templateId with templateData or subject and body are required" 
