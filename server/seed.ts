@@ -172,9 +172,152 @@ export async function seedDatabase() {
     // Seed email templates
     await seedEmailTemplates();
 
+    // Create admin roles for all tenants and assign to users
+    await createAdminRolesForTenants();
+
     console.log("Seed data check complete!");
   } catch (error) {
     console.error("Error seeding database:", error);
+  }
+}
+
+// Create Admin roles for all active tenants that don't have roles
+async function createAdminRolesForTenants() {
+  console.log("\n🔐 Setting up Admin roles for tenants...");
+  
+  try {
+    const { db } = await import("./db");
+    const { tenants } = await import("../shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    // Get all active tenants
+    const allTenants = await db.select().from(tenants).where(eq(tenants.status, "active"));
+    
+    let rolesCreated = 0;
+    let usersAssigned = 0;
+    let skipped = 0;
+    
+    for (const tenant of allTenants) {
+      try {
+        // Check if tenant already has an Admin role
+        const existingRoles = await storage.getRoles(tenant.id);
+        const adminRole = existingRoles.find(r => r.name === "Admin");
+        
+        let adminRoleId: string;
+        
+        if (!adminRole) {
+          // Create comprehensive Admin role with ALL permissions
+          const allPermissions = [
+            // Dashboard & Analytics
+            "Business Overview - View",
+            "Customer Analytics - View",
+            // Sales & Quotations
+            "Leads - View", "Leads - Create", "Leads - Edit", "Leads - Delete", "Leads - Export", "Leads - Import", "Leads - Print",
+            "Quotations - View", "Quotations - Create", "Quotations - Edit", "Quotations - Delete", "Quotations - Export", "Quotations - Import", "Quotations - Print",
+            "Proforma Invoices - View", "Proforma Invoices - Create", "Proforma Invoices - Edit", "Proforma Invoices - Delete", "Proforma Invoices - Export", "Proforma Invoices - Import", "Proforma Invoices - Print",
+            // Financial
+            "Invoices - View", "Invoices - Create", "Invoices - Edit", "Invoices - Delete", "Invoices - Export", "Invoices - Import", "Invoices - Print",
+            "Receipts - View", "Receipts - Create", "Receipts - Edit", "Receipts - Delete", "Receipts - Export", "Receipts - Import", "Receipts - Print",
+            // Payment Tracking
+            "Debtors - View", "Debtors - Export", "Debtors - Print",
+            "Ledger - View", "Ledger - Export", "Ledger - Print",
+            "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
+            "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
+            // Action Center & Team
+            "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
+            "Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete",
+            // Risk & Recovery
+            "Risk Management - Client Risk Thermometer - View",
+            "Risk Management - Payment Risk Forecaster - View",
+            "Risk Management - Recovery Health Test - View",
+            // Credit Control
+            "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete", "Credit Control - Export", "Credit Control - Import", "Credit Control - Print",
+            // Masters
+            "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
+            "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
+            // Settings & Administration
+            "Company Profile - View", "Company Profile - Edit",
+            "Settings - View", "Settings - Edit",
+            "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", "User Management - Export", "User Management - Import", "User Management - Print",
+            "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
+            "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
+            "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
+            "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
+            // Integrations
+            "Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit",
+            // Reports
+            "Reports - View", "Reports - Export", "Reports - Print",
+          ];
+          
+          // All dashboard cards
+          const allDashboardCards = [
+            "Total Revenue", "Total Collections", "Total Outstanding", "Total Opening Balance",
+            "Upcoming Invoices", "Due Today", "In Grace", "Overdue", "Paid On Time", "Paid Late",
+            "Outstanding by Category", "Top 5 Customers by Revenue", "Top 5 Customers by Outstanding",
+            "Overdue Invoices", "Recent Invoices", "Recent Receipts", "Customer Analytics",
+            "Alpha", "Beta", "Gamma", "Delta",
+            "High Risk", "Medium Risk", "Low Risk",
+            "Pending Tasks", "Overdue Tasks", "Priority Customers", "Collection Progress",
+          ];
+          
+          const newRole = await storage.createRole(tenant.id, {
+            name: "Admin",
+            description: "Full access to all modules and features",
+            permissions: allPermissions,
+            canViewGP: true,
+            canSendEmail: true,
+            canSendWhatsApp: true,
+            canSendSMS: true,
+            canTriggerCall: true,
+            canSendReminder: true,
+            canShareDocuments: true,
+            allowedDashboardCards: allDashboardCards,
+          });
+          
+          adminRoleId = newRole.id;
+          rolesCreated++;
+          console.log(`  ✓ Created Admin role for ${tenant.businessName}`);
+        } else {
+          adminRoleId = adminRole.id;
+          skipped++;
+        }
+        
+        // Assign admin role to primary tenant user if they don't have one
+        const { users } = await import("../shared/schema");
+        const { and } = await import("drizzle-orm");
+        
+        const tenantUsers = await db
+          .select()
+          .from(users)
+          .where(and(
+            eq(users.tenantId, tenant.id),
+            eq(users.email, tenant.email)
+          ));
+        
+        for (const user of tenantUsers) {
+          if (!user.roleId) {
+            await db
+              .update(users)
+              .set({ roleId: adminRoleId })
+              .where(eq(users.id, user.id));
+            
+            usersAssigned++;
+            console.log(`  ✓ Assigned Admin role to ${user.email}`);
+          }
+        }
+        
+      } catch (error) {
+        console.error(`  ✗ Error processing ${tenant.businessName}:`, error);
+      }
+    }
+    
+    console.log(`\n✅ Admin role setup complete!`);
+    console.log(`  - Roles created: ${rolesCreated}`);
+    console.log(`  - Users assigned: ${usersAssigned}`);
+    console.log(`  - Tenants skipped (already have roles): ${skipped}`);
+    
+  } catch (error) {
+    console.error("Error creating admin roles:", error);
   }
 }
 

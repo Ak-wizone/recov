@@ -930,6 +930,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .returning();
 
         // Create Admin role for this tenant with ALL permissions
+        const allDashboardCards = [
+          "Total Revenue", "Total Collections", "Total Outstanding", "Total Opening Balance",
+          "Upcoming Invoices", "Due Today", "In Grace", "Overdue", "Paid On Time", "Paid Late",
+          "Outstanding by Category", "Top 5 Customers by Revenue", "Top 5 Customers by Outstanding",
+          "Overdue Invoices", "Recent Invoices", "Recent Receipts", "Customer Analytics",
+          "Alpha", "Beta", "Gamma", "Delta",
+          "High Risk", "Medium Risk", "Low Risk",
+          "Pending Tasks", "Overdue Tasks", "Priority Customers", "Collection Progress",
+        ];
+        
         const [adminRole] = await tx
           .insert(roles)
           .values({
@@ -937,39 +947,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
             name: "Admin",
             description: "Full system access with all permissions",
             permissions: [
-              // Business Overview
+              // Dashboard & Analytics
               "Business Overview - View",
-              // Customer Analytics
               "Customer Analytics - View",
-              // Leads
+              // Sales & Quotations
               "Leads - View", "Leads - Create", "Leads - Edit", "Leads - Delete", "Leads - Export", "Leads - Import", "Leads - Print",
-              // Quotations
               "Quotations - View", "Quotations - Create", "Quotations - Edit", "Quotations - Delete", "Quotations - Export", "Quotations - Import", "Quotations - Print",
-              // Proforma Invoices
               "Proforma Invoices - View", "Proforma Invoices - Create", "Proforma Invoices - Edit", "Proforma Invoices - Delete", "Proforma Invoices - Export", "Proforma Invoices - Import", "Proforma Invoices - Print",
-              // Invoices
+              // Financial
               "Invoices - View", "Invoices - Create", "Invoices - Edit", "Invoices - Delete", "Invoices - Export", "Invoices - Import", "Invoices - Print",
-              // Receipts
               "Receipts - View", "Receipts - Create", "Receipts - Edit", "Receipts - Delete", "Receipts - Export", "Receipts - Import", "Receipts - Print",
-              // Debtors
+              // Payment Tracking
               "Debtors - View", "Debtors - Export", "Debtors - Print",
-              // Masters - Customers
-              "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
-              // Masters - Items
-              "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
-              // Risk Management
+              "Ledger - View", "Ledger - Export", "Ledger - Print",
+              "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
+              "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
+              // Action Center & Team
+              "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
+              "Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete",
+              // Risk & Recovery
               "Risk Management - Client Risk Thermometer - View",
               "Risk Management - Payment Risk Forecaster - View",
               "Risk Management - Recovery Health Test - View",
-              // Company Settings
-              "Company Settings - View", "Company Settings - Edit",
-              // User Management
+              // Credit Control
+              "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete", "Credit Control - Export", "Credit Control - Import", "Credit Control - Print",
+              // Masters
+              "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
+              "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
+              // Settings & Administration
+              "Company Profile - View", "Company Profile - Edit",
+              "Settings - View", "Settings - Edit",
               "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", "User Management - Export", "User Management - Import", "User Management - Print",
-              // Roles Management
               "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
+              "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
+              "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
+              "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
+              // Integrations
+              "Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit",
               // Reports
               "Reports - View", "Reports - Export", "Reports - Print",
             ],
+            canViewGP: true,
+            canSendEmail: true,
+            canSendWhatsApp: true,
+            canSendSMS: true,
+            canTriggerCall: true,
+            canSendReminder: true,
+            canShareDocuments: true,
+            allowedDashboardCards: allDashboardCards,
           })
           .returning();
 
