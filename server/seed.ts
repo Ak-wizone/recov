@@ -1,5 +1,6 @@
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
+import { seedEmailTemplates } from "./seed-email-templates";
 
 export async function seedDatabase() {
   console.log("Checking for seed data...");
@@ -168,6 +169,9 @@ export async function seedDatabase() {
       console.log(`✓ Found ${existingPlans.length} existing subscription plans (no auto-sync to preserve custom changes)`);
     }
 
+    // Seed email templates
+    await seedEmailTemplates();
+
     console.log("Seed data check complete!");
   } catch (error) {
     console.error("Error seeding database:", error);
@@ -206,7 +210,7 @@ export async function createTenantUsers() {
         await storage.createUser(tenant.id, {
           name: tenant.businessName || "Admin User",
           email: tenant.email,
-          mobile: null,
+          mobile: undefined,
           status: "Active",
           password: defaultPassword
         });
@@ -214,7 +218,8 @@ export async function createTenantUsers() {
         console.log(`✓ Created user for ${tenant.businessName} (${tenant.email})`);
         created++;
       } catch (error) {
-        console.error(`✗ Failed to create user for ${tenant.email}:`, error.message);
+        const err = error as Error;
+        console.error(`✗ Failed to create user for ${tenant.email}:`, err.message);
       }
     }
     
