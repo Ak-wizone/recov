@@ -149,6 +149,30 @@ const MODULES_WITH_PERMISSIONS = [
     operations: ["View"]
   },
   {
+    module: "Credit Control",
+    operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
+  },
+  {
+    module: "Action Center",
+    operations: ["View", "Create", "Edit", "Delete"]
+  },
+  {
+    module: "Team Performance",
+    operations: ["View", "Create", "Edit", "Delete"]
+  },
+  {
+    module: "Ledger",
+    operations: ["View", "Export", "Print"]
+  },
+  {
+    module: "Company Profile",
+    operations: ["View", "Edit"]
+  },
+  {
+    module: "Settings",
+    operations: ["View", "Edit"]
+  },
+  {
     module: "Company Settings",
     operations: ["View", "Edit"]
   },
