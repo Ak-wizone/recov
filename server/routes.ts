@@ -7163,6 +7163,75 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Helper: Validate role permissions against tenant's subscription plan
+  async function validateRolePermissions(tenantId: string | null, permissions: string[]): Promise<{ valid: boolean; message?: string; invalidPermissions?: string[] }> {
+    // Platform admins have no restrictions
+    if (!tenantId) {
+      return { valid: true };
+    }
+
+    // Fetch tenant with subscription plan
+    const [tenant] = await db
+      .select()
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+
+    if (!tenant || !tenant.subscriptionPlanId) {
+      return { valid: true }; // No plan = no restrictions (for backward compatibility)
+    }
+
+    const [plan] = await db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.id, tenant.subscriptionPlanId))
+      .limit(1);
+
+    if (!plan || !plan.allowedModules) {
+      return { valid: true };
+    }
+
+    // Generate allowed permissions from subscription plan's allowed modules
+    const modulePermissionsMap: Record<string, string[]> = {
+      "Business Overview": ["Business Overview - View"],
+      "Customer Analytics": ["Customer Analytics - View"],
+      "Leads": ["Leads - View", "Leads - Create", "Leads - Edit", "Leads - Delete", "Leads - Export", "Leads - Import", "Leads - Print"],
+      "Quotations": ["Quotations - View", "Quotations - Create", "Quotations - Edit", "Quotations - Delete", "Quotations - Export", "Quotations - Import", "Quotations - Print"],
+      "Proforma Invoices": ["Proforma Invoices - View", "Proforma Invoices - Create", "Proforma Invoices - Edit", "Proforma Invoices - Delete", "Proforma Invoices - Export", "Proforma Invoices - Import", "Proforma Invoices - Print"],
+      "Invoices": ["Invoices - View", "Invoices - Create", "Invoices - Edit", "Invoices - Delete", "Invoices - Export", "Invoices - Import", "Invoices - Print"],
+      "Receipts": ["Receipts - View", "Receipts - Create", "Receipts - Edit", "Receipts - Delete", "Receipts - Export", "Receipts - Import", "Receipts - Print"],
+      "Debtors": ["Debtors - View", "Debtors - Export", "Debtors - Print"],
+      "Payment Tracking": ["Payment Tracking - View"],
+      "Action Center": ["Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete"],
+      "Team Performance": ["Team Performance - View"],
+      "Risk & Recovery": ["Risk Management - View", "Risk Management - Edit", "Credit Control - View", "Credit Control - Edit"],
+      "Credit Control": ["Credit Control - View", "Credit Control - Edit"],
+      "Masters": ["Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", "Masters - Items - Export", "Masters - Items - Import"],
+      "Settings": ["Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", "Roles Management - Export", "Roles Management - Import", "Roles Management - Print", "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", "User Management - Export", "User Management - Import", "Settings - View", "Settings - Edit"],
+      "Integrations": ["Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit"],
+      "Reports": ["Reports - View", "Reports - Export", "Reports - Print"],
+    };
+
+    const allowedPermissions = new Set<string>();
+    for (const module of plan.allowedModules) {
+      const perms = modulePermissionsMap[module] || [];
+      perms.forEach(p => allowedPermissions.add(p));
+    }
+
+    // Check if all requested permissions are allowed
+    const invalidPermissions = permissions.filter(p => !allowedPermissions.has(p));
+    
+    if (invalidPermissions.length > 0) {
+      return {
+        valid: false,
+        message: `Some permissions are not available in your ${plan.name} plan. Please upgrade to access these features.`,
+        invalidPermissions,
+      };
+    }
+
+    return { valid: true };
+  }
+
   // Get single role
   app.get("/api/roles/:id", async (req, res) => {
     try {
@@ -7184,6 +7253,15 @@ ${profile?.legalName || 'Company'}`;
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
+      // Validate permissions against subscription plan
+      const permValidation = await validateRolePermissions(req.tenantId!, validation.data.permissions || []);
+      if (!permValidation.valid) {
+        return res.status(403).json({ 
+          message: permValidation.message,
+          invalidPermissions: permValidation.invalidPermissions
+        });
+      }
+
       const role = await storage.createRole(req.tenantId!, validation.data);
       res.status(201).json(role);
     } catch (error: any) {
@@ -7197,6 +7275,17 @@ ${profile?.legalName || 'Company'}`;
       const validation = insertRoleSchema.partial().safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      // Validate permissions against subscription plan (if permissions are being updated)
+      if (validation.data.permissions) {
+        const permValidation = await validateRolePermissions(req.tenantId!, validation.data.permissions);
+        if (!permValidation.valid) {
+          return res.status(403).json({ 
+            message: permValidation.message,
+            invalidPermissions: permValidation.invalidPermissions
+          });
+        }
       }
 
       const role = await storage.updateRole(req.tenantId!, req.params.id, validation.data);
