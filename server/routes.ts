@@ -7322,6 +7322,43 @@ ${profile?.legalName || 'Company'}`;
   // Delete role
   app.delete("/api/roles/:id", requirePermission("Roles Management", "delete"), async (req, res) => {
     try {
+      // Get role to be deleted
+      const roleToDelete = await storage.getRole(req.tenantId!, req.params.id);
+      if (!roleToDelete) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+
+      // Check if this is an Admin role
+      if (roleToDelete.name.toLowerCase() === "admin") {
+        // Count total Admin roles
+        const allRoles = await storage.getRoles(req.tenantId!);
+        const adminRoles = allRoles.filter(r => r.name.toLowerCase() === "admin");
+        
+        if (adminRoles.length === 1) {
+          return res.status(403).json({ 
+            message: "Cannot delete the last Admin role. At least one Admin role must exist in the system."
+          });
+        }
+      }
+
+      // Check if role has users assigned
+      const usersWithRole = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(users)
+        .where(
+          and(
+            eq(users.roleId, req.params.id),
+            eq(users.tenantId, req.tenantId!)
+          )
+        );
+
+      const userCount = usersWithRole[0]?.count || 0;
+      if (userCount > 0) {
+        return res.status(400).json({ 
+          message: `Cannot delete role. ${userCount} user${userCount > 1 ? 's are' : ' is'} currently assigned to this role. Please reassign or remove the user${userCount > 1 ? 's' : ''} first.`
+        });
+      }
+
       const success = await storage.deleteRole(req.tenantId!, req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Role not found" });
@@ -7338,6 +7375,47 @@ ${profile?.legalName || 'Company'}`;
       const { ids } = req.body;
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ message: "Invalid IDs array" });
+      }
+
+      // Get all roles to check for Admin protection
+      const allRoles = await storage.getRoles(req.tenantId!);
+      const rolesToDelete = allRoles.filter(r => ids.includes(r.id));
+      const adminRoles = allRoles.filter(r => r.name.toLowerCase() === "admin");
+      const adminRolesToDelete = rolesToDelete.filter(r => r.name.toLowerCase() === "admin");
+
+      // Prevent deletion if it would remove all Admin roles
+      if (adminRolesToDelete.length > 0 && adminRolesToDelete.length >= adminRoles.length) {
+        return res.status(403).json({ 
+          message: "Cannot delete all Admin roles. At least one Admin role must exist in the system."
+        });
+      }
+
+      // Check if any roles have users assigned
+      const rolesWithUsers: string[] = [];
+      for (const roleId of ids) {
+        const usersWithRole = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(users)
+          .where(
+            and(
+              eq(users.roleId, roleId),
+              eq(users.tenantId, req.tenantId!)
+            )
+          );
+        
+        const userCount = usersWithRole[0]?.count || 0;
+        if (userCount > 0) {
+          const role = allRoles.find(r => r.id === roleId);
+          if (role) {
+            rolesWithUsers.push(`${role.name} (${userCount} user${userCount > 1 ? 's' : ''})`);
+          }
+        }
+      }
+
+      if (rolesWithUsers.length > 0) {
+        return res.status(400).json({ 
+          message: `Cannot delete roles with assigned users: ${rolesWithUsers.join(', ')}. Please reassign users first.`
+        });
       }
 
       const count = await storage.bulkDeleteRoles(req.tenantId!, ids);
