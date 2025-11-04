@@ -652,6 +652,15 @@ export default function Roles() {
       ),
     },
     {
+      id: "userCount",
+      header: "Users",
+      cell: ({ row }) => (
+        <div data-testid={`text-user-count-${row.index}`} className="text-center">
+          {(row.original as any).userCount || 0}
+        </div>
+      ),
+    },
+    {
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (

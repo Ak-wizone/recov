@@ -7077,7 +7077,28 @@ ${profile?.legalName || 'Company'}`;
   app.get("/api/roles", requirePermission("Roles Management", "view"), async (req, res) => {
     try {
       const roles = await storage.getRoles(req.tenantId!);
-      res.json(roles);
+      
+      // Fetch user counts for each role
+      const rolesWithCounts = await Promise.all(
+        roles.map(async (role) => {
+          const userCount = await db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(users)
+            .where(
+              and(
+                eq(users.roleId, role.id),
+                eq(users.tenantId, req.tenantId!)
+              )
+            );
+          
+          return {
+            ...role,
+            userCount: userCount[0]?.count || 0,
+          };
+        })
+      );
+      
+      res.json(rolesWithCounts);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
