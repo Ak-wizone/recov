@@ -103,7 +103,8 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   // Payment Tracking - Only exact matches
   "Debtors": "Debtors",
   "Ledger": "Ledger",
-  // Note: Credit Management, Payment Analytics have no dedicated permissions yet
+  "Credit Management": "Credit Management",
+  "Payment Analytics": "Payment Analytics",
   
   // Action Center - Parent permission covers all sub-items
   "Action Center": "Action Center",
