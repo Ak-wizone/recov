@@ -433,12 +433,12 @@ export default function Sidebar() {
       return true;
     }
 
-    if (!tenant || !tenant.subscriptionPlan) {
+    if (!tenant) {
       return false;
     }
 
-    // Strict subscription enforcement: ONLY use subscription plan's allowed modules
-    const allowedModules = tenant.subscriptionPlan.allowedModules || [];
+    // Priority: customModules (override) > allowedModules (from plan) > subscriptionPlan.allowedModules (fallback)
+    const allowedModules = tenant.customModules || tenant.allowedModules || tenant.subscriptionPlan?.allowedModules || [];
     
     return allowedModules.includes(moduleName);
   };
@@ -681,7 +681,7 @@ export default function Sidebar() {
                   className="overflow-hidden"
                 >
                   <div className="ml-8 mt-1 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
-                    {item.subItems.map((subItem, index) => (
+                    {item.subItems.filter((subItem) => !subItem.module || isModuleAccessible(subItem.module)).map((subItem, index) => (
                       <motion.div
                         key={subItem.name}
                         custom={index}
