@@ -7224,22 +7224,36 @@ ${profile?.legalName || 'Company'}`;
       "Debtors": ["Debtors - View", "Debtors - Export", "Debtors - Print"],
       "Payment Tracking": ["Payment Tracking - View"],
       "Action Center": ["Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete"],
-      "Team Performance": ["Team Performance - View"],
-      "Risk & Recovery": ["Risk Management - View", "Risk Management - Edit", "Credit Control - View", "Credit Control - Edit"],
-      "Credit Control": ["Credit Control - View", "Credit Control - Edit"],
-      "Masters": ["Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", "Masters - Items - Export", "Masters - Items - Import"],
+      "Team Performance": ["Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete"],
+      "Risk & Recovery": [
+        "Risk Management - Client Risk Thermometer - View",
+        "Risk Management - Payment Risk Forecaster - View",
+        "Risk Management - Recovery Health Test - View"
+      ],
+      "Credit Control": [
+        "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
+        "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete",
+        "Credit Control - Export", "Credit Control - Import", "Credit Control - Print"
+      ],
+      "Masters": [
+        "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", 
+        "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
+        "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", 
+        "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print"
+      ],
       "Settings": ["Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", "Roles Management - Export", "Roles Management - Import", "Roles Management - Print", "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", "User Management - Export", "User Management - Import", "Settings - View", "Settings - Edit"],
       "Integrations": ["Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit"],
       "Reports": ["Reports - View", "Reports - Export", "Reports - Print"],
     };
 
+    // Build complete allowed permissions set from subscription plan
     const allowedPermissions = new Set<string>();
     for (const module of plan.allowedModules) {
       const perms = modulePermissionsMap[module] || [];
       perms.forEach(p => allowedPermissions.add(p));
     }
 
-    // Check if all requested permissions are allowed
+    // Strict validation: only allow permissions explicitly in the allowedPermissions set
     const invalidPermissions = permissions.filter(p => !allowedPermissions.has(p));
     
     if (invalidPermissions.length > 0) {
@@ -7328,15 +7342,37 @@ ${profile?.legalName || 'Company'}`;
         return res.status(404).json({ message: "Role not found" });
       }
 
-      // Check if this is an Admin role
-      if (roleToDelete.name.toLowerCase() === "admin") {
-        // Count total Admin roles
+      // Check if this is an Admin role (by name or full Settings permissions)
+      const isAdminRole = roleToDelete.name.toLowerCase() === "admin" || (
+        roleToDelete.permissions.includes("Roles Management - View") &&
+        roleToDelete.permissions.includes("Roles Management - Create") &&
+        roleToDelete.permissions.includes("Roles Management - Edit") &&
+        roleToDelete.permissions.includes("Roles Management - Delete") &&
+        roleToDelete.permissions.includes("User Management - View") &&
+        roleToDelete.permissions.includes("User Management - Create") &&
+        roleToDelete.permissions.includes("User Management - Edit") &&
+        roleToDelete.permissions.includes("User Management - Delete")
+      );
+
+      if (isAdminRole) {
+        // Count total Admin-level roles
         const allRoles = await storage.getRoles(req.tenantId!);
-        const adminRoles = allRoles.filter(r => r.name.toLowerCase() === "admin");
+        const adminLevelRoles = allRoles.filter(r => 
+          r.name.toLowerCase() === "admin" || (
+            r.permissions.includes("Roles Management - View") &&
+            r.permissions.includes("Roles Management - Create") &&
+            r.permissions.includes("Roles Management - Edit") &&
+            r.permissions.includes("Roles Management - Delete") &&
+            r.permissions.includes("User Management - View") &&
+            r.permissions.includes("User Management - Create") &&
+            r.permissions.includes("User Management - Edit") &&
+            r.permissions.includes("User Management - Delete")
+          )
+        );
         
-        if (adminRoles.length === 1) {
+        if (adminLevelRoles.length === 1) {
           return res.status(403).json({ 
-            message: "Cannot delete the last Admin role. At least one Admin role must exist in the system."
+            message: "Cannot delete the last Admin role. At least one Admin role must exist to manage users and roles."
           });
         }
       }
@@ -7380,13 +7416,28 @@ ${profile?.legalName || 'Company'}`;
       // Get all roles to check for Admin protection
       const allRoles = await storage.getRoles(req.tenantId!);
       const rolesToDelete = allRoles.filter(r => ids.includes(r.id));
-      const adminRoles = allRoles.filter(r => r.name.toLowerCase() === "admin");
-      const adminRolesToDelete = rolesToDelete.filter(r => r.name.toLowerCase() === "admin");
+      
+      // Helper to check if a role has admin-level permissions
+      const hasAdminPermissions = (role: any) => {
+        return role.name.toLowerCase() === "admin" || (
+          role.permissions.includes("Roles Management - View") &&
+          role.permissions.includes("Roles Management - Create") &&
+          role.permissions.includes("Roles Management - Edit") &&
+          role.permissions.includes("Roles Management - Delete") &&
+          role.permissions.includes("User Management - View") &&
+          role.permissions.includes("User Management - Create") &&
+          role.permissions.includes("User Management - Edit") &&
+          role.permissions.includes("User Management - Delete")
+        );
+      };
 
-      // Prevent deletion if it would remove all Admin roles
-      if (adminRolesToDelete.length > 0 && adminRolesToDelete.length >= adminRoles.length) {
+      const adminLevelRoles = allRoles.filter(hasAdminPermissions);
+      const adminRolesToDelete = rolesToDelete.filter(hasAdminPermissions);
+
+      // Prevent deletion if it would remove all Admin-level roles
+      if (adminRolesToDelete.length > 0 && adminRolesToDelete.length >= adminLevelRoles.length) {
         return res.status(403).json({ 
-          message: "Cannot delete all Admin roles. At least one Admin role must exist in the system."
+          message: "Cannot delete all Admin roles. At least one Admin role must exist to manage users and roles."
         });
       }
 
