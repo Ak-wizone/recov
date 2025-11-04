@@ -123,11 +123,12 @@ export const registrationRequests = pgTable("registration_requests", {
   existingAccountingSoftware: text("existing_accounting_software"),
   paymentMethod: text("payment_method").notNull(),
   paymentReceiptUrl: text("payment_receipt_url"),
-  paymentStatus: text("payment_status").default("pending"),
+  paymentStatus: text("payment_status").default("pending"), // pending, success, failed
   paymentId: text("payment_id"),
   transactionId: text("transaction_id"),
   paymentAmount: decimal("payment_amount", { precision: 15, scale: 2 }),
-  status: text("status").notNull().default("pending"),
+  paymentTimestamp: timestamp("payment_timestamp"),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
   tenantId: varchar("tenant_id").references(() => tenants.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   reviewedAt: timestamp("reviewed_at"),

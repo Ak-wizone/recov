@@ -173,12 +173,7 @@ async function sendPaymentReceipt(
       };
     }
 
-    // Trial info HTML
-    const trialInfo = hasTrial 
-      ? '<p style="margin: 10px 0; color: #28a745; font-weight: bold;">🎉 Includes 7 Days Free Trial</p>'
-      : '';
-
-    // Render the email template
+    // Render the email template (no trial period)
     const emailBody = renderTemplate(PAYMENT_RECEIPT_EMAIL_TEMPLATE, {
       businessName,
       email,
@@ -187,7 +182,7 @@ async function sendPaymentReceipt(
       planName,
       billingCycle,
       amount: parseFloat(amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-      trialInfo,
+      trialInfo: '', // No trial period
     });
 
     // Send the email
@@ -316,13 +311,6 @@ async function autoProvisionTenant(requestId: string, baseUrl: string): Promise<
     const emailPrefix = request.email.split('@')[0];
     const defaultPassword = `${emailPrefix}@#$405`;
     const hashedPassword = await bcrypt.hash(defaultPassword, 10);
-
-    // Calculate trial end date for Starter plan (7 days)
-    let trialEndDate = null;
-    if (plan.name === "Starter") {
-      trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 7);
-    }
 
     // Use transaction to ensure atomicity
     const result = await db.transaction(async (tx) => {
@@ -520,6 +508,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Failed to fetch active subscription plans:", error);
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Email validation endpoint - check if email is already registered
+  app.post("/api/validate-email", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check in tenants table
+      const existingTenant = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.email, email))
+        .limit(1);
+
+      if (existingTenant.length > 0) {
+        return res.status(200).json({ 
+          available: false, 
+          message: "This email is already registered. Please use a different email or contact support." 
+        });
+      }
+
+      // Check in users table
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+
+      if (existingUser.length > 0) {
+        return res.status(200).json({ 
+          available: false, 
+          message: "This email is already registered. Please use a different email or contact support." 
+        });
+      }
+
+      // Check in pending registration requests
+      const pendingRequest = await db
+        .select()
+        .from(registrationRequests)
+        .where(eq(registrationRequests.email, email))
+        .limit(1);
+
+      if (pendingRequest.length > 0) {
+        return res.status(200).json({ 
+          available: false, 
+          message: "A registration request with this email already exists. Please check your email or contact support." 
+        });
+      }
+
+      res.status(200).json({ available: true, message: "Email is available" });
+    } catch (error: any) {
+      console.error("Email validation error:", error);
+      res.status(500).json({ message: "Failed to validate email" });
     }
   });
 
@@ -744,9 +790,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db
         .update(registrationRequests)
         .set({
-          paymentStatus: payuData.status === 'success' ? 'completed' : 'failed',
+          paymentStatus: payuData.status === 'success' ? 'success' : 'failed',
           transactionId: payuData.mihpayid || payuData.txnid,
           paymentAmount: payuData.amount,
+          paymentTimestamp: new Date(),
         })
         .where(eq(registrationRequests.id, registrationRequestId));
 
