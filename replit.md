@@ -33,7 +33,7 @@ The application utilizes `shadcn/ui` (Radix UI) and Tailwind CSS for a responsiv
 *   **Tenant Credential Emails**: Automated sending of login credentials to newly approved tenants.
 *   **Customer Ledger Module**: Provides a complete transaction history view with debits and credits, running balance, pastel color-coded voucher types, PDF generation, and sharing capabilities.
 *   **Daily Engagement Features (Action Center & Team Performance)**: Includes a daily dashboard, task manager, call queue, universal activity log, leaderboard, daily targets, and a real-time notification center with role-based access control.
-*   **Subscription Plans Management (Multi-Tenant SaaS)**: Comprehensive subscription-based multi-tenant system with module-level access control. Features predefined and customizable plans, a plan management UI, tenant plan assignment, a module propagation system, custom module overrides, dynamic sidebar filtering, and real-time analytics.
+*   **Subscription Plans Management (Multi-Tenant SaaS)**: Comprehensive subscription-based multi-tenant system with module-level access control. Features predefined and customizable plans (Starter/Professional/Enterprise), a plan management UI, tenant plan assignment, a module propagation system, strict subscription-based sidebar filtering (tenants see ONLY their plan's modules), subscription-specific permission generation (eliminates unnecessary permissions), automatic migration for existing tenants, and real-time analytics.
 
 # External Dependencies
 
