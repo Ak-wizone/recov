@@ -1167,6 +1167,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   mobile: text("mobile"),
   roleId: varchar("role_id").references(() => roles.id, { onDelete: "set null" }),
+  isAdmin: boolean("is_admin").notNull().default(false), // Primary tenant admin with locked full permissions
   status: text("status").notNull().default("Active"), // Active, Inactive
   password: text("password"),
   lastLoginAt: timestamp("last_login_at"), // Track user activity for platform statistics

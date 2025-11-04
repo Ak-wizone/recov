@@ -407,7 +407,7 @@ async function autoProvisionTenant(requestId: string, baseUrl: string): Promise<
         })
         .returning();
 
-      // Create first admin user
+      // Create first admin user with locked permissions
       const [user] = await tx
         .insert(users)
         .values({
@@ -417,6 +417,7 @@ async function autoProvisionTenant(requestId: string, baseUrl: string): Promise<
           password: hashedPassword,
           roleId: adminRole.id,
           status: "Active",
+          isAdmin: true, // Mark as admin with locked full permissions
         })
         .returning();
 
@@ -1073,7 +1074,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .returning();
 
-        // Create first admin user
+        // Create first admin user with locked permissions
         const [user] = await tx
           .insert(users)
           .values({
@@ -1083,6 +1084,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             password: hashedPassword,
             roleId: adminRole.id,
             status: "Active",
+            isAdmin: true, // Mark as admin with locked full permissions
           })
           .returning();
 
@@ -2360,7 +2362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Account is inactive" });
       }
 
-      // Fetch role data if user has a role
+      // Initialize permissions
       let permissions: string[] = [];
       let canViewGP = true;
       let allowedDashboardCards: string[] = [];
@@ -2372,20 +2374,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         canReminder: true,
         canShare: true,
       };
+      let isAdminLocked = false; // Flag to indicate locked admin permissions
 
-      if (user.roleId && user.tenantId) {
-        const role = await storage.getRole(user.tenantId, user.roleId);
-        if (role) {
-          permissions = role.permissions || [];
-          canViewGP = role.canViewGP !== undefined ? role.canViewGP : true;
-          allowedDashboardCards = role.allowedDashboardCards || [];
-          actionPermissions = role.actionPermissions || actionPermissions;
-        }
-      }
-
-      // FALLBACK: If user has no role but has a tenantId, grant full permissions (tenant admin safety net)
-      // This ensures existing tenant admins and new users without roles can still manage everything
-      if (!user.roleId && user.tenantId) {
+      // ADMIN USERS: Always have full subscription-based permissions (locked/required)
+      // Admin users cannot have their permissions modified or reduced
+      if (user.isAdmin && user.tenantId) {
+        isAdminLocked = true;
         permissions = [
           // Business Overview
           "Business Overview - View",
@@ -2422,6 +2416,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
       }
 
+      // NON-ADMIN USERS: Use role-based permissions
+      if (!isAdminLocked && user.roleId && user.tenantId) {
+        const role = await storage.getRole(user.tenantId, user.roleId);
+        if (role) {
+          permissions = role.permissions || [];
+          canViewGP = role.canViewGP !== undefined ? role.canViewGP : true;
+          allowedDashboardCards = role.allowedDashboardCards || [];
+          actionPermissions = role.actionPermissions || actionPermissions;
+        }
+      }
+
       // Return user without password, including all role data
       const { password: _, ...userWithoutPassword } = user;
       res.json({
@@ -2430,6 +2435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         canViewGP,
         allowedDashboardCards,
         actionPermissions,
+        isAdminLocked, // Indicates if this user has locked admin permissions
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -7365,6 +7371,19 @@ ${profile?.legalName || 'Company'}`;
       const validation = insertUserSchema.partial().safeParse(req.body);
       if (!validation.success) {
         return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      // Check if user is admin before allowing role changes
+      const existingUser = await storage.getUser(req.tenantId!, req.params.id);
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Prevent role assignment/changes for admin users
+      if (existingUser.isAdmin && validation.data.roleId !== undefined) {
+        return res.status(403).json({ 
+          message: "Cannot modify role for primary tenant admin. Admin users have locked full access as per subscription plan. Create a separate user account for limited access." 
+        });
       }
 
       const user = await storage.updateUser(req.tenantId!, req.params.id, validation.data);

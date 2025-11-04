@@ -353,7 +353,18 @@ function Users() {
     {
       accessorKey: "roleName",
       header: "Role",
-      cell: ({ row }) => <div data-testid={`text-role-${row.index}`}>{row.original.roleName || "-"}</div>,
+      cell: ({ row }) => {
+        if (row.original.isAdmin) {
+          return (
+            <div className="flex items-center gap-2" data-testid={`text-role-${row.index}`}>
+              <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                Admin - Full Access (Locked)
+              </span>
+            </div>
+          );
+        }
+        return <div data-testid={`text-role-${row.index}`}>{row.original.roleName || "-"}</div>;
+      },
     },
     {
       accessorKey: "status",
@@ -415,8 +426,10 @@ function Users() {
   });
 
   const onSubmit = (data: UserFormValues) => {
-    // Validate roleId is not empty
-    if (!data.roleId || data.roleId.trim() === "") {
+    // Skip roleId validation for admin users (they have locked roles)
+    const isAdminUser = isEditDialogOpen && selectedUser?.isAdmin;
+    
+    if (!isAdminUser && (!data.roleId || data.roleId.trim() === "")) {
       toast({
         title: "Error",
         description: "Please select a role for the user",
@@ -431,6 +444,12 @@ function Users() {
       if (!updateData.password || updateData.password.trim() === "") {
         delete updateData.password;
       }
+      
+      // Remove roleId from update payload for admin users (backend blocks role changes)
+      if (selectedUser.isAdmin) {
+        delete updateData.roleId;
+      }
+      
       updateMutation.mutate({ id: selectedUser.id, data: updateData });
     } else {
       // For create, password is required
@@ -668,20 +687,35 @@ function Users() {
 
             <div>
               <Label htmlFor="roleId">Role *</Label>
-              <Select value={form.watch("roleId") || undefined} onValueChange={(value) => form.setValue("roleId", value)}>
-                <SelectTrigger data-testid="select-role">
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.id} data-testid={`select-option-${role.name.toLowerCase().replace(/\s+/g, "-")}`}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {form.formState.errors.roleId && (
-                <p className="text-sm text-red-500">{form.formState.errors.roleId.message}</p>
+              {isEditDialogOpen && selectedUser?.isAdmin ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-3 py-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-md">
+                    <span className="text-sm font-medium text-purple-900 dark:text-purple-200">
+                      Admin - Full Access (Locked as per subscription)
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Admin users always have full permissions. Create a separate user account for limited access.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <Select value={form.watch("roleId") || undefined} onValueChange={(value) => form.setValue("roleId", value)}>
+                    <SelectTrigger data-testid="select-role">
+                      <SelectValue placeholder="Select a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role.id} value={role.id} data-testid={`select-option-${role.name.toLowerCase().replace(/\s+/g, "-")}`}>
+                          {role.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.roleId && (
+                    <p className="text-sm text-red-500">{form.formState.errors.roleId.message}</p>
+                  )}
+                </>
               )}
             </div>
 
