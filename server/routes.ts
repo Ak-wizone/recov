@@ -8,6 +8,7 @@ import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insert
 import { createTransporter, sendEmail, testEmailConnection } from "./email-service";
 import { getEnrichedEmailVariables, renderTemplate } from "./email-utils";
 import { sendWhatsAppMessage } from "./whatsapp-service";
+import { seedEmailTemplates } from "./seed-email-templates";
 import { whatsappWebService } from "./whatsapp-web-service";
 import { ringgService } from "./ringg-service";
 import { sendSecureExcelFile } from "./excel-utils";
@@ -7534,6 +7535,18 @@ ${profile?.legalName || 'Company'}`;
       }
       res.json({ message: "Email template deleted successfully" });
     } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Seed default email templates for current tenant
+  app.post("/api/email-templates/seed-defaults", async (req, res) => {
+    try {
+      // Call the seed function which will handle the current tenant
+      await seedEmailTemplates();
+      res.json({ message: "Default email templates loaded successfully" });
+    } catch (error: any) {
+      console.error("Error seeding email templates:", error);
       res.status(500).json({ message: error.message });
     }
   });
