@@ -1,6 +1,5 @@
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
-import { seedEmailTemplates } from "./seed-email-templates";
 
 export async function seedDatabase() {
   console.log("Checking for seed data...");
@@ -168,9 +167,6 @@ export async function seedDatabase() {
     } else {
       console.log(`✓ Found ${existingPlans.length} existing subscription plans (no auto-sync to preserve custom changes)`);
     }
-
-    // Seed email templates
-    await seedEmailTemplates();
 
     // Create admin roles for all tenants and assign to users
     await createAdminRolesForTenants();
