@@ -12,6 +12,8 @@ import {
   flexRender,
   type ColumnDef,
   type ColumnFiltersState,
+  type SortingState,
+  type ColumnVisibility,
 } from "@tanstack/react-table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,10 +79,13 @@ import {
   Package,
   Download,
   Users,
+  Settings2,
+  Search,
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import type { SubscriptionPlan } from "@shared/schema";
+import { ColumnChooser } from "@/components/ui/column-chooser";
 
 interface TenantStatistics {
   customers: number;
@@ -111,7 +116,15 @@ interface TenantRow {
   id: string;
   businessName: string;
   email: string;
+  mobileNumber?: string | null;
+  businessAddress: string;
   city: string;
+  state?: string | null;
+  pincode: string;
+  panNumber?: string | null;
+  gstNumber?: string | null;
+  industryType?: string | null;
+  existingAccountingSoftware?: string | null;
   planType: string;
   subscriptionPlanId?: string | null;
   status: "pending" | "approved" | "rejected" | "active" | "inactive";
@@ -125,7 +138,10 @@ export default function TenantRegistrations() {
   const { toast } = useToast();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
+  const [columnChooserOpen, setColumnChooserOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tenantToDelete, setTenantToDelete] = useState<TenantRow | null>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -142,6 +158,23 @@ export default function TenantRegistrations() {
   const [selectedTenantIds, setSelectedTenantIds] = useState<Set<string>>(new Set());
   const [bulkPlanChangeDialogOpen, setBulkPlanChangeDialogOpen] = useState(false);
   const [selectedBulkPlan, setSelectedBulkPlan] = useState<string>("");
+
+  // Load column visibility and page size from localStorage
+  useEffect(() => {
+    const savedVisibility = localStorage.getItem("platform_admin_visible_columns");
+    if (savedVisibility) {
+      try {
+        setColumnVisibility(JSON.parse(savedVisibility));
+      } catch (e) {
+        console.error("Failed to parse saved column visibility", e);
+      }
+    }
+  }, []);
+
+  // Save column visibility to localStorage
+  useEffect(() => {
+    localStorage.setItem("platform_admin_visible_columns", JSON.stringify(columnVisibility));
+  }, [columnVisibility]);
 
   // Redirect tenant users to dashboard - only platform admins can access this page
   useEffect(() => {
@@ -542,7 +575,15 @@ export default function TenantRegistrations() {
       id: r.id,
       businessName: r.businessName,
       email: r.email,
+      mobileNumber: r.mobileNumber,
+      businessAddress: r.businessAddress,
       city: r.city,
+      state: r.state,
+      pincode: r.pincode,
+      panNumber: r.panNumber,
+      gstNumber: r.gstNumber,
+      industryType: r.industryType,
+      existingAccountingSoftware: r.existingAccountingSoftware,
       planType: r.planType,
       subscriptionPlanId: null,
       status: r.status,
@@ -554,7 +595,15 @@ export default function TenantRegistrations() {
       id: t.id,
       businessName: t.businessName,
       email: t.email,
+      mobileNumber: null,
+      businessAddress: t.businessAddress,
       city: t.city,
+      state: t.state,
+      pincode: t.pincode,
+      panNumber: t.panNumber,
+      gstNumber: t.gstNumber,
+      industryType: t.industryType,
+      existingAccountingSoftware: t.existingAccountingSoftware,
       planType: t.planType,
       subscriptionPlanId: t.subscriptionPlanId,
       status: (t.isActive ? 'active' : 'inactive') as "active" | "inactive",
@@ -568,15 +617,15 @@ export default function TenantRegistrations() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+        return <Badge variant="outline" className="bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
       case "approved":
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
+        return <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
       case "rejected":
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+        return <Badge variant="outline" className="bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
       case "active":
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
+        return <Badge variant="outline" className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>;
       case "inactive":
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200"><XCircle className="w-3 h-3 mr-1" />Inactive</Badge>;
+        return <Badge variant="outline" className="bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"><XCircle className="w-3 h-3 mr-1" />Inactive</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -593,12 +642,12 @@ export default function TenantRegistrations() {
 
   const getSubscriptionPlanBadge = (subscriptionPlanId: string | null | undefined) => {
     if (!subscriptionPlanId) {
-      return <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200" data-testid="badge-no-plan">No Plan</Badge>;
+      return <Badge variant="outline" className="bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700" data-testid="badge-no-plan">No Plan</Badge>;
     }
 
     const plan = subscriptionPlans.find(p => p.id === subscriptionPlanId);
     if (!plan) {
-      return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200" data-testid="badge-custom-plan">Custom</Badge>;
+      return <Badge variant="outline" className="bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800" data-testid="badge-custom-plan">Custom</Badge>;
     }
 
     return (
@@ -712,10 +761,68 @@ export default function TenantRegistrations() {
       ),
     },
     {
+      accessorKey: "mobileNumber",
+      header: "Mobile Number",
+      cell: ({ row }) => (
+        <div className="text-sm">{row.original.mobileNumber || "—"}</div>
+      ),
+    },
+    {
+      accessorKey: "businessAddress",
+      header: "Business Address",
+      cell: ({ row }) => (
+        <div className="text-sm max-w-[200px] truncate" title={row.original.businessAddress}>
+          {row.original.businessAddress}
+        </div>
+      ),
+    },
+    {
       accessorKey: "city",
       header: "City",
       cell: ({ row }) => (
         <div className="text-sm">{row.original.city}</div>
+      ),
+    },
+    {
+      accessorKey: "state",
+      header: "State",
+      cell: ({ row }) => (
+        <div className="text-sm">{row.original.state || "—"}</div>
+      ),
+    },
+    {
+      accessorKey: "pincode",
+      header: "Pincode",
+      cell: ({ row }) => (
+        <div className="text-sm">{row.original.pincode}</div>
+      ),
+    },
+    {
+      accessorKey: "panNumber",
+      header: "PAN Number",
+      cell: ({ row }) => (
+        <div className="text-sm font-mono">{row.original.panNumber || "—"}</div>
+      ),
+    },
+    {
+      accessorKey: "gstNumber",
+      header: "GST Number",
+      cell: ({ row }) => (
+        <div className="text-sm font-mono">{row.original.gstNumber || "—"}</div>
+      ),
+    },
+    {
+      accessorKey: "industryType",
+      header: "Industry Type",
+      cell: ({ row }) => (
+        <div className="text-sm">{row.original.industryType || "—"}</div>
+      ),
+    },
+    {
+      accessorKey: "existingAccountingSoftware",
+      header: "Existing Software",
+      cell: ({ row }) => (
+        <div className="text-sm">{row.original.existingAccountingSoftware || "—"}</div>
       ),
     },
     {
@@ -970,6 +1077,12 @@ export default function TenantRegistrations() {
   const neverUsedCount = approvedTenants.filter(t => getActivityStatus(t) === "never-used").length;
   const pendingCount = data.filter(d => d.status === "pending").length;
 
+  // Load page size from localStorage
+  const initialPageSize = useMemo(() => {
+    const saved = localStorage.getItem("platform_admin_page_size");
+    return saved ? parseInt(saved, 10) : 25;
+  }, []);
+
   const table = useReactTable({
     data: filteredData,
     columns,
@@ -977,11 +1090,27 @@ export default function TenantRegistrations() {
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    onColumnFiltersChange: setColumnFilters,
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
+    onColumnVisibilityChange: setColumnVisibility,
+    globalFilterFn: "includesString",
+    initialState: {
+      pagination: {
+        pageSize: initialPageSize,
+      },
+    },
     state: {
-      columnFilters,
+      sorting,
+      globalFilter,
+      columnVisibility,
     },
   });
+
+  // Save page size to localStorage whenever it changes
+  useEffect(() => {
+    const pageSize = table.getState().pagination.pageSize;
+    localStorage.setItem("platform_admin_page_size", String(pageSize));
+  }, [table.getState().pagination.pageSize]);
 
   return (
     <div className="p-4 md:p-8 space-y-4 md:space-y-6">
@@ -1081,21 +1210,21 @@ export default function TenantRegistrations() {
       {/* Tenant Engagement Analytics - Clickable Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
         <Card 
-          className={`cursor-pointer transition-all hover:shadow-lg ${activityFilter === "all" ? "ring-2 ring-primary" : ""}`}
+          className={`cursor-pointer transition-all hover:shadow-lg dark:bg-gray-900 dark:border-gray-700 ${activityFilter === "all" ? "ring-2 ring-primary" : ""}`}
           onClick={() => setActivityFilter("all")}
           data-testid="card-all-tenants"
         >
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">All Tenants</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground dark:text-gray-400">All Tenants</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-xl md:text-2xl font-bold">{approvedTenants.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Total registered</p>
+            <div className="text-xl md:text-2xl font-bold dark:text-gray-200">{approvedTenants.length}</div>
+            <p className="text-xs text-muted-foreground dark:text-gray-400 mt-1">Total registered</p>
           </CardContent>
         </Card>
 
         <Card 
-          className={`cursor-pointer transition-all hover:shadow-lg ${activityFilter === "active" ? "ring-2 ring-green-500" : ""}`}
+          className={`cursor-pointer transition-all hover:shadow-lg dark:bg-gray-900 dark:border-gray-700 ${activityFilter === "active" ? "ring-2 ring-green-500" : ""}`}
           onClick={() => setActivityFilter("active")}
           data-testid="card-active-tenants"
         >
@@ -1112,7 +1241,7 @@ export default function TenantRegistrations() {
         </Card>
 
         <Card 
-          className={`cursor-pointer transition-all hover:shadow-lg ${activityFilter === "at-risk" ? "ring-2 ring-yellow-500" : ""}`}
+          className={`cursor-pointer transition-all hover:shadow-lg dark:bg-gray-900 dark:border-gray-700 ${activityFilter === "at-risk" ? "ring-2 ring-yellow-500" : ""}`}
           onClick={() => setActivityFilter("at-risk")}
           data-testid="card-at-risk-tenants"
         >
@@ -1129,7 +1258,7 @@ export default function TenantRegistrations() {
         </Card>
 
         <Card 
-          className={`cursor-pointer transition-all hover:shadow-lg ${activityFilter === "inactive" ? "ring-2 ring-orange-500" : ""}`}
+          className={`cursor-pointer transition-all hover:shadow-lg dark:bg-gray-900 dark:border-gray-700 ${activityFilter === "inactive" ? "ring-2 ring-orange-500" : ""}`}
           onClick={() => setActivityFilter("inactive")}
           data-testid="card-inactive-tenants"
         >
@@ -1146,7 +1275,7 @@ export default function TenantRegistrations() {
         </Card>
 
         <Card 
-          className={`cursor-pointer transition-all hover:shadow-lg ${activityFilter === "never-used" ? "ring-2 ring-red-500" : ""}`}
+          className={`cursor-pointer transition-all hover:shadow-lg dark:bg-gray-900 dark:border-gray-700 ${activityFilter === "never-used" ? "ring-2 ring-red-500" : ""}`}
           onClick={() => setActivityFilter("never-used")}
           data-testid="card-never-used-tenants"
         >
@@ -1183,43 +1312,36 @@ export default function TenantRegistrations() {
         </div>
       )}
 
-      <Card>
+      <Card className="dark:bg-gray-900 dark:border-gray-700">
         <CardHeader>
-          <CardTitle>All Tenants</CardTitle>
-          <CardDescription>
+          <CardTitle className="dark:text-gray-200">All Tenants</CardTitle>
+          <CardDescription className="dark:text-gray-400">
             Registration requests and active tenants
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-              <Input
-                placeholder="Filter by business name..."
-                value={(table.getColumn("businessName")?.getFilterValue() as string) ?? ""}
-                onChange={(event) =>
-                  table.getColumn("businessName")?.setFilterValue(event.target.value)
-                }
-                className="w-full md:max-w-sm"
-                data-testid="input-filter-name"
-              />
-              <Input
-                placeholder="Filter by email..."
-                value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
-                onChange={(event) =>
-                  table.getColumn("email")?.setFilterValue(event.target.value)
-                }
-                className="w-full md:max-w-sm"
-                data-testid="input-filter-email"
-              />
-              <Input
-                placeholder="Filter by city..."
-                value={(table.getColumn("city")?.getFilterValue() as string) ?? ""}
-                onChange={(event) =>
-                  table.getColumn("city")?.setFilterValue(event.target.value)
-                }
-                className="w-full md:max-w-sm"
-                data-testid="input-filter-city"
-              />
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search across all columns (business name, email, city, state, PAN, GST, etc.)..."
+                  value={globalFilter ?? ""}
+                  onChange={(event) => setGlobalFilter(event.target.value)}
+                  className="pl-10 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200"
+                  data-testid="input-global-search"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => setColumnChooserOpen(true)}
+                className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
+                data-testid="button-column-chooser"
+              >
+                <Settings2 className="h-4 w-4 mr-2" />
+                Columns
+              </Button>
             </div>
 
             {/* Mobile Card View */}
@@ -1229,10 +1351,11 @@ export default function TenantRegistrations() {
                   const tenant = row.original;
                   return (
                     <Card 
-                      key={tenant.id} 
+                      key={tenant.id}
+                      className="dark:bg-gray-800 dark:border-gray-700"
                       data-testid={`card-tenant-${tenant.id}`}
                     >
-                      <CardContent className="p-4">
+                      <CardContent className="p-4 dark:text-gray-200">
                         <div className="space-y-3">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -1398,7 +1521,7 @@ export default function TenantRegistrations() {
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block rounded-md border">
+            <div className="hidden md:block rounded-md border dark:border-gray-700">
               <Table>
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
@@ -1450,16 +1573,16 @@ export default function TenantRegistrations() {
 
             <div className="flex flex-col md:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-4">
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground dark:text-gray-400">
                   {table.getFilteredRowModel().rows.length} total records
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">Show</span>
+                  <span className="text-sm text-muted-foreground dark:text-gray-400">Show</span>
                   <Select
                     value={String(table.getState().pagination.pageSize)}
                     onValueChange={(value) => table.setPageSize(Number(value))}
                   >
-                    <SelectTrigger className="w-20 h-8" data-testid="select-page-size">
+                    <SelectTrigger className="w-20 h-8 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200" data-testid="select-page-size">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1469,7 +1592,7 @@ export default function TenantRegistrations() {
                       <SelectItem value="100">100</SelectItem>
                     </SelectContent>
                   </Select>
-                  <span className="text-sm text-muted-foreground">rows</span>
+                  <span className="text-sm text-muted-foreground dark:text-gray-400">rows</span>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -1478,12 +1601,13 @@ export default function TenantRegistrations() {
                   size="sm"
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
+                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
                   data-testid="button-prev-page"
                 >
                   <ChevronLeft className="h-4 w-4 md:mr-1" />
                   <span className="hidden md:inline">Previous</span>
                 </Button>
-                <div className="text-sm whitespace-nowrap">
+                <div className="text-sm whitespace-nowrap dark:text-gray-200">
                   Page {table.getState().pagination.pageIndex + 1} of{" "}
                   {table.getPageCount()}
                 </div>
@@ -1492,6 +1616,7 @@ export default function TenantRegistrations() {
                   size="sm"
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
+                  className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700"
                   data-testid="button-next-page"
                 >
                   <span className="hidden md:inline">Next</span>
@@ -1787,6 +1912,19 @@ export default function TenantRegistrations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Column Chooser */}
+      <ColumnChooser
+        open={columnChooserOpen}
+        onOpenChange={setColumnChooserOpen}
+        columns={table.getAllColumns()}
+        onApply={(visibility) => {
+          setColumnVisibility(visibility);
+        }}
+        onReset={() => {
+          setColumnVisibility({});
+        }}
+      />
     </div>
   );
 }

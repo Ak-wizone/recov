@@ -342,6 +342,7 @@ async function autoProvisionTenant(requestId: string, baseUrl: string): Promise<
           industryType: request.industryType,
           planType: request.planType,
           subscriptionPlanId: plan.id,
+          allowedModules: plan.allowedModules, // Copy plan's modules to tenant
           existingAccountingSoftware: request.existingAccountingSoftware,
           status: "active",
           isActive: true,
@@ -948,6 +949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             industryType: request.industryType,
             planType: request.planType,
             subscriptionPlanId: planId,
+            allowedModules: plan.allowedModules, // Copy plan's modules to tenant
             existingAccountingSoftware: request.existingAccountingSoftware,
             status: "active",
             isActive: true,

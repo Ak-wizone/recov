@@ -52,6 +52,7 @@ export const tenants = pgTable("tenants", {
   industryType: text("industry_type"),
   planType: text("plan_type").notNull(), // Legacy field, kept for backward compatibility
   subscriptionPlanId: varchar("subscription_plan_id").references(() => subscriptionPlans.id),
+  allowedModules: text("allowed_modules").array(), // Effective modules from subscription plan
   customModules: text("custom_modules").array(), // Override plan modules if needed
   existingAccountingSoftware: text("existing_accounting_software"),
   status: text("status").notNull().default("pending"),
