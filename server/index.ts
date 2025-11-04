@@ -79,6 +79,11 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    console.log('[STARTUP] Node version:', process.version);
+    console.log('[STARTUP] NODE_ENV:', process.env.NODE_ENV);
+    console.log('[STARTUP] PORT:', process.env.PORT);
+    console.log('[STARTUP] DATABASE_URL exists:', !!process.env.DATABASE_URL);
+    
     // Verify essential environment variables in production
     if (process.env.NODE_ENV === 'production') {
       if (!process.env.DATABASE_URL) {
@@ -88,12 +93,18 @@ app.use((req, res, next) => {
       console.log('[Production Mode] Starting server with production configuration');
     }
 
+    console.log('[STARTUP] Registering routes...');
     const server = await registerRoutes(app);
+    console.log('[STARTUP] Routes registered successfully');
 
     // Initialize WebSocket server
+    console.log('[STARTUP] Initializing WebSocket...');
     wsManager.initialize(server);
+    console.log('[STARTUP] WebSocket initialized');
 
+    console.log('[STARTUP] Running database seed...');
     await seedDatabase();
+    console.log('[STARTUP] Database seed complete');
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
@@ -124,11 +135,13 @@ app.use((req, res, next) => {
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
     const port = parseInt(process.env.PORT || '5000', 10);
+    console.log('[STARTUP] Starting server on port', port, 'with host 0.0.0.0');
     server.listen({
       port,
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
+      console.log('[STARTUP] ✅ SERVER IS RUNNING on port', port);
       log(`serving on port ${port}`);
     });
   } catch (error) {
