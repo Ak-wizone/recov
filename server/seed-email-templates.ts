@@ -1361,16 +1361,3 @@ export async function seedEmailTemplates() {
     throw error;
   }
 }
-
-// Run if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
-  seedEmailTemplates()
-    .then(() => {
-      console.log("✓ Seed completed successfully!");
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error("❌ Seed failed:", error);
-      process.exit(1);
-    });
-}
