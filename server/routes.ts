@@ -1846,12 +1846,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Subscription plan not found" });
       }
 
-      // Update all tenants
+      // Update all tenants with new plan and its allowed modules
       let updated = 0;
       for (const tenantId of tenantIds) {
         const result = await db
           .update(tenants)
-          .set({ subscriptionPlanId: planId, customModules: null })
+          .set({ 
+            subscriptionPlanId: planId, 
+            customModules: null,
+            allowedModules: plan.allowedModules // Copy plan's modules to tenant
+          })
           .where(eq(tenants.id, tenantId))
           .returning();
         

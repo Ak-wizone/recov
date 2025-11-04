@@ -80,7 +80,6 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
-import { TenantSummary } from "@/components/TenantSummary";
 import type { SubscriptionPlan } from "@shared/schema";
 
 interface TenantStatistics {
@@ -131,8 +130,6 @@ export default function TenantRegistrations() {
   const [tenantToDelete, setTenantToDelete] = useState<TenantRow | null>(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [requestToReject, setRequestToReject] = useState<TenantRow | null>(null);
-  const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
-  const [selectedTenantForSummary, setSelectedTenantForSummary] = useState<TenantRow | null>(null);
   const [activityFilter, setActivityFilter] = useState<"all" | "active" | "at-risk" | "inactive" | "never-used">("all");
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [requestToApprove, setRequestToApprove] = useState<TenantRow | null>(null);
@@ -453,14 +450,6 @@ export default function TenantRegistrations() {
       rejectRegistrationMutation.mutate(requestToReject.id);
     }
   };
-
-  const handleOpenSummary = useCallback((tenant: TenantRow) => {
-    // Only open summary for approved tenants (not pending registration requests)
-    if (!tenant.isRegistrationRequest) {
-      setSelectedTenantForSummary(tenant);
-      setSummaryDialogOpen(true);
-    }
-  }, []);
 
   // Bulk actions handlers
   const handleOpenBulkPlanChange = () => {
@@ -1045,6 +1034,50 @@ export default function TenantRegistrations() {
         </div>
       </div>
 
+      {/* Subscription Plan Statistics */}
+      {subscriptionPlans.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+          {subscriptionPlans.map((plan) => {
+            const tenantCount = approvedTenants.filter(t => t.subscriptionPlanId === plan.id).length;
+            return (
+              <Card 
+                key={plan.id}
+                className="border-l-4 dark:bg-gray-900/50"
+                style={{ borderLeftColor: plan.color || '#3b82f6' }}
+                data-testid={`card-plan-${plan.name.toLowerCase()}`}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4" style={{ color: plan.color || '#3b82f6' }} />
+                      {plan.name} Plan
+                    </div>
+                    <Badge 
+                      style={{ 
+                        backgroundColor: `${plan.color || '#3b82f6'}20`,
+                        color: plan.color || '#3b82f6',
+                        borderColor: plan.color || '#3b82f6'
+                      }}
+                      className="border"
+                    >
+                      ₹{plan.price}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold" style={{ color: plan.color || '#3b82f6' }}>
+                    {tenantCount}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {tenantCount === 1 ? 'tenant' : 'tenants'} subscribed
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       {/* Tenant Engagement Analytics - Clickable Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
         <Card 
@@ -1198,8 +1231,6 @@ export default function TenantRegistrations() {
                     <Card 
                       key={tenant.id} 
                       data-testid={`card-tenant-${tenant.id}`}
-                      onClick={() => handleOpenSummary(tenant)}
-                      className={!tenant.isRegistrationRequest ? "cursor-pointer hover:shadow-md transition-shadow" : ""}
                     >
                       <CardContent className="p-4">
                         <div className="space-y-3">
@@ -1392,8 +1423,6 @@ export default function TenantRegistrations() {
                         key={row.id}
                         data-state={row.getIsSelected() && "selected"}
                         data-testid={`row-tenant-${row.original.id}`}
-                        onClick={() => handleOpenSummary(row.original)}
-                        className={!row.original.isRegistrationRequest ? "cursor-pointer hover:bg-muted/50" : ""}
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>
@@ -1758,16 +1787,6 @@ export default function TenantRegistrations() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Tenant Summary Dialog */}
-      {selectedTenantForSummary && (
-        <TenantSummary
-          tenantId={selectedTenantForSummary.id}
-          tenantName={selectedTenantForSummary.businessName}
-          open={summaryDialogOpen}
-          onOpenChange={setSummaryDialogOpen}
-        />
-      )}
     </div>
   );
 }
