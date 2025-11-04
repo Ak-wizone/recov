@@ -89,7 +89,11 @@ The application uses `shadcn/ui` (Radix UI) with Tailwind CSS for a responsive d
     *   **15 Available Modules**: Business Overview, Customer Analytics, Leads, Quotations, Proforma Invoices, Invoices, Receipts, Payment Tracking, Action Center, Team Performance, Risk & Recovery, Credit Control, Masters, Settings, Email/WhatsApp/Call Integrations
     *   **Plan Management UI**: Full CRUD interface for platform admins to create, edit, delete, and manage subscription plans with color branding, module selection via checkboxes, and statistics dashboard
     *   **Tenant Plan Assignment**: Assign plans during tenant approval or change plans for existing tenants via dropdown selection in tenant management interface
-    *   **Custom Module Override**: Ability to assign custom module sets to individual tenants, overriding their subscription plan's default modules
+    *   **Module Propagation System**: 
+        *   `allowedModules` field automatically populated from subscription plan during tenant creation and plan changes
+        *   All three tenant lifecycle paths (manual approval, auto-provision, plan change) consistently populate allowedModules
+        *   Existing tenants backfilled with allowedModules from their assigned subscription plans
+    *   **Custom Module Override**: Ability to assign custom module sets to individual tenants via `customModules` field, overriding their subscription plan's default modules
     *   **Dynamic Sidebar Filtering**: Navigation menu automatically shows/hides items based on tenant's allowed modules (from subscription plan or custom override)
     *   **Statistics & Analytics**: Real-time tracking of total plans, active plans, tenant count per plan, and plan distribution analytics
     *   **Validation & Safety**: Prevents deletion of plans with active tenants, requires plan selection during tenant approval, enforces module-based access control
