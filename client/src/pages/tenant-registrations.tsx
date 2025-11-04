@@ -526,17 +526,17 @@ export default function TenantRegistrations() {
   };
 
   // Mobile editing handlers
-  const handleStartEditMobile = (tenant: TenantRow) => {
+  const handleStartEditMobile = useCallback((tenant: TenantRow) => {
     setEditingMobileId(tenant.id);
     setEditingMobileValue(tenant.mobileNumber || "");
-  };
+  }, []);
 
-  const handleCancelEditMobile = () => {
+  const handleCancelEditMobile = useCallback(() => {
     setEditingMobileId(null);
     setEditingMobileValue("");
-  };
+  }, []);
 
-  const handleSaveMobile = (tenant: TenantRow) => {
+  const handleSaveMobile = useCallback((tenant: TenantRow) => {
     const mobileNumber = editingMobileValue.trim();
     
     if (!mobileNumber) {
@@ -562,7 +562,7 @@ export default function TenantRegistrations() {
       mobileNumber,
       isRequest: tenant.isRegistrationRequest 
     });
-  };
+  }, [editingMobileValue, updateMobileMutation]);
 
   // Bulk actions handlers
   const handleOpenBulkPlanChange = () => {
@@ -1263,7 +1263,7 @@ export default function TenantRegistrations() {
         );
       },
     },
-  ], [handleOpenApproveDialog, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, handleOpenRejectDialog, handleOpenChangePlanDialog, approveMutation.isPending, rejectRegistrationMutation.isPending, deleteRegistrationRequestMutation.isPending, deleteTenantMutation.isPending, toggleStatusMutation.isPending, resetPasswordMutation.isPending, sendCredentialsMutation.isPending, selectedTenantIds, toggleSelectTenant, toggleSelectAll]);
+  ], [handleOpenApproveDialog, handleToggleStatus, handleResetPassword, handleSendCredentials, handleOpenDeleteDialog, handleOpenRejectDialog, handleOpenChangePlanDialog, handleStartEditMobile, handleSaveMobile, handleCancelEditMobile, approveMutation.isPending, rejectRegistrationMutation.isPending, deleteRegistrationRequestMutation.isPending, deleteTenantMutation.isPending, toggleStatusMutation.isPending, resetPasswordMutation.isPending, sendCredentialsMutation.isPending, selectedTenantIds, toggleSelectTenant, toggleSelectAll, editingMobileId, editingMobileValue, updateMobileMutation.isPending]);
 
   // Helper function to calculate activity status
   const getActivityStatus = (tenant: TenantRow): "active" | "at-risk" | "inactive" | "never-used" => {
