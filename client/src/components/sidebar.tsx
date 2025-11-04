@@ -437,7 +437,8 @@ export default function Sidebar() {
       return false;
     }
 
-    const allowedModules = tenant.customModules || tenant.subscriptionPlan?.allowedModules || [];
+    // Priority: customModules (override) > allowedModules (from plan) > subscriptionPlan.allowedModules (fallback)
+    const allowedModules = tenant.customModules || tenant.allowedModules || tenant.subscriptionPlan?.allowedModules || [];
     
     return allowedModules.includes(moduleName);
   };
