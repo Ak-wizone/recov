@@ -13,7 +13,7 @@ import {
   type ColumnDef,
   type ColumnFiltersState,
   type SortingState,
-  type ColumnVisibility,
+  type VisibilityState,
 } from "@tanstack/react-table";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Table,
   TableBody,
@@ -81,6 +87,9 @@ import {
   Users,
   Settings2,
   Search,
+  Pencil,
+  Check,
+  X as XIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
@@ -132,6 +141,8 @@ interface TenantRow {
   createdAt: string;
   isRegistrationRequest: boolean;
   statistics?: TenantStatistics;
+  paymentStatus?: string | null;
+  paymentTimestamp?: string | null;
 }
 
 export default function TenantRegistrations() {
@@ -140,7 +151,7 @@ export default function TenantRegistrations() {
   const [, setLocation] = useLocation();
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnVisibility, setColumnVisibility] = useState<ColumnVisibility>({});
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnChooserOpen, setColumnChooserOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tenantToDelete, setTenantToDelete] = useState<TenantRow | null>(null);
@@ -158,6 +169,10 @@ export default function TenantRegistrations() {
   const [selectedTenantIds, setSelectedTenantIds] = useState<Set<string>>(new Set());
   const [bulkPlanChangeDialogOpen, setBulkPlanChangeDialogOpen] = useState(false);
   const [selectedBulkPlan, setSelectedBulkPlan] = useState<string>("");
+  
+  // Mobile editing state
+  const [editingMobileId, setEditingMobileId] = useState<string | null>(null);
+  const [editingMobileValue, setEditingMobileValue] = useState<string>("");
 
   // Load column visibility and page size from localStorage
   useEffect(() => {
@@ -409,6 +424,32 @@ export default function TenantRegistrations() {
     },
   });
 
+  const updateMobileMutation = useMutation({
+    mutationFn: async ({ tenantId, mobileNumber, isRequest }: { tenantId: string; mobileNumber: string; isRequest: boolean }) => {
+      const endpoint = isRequest 
+        ? `/api/platform-admin/registration-requests/${tenantId}/mobile`
+        : `/api/platform-admin/tenants/${tenantId}/mobile`;
+      return await apiRequest("PUT", endpoint, { mobileNumber });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Mobile number updated successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/registration-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/tenants'] });
+      setEditingMobileId(null);
+      setEditingMobileValue("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update mobile",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteTenant = () => {
     if (tenantToDelete) {
       if (tenantToDelete.isRegistrationRequest) {
@@ -482,6 +523,45 @@ export default function TenantRegistrations() {
     if (requestToReject) {
       rejectRegistrationMutation.mutate(requestToReject.id);
     }
+  };
+
+  // Mobile editing handlers
+  const handleStartEditMobile = (tenant: TenantRow) => {
+    setEditingMobileId(tenant.id);
+    setEditingMobileValue(tenant.mobileNumber || "");
+  };
+
+  const handleCancelEditMobile = () => {
+    setEditingMobileId(null);
+    setEditingMobileValue("");
+  };
+
+  const handleSaveMobile = (tenant: TenantRow) => {
+    const mobileNumber = editingMobileValue.trim();
+    
+    if (!mobileNumber) {
+      toast({
+        title: "Validation Error",
+        description: "Mobile number cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!/^\d{10}$/.test(mobileNumber)) {
+      toast({
+        title: "Validation Error",
+        description: "Mobile number must be exactly 10 digits",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updateMobileMutation.mutate({ 
+      tenantId: tenant.id, 
+      mobileNumber,
+      isRequest: tenant.isRegistrationRequest 
+    });
   };
 
   // Bulk actions handlers
@@ -590,12 +670,14 @@ export default function TenantRegistrations() {
       createdAt: r.createdAt,
       isRegistrationRequest: true,
       statistics: undefined,
+      paymentStatus: r.paymentStatus,
+      paymentTimestamp: r.paymentTimestamp,
     })) || []),
     ...(tenants?.map(t => ({
       id: t.id,
       businessName: t.businessName,
       email: t.email,
-      mobileNumber: null,
+      mobileNumber: t.mobileNumber,
       businessAddress: t.businessAddress,
       city: t.city,
       state: t.state,
@@ -611,6 +693,8 @@ export default function TenantRegistrations() {
       createdAt: t.createdAt,
       isRegistrationRequest: false,
       statistics: tenantStats[t.id],
+      paymentStatus: null,
+      paymentTimestamp: null,
     })) || []),
   ], [requests, tenants, tenantStats]);
 
@@ -664,6 +748,73 @@ export default function TenantRegistrations() {
         {plan.name}
       </Badge>
     );
+  };
+
+  const getPaymentStatusBadge = (paymentStatus: string | null | undefined, paymentTimestamp: string | null | undefined, requestId: string) => {
+    if (!paymentStatus) {
+      return <span className="text-sm text-gray-400">—</span>;
+    }
+
+    const badge = (() => {
+      switch (paymentStatus) {
+        case "success":
+          return (
+            <Badge 
+              variant="outline" 
+              className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
+              data-testid={`payment-status-${requestId}`}
+            >
+              Paid
+            </Badge>
+          );
+        case "pending":
+          return (
+            <Badge 
+              variant="outline" 
+              className="bg-yellow-50 dark:bg-yellow-950 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800"
+              data-testid={`payment-status-${requestId}`}
+            >
+              Pending
+            </Badge>
+          );
+        case "failed":
+          return (
+            <Badge 
+              variant="outline" 
+              className="bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
+              data-testid={`payment-status-${requestId}`}
+            >
+              Failed
+            </Badge>
+          );
+        default:
+          return (
+            <Badge 
+              variant="outline"
+              data-testid={`payment-status-${requestId}`}
+            >
+              {paymentStatus}
+            </Badge>
+          );
+      }
+    })();
+
+    if (paymentTimestamp) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {badge}
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs">Payment: {format(new Date(paymentTimestamp), "PPpp")}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return badge;
   };
 
   // Selection handlers
@@ -763,9 +914,67 @@ export default function TenantRegistrations() {
     {
       accessorKey: "mobileNumber",
       header: "Mobile Number",
-      cell: ({ row }) => (
-        <div className="text-sm">{row.original.mobileNumber || "—"}</div>
-      ),
+      cell: ({ row }) => {
+        const tenant = row.original;
+        const isEditing = editingMobileId === tenant.id;
+        
+        if (isEditing) {
+          return (
+            <div className="flex items-center gap-1" data-testid={`edit-mobile-${tenant.id}`}>
+              <Input
+                value={editingMobileValue}
+                onChange={(e) => setEditingMobileValue(e.target.value)}
+                placeholder="10 digits"
+                className="h-8 w-32"
+                maxLength={10}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSaveMobile(tenant);
+                  } else if (e.key === "Escape") {
+                    handleCancelEditMobile();
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                onClick={() => handleSaveMobile(tenant)}
+                disabled={updateMobileMutation.isPending}
+                data-testid={`button-save-mobile-${tenant.id}`}
+              >
+                <Check className="h-4 w-4 text-green-600" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                onClick={handleCancelEditMobile}
+                disabled={updateMobileMutation.isPending}
+                data-testid={`button-cancel-mobile-${tenant.id}`}
+              >
+                <XIcon className="h-4 w-4 text-red-600" />
+              </Button>
+            </div>
+          );
+        }
+        
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-sm">{tenant.mobileNumber || "—"}</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => handleStartEditMobile(tenant)}
+              data-testid={`button-edit-mobile-${tenant.id}`}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "businessAddress",
@@ -847,6 +1056,17 @@ export default function TenantRegistrations() {
       cell: ({ row }) => getStatusBadge(row.original.status),
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id));
+      },
+    },
+    {
+      id: "paymentStatus",
+      header: "Payment Status",
+      cell: ({ row }) => {
+        const tenant = row.original;
+        if (!tenant.isRegistrationRequest) {
+          return <span className="text-sm text-gray-400">—</span>;
+        }
+        return getPaymentStatusBadge(tenant.paymentStatus, tenant.paymentTimestamp, tenant.id);
       },
     },
     {
@@ -1546,6 +1766,7 @@ export default function TenantRegistrations() {
                         key={row.id}
                         data-state={row.getIsSelected() && "selected"}
                         data-testid={`row-tenant-${row.original.id}`}
+                        className="group"
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell key={cell.id}>

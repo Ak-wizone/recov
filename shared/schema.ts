@@ -43,6 +43,7 @@ export const tenants = pgTable("tenants", {
   slug: text("slug").notNull().unique(),
   businessName: text("business_name").notNull(),
   email: text("email").notNull().unique(),
+  mobileNumber: text("mobile_number"),
   businessAddress: text("business_address").notNull(),
   city: text("city").notNull(),
   state: text("state"),
@@ -93,6 +94,20 @@ export const insertTenantSchema = createInsertSchema(tenants).pick({
 
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type Tenant = typeof tenants.$inferSelect;
+
+export const updateTenantProfileSchema = z.object({
+  businessName: z.string().min(1, "Business name is required"),
+  mobileNumber: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits").optional().or(z.literal("")),
+  businessAddress: z.string().min(1, "Business address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().optional().or(z.literal("")),
+  pincode: z.string().min(1, "Pincode is required"),
+  panNumber: z.string().optional().or(z.literal("")),
+  gstNumber: z.string().optional().or(z.literal("")),
+  industryType: z.string().optional().or(z.literal("")),
+});
+
+export type UpdateTenantProfile = z.infer<typeof updateTenantProfileSchema>;
 
 export const tenantUsers = pgTable("tenant_users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { requirePermission, requireAnyPermission } from "./permissions";
 import { wsManager } from "./websocket";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema } from "@shared/schema";
 import { createTransporter, sendEmail, testEmailConnection } from "./email-service";
 import { getEnrichedEmailVariables, renderTemplate } from "./email-utils";
 import { sendWhatsAppMessage } from "./whatsapp-service";
@@ -1337,6 +1337,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update tenant mobile number (admin only)
+  app.put("/api/platform-admin/tenants/:id/mobile", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { mobileNumber } = req.body;
+
+      // Validate mobile number
+      if (!mobileNumber || typeof mobileNumber !== 'string') {
+        return res.status(400).json({ message: "Mobile number is required" });
+      }
+
+      const trimmedMobile = mobileNumber.trim();
+      if (!/^\d{10}$/.test(trimmedMobile)) {
+        return res.status(400).json({ message: "Mobile number must be exactly 10 digits" });
+      }
+
+      // Check if tenant exists
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, id));
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      // Update mobile number
+      await db
+        .update(tenants)
+        .set({ mobileNumber: trimmedMobile })
+        .where(eq(tenants.id, id));
+
+      res.json({
+        success: true,
+        message: "Mobile number updated successfully",
+        mobileNumber: trimmedMobile,
+      });
+    } catch (error: any) {
+      console.error("Update mobile error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update registration request mobile number (admin only)
+  app.put("/api/platform-admin/registration-requests/:id/mobile", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { mobileNumber } = req.body;
+
+      // Validate mobile number
+      if (!mobileNumber || typeof mobileNumber !== 'string') {
+        return res.status(400).json({ message: "Mobile number is required" });
+      }
+
+      const trimmedMobile = mobileNumber.trim();
+      if (!/^\d{10}$/.test(trimmedMobile)) {
+        return res.status(400).json({ message: "Mobile number must be exactly 10 digits" });
+      }
+
+      // Check if registration request exists
+      const [request] = await db
+        .select()
+        .from(registrationRequests)
+        .where(eq(registrationRequests.id, id));
+
+      if (!request) {
+        return res.status(404).json({ message: "Registration request not found" });
+      }
+
+      // Update mobile number
+      await db
+        .update(registrationRequests)
+        .set({ mobileNumber: trimmedMobile })
+        .where(eq(registrationRequests.id, id));
+
+      res.json({
+        success: true,
+        message: "Mobile number updated successfully",
+        mobileNumber: trimmedMobile,
+      });
+    } catch (error: any) {
+      console.error("Update mobile error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Forgot password - send reset link
   app.post("/api/auth/forgot-password", async (req, res) => {
     try {
@@ -1574,6 +1660,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Failed to fetch current tenant:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get current tenant profile for settings page
+  app.get("/api/tenant/me", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      if (!sessionUser.tenantId) {
+        return res.status(403).json({ message: "No tenant associated with your account" });
+      }
+
+      const [tenant] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, sessionUser.tenantId))
+        .limit(1);
+
+      if (!tenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      res.json(tenant);
+    } catch (error: any) {
+      console.error("Failed to fetch tenant profile:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update current tenant profile
+  app.put("/api/tenant/me", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      if (!sessionUser.tenantId) {
+        return res.status(403).json({ message: "No tenant associated with your account" });
+      }
+
+      const validatedData = updateTenantProfileSchema.parse(req.body);
+
+      const [updatedTenant] = await db
+        .update(tenants)
+        .set({
+          businessName: validatedData.businessName,
+          mobileNumber: validatedData.mobileNumber || null,
+          businessAddress: validatedData.businessAddress,
+          city: validatedData.city,
+          state: validatedData.state || null,
+          pincode: validatedData.pincode,
+          panNumber: validatedData.panNumber || null,
+          gstNumber: validatedData.gstNumber || null,
+          industryType: validatedData.industryType || null,
+        })
+        .where(eq(tenants.id, sessionUser.tenantId))
+        .returning();
+
+      if (!updatedTenant) {
+        return res.status(404).json({ message: "Tenant not found" });
+      }
+
+      res.json(updatedTenant);
+    } catch (error: any) {
+      console.error("Failed to update tenant profile:", error);
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
       res.status(500).json({ message: error.message });
     }
   });

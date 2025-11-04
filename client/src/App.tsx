@@ -60,6 +60,7 @@ import Pricing from "@/pages/pricing";
 import PaymentSuccess from "@/pages/payment-success";
 import PaymentFailed from "@/pages/payment-failed";
 import Landing from "@/pages/landing";
+import TenantProfile from "@/pages/tenant-profile";
 
 function Router() {
   return (
@@ -122,6 +123,7 @@ function Router() {
               <Route path="/communication-schedules" component={CommunicationSchedules} />
               <Route path="/settings/roles" component={Roles} />
               <Route path="/settings/users" component={Users} />
+              <Route path="/settings/profile" component={TenantProfile} />
               <Route path="/settings/backup-restore" component={BackupRestore} />
               <Route path="/audit-logs" component={AuditLogs} />
               <Route path="/tenant-registrations" component={TenantRegistrations} />

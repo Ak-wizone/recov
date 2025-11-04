@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Mail, MapPin, FileText, Phone, CreditCard } from "lucide-react";
+import { Building2, Mail, MapPin, FileText, Phone, CreditCard, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 
 const registrationSchema = z.object({
   businessName: z.string().min(1, "Business name is required"),
@@ -43,8 +44,7 @@ interface SubscriptionPlan {
 export default function RegisterTenant() {
   const { toast } = useToast();
   const [location] = useLocation();
-  const [emailExists, setEmailExists] = useState(false);
-  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [emailValidationStatus, setEmailValidationStatus] = useState<'idle' | 'available' | 'unavailable'>('idle');
 
   // Get plan ID from URL query parameter
   const urlParams = new URLSearchParams(window.location.search);
@@ -88,27 +88,51 @@ export default function RegisterTenant() {
   // Watch email field for changes
   const emailValue = form.watch("email");
 
-  // Check if email exists when it changes
+  // Email validation mutation using TanStack Query
+  const validateEmailMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const response = await apiRequest('POST', '/api/validate-email', { email });
+      return await response.json();
+    },
+    onSuccess: (data: { available: boolean; message?: string }) => {
+      if (data.available) {
+        setEmailValidationStatus('available');
+      } else {
+        setEmailValidationStatus('unavailable');
+        toast({
+          title: "Email Already Registered",
+          description: data.message || "This email is already registered. Please use a different email or login.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Email validation error:", error);
+      setEmailValidationStatus('idle');
+    },
+  });
+
+  // Check if email exists when it changes with debouncing
   useEffect(() => {
-    const checkEmail = async () => {
+    const checkEmail = () => {
+      // Reset validation status for empty or invalid emails
       if (!emailValue || !emailValue.includes("@")) {
-        setEmailExists(false);
+        setEmailValidationStatus('idle');
         return;
       }
 
-      setCheckingEmail(true);
-      try {
-        const response = await fetch(`/api/check-email-exists?email=${encodeURIComponent(emailValue)}`);
-        const data = await response.json();
-        setEmailExists(data.exists);
-      } catch (error) {
-        console.error("Email check error:", error);
-      } finally {
-        setCheckingEmail(false);
+      // Basic email format validation before API call
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(emailValue)) {
+        setEmailValidationStatus('idle');
+        return;
       }
+
+      // Trigger validation mutation
+      validateEmailMutation.mutate(emailValue);
     };
 
-    // Debounce the check
+    // Debounce the check - wait 500ms after user stops typing
     const timer = setTimeout(checkEmail, 500);
     return () => clearTimeout(timer);
   }, [emailValue]);
@@ -170,10 +194,18 @@ export default function RegisterTenant() {
   });
 
   const onSubmit = (data: RegistrationFormValues) => {
-    if (emailExists) {
+    if (emailValidationStatus === 'unavailable') {
       toast({
         title: "Email Already Registered",
         description: "This email is already registered. Please use a different email or login.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (emailValidationStatus !== 'available') {
+      toast({
+        title: "Email Validation Required",
+        description: "Please wait for email validation to complete.",
         variant: "destructive",
       });
       return;
@@ -238,14 +270,31 @@ export default function RegisterTenant() {
                         <Mail className="w-4 h-4" />
                         Business Email *
                       </FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="business@example.com" {...field} data-testid="input-email" />
-                      </FormControl>
-                      {emailExists && (
+                      <div className="relative">
+                        <FormControl>
+                          <Input type="email" placeholder="business@example.com" {...field} data-testid="input-email" className="pr-10" />
+                        </FormControl>
+                        {validateEmailMutation.isPending && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2" data-testid="input-email-validation-status">
+                            <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                          </div>
+                        )}
+                        {!validateEmailMutation.isPending && emailValidationStatus === 'available' && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2" data-testid="input-email-validation-status">
+                            <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          </div>
+                        )}
+                        {!validateEmailMutation.isPending && emailValidationStatus === 'unavailable' && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2" data-testid="input-email-validation-status">
+                            <XCircle className="w-5 h-5 text-red-500" />
+                          </div>
+                        )}
+                      </div>
+                      {emailValidationStatus === 'unavailable' && !validateEmailMutation.isPending && (
                         <p className="text-sm text-red-600 dark:text-red-400">This email is already registered</p>
                       )}
-                      {checkingEmail && (
-                        <p className="text-sm text-gray-500">Checking...</p>
+                      {emailValidationStatus === 'available' && !validateEmailMutation.isPending && (
+                        <p className="text-sm text-green-600 dark:text-green-400">Email is available</p>
                       )}
                       <FormMessage />
                     </FormItem>
@@ -403,7 +452,12 @@ export default function RegisterTenant() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={registerMutation.isPending || emailExists}
+                  disabled={
+                    registerMutation.isPending || 
+                    emailValidationStatus === 'unavailable' || 
+                    validateEmailMutation.isPending ||
+                    emailValidationStatus === 'idle'
+                  }
                   className="bg-blue-600 hover:bg-blue-700 min-w-[200px]"
                   data-testid="button-proceed-payment"
                 >
