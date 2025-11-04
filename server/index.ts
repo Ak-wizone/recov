@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
@@ -22,9 +23,18 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration
+// Session configuration with PostgreSQL store for production
+const PgSession = connectPgSimple(session);
+const sessionStore = process.env.NODE_ENV === "production" 
+  ? new PgSession({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true,
+    })
+  : undefined;
+
 app.use(
   session({
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || "your-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
