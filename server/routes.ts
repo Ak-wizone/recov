@@ -1780,7 +1780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]);
       }
 
-      // Fetch tenant
+      // Fetch tenant with subscription plan
       const [tenant] = await db
         .select()
         .from(tenants)
@@ -1791,12 +1791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Tenant not found" });
       }
 
-      // If tenant has custom modules override, return those
-      if (tenant.customModules && tenant.customModules.length > 0) {
-        return res.json(tenant.customModules);
-      }
-
-      // Otherwise fetch from subscription plan
+      // Strict subscription enforcement: ONLY use subscription plan's allowed modules
       if (tenant.subscriptionPlanId) {
         const [plan] = await db
           .select()
