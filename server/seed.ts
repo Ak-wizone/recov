@@ -1,6 +1,92 @@
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 
+// Module-to-Permission Mapping: Generate permissions based on allowed modules
+function getPermissionsForModules(moduleNames: string[]): string[] {
+  const modulePermissionMap: Record<string, string[]> = {
+    "Business Overview": [
+      "Business Overview - View",
+    ],
+    "Customer Analytics": [
+      "Customer Analytics - View",
+    ],
+    "Leads": [
+      "Leads - View", "Leads - Create", "Leads - Edit", "Leads - Delete", 
+      "Leads - Export", "Leads - Import", "Leads - Print",
+    ],
+    "Quotations": [
+      "Quotations - View", "Quotations - Create", "Quotations - Edit", "Quotations - Delete", 
+      "Quotations - Export", "Quotations - Import", "Quotations - Print",
+    ],
+    "Proforma Invoices": [
+      "Proforma Invoices - View", "Proforma Invoices - Create", "Proforma Invoices - Edit", "Proforma Invoices - Delete", 
+      "Proforma Invoices - Export", "Proforma Invoices - Import", "Proforma Invoices - Print",
+    ],
+    "Invoices": [
+      "Invoices - View", "Invoices - Create", "Invoices - Edit", "Invoices - Delete", 
+      "Invoices - Export", "Invoices - Import", "Invoices - Print",
+    ],
+    "Receipts": [
+      "Receipts - View", "Receipts - Create", "Receipts - Edit", "Receipts - Delete", 
+      "Receipts - Export", "Receipts - Import", "Receipts - Print",
+    ],
+    "Payment Tracking": [
+      "Debtors - View", "Debtors - Export", "Debtors - Print",
+      "Ledger - View", "Ledger - Export", "Ledger - Print",
+      "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
+    ],
+    "Action Center": [
+      "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
+    ],
+    "Team Performance": [
+      "Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete",
+    ],
+    "Risk & Recovery": [
+      "Risk Management - Client Risk Thermometer - View",
+      "Risk Management - Payment Risk Forecaster - View",
+      "Risk Management - Recovery Health Test - View",
+    ],
+    "Credit Control": [
+      "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
+      "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete", 
+      "Credit Control - Export", "Credit Control - Import", "Credit Control - Print",
+    ],
+    "Masters": [
+      "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", 
+      "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
+      "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", 
+      "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
+    ],
+    "Settings": [
+      "Company Profile - View", "Company Profile - Edit",
+      "Settings - View", "Settings - Edit",
+      "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", 
+      "User Management - Export", "User Management - Import", "User Management - Print",
+      "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", 
+      "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
+      "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
+      "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
+      "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
+    ],
+    "Email/WhatsApp/Call Integrations": [
+      "Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit",
+    ],
+  };
+
+  const permissions: string[] = [];
+  for (const moduleName of moduleNames) {
+    const modulePerms = modulePermissionMap[moduleName];
+    if (modulePerms) {
+      permissions.push(...modulePerms);
+    }
+  }
+
+  // Always add Reports permission (available to all plans)
+  permissions.push("Reports - View", "Reports - Export", "Reports - Print");
+
+  return permissions;
+}
+
 export async function seedDatabase() {
   console.log("Checking for seed data...");
 
@@ -170,6 +256,9 @@ export async function seedDatabase() {
 
     // Create admin roles for all tenants and assign to users
     await createAdminRolesForTenants();
+
+    // Update existing admin roles with subscription-based permissions
+    await updateAdminRolesWithSubscriptionPermissions();
 
     console.log("Seed data check complete!");
   } catch (error) {
@@ -370,5 +459,84 @@ export async function createTenantUsers() {
   } catch (error) {
     console.error("Error creating tenant users:", error);
     throw error;
+  }
+}
+
+// Update existing Admin roles with subscription-based permissions
+async function updateAdminRolesWithSubscriptionPermissions() {
+  console.log("\n🔄 Updating Admin roles with subscription-based permissions...");
+  
+  try {
+    const { db } = await import("./db");
+    const { tenants, roles, subscriptionPlans } = await import("../shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    // Get all active tenants with subscription plans
+    const allTenants = await db.select().from(tenants).where(eq(tenants.status, "active"));
+    
+    let updated = 0;
+    let skipped = 0;
+    
+    for (const tenant of allTenants) {
+      try {
+        // Skip tenants without subscription plan
+        if (!tenant.subscriptionPlanId) {
+          console.log(`  ⊘ Skipped ${tenant.businessName} (no subscription plan)`);
+          skipped++;
+          continue;
+        }
+        
+        // Get tenant's subscription plan
+        const [plan] = await db
+          .select()
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, tenant.subscriptionPlanId))
+          .limit(1);
+        
+        if (!plan) {
+          console.log(`  ⊘ Skipped ${tenant.businessName} (plan not found)`);
+          skipped++;
+          continue;
+        }
+        
+        // Find Admin role for this tenant
+        const [adminRole] = await db
+          .select()
+          .from(roles)
+          .where(eq(roles.tenantId, tenant.id))
+          .limit(1);
+        
+        if (!adminRole || adminRole.name !== "Admin") {
+          console.log(`  ⊘ Skipped ${tenant.businessName} (no Admin role)`);
+          skipped++;
+          continue;
+        }
+        
+        // Generate subscription-based permissions
+        const subscriptionPermissions = getPermissionsForModules(plan.allowedModules);
+        
+        // Update Admin role permissions
+        await db
+          .update(roles)
+          .set({
+            permissions: subscriptionPermissions,
+            description: `Full system access based on ${plan.name} subscription`
+          })
+          .where(eq(roles.id, adminRole.id));
+        
+        updated++;
+        console.log(`  ✓ Updated ${tenant.businessName} with ${plan.name} permissions (${subscriptionPermissions.length} permissions)`);
+        
+      } catch (error) {
+        console.error(`  ✗ Error updating ${tenant.businessName}:`, error);
+      }
+    }
+    
+    console.log(`\n✅ Admin role permission update complete!`);
+    console.log(`  - Updated: ${updated} tenants`);
+    console.log(`  - Skipped: ${skipped} tenants`);
+    
+  } catch (error) {
+    console.error("Error updating admin roles with subscription permissions:", error);
   }
 }

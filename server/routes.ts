@@ -238,6 +238,92 @@ function verifyPayUHash(data: Record<string, string>, salt: string, receivedHash
   return calculatedHash === receivedHash;
 }
 
+// Module-to-Permission Mapping: Generate permissions based on allowed modules
+function getPermissionsForModules(moduleNames: string[]): string[] {
+  const modulePermissionMap: Record<string, string[]> = {
+    "Business Overview": [
+      "Business Overview - View",
+    ],
+    "Customer Analytics": [
+      "Customer Analytics - View",
+    ],
+    "Leads": [
+      "Leads - View", "Leads - Create", "Leads - Edit", "Leads - Delete", 
+      "Leads - Export", "Leads - Import", "Leads - Print",
+    ],
+    "Quotations": [
+      "Quotations - View", "Quotations - Create", "Quotations - Edit", "Quotations - Delete", 
+      "Quotations - Export", "Quotations - Import", "Quotations - Print",
+    ],
+    "Proforma Invoices": [
+      "Proforma Invoices - View", "Proforma Invoices - Create", "Proforma Invoices - Edit", "Proforma Invoices - Delete", 
+      "Proforma Invoices - Export", "Proforma Invoices - Import", "Proforma Invoices - Print",
+    ],
+    "Invoices": [
+      "Invoices - View", "Invoices - Create", "Invoices - Edit", "Invoices - Delete", 
+      "Invoices - Export", "Invoices - Import", "Invoices - Print",
+    ],
+    "Receipts": [
+      "Receipts - View", "Receipts - Create", "Receipts - Edit", "Receipts - Delete", 
+      "Receipts - Export", "Receipts - Import", "Receipts - Print",
+    ],
+    "Payment Tracking": [
+      "Debtors - View", "Debtors - Export", "Debtors - Print",
+      "Ledger - View", "Ledger - Export", "Ledger - Print",
+      "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
+    ],
+    "Action Center": [
+      "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
+    ],
+    "Team Performance": [
+      "Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete",
+    ],
+    "Risk & Recovery": [
+      "Risk Management - Client Risk Thermometer - View",
+      "Risk Management - Payment Risk Forecaster - View",
+      "Risk Management - Recovery Health Test - View",
+    ],
+    "Credit Control": [
+      "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
+      "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete", 
+      "Credit Control - Export", "Credit Control - Import", "Credit Control - Print",
+    ],
+    "Masters": [
+      "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", 
+      "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
+      "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", 
+      "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
+    ],
+    "Settings": [
+      "Company Profile - View", "Company Profile - Edit",
+      "Settings - View", "Settings - Edit",
+      "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", 
+      "User Management - Export", "User Management - Import", "User Management - Print",
+      "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", 
+      "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
+      "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
+      "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
+      "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
+    ],
+    "Email/WhatsApp/Call Integrations": [
+      "Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit",
+    ],
+  };
+
+  const permissions: string[] = [];
+  for (const moduleName of moduleNames) {
+    const modulePerms = modulePermissionMap[moduleName];
+    if (modulePerms) {
+      permissions.push(...modulePerms);
+    }
+  }
+
+  // Always add Reports permission (available to all plans)
+  permissions.push("Reports - View", "Reports - Export", "Reports - Print");
+
+  return permissions;
+}
+
 // Auto-provision tenant after successful payment
 async function autoProvisionTenant(requestId: string, baseUrl: string): Promise<{ success: boolean; message: string; tenant?: any }> {
   try {
@@ -338,7 +424,10 @@ async function autoProvisionTenant(requestId: string, baseUrl: string): Promise<
         })
         .returning();
 
-      // Create Admin role with ALL permissions
+      // Generate subscription-based permissions from allowed modules
+      const subscriptionPermissions = getPermissionsForModules(plan.allowedModules);
+      
+      // Dashboard cards available to all plans
       const allDashboardCards = [
         "Total Revenue", "Total Collections", "Total Outstanding", "Total Opening Balance",
         "Upcoming Invoices", "Due Today", "In Grace", "Overdue", "Paid On Time", "Paid Late",
@@ -354,48 +443,8 @@ async function autoProvisionTenant(requestId: string, baseUrl: string): Promise<
         .values({
           tenantId: tenant.id,
           name: "Admin",
-          description: "Full system access with all permissions",
-          permissions: [
-            // Dashboard & Analytics
-            "Business Overview - View",
-            "Customer Analytics - View",
-            // Sales & Quotations
-            "Leads - View", "Leads - Create", "Leads - Edit", "Leads - Delete", "Leads - Export", "Leads - Import", "Leads - Print",
-            "Quotations - View", "Quotations - Create", "Quotations - Edit", "Quotations - Delete", "Quotations - Export", "Quotations - Import", "Quotations - Print",
-            "Proforma Invoices - View", "Proforma Invoices - Create", "Proforma Invoices - Edit", "Proforma Invoices - Delete", "Proforma Invoices - Export", "Proforma Invoices - Import", "Proforma Invoices - Print",
-            // Financial
-            "Invoices - View", "Invoices - Create", "Invoices - Edit", "Invoices - Delete", "Invoices - Export", "Invoices - Import", "Invoices - Print",
-            "Receipts - View", "Receipts - Create", "Receipts - Edit", "Receipts - Delete", "Receipts - Export", "Receipts - Import", "Receipts - Print",
-            // Payment Tracking
-            "Debtors - View", "Debtors - Export", "Debtors - Print",
-            "Ledger - View", "Ledger - Export", "Ledger - Print",
-            "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
-            "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
-            // Action Center & Team
-            "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
-            "Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete",
-            // Risk & Recovery
-            "Risk Management - Client Risk Thermometer - View",
-            "Risk Management - Payment Risk Forecaster - View",
-            "Risk Management - Recovery Health Test - View",
-            // Credit Control
-            "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete", "Credit Control - Export", "Credit Control - Import", "Credit Control - Print",
-            // Masters
-            "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
-            "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
-            // Settings & Administration
-            "Company Profile - View", "Company Profile - Edit",
-            "Settings - View", "Settings - Edit",
-            "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", "User Management - Export", "User Management - Import", "User Management - Print",
-            "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
-            "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
-            "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
-            "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
-            // Integrations
-            "Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit",
-            // Reports
-            "Reports - View", "Reports - Export", "Reports - Print",
-          ],
+          description: `Full system access based on ${plan.name} subscription`,
+          permissions: subscriptionPermissions,
           canViewGP: true,
           canSendEmail: true,
           canSendWhatsApp: true,
@@ -1005,7 +1054,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
           .returning();
 
-        // Create Admin role for this tenant with ALL permissions
+        // Generate subscription-based permissions from allowed modules
+        const subscriptionPermissions = getPermissionsForModules(plan.allowedModules);
+        
+        // Dashboard cards available to all plans
         const allDashboardCards = [
           "Total Revenue", "Total Collections", "Total Outstanding", "Total Opening Balance",
           "Upcoming Invoices", "Due Today", "In Grace", "Overdue", "Paid On Time", "Paid Late",
@@ -1021,48 +1073,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .values({
             tenantId: tenant.id,
             name: "Admin",
-            description: "Full system access with all permissions",
-            permissions: [
-              // Dashboard & Analytics
-              "Business Overview - View",
-              "Customer Analytics - View",
-              // Sales & Quotations
-              "Leads - View", "Leads - Create", "Leads - Edit", "Leads - Delete", "Leads - Export", "Leads - Import", "Leads - Print",
-              "Quotations - View", "Quotations - Create", "Quotations - Edit", "Quotations - Delete", "Quotations - Export", "Quotations - Import", "Quotations - Print",
-              "Proforma Invoices - View", "Proforma Invoices - Create", "Proforma Invoices - Edit", "Proforma Invoices - Delete", "Proforma Invoices - Export", "Proforma Invoices - Import", "Proforma Invoices - Print",
-              // Financial
-              "Invoices - View", "Invoices - Create", "Invoices - Edit", "Invoices - Delete", "Invoices - Export", "Invoices - Import", "Invoices - Print",
-              "Receipts - View", "Receipts - Create", "Receipts - Edit", "Receipts - Delete", "Receipts - Export", "Receipts - Import", "Receipts - Print",
-              // Payment Tracking
-              "Debtors - View", "Debtors - Export", "Debtors - Print",
-              "Ledger - View", "Ledger - Export", "Ledger - Print",
-              "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
-              "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
-              // Action Center & Team
-              "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
-              "Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete",
-              // Risk & Recovery
-              "Risk Management - Client Risk Thermometer - View",
-              "Risk Management - Payment Risk Forecaster - View",
-              "Risk Management - Recovery Health Test - View",
-              // Credit Control
-              "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete", "Credit Control - Export", "Credit Control - Import", "Credit Control - Print",
-              // Masters
-              "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
-              "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
-              // Settings & Administration
-              "Company Profile - View", "Company Profile - Edit",
-              "Settings - View", "Settings - Edit",
-              "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", "User Management - Export", "User Management - Import", "User Management - Print",
-              "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
-              "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
-              "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
-              "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
-              // Integrations
-              "Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit",
-              // Reports
-              "Reports - View", "Reports - Export", "Reports - Print",
-            ],
+            description: `Full system access based on ${plan.name} subscription`,
+            permissions: subscriptionPermissions,
             canViewGP: true,
             canSendEmail: true,
             canSendWhatsApp: true,
