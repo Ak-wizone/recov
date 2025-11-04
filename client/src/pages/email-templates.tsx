@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Plus, Pencil, Trash2, Mail, Info, ArrowLeft, Eye } from "lucide-react";
+import { Loader2, Plus, Pencil, Trash2, Mail, Info, ArrowLeft, Eye, Download } from "lucide-react";
 import { Link } from "wouter";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { VariablePicker } from "@/components/variable-picker";
@@ -125,6 +125,27 @@ export default function EmailTemplates() {
         description: "Email template deleted successfully",
       });
       setDeletingTemplate(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const seedDefaultsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/email-templates/seed-defaults", {});
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-templates"] });
+      toast({
+        title: "Success",
+        description: "Default email templates loaded successfully",
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -248,6 +269,19 @@ export default function EmailTemplates() {
               Back to Configuration
             </Button>
           </Link>
+          <Button 
+            variant="outline" 
+            onClick={() => seedDefaultsMutation.mutate()}
+            disabled={seedDefaultsMutation.isPending}
+            data-testid="button-load-defaults"
+          >
+            {seedDefaultsMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
+            Load Default Templates
+          </Button>
           <Button onClick={handleCreate} data-testid="button-create-template">
             <Plus className="h-4 w-4 mr-2" />
             Create Template
