@@ -102,6 +102,10 @@ app.use((req, res, next) => {
     wsManager.initialize(server);
     console.log('[STARTUP] WebSocket initialized');
 
+    console.log('[STARTUP] Running database seed...');
+    await seedDatabase();
+    console.log('[STARTUP] Database seed complete');
+
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
@@ -139,17 +143,6 @@ app.use((req, res, next) => {
     }, () => {
       console.log('[STARTUP] ✅ SERVER IS RUNNING on port', port);
       log(`serving on port ${port}`);
-      
-      // Run database seed AFTER server is running (non-blocking)
-      console.log('[STARTUP] Running database seed in background...');
-      seedDatabase()
-        .then(() => {
-          console.log('[STARTUP] ✅ Database seed complete');
-        })
-        .catch((error) => {
-          console.error('[STARTUP] ❌ Database seed failed:', error);
-          // Don't crash the server if seed fails
-        });
     });
   } catch (error) {
     console.error('[Server Startup Error]', error);

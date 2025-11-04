@@ -1780,7 +1780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]);
       }
 
-      // Fetch tenant with subscription plan
+      // Fetch tenant
       const [tenant] = await db
         .select()
         .from(tenants)
@@ -1791,7 +1791,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Tenant not found" });
       }
 
-      // Strict subscription enforcement: ONLY use subscription plan's allowed modules
+      // If tenant has custom modules override, return those
+      if (tenant.customModules && tenant.customModules.length > 0) {
+        return res.json(tenant.customModules);
+      }
+
+      // Otherwise fetch from subscription plan
       if (tenant.subscriptionPlanId) {
         const [plan] = await db
           .select()
@@ -7077,28 +7082,7 @@ ${profile?.legalName || 'Company'}`;
   app.get("/api/roles", requirePermission("Roles Management", "view"), async (req, res) => {
     try {
       const roles = await storage.getRoles(req.tenantId!);
-      
-      // Fetch user counts for each role
-      const rolesWithCounts = await Promise.all(
-        roles.map(async (role) => {
-          const userCount = await db
-            .select({ count: sql<number>`count(*)::int` })
-            .from(users)
-            .where(
-              and(
-                eq(users.roleId, role.id),
-                eq(users.tenantId, req.tenantId!)
-              )
-            );
-          
-          return {
-            ...role,
-            userCount: userCount[0]?.count || 0,
-          };
-        })
-      );
-      
-      res.json(rolesWithCounts);
+      res.json(roles);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -7184,89 +7168,6 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
-  // Helper: Validate role permissions against tenant's subscription plan
-  async function validateRolePermissions(tenantId: string | null, permissions: string[]): Promise<{ valid: boolean; message?: string; invalidPermissions?: string[] }> {
-    // Platform admins have no restrictions
-    if (!tenantId) {
-      return { valid: true };
-    }
-
-    // Fetch tenant with subscription plan
-    const [tenant] = await db
-      .select()
-      .from(tenants)
-      .where(eq(tenants.id, tenantId))
-      .limit(1);
-
-    if (!tenant || !tenant.subscriptionPlanId) {
-      return { valid: true }; // No plan = no restrictions (for backward compatibility)
-    }
-
-    const [plan] = await db
-      .select()
-      .from(subscriptionPlans)
-      .where(eq(subscriptionPlans.id, tenant.subscriptionPlanId))
-      .limit(1);
-
-    if (!plan || !plan.allowedModules) {
-      return { valid: true };
-    }
-
-    // Generate allowed permissions from subscription plan's allowed modules
-    const modulePermissionsMap: Record<string, string[]> = {
-      "Business Overview": ["Business Overview - View"],
-      "Customer Analytics": ["Customer Analytics - View"],
-      "Leads": ["Leads - View", "Leads - Create", "Leads - Edit", "Leads - Delete", "Leads - Export", "Leads - Import", "Leads - Print"],
-      "Quotations": ["Quotations - View", "Quotations - Create", "Quotations - Edit", "Quotations - Delete", "Quotations - Export", "Quotations - Import", "Quotations - Print"],
-      "Proforma Invoices": ["Proforma Invoices - View", "Proforma Invoices - Create", "Proforma Invoices - Edit", "Proforma Invoices - Delete", "Proforma Invoices - Export", "Proforma Invoices - Import", "Proforma Invoices - Print"],
-      "Invoices": ["Invoices - View", "Invoices - Create", "Invoices - Edit", "Invoices - Delete", "Invoices - Export", "Invoices - Import", "Invoices - Print"],
-      "Receipts": ["Receipts - View", "Receipts - Create", "Receipts - Edit", "Receipts - Delete", "Receipts - Export", "Receipts - Import", "Receipts - Print"],
-      "Debtors": ["Debtors - View", "Debtors - Export", "Debtors - Print"],
-      "Payment Tracking": ["Payment Tracking - View"],
-      "Action Center": ["Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete"],
-      "Team Performance": ["Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete"],
-      "Risk & Recovery": [
-        "Risk Management - Client Risk Thermometer - View",
-        "Risk Management - Payment Risk Forecaster - View",
-        "Risk Management - Recovery Health Test - View"
-      ],
-      "Credit Control": [
-        "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
-        "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete",
-        "Credit Control - Export", "Credit Control - Import", "Credit Control - Print"
-      ],
-      "Masters": [
-        "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", 
-        "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
-        "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", 
-        "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print"
-      ],
-      "Settings": ["Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", "Roles Management - Export", "Roles Management - Import", "Roles Management - Print", "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", "User Management - Export", "User Management - Import", "Settings - View", "Settings - Edit"],
-      "Integrations": ["Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit"],
-      "Reports": ["Reports - View", "Reports - Export", "Reports - Print"],
-    };
-
-    // Build complete allowed permissions set from subscription plan
-    const allowedPermissions = new Set<string>();
-    for (const module of plan.allowedModules) {
-      const perms = modulePermissionsMap[module] || [];
-      perms.forEach(p => allowedPermissions.add(p));
-    }
-
-    // Strict validation: only allow permissions explicitly in the allowedPermissions set
-    const invalidPermissions = permissions.filter(p => !allowedPermissions.has(p));
-    
-    if (invalidPermissions.length > 0) {
-      return {
-        valid: false,
-        message: `Some permissions are not available in your ${plan.name} plan. Please upgrade to access these features.`,
-        invalidPermissions,
-      };
-    }
-
-    return { valid: true };
-  }
-
   // Get single role
   app.get("/api/roles/:id", async (req, res) => {
     try {
@@ -7288,15 +7189,6 @@ ${profile?.legalName || 'Company'}`;
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      // Validate permissions against subscription plan
-      const permValidation = await validateRolePermissions(req.tenantId!, validation.data.permissions || []);
-      if (!permValidation.valid) {
-        return res.status(403).json({ 
-          message: permValidation.message,
-          invalidPermissions: permValidation.invalidPermissions
-        });
-      }
-
       const role = await storage.createRole(req.tenantId!, validation.data);
       res.status(201).json(role);
     } catch (error: any) {
@@ -7312,17 +7204,6 @@ ${profile?.legalName || 'Company'}`;
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      // Validate permissions against subscription plan (if permissions are being updated)
-      if (validation.data.permissions) {
-        const permValidation = await validateRolePermissions(req.tenantId!, validation.data.permissions);
-        if (!permValidation.valid) {
-          return res.status(403).json({ 
-            message: permValidation.message,
-            invalidPermissions: permValidation.invalidPermissions
-          });
-        }
-      }
-
       const role = await storage.updateRole(req.tenantId!, req.params.id, validation.data);
       if (!role) {
         return res.status(404).json({ message: "Role not found" });
@@ -7336,65 +7217,6 @@ ${profile?.legalName || 'Company'}`;
   // Delete role
   app.delete("/api/roles/:id", requirePermission("Roles Management", "delete"), async (req, res) => {
     try {
-      // Get role to be deleted
-      const roleToDelete = await storage.getRole(req.tenantId!, req.params.id);
-      if (!roleToDelete) {
-        return res.status(404).json({ message: "Role not found" });
-      }
-
-      // Check if this is an Admin role (by name or full Settings permissions)
-      const isAdminRole = roleToDelete.name.toLowerCase() === "admin" || (
-        roleToDelete.permissions.includes("Roles Management - View") &&
-        roleToDelete.permissions.includes("Roles Management - Create") &&
-        roleToDelete.permissions.includes("Roles Management - Edit") &&
-        roleToDelete.permissions.includes("Roles Management - Delete") &&
-        roleToDelete.permissions.includes("User Management - View") &&
-        roleToDelete.permissions.includes("User Management - Create") &&
-        roleToDelete.permissions.includes("User Management - Edit") &&
-        roleToDelete.permissions.includes("User Management - Delete")
-      );
-
-      if (isAdminRole) {
-        // Count total Admin-level roles
-        const allRoles = await storage.getRoles(req.tenantId!);
-        const adminLevelRoles = allRoles.filter(r => 
-          r.name.toLowerCase() === "admin" || (
-            r.permissions.includes("Roles Management - View") &&
-            r.permissions.includes("Roles Management - Create") &&
-            r.permissions.includes("Roles Management - Edit") &&
-            r.permissions.includes("Roles Management - Delete") &&
-            r.permissions.includes("User Management - View") &&
-            r.permissions.includes("User Management - Create") &&
-            r.permissions.includes("User Management - Edit") &&
-            r.permissions.includes("User Management - Delete")
-          )
-        );
-        
-        if (adminLevelRoles.length === 1) {
-          return res.status(403).json({ 
-            message: "Cannot delete the last Admin role. At least one Admin role must exist to manage users and roles."
-          });
-        }
-      }
-
-      // Check if role has users assigned
-      const usersWithRole = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(users)
-        .where(
-          and(
-            eq(users.roleId, req.params.id),
-            eq(users.tenantId, req.tenantId!)
-          )
-        );
-
-      const userCount = usersWithRole[0]?.count || 0;
-      if (userCount > 0) {
-        return res.status(400).json({ 
-          message: `Cannot delete role. ${userCount} user${userCount > 1 ? 's are' : ' is'} currently assigned to this role. Please reassign or remove the user${userCount > 1 ? 's' : ''} first.`
-        });
-      }
-
       const success = await storage.deleteRole(req.tenantId!, req.params.id);
       if (!success) {
         return res.status(404).json({ message: "Role not found" });
@@ -7411,62 +7233,6 @@ ${profile?.legalName || 'Company'}`;
       const { ids } = req.body;
       if (!Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ message: "Invalid IDs array" });
-      }
-
-      // Get all roles to check for Admin protection
-      const allRoles = await storage.getRoles(req.tenantId!);
-      const rolesToDelete = allRoles.filter(r => ids.includes(r.id));
-      
-      // Helper to check if a role has admin-level permissions
-      const hasAdminPermissions = (role: any) => {
-        return role.name.toLowerCase() === "admin" || (
-          role.permissions.includes("Roles Management - View") &&
-          role.permissions.includes("Roles Management - Create") &&
-          role.permissions.includes("Roles Management - Edit") &&
-          role.permissions.includes("Roles Management - Delete") &&
-          role.permissions.includes("User Management - View") &&
-          role.permissions.includes("User Management - Create") &&
-          role.permissions.includes("User Management - Edit") &&
-          role.permissions.includes("User Management - Delete")
-        );
-      };
-
-      const adminLevelRoles = allRoles.filter(hasAdminPermissions);
-      const adminRolesToDelete = rolesToDelete.filter(hasAdminPermissions);
-
-      // Prevent deletion if it would remove all Admin-level roles
-      if (adminRolesToDelete.length > 0 && adminRolesToDelete.length >= adminLevelRoles.length) {
-        return res.status(403).json({ 
-          message: "Cannot delete all Admin roles. At least one Admin role must exist to manage users and roles."
-        });
-      }
-
-      // Check if any roles have users assigned
-      const rolesWithUsers: string[] = [];
-      for (const roleId of ids) {
-        const usersWithRole = await db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(users)
-          .where(
-            and(
-              eq(users.roleId, roleId),
-              eq(users.tenantId, req.tenantId!)
-            )
-          );
-        
-        const userCount = usersWithRole[0]?.count || 0;
-        if (userCount > 0) {
-          const role = allRoles.find(r => r.id === roleId);
-          if (role) {
-            rolesWithUsers.push(`${role.name} (${userCount} user${userCount > 1 ? 's' : ''})`);
-          }
-        }
-      }
-
-      if (rolesWithUsers.length > 0) {
-        return res.status(400).json({ 
-          message: `Cannot delete roles with assigned users: ${rolesWithUsers.join(', ')}. Please reassign users first.`
-        });
       }
 
       const count = await storage.bulkDeleteRoles(req.tenantId!, ids);

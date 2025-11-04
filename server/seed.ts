@@ -515,18 +515,6 @@ async function updateAdminRolesWithSubscriptionPermissions() {
         // Generate subscription-based permissions
         const subscriptionPermissions = getPermissionsForModules(plan.allowedModules);
         
-        // Check if permissions already match (skip if already updated, unless FORCE_SEED is set)
-        const isSamePermissions = adminRole.permissions.length === subscriptionPermissions.length &&
-          adminRole.permissions.every(p => subscriptionPermissions.includes(p));
-        
-        const forceSeed = process.env.FORCE_SEED === "true";
-        
-        if (isSamePermissions && !forceSeed) {
-          console.log(`  ⊘ Skipped ${tenant.businessName} (already has ${plan.name} permissions)`);
-          skipped++;
-          continue;
-        }
-        
         // Update Admin role permissions
         await db
           .update(roles)
