@@ -16,7 +16,7 @@ The application utilizes `shadcn/ui` (Radix UI) and Tailwind CSS for a responsiv
 *   **Backend**: Express.js with TypeScript, featuring an interface-based storage design and a RESTful API with Zod schema validation. Multer handles Excel file processing.
 *   **Data Storage**: Drizzle ORM configured for PostgreSQL, with Zod schemas ensuring data integrity for core entities like Customers, Payments, Roles, and Users.
 *   **Authentication**: Secure email/password login with bcrypt hashing, session-based authentication, protected routes, and email-based password reset functionality.
-*   **Production Optimizations**: Environment-aware seeding process that skips heavy tenant role updates in production to prevent startup timeouts and ensure fast deployment.
+*   **Production Optimizations**: Environment-aware seeding process that skips heavy tenant role updates in production to prevent startup timeouts and ensure fast deployment. PostgreSQL session store properly configured for both development and published (REPLIT_DEPLOYMENT=1) environments, ensuring WebSocket authentication persistence and preventing error 4500.
 
 ## Feature Specifications
 *   **Analytics Dashboard**: Provides real-time statistics, financial overviews, and recent activity.
@@ -34,7 +34,7 @@ The application utilizes `shadcn/ui` (Radix UI) and Tailwind CSS for a responsiv
 *   **Tenant Credential Emails**: Automated sending of login credentials to newly approved tenants.
 *   **Customer Ledger Module**: Provides a complete transaction history view with debits and credits, running balance, pastel color-coded voucher types, PDF generation, and sharing capabilities.
 *   **Daily Engagement Features (Action Center & Team Performance)**: Includes a daily dashboard, task manager, call queue, universal activity log, leaderboard, daily targets, and a real-time notification center with role-based access control.
-*   **Subscription Plans Management (Multi-Tenant SaaS)**: Comprehensive subscription-based multi-tenant system with module-level access control. Features predefined and customizable plans (Starter/Professional/Enterprise), a plan management UI, tenant plan assignment, a module propagation system, strict subscription-based sidebar filtering (tenants see ONLY their plan's modules), subscription-specific permission generation (eliminates unnecessary permissions), automatic migration for existing tenants, and real-time analytics.
+*   **Subscription Plans Management (Multi-Tenant SaaS)**: Comprehensive subscription-based multi-tenant system with module-level access control. Features predefined and customizable plans (Starter/Professional/Enterprise), a plan management UI, tenant plan assignment, a module propagation system, strict subscription-based sidebar filtering (tenants see ONLY their plan's modules), subscription-specific permission generation (eliminates unnecessary permissions), automatic migration for existing tenants, and real-time analytics. **NEW: Real-Time Subscription Updates** - When platform admin assigns/updates subscription plans, changes apply immediately using atomic database transactions (tenant + Admin role updates guaranteed together), WebSocket-based real-time notifications to affected users, automatic frontend refresh of permissions and modules without page reload, graceful degradation on failures, and comprehensive error logging for production monitoring.
 
 # External Dependencies
 
