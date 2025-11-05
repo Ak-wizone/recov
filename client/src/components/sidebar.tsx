@@ -100,7 +100,11 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Invoices": "Invoices",
   "Receipts": "Receipts",
   
-  // Payment Tracking - All submodules have dedicated permissions
+  // Payment Tracking - Parent module shown if any child is accessible
+  // Using Debtors as default permission check (most common child)
+  "Payment Tracking": "Debtors",
+  
+  // Payment Tracking submodules - All have dedicated permissions
   "Debtors": "Debtors",
   "Ledger": "Ledger",
   "Credit Management": "Credit Management",
