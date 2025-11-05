@@ -100,10 +100,11 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Invoices": "Invoices",
   "Receipts": "Receipts",
   
-  // Payment Tracking - Only exact matches
+  // Payment Tracking - All submodules have dedicated permissions
   "Debtors": "Debtors",
   "Ledger": "Ledger",
-  // Note: Credit Management, Payment Analytics have no dedicated permissions yet
+  "Credit Management": "Credit Management",
+  "Payment Analytics": "Payment Analytics",
   
   // Action Center - Parent permission covers all sub-items
   "Action Center": "Action Center",
@@ -117,11 +118,11 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Leaderboard": "Team Performance",
   "Daily Targets": "Team Performance",
   
-  // Risk & Recovery - Not mapped (no dedicated permissions)
-  // "Risk & Recovery": undefined,
-  // "Client Risk Thermometer": undefined,
-  // "Payment Risk Forecaster": undefined,
-  // "Recovery Health Test": undefined,
+  // Risk & Recovery - Submodules have dedicated permissions
+  // Note: Parent "Risk & Recovery" has no permission, it shows if any child is accessible
+  "Client Risk Thermometer": "Risk Management - Client Risk Thermometer",
+  "Payment Risk Forecaster": "Risk Management - Payment Risk Forecaster",
+  "Recovery Health Test": "Risk Management - Recovery Health Test",
   
   // Credit Control - Only exact match
   "Credit Control": "Credit Control",

@@ -733,7 +733,7 @@ export default function SubscriptionPlans() {
                       {categoryData.modules.map((moduleInfo) => (
                         <div 
                           key={moduleInfo.name} 
-                          className={moduleInfo.parent ? "ml-6" : ""}
+                          className={'parent' in moduleInfo ? "ml-6" : ""}
                         >
                           <div className="flex items-center space-x-2">
                             <Checkbox
@@ -749,8 +749,17 @@ export default function SubscriptionPlans() {
                                     updated.push(moduleInfo.name);
                                   }
                                   
+                                  // If this is a parent module, automatically add all children
+                                  if ('children' in moduleInfo && moduleInfo.children) {
+                                    moduleInfo.children.forEach((childName: string) => {
+                                      if (!updated.includes(childName)) {
+                                        updated.push(childName);
+                                      }
+                                    });
+                                  }
+                                  
                                   // Auto-select parent if this is a sub-module
-                                  if (moduleInfo.parent && !updated.includes(moduleInfo.parent)) {
+                                  if ('parent' in moduleInfo && moduleInfo.parent && !updated.includes(moduleInfo.parent)) {
                                     updated.push(moduleInfo.parent);
                                   }
                                 } else {
@@ -758,8 +767,8 @@ export default function SubscriptionPlans() {
                                   updated = updated.filter(m => m !== moduleInfo.name);
                                   
                                   // If this is a parent module, remove all children too
-                                  if (moduleInfo.isParent && moduleInfo.children) {
-                                    updated = updated.filter(m => !moduleInfo.children?.includes(m));
+                                  if ('children' in moduleInfo && moduleInfo.children) {
+                                    updated = updated.filter(m => !moduleInfo.children!.includes(m));
                                   }
                                 }
                                 
