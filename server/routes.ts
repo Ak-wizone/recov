@@ -7453,6 +7453,7 @@ ${profile?.legalName || 'Company'}`;
     }
 
     // Generate allowed permissions from subscription plan's allowed modules
+    // This MUST match getPermissionsForModules exactly to avoid validation errors
     const modulePermissionsMap: Record<string, string[]> = {
       "Business Overview": ["Business Overview - View"],
       "Customer Analytics": ["Customer Analytics - View"],
@@ -7461,28 +7462,91 @@ ${profile?.legalName || 'Company'}`;
       "Proforma Invoices": ["Proforma Invoices - View", "Proforma Invoices - Create", "Proforma Invoices - Edit", "Proforma Invoices - Delete", "Proforma Invoices - Export", "Proforma Invoices - Import", "Proforma Invoices - Print"],
       "Invoices": ["Invoices - View", "Invoices - Create", "Invoices - Edit", "Invoices - Delete", "Invoices - Export", "Invoices - Import", "Invoices - Print"],
       "Receipts": ["Receipts - View", "Receipts - Create", "Receipts - Edit", "Receipts - Delete", "Receipts - Export", "Receipts - Import", "Receipts - Print"],
+      "Payment Tracking": [
+        "Debtors - View", "Debtors - Export", "Debtors - Print",
+        "Ledger - View", "Ledger - Export", "Ledger - Print",
+        "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
+      ],
+      // Payment Tracking submodules (individual permissions for each child)
       "Debtors": ["Debtors - View", "Debtors - Export", "Debtors - Print"],
-      "Payment Tracking": ["Payment Tracking - View"],
+      "Ledger": ["Ledger - View", "Ledger - Export", "Ledger - Print"],
+      "Credit Management": ["Credit Management - View", "Credit Management - Export", "Credit Management - Print"],
+      "Payment Analytics": ["Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print"],
       "Action Center": ["Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete"],
+      // Action Center submodules
+      "Daily Dashboard": ["Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete"],
+      "Task Manager": ["Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete"],
+      "Call Queue": ["Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete"],
+      "Activity Logs": ["Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete"],
       "Team Performance": ["Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete"],
+      // Team Performance submodules
+      "Leaderboard": ["Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete"],
+      "Daily Targets": ["Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete"],
+      "Notification Center": ["Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete"],
       "Risk & Recovery": [
         "Risk Management - Client Risk Thermometer - View",
         "Risk Management - Payment Risk Forecaster - View",
         "Risk Management - Recovery Health Test - View"
       ],
+      // Risk & Recovery submodules
+      "Client Risk Thermometer": ["Risk Management - Client Risk Thermometer - View"],
+      "Payment Risk Forecaster": ["Risk Management - Payment Risk Forecaster - View"],
+      "Recovery Health Test": ["Risk Management - Recovery Health Test - View"],
       "Credit Control": [
         "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
         "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete",
         "Credit Control - Export", "Credit Control - Import", "Credit Control - Print"
       ],
+      // Credit Control submodules
+      "Category Management": ["Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete"],
+      "Follow-up Rules": ["Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete"],
+      "Category Calculation": ["Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete"],
+      "Urgent Actions": ["Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete"],
+      "Follow-up Automation": ["Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete"],
       "Masters": [
         "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", 
         "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
         "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", 
         "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print"
       ],
-      "Settings": ["Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", "Roles Management - Export", "Roles Management - Import", "Roles Management - Print", "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", "User Management - Export", "User Management - Import", "Settings - View", "Settings - Edit"],
-      "Integrations": ["Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit"],
+      // Masters submodules
+      "Customers": [
+        "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", 
+        "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print"
+      ],
+      "Items": [
+        "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", 
+        "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print"
+      ],
+      "Banks": ["Settings - View", "Settings - Edit"],
+      "Voucher Types": ["Settings - View", "Settings - Edit"],
+      "Settings": [
+        "Company Profile - View", "Company Profile - Edit",
+        "Settings - View", "Settings - Edit",
+        "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", 
+        "User Management - Export", "User Management - Import", "User Management - Print",
+        "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", 
+        "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
+        "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
+        "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
+        "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print"
+      ],
+      // Settings submodules
+      "Company Profile": ["Company Profile - View", "Company Profile - Edit"],
+      "User Management": [
+        "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", 
+        "User Management - Export", "User Management - Import", "User Management - Print"
+      ],
+      "Roles Management": [
+        "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", 
+        "Roles Management - Export", "Roles Management - Import", "Roles Management - Print"
+      ],
+      "Communication Schedules": [
+        "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete"
+      ],
+      "Backup & Restore": ["Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete"],
+      "Audit Logs": ["Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print"],
+      "Email/WhatsApp/Call Integrations": ["Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit"],
       "Reports": ["Reports - View", "Reports - Export", "Reports - Print"],
     };
 
