@@ -1,11 +1,17 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useToast } from './use-toast';
 
 interface WebSocketEvent {
   type: string;
   module: string;
   action: 'create' | 'update' | 'delete';
   data?: any;
+  payload?: {
+    message?: string;
+    newPlan?: string;
+    modules?: string[];
+  };
 }
 
 // Map of module names to their query keys for smart invalidation
@@ -49,6 +55,7 @@ export function useWebSocket(tenantId?: string, userId?: string) {
   const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
   const isAuthenticatedRef = useRef(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const connect = useCallback(() => {
     if (!tenantId || !userId) return;
@@ -91,6 +98,26 @@ export function useWebSocket(tenantId?: string, userId?: string) {
               queryClient.invalidateQueries({ queryKey: key });
             });
           }
+
+          // Handle real-time permission updates
+          if (message.type === 'PERMISSIONS_UPDATED') {
+            console.log('[WebSocket] Permissions updated:', message.payload);
+            
+            // Invalidate auth/me to refresh user permissions and role
+            queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+            
+            // Invalidate modules to refresh sidebar
+            queryClient.invalidateQueries({ queryKey: ['/api/tenant/modules'] });
+            
+            // Show toast notification
+            toast({
+              title: "Subscription Updated",
+              description: message.payload?.message || "Your subscription plan has been updated",
+              duration: 5000,
+            });
+            
+            console.log('✅ Permissions and modules refreshed automatically');
+          }
         } catch (error) {
           console.error('[WebSocket] Message parse error:', error);
         }
@@ -112,7 +139,7 @@ export function useWebSocket(tenantId?: string, userId?: string) {
     } catch (error) {
       console.error('[WebSocket] Connection error:', error);
     }
-  }, [tenantId, userId, queryClient]);
+  }, [tenantId, userId, queryClient, toast]);
 
   useEffect(() => {
     connect();

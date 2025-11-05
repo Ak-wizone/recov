@@ -2012,6 +2012,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!plan) {
         return res.status(404).json({ message: "Subscription plan not found" });
       }
+
+      // If modules were updated, propagate changes to all tenants using this plan
+      if (validated.allowedModules && plan.allowedModules) {
+        // Find all tenants using this plan
+        const affectedTenants = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.subscriptionPlanId, req.params.id));
+        
+        if (affectedTenants.length > 0) {
+          console.log(`🔄 Propagating module changes to ${affectedTenants.length} tenant(s)...`);
+          
+          // Generate new permissions based on updated modules
+          const newPermissions = getPermissionsForModules(plan.allowedModules);
+          
+          // Track successfully updated tenants
+          const successfullyUpdatedTenantIds: string[] = [];
+          
+          // Update each tenant atomically using transactions
+          for (const tenant of affectedTenants) {
+            try {
+              // Use transaction to ensure atomicity - tenant and role update together or not at all
+              await db.transaction(async (tx) => {
+                // 1. Update tenant's allowed modules
+                await tx
+                  .update(tenants)
+                  .set({ allowedModules: plan.allowedModules })
+                  .where(eq(tenants.id, tenant.id));
+                
+                // 2. Update Admin role permissions
+                const [adminRole] = await tx
+                  .select()
+                  .from(roles)
+                  .where(and(
+                    eq(roles.tenantId, tenant.id),
+                    eq(roles.name, "Admin")
+                  ))
+                  .limit(1);
+                
+                if (adminRole) {
+                  await tx
+                    .update(roles)
+                    .set({ permissions: newPermissions })
+                    .where(eq(roles.id, adminRole.id));
+                  
+                  console.log(`  ✓ Updated ${tenant.businessName}`);
+                } else {
+                  console.warn(`  ⚠ ${tenant.businessName} has no Admin role`);
+                }
+              });
+              
+              // Transaction successful - track for broadcast
+              successfullyUpdatedTenantIds.push(tenant.id);
+            } catch (txError: any) {
+              console.error(`  ❌ Failed to update ${tenant.businessName}:`, txError.message);
+              // Continue with other tenants even if one fails
+            }
+          }
+          
+          // Only broadcast to successfully updated tenants after all transactions commit
+          if (successfullyUpdatedTenantIds.length > 0) {
+            try {
+              for (const tenantId of successfullyUpdatedTenantIds) {
+                wsManager.broadcastToTenant(tenantId, {
+                  type: 'PERMISSIONS_UPDATED',
+                  payload: {
+                    message: `Your subscription plan "${plan.name}" has been updated`,
+                    newPlan: plan.name,
+                    modules: plan.allowedModules
+                  }
+                });
+              }
+              console.log(`✅ Successfully propagated changes to ${successfullyUpdatedTenantIds.length}/${affectedTenants.length} tenant(s)`);
+              console.log(`📡 Broadcasted real-time updates via WebSocket`);
+            } catch (wsError: any) {
+              console.error('⚠ WebSocket broadcast failed (updates still applied):', wsError.message);
+            }
+          }
+        }
+      }
+
       res.json(plan);
     } catch (error: any) {
       console.error("Failed to update subscription plan:", error);
@@ -2063,26 +2144,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Subscription plan not found" });
       }
 
-      // Update all tenants with new plan and its allowed modules
+      // Generate permissions for the new plan's modules
+      const newPermissions = getPermissionsForModules(plan.allowedModules);
+
+      // Update all tenants with new plan using atomic transactions
       let updated = 0;
+      const affectedTenantIds: string[] = [];
+      
       for (const tenantId of tenantIds) {
-        const result = await db
-          .update(tenants)
-          .set({ 
-            subscriptionPlanId: planId, 
-            customModules: null,
-            allowedModules: plan.allowedModules // Copy plan's modules to tenant
-          })
-          .where(eq(tenants.id, tenantId))
-          .returning();
-        
-        if (result.length > 0) updated++;
+        try {
+          // Use transaction to ensure atomicity - tenant and role update together or not at all
+          await db.transaction(async (tx) => {
+            // 1. Update tenant's subscription plan and allowed modules
+            const result = await tx
+              .update(tenants)
+              .set({ 
+                subscriptionPlanId: planId, 
+                customModules: null,
+                allowedModules: plan.allowedModules
+              })
+              .where(eq(tenants.id, tenantId))
+              .returning();
+            
+            if (result.length === 0) {
+              throw new Error(`Tenant ${tenantId} not found`);
+            }
+            
+            // 2. Update Admin role permissions for this tenant
+            const [adminRole] = await tx
+              .select()
+              .from(roles)
+              .where(and(
+                eq(roles.tenantId, tenantId),
+                eq(roles.name, "Admin")
+              ))
+              .limit(1);
+            
+            if (adminRole) {
+              await tx
+                .update(roles)
+                .set({ permissions: newPermissions })
+                .where(eq(roles.id, adminRole.id));
+              
+              console.log(`✓ Updated Admin role permissions for tenant ${tenantId} to ${plan.name} plan`);
+            } else {
+              console.warn(`⚠ Tenant ${tenantId} has no Admin role - only tenant updated`);
+            }
+          });
+          
+          // Transaction successful - track affected tenant
+          updated++;
+          affectedTenantIds.push(tenantId);
+        } catch (txError: any) {
+          console.error(`❌ Failed to update tenant ${tenantId}:`, txError.message);
+          // Continue with other tenants even if one fails
+        }
+      }
+
+      // Only broadcast after ALL successful transactions are committed
+      if (affectedTenantIds.length > 0) {
+        try {
+          for (const tenantId of affectedTenantIds) {
+            wsManager.broadcastToTenant(tenantId, {
+              type: 'PERMISSIONS_UPDATED',
+              payload: {
+                message: `Your subscription plan has been updated to "${plan.name}"`,
+                newPlan: plan.name,
+                modules: plan.allowedModules
+              }
+            });
+          }
+          console.log(`📡 Broadcasted permission updates to ${affectedTenantIds.length} tenant(s)`);
+        } catch (wsError: any) {
+          console.error('⚠ WebSocket broadcast failed (updates still applied):', wsError.message);
+        }
       }
 
       res.json({ 
         success: true, 
-        message: `${updated} tenant(s) updated to plan "${plan.name}"`,
-        updatedCount: updated 
+        message: `${updated} tenant(s) updated to plan "${plan.name}" with immediate effect`,
+        updatedCount: updated,
+        totalRequested: tenantIds.length
       });
     } catch (error: any) {
       console.error("Failed to assign plan to tenants:", error);

@@ -108,6 +108,28 @@ class WebSocketManager {
     }
   }
 
+  // Flexible broadcast method for any message type (e.g., permission updates)
+  broadcastToTenant(tenantId: string, event: any) {
+    const tenantClients = this.clients.get(tenantId);
+    if (!tenantClients || tenantClients.size === 0) {
+      return;
+    }
+
+    const message = JSON.stringify(event);
+    let sentCount = 0;
+
+    tenantClients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+        sentCount++;
+      }
+    });
+
+    if (sentCount > 0) {
+      log(`Broadcast to ${sentCount} clients in tenant ${tenantId}: ${event.type}`);
+    }
+  }
+
   getConnectedClients(tenantId: string): number {
     return this.clients.get(tenantId)?.size || 0;
   }
