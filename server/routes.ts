@@ -270,6 +270,7 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
     "Payment Tracking": [
       "Debtors - View", "Debtors - Export", "Debtors - Print",
       "Ledger - View", "Ledger - Export", "Ledger - Print",
+      "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
       "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
     ],
     // Payment Tracking submodules (individual permissions for each child)
@@ -7465,6 +7466,7 @@ ${profile?.legalName || 'Company'}`;
       "Payment Tracking": [
         "Debtors - View", "Debtors - Export", "Debtors - Print",
         "Ledger - View", "Ledger - Export", "Ledger - Print",
+        "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
         "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
       ],
       // Payment Tracking submodules (individual permissions for each child)
