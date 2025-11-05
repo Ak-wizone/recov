@@ -254,11 +254,18 @@ export async function seedDatabase() {
       console.log(`✓ Found ${existingPlans.length} existing subscription plans (no auto-sync to preserve custom changes)`);
     }
 
-    // Create admin roles for all tenants and assign to users
-    await createAdminRolesForTenants();
+    // Skip heavy seeding operations in production to avoid startup timeout
+    const isProduction = process.env.NODE_ENV === "production";
+    
+    if (!isProduction) {
+      // Create admin roles for all tenants and assign to users (development only)
+      await createAdminRolesForTenants();
 
-    // Update existing admin roles with subscription-based permissions
-    await updateAdminRolesWithSubscriptionPermissions();
+      // Update existing admin roles with subscription-based permissions (development only)
+      await updateAdminRolesWithSubscriptionPermissions();
+    } else {
+      console.log("⚡ Production mode: Skipping heavy seed operations for fast startup");
+    }
 
     console.log("Seed data check complete!");
   } catch (error) {
