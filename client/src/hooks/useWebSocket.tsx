@@ -106,8 +106,8 @@ export function useWebSocket(tenantId?: string, userId?: string) {
             // Invalidate auth/me to refresh user permissions and role
             queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
             
-            // Invalidate modules to refresh sidebar
-            queryClient.invalidateQueries({ queryKey: ['/api/tenant/modules'] });
+            // Invalidate tenant data to refresh subscription plan and allowed modules
+            queryClient.invalidateQueries({ queryKey: ['/api/tenants/current'] });
             
             // Show toast notification
             toast({

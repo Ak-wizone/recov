@@ -122,8 +122,8 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Leaderboard": "Team Performance",
   "Daily Targets": "Team Performance",
   
-  // Risk & Recovery - Submodules have dedicated permissions
-  // Note: Parent "Risk & Recovery" has no permission, it shows if any child is accessible
+  // Risk & Recovery - Parent shown if any child is accessible
+  "Risk & Recovery": "Risk Management - Client Risk Thermometer",
   "Client Risk Thermometer": "Risk Management - Client Risk Thermometer",
   "Payment Risk Forecaster": "Risk Management - Payment Risk Forecaster",
   "Recovery Health Test": "Risk Management - Recovery Health Test",
@@ -136,17 +136,24 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Urgent Actions": "Credit Control",
   "Follow-up Automation": "Credit Control",
   
-  // Masters
+  // Masters - Parent shown if any child is accessible
+  "Masters": "Masters - Customers",
   "Customers": "Masters - Customers",
   "Items": "Masters - Items",
+  "Banks": "Settings",
+  "Voucher Types": "Settings",
   "Company Profile": "Company Profile",
   
-  // Settings - Parent permission covers settings-related items
+  // Settings - Parent shown if any child is accessible
+  "Settings": "Settings",
   "User Management": "User Management",
   "Roles Management": "Roles Management",
   "Communication Schedules": "Settings",
   "Backup & Restore": "Settings",
   "Audit Logs": "Settings",
+  
+  // Email/WhatsApp/Call Integrations
+  "Email/WhatsApp/Call Integrations": "Email/WhatsApp/Call Integrations",
 };
 
 // Platform Admin navigation items
