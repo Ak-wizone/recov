@@ -40,6 +40,8 @@ import {
   Sparkles,
   Loader2,
   Database,
+  ListChecks,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -135,6 +137,7 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Category Calculation": "Credit Control",
   "Urgent Actions": "Credit Control",
   "Follow-up Automation": "Credit Control",
+  "Follow-up Rules": "Credit Control",
   
   // Masters - Parent shown if any child is accessible
   "Masters": "Masters - Customers",
@@ -354,6 +357,12 @@ const navItems: NavItem[] = [
         icon: <Settings className="h-4 w-4" />,
         module: "Follow-up Automation",
       },
+      {
+        name: "Follow-up Rules",
+        path: "/credit-control/followup-rules",
+        icon: <ListChecks className="h-4 w-4" />,
+        module: "Follow-up Rules",
+      },
     ],
   },
   {
@@ -373,6 +382,18 @@ const navItems: NavItem[] = [
         path: "/masters/items",
         icon: <Package className="h-4 w-4" />,
         module: "Items",
+      },
+      {
+        name: "Banks",
+        path: "/masters/banks",
+        icon: <Building2 className="h-4 w-4" />,
+        module: "Banks",
+      },
+      {
+        name: "Voucher Types",
+        path: "/masters/voucher-types",
+        icon: <FileText className="h-4 w-4" />,
+        module: "Voucher Types",
       },
       {
         name: "Company Settings",
@@ -411,6 +432,12 @@ const navItems: NavItem[] = [
         path: "/communication-schedules",
         icon: <Settings className="h-4 w-4" />,
         module: "Communication Schedules",
+      },
+      {
+        name: "Email/WhatsApp/Call Integrations",
+        path: "/settings/integrations",
+        icon: <MessageSquare className="h-4 w-4" />,
+        module: "Email/WhatsApp/Call Integrations",
       },
     ],
   },
