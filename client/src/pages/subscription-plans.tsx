@@ -305,6 +305,11 @@ export default function SubscriptionPlans() {
   };
 
   const onSubmit = (data: PlanFormValues) => {
+    console.log("📋 Subscription Plan Form Submission:");
+    console.log("  - Plan Name:", data.name);
+    console.log("  - Allowed Modules:", data.allowedModules);
+    console.log("  - Total Modules:", data.allowedModules.length);
+    
     if (selectedPlan) {
       updateMutation.mutate({ id: selectedPlan.id, data });
     } else {
@@ -751,9 +756,11 @@ export default function SubscriptionPlans() {
                                   
                                   // If this is a parent module, automatically add all children
                                   if ('children' in moduleInfo && moduleInfo.children) {
+                                    console.log(`✅ Checking parent "${moduleInfo.name}", adding children:`, moduleInfo.children);
                                     moduleInfo.children.forEach((childName: string) => {
                                       if (!updated.includes(childName)) {
                                         updated.push(childName);
+                                        console.log(`   ➕ Added child: ${childName}`);
                                       }
                                     });
                                   }
@@ -761,6 +768,7 @@ export default function SubscriptionPlans() {
                                   // Auto-select parent if this is a sub-module
                                   if ('parent' in moduleInfo && moduleInfo.parent && !updated.includes(moduleInfo.parent)) {
                                     updated.push(moduleInfo.parent);
+                                    console.log(`   ➕ Added parent: ${moduleInfo.parent}`);
                                   }
                                 } else {
                                   // Remove the module
@@ -768,10 +776,12 @@ export default function SubscriptionPlans() {
                                   
                                   // If this is a parent module, remove all children too
                                   if ('children' in moduleInfo && moduleInfo.children) {
+                                    console.log(`❌ Unchecking parent "${moduleInfo.name}", removing children:`, moduleInfo.children);
                                     updated = updated.filter(m => !moduleInfo.children!.includes(m));
                                   }
                                 }
                                 
+                                console.log(`📦 Updated modules (${updated.length}):`, updated);
                                 form.setValue("allowedModules", updated);
                               }}
                               data-testid={`checkbox-module-${moduleInfo.name.toLowerCase().replace(/\s+/g, "-")}`}
