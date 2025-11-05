@@ -23,9 +23,11 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration with PostgreSQL store for production
+// Session configuration with PostgreSQL store for production/published deployment
+// REPLIT_DEPLOYMENT is set to "1" in published apps
 const PgSession = connectPgSimple(session);
-const sessionStore = process.env.NODE_ENV === "production" 
+const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
+const sessionStore = isProduction 
   ? new PgSession({
       conString: process.env.DATABASE_URL,
       createTableIfMissing: true,
@@ -39,10 +41,10 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: isProduction,
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: isProduction ? "none" : "lax",
     },
   })
 );
@@ -81,11 +83,13 @@ app.use((req, res, next) => {
   try {
     console.log('[STARTUP] Node version:', process.version);
     console.log('[STARTUP] NODE_ENV:', process.env.NODE_ENV);
+    console.log('[STARTUP] REPLIT_DEPLOYMENT:', process.env.REPLIT_DEPLOYMENT);
     console.log('[STARTUP] PORT:', process.env.PORT);
     console.log('[STARTUP] DATABASE_URL exists:', !!process.env.DATABASE_URL);
     
-    // Verify essential environment variables in production
-    if (process.env.NODE_ENV === 'production') {
+    // Verify essential environment variables in production/published deployment
+    const isProductionEnv = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+    if (isProductionEnv) {
       if (!process.env.DATABASE_URL) {
         console.error('[Startup Error] DATABASE_URL environment variable is not set in production');
         process.exit(1);
