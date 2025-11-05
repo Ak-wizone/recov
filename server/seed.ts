@@ -254,8 +254,9 @@ export async function seedDatabase() {
       console.log(`✓ Found ${existingPlans.length} existing subscription plans (no auto-sync to preserve custom changes)`);
     }
 
-    // Skip heavy seeding operations in production to avoid startup timeout
-    const isProduction = process.env.NODE_ENV === "production";
+    // Skip heavy seeding operations in production/published deployment to avoid startup timeout
+    // REPLIT_DEPLOYMENT is set to "1" in published apps
+    const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
     
     if (!isProduction) {
       // Create admin roles for all tenants and assign to users (development only)
@@ -264,7 +265,7 @@ export async function seedDatabase() {
       // Update existing admin roles with subscription-based permissions (development only)
       await updateAdminRolesWithSubscriptionPermissions();
     } else {
-      console.log("⚡ Production mode: Skipping heavy seed operations for fast startup");
+      console.log("⚡ Published deployment detected: Skipping heavy seed operations for fast startup");
     }
 
     console.log("Seed data check complete!");
