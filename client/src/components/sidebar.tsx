@@ -454,7 +454,7 @@ export default function Sidebar() {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { hasPermission } = usePermissions();
+  const { permissions, hasPermission } = usePermissions();
   
   // Determine which navigation to show based on user type
   const isPlatformAdmin = user && !user.tenantId;
@@ -552,7 +552,7 @@ export default function Sidebar() {
         return item;
       })
       .filter((item): item is NavItem => item !== null);
-  }, [isPlatformAdmin, tenant, hasPermission]);
+  }, [isPlatformAdmin, tenant, permissions]);
 
   const currentNavItems = filteredNavItems;
 
