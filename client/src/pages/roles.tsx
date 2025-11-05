@@ -335,10 +335,14 @@ export default function Roles() {
     queryKey: ["/api/roles"],
   });
 
-  // Fetch allowed modules for current tenant
-  const { data: allowedModules = [] } = useQuery<string[]>({
-    queryKey: ["/api/tenants/allowed-modules"],
+  // Fetch current tenant with subscription plan
+  const { data: tenantData } = useQuery<any>({
+    queryKey: ["/api/tenants/current"],
   });
+
+  // Extract allowed modules and plan name
+  const allowedModules = tenantData?.subscriptionPlan?.allowedModules || [];
+  const subscriptionPlanName = tenantData?.subscriptionPlan?.name || "No Plan";
 
   // Filter MODULE_CATEGORIES based on tenant's subscription
   const filteredModuleCategories = MODULE_CATEGORIES.map(category => ({
@@ -644,6 +648,15 @@ export default function Roles() {
       cell: ({ row }) => (
         <div data-testid={`text-permissions-count-${row.index}`}>
           {row.original.permissions.length} permissions
+        </div>
+      ),
+    },
+    {
+      id: "userCount",
+      header: "Users",
+      cell: ({ row }) => (
+        <div data-testid={`text-user-count-${row.index}`} className="text-center">
+          {(row.original as any).userCount || 0}
         </div>
       ),
     },
