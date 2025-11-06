@@ -299,15 +299,90 @@ export function CustomersTable({
             <span className="text-sm font-medium text-blue-900">
               {selectedIds.length} customer{selectedIds.length > 1 ? 's' : ''} selected
             </span>
-            <Button
-              size="sm"
-              className="bg-red-600 hover:bg-red-700 text-white"
-              onClick={handleBulkDeleteClick}
-              data-testid="button-bulk-delete"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Selected ({selectedIds.length})
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-white hover:bg-gray-50"
+                onClick={() => {
+                  const selectedCustomers = customers.filter(c => selectedIds.includes(c.id));
+                  selectedCustomers.forEach(customer => onWhatsApp(customer));
+                }}
+                data-testid="button-bulk-whatsapp"
+              >
+                <MessageCircle className="h-4 w-4 mr-2 text-[#25D366]" />
+                WhatsApp
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-white hover:bg-gray-50"
+                onClick={() => {
+                  const selectedCustomers = customers.filter(c => selectedIds.includes(c.id));
+                  selectedCustomers.forEach(customer => onEmail(customer));
+                }}
+                data-testid="button-bulk-email"
+              >
+                <Mail className="h-4 w-4 mr-2 text-blue-500" />
+                Email
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-white hover:bg-gray-50"
+                onClick={() => {
+                  const selectedCustomers = customers.filter(c => selectedIds.includes(c.id));
+                  selectedCustomers.forEach(customer => onPayment(customer));
+                }}
+                data-testid="button-bulk-payment"
+              >
+                <DollarSign className="h-4 w-4 mr-2 text-[#059669]" />
+                Payment
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-white hover:bg-gray-50"
+                onClick={() => {
+                  const selectedCustomers = customers.filter(c => selectedIds.includes(c.id));
+                  selectedCustomers.forEach(customer => onFollowUp(customer));
+                }}
+                data-testid="button-bulk-followup"
+              >
+                <Calendar className="h-4 w-4 mr-2 text-purple-500" />
+                Follow Up
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-white hover:bg-gray-50"
+                onClick={() => {
+                  const selectedCustomers = customers.filter(c => selectedIds.includes(c.id));
+                  if (selectedCustomers.length === 1) {
+                    onEdit(selectedCustomers[0]);
+                  } else {
+                    toast({
+                      title: "Edit Not Available",
+                      description: "Please select only one customer to edit",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                data-testid="button-bulk-edit"
+              >
+                <Edit className="h-4 w-4 mr-2 text-orange-500" />
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={handleBulkDeleteClick}
+                data-testid="button-bulk-delete"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </Button>
+            </div>
           </div>
         )}
         <div className="overflow-x-auto">
