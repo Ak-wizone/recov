@@ -360,44 +360,60 @@ export function DataTable<TData, TValue>({
       )}
 
       <div className="rounded-md border bg-card">
+        <style>{`
+          .scrollbar-horizontal::-webkit-scrollbar,
+          .scrollbar-vertical::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
+          }
+          .scrollbar-horizontal::-webkit-scrollbar-track,
+          .scrollbar-vertical::-webkit-scrollbar-track {
+            background: rgb(243 244 246);
+            border-radius: 6px;
+          }
+          .scrollbar-horizontal::-webkit-scrollbar-thumb,
+          .scrollbar-vertical::-webkit-scrollbar-thumb {
+            background: rgb(156 163 175);
+            border-radius: 6px;
+            border: 2px solid rgb(243 244 246);
+          }
+          .scrollbar-horizontal::-webkit-scrollbar-thumb:hover,
+          .scrollbar-vertical::-webkit-scrollbar-thumb:hover {
+            background: rgb(107 114 128);
+          }
+          .dark .scrollbar-horizontal::-webkit-scrollbar-track,
+          .dark .scrollbar-vertical::-webkit-scrollbar-track {
+            background: rgb(31 41 55);
+          }
+          .dark .scrollbar-horizontal::-webkit-scrollbar-thumb,
+          .dark .scrollbar-vertical::-webkit-scrollbar-thumb {
+            background: rgb(75 85 99);
+            border-color: rgb(31 41 55);
+          }
+          .dark .scrollbar-horizontal::-webkit-scrollbar-thumb:hover,
+          .dark .scrollbar-vertical::-webkit-scrollbar-thumb:hover {
+            background: rgb(107 114 128);
+          }
+        `}</style>
+        {/* Outer container for horizontal scrolling - scrollbar stays at bottom of visible area */}
         <div 
-          className="relative overflow-x-scroll overflow-y-auto scrollbar-visible" 
-          style={{ 
-            maxHeight: "calc(100vh - 420px)",
+          className="relative overflow-x-scroll scrollbar-horizontal"
+          style={{
             scrollbarWidth: "auto",
             scrollbarColor: "rgb(156 163 175) transparent"
           }}
         >
-          <style>{`
-            .scrollbar-visible::-webkit-scrollbar {
-              width: 12px;
-              height: 12px;
-            }
-            .scrollbar-visible::-webkit-scrollbar-track {
-              background: rgb(243 244 246);
-              border-radius: 6px;
-            }
-            .scrollbar-visible::-webkit-scrollbar-thumb {
-              background: rgb(156 163 175);
-              border-radius: 6px;
-              border: 2px solid rgb(243 244 246);
-            }
-            .scrollbar-visible::-webkit-scrollbar-thumb:hover {
-              background: rgb(107 114 128);
-            }
-            .dark .scrollbar-visible::-webkit-scrollbar-track {
-              background: rgb(31 41 55);
-            }
-            .dark .scrollbar-visible::-webkit-scrollbar-thumb {
-              background: rgb(75 85 99);
-              border-color: rgb(31 41 55);
-            }
-            .dark .scrollbar-visible::-webkit-scrollbar-thumb:hover {
-              background: rgb(107 114 128);
-            }
-          `}</style>
-          <Table className="min-w-max">
-            <TableHeader className="sticky top-0 z-10">
+          {/* Inner container for vertical scrolling */}
+          <div 
+            className="overflow-y-auto scrollbar-vertical"
+            style={{ 
+              maxHeight: "calc(100vh - 420px)",
+              scrollbarWidth: "auto",
+              scrollbarColor: "rgb(156 163 175) transparent"
+            }}
+          >
+            <Table className="min-w-max">
+              <TableHeader className="sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="bg-[#F1F5F9] dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600">
                   {headerGroup.headers.map((header) => {
@@ -475,6 +491,7 @@ export function DataTable<TData, TValue>({
             </TableHeader>
             <TableBody>{renderTableBody()}</TableBody>
           </Table>
+          </div>
         </div>
       </div>
 
