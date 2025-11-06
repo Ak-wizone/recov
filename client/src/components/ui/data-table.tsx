@@ -396,7 +396,7 @@ export function DataTable<TData, TValue>({
               background: rgb(107 114 128);
             }
           `}</style>
-          <Table>
+          <Table className="min-w-max">
             <TableHeader className="sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="bg-[#F1F5F9] dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600">
