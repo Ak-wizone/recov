@@ -454,81 +454,83 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
         defaultColumnVisibility={defaultColumnVisibility}
       />
 
-      {/* Table */}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={`filter-${headerGroup.id}`}>
-                {headerGroup.headers.map((header) => {
-                  const canFilter = header.column.getCanFilter();
-                  const columnFilterValue = header.column.getFilterValue();
-
-                  return (
-                    <TableHead key={`filter-${header.id}`}>
-                      {canFilter ? (
-                        <Input
-                          type="text"
-                          placeholder={`Search ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header.toLowerCase() : ''}...`}
-                          value={(columnFilterValue ?? "") as string}
-                          onChange={(e) => header.column.setFilterValue(e.target.value)}
-                          className="h-8"
-                          data-testid={`input-filter-${header.id}`}
-                        />
-                      ) : null}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="hover:bg-muted/50 transition-colors"
-                  data-testid={`row-debtor-${row.original.customerId}`}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+      {/* Table with Scrolling */}
+      <div className="rounded-md border overflow-x-auto">
+        <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 450px)" }}>
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-background">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id} className="py-2 bg-background">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No debtors found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={`filter-${headerGroup.id}`} className="sticky top-11 z-10 bg-background">
+                  {headerGroup.headers.map((header) => {
+                    const canFilter = header.column.getCanFilter();
+                    const columnFilterValue = header.column.getFilterValue();
+
+                    return (
+                      <TableHead key={`filter-${header.id}`} className="py-2 bg-background">
+                        {canFilter ? (
+                          <Input
+                            type="text"
+                            placeholder={`Search ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header.toLowerCase() : ''}...`}
+                            value={(columnFilterValue ?? "") as string}
+                            onChange={(e) => header.column.setFilterValue(e.target.value)}
+                            className="h-8"
+                            data-testid={`input-filter-${header.id}`}
+                          />
+                        ) : null}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                    className="hover:bg-muted/50 transition-colors"
+                    data-testid={`row-debtor-${row.original.customerId}`}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No debtors found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Pagination */}
