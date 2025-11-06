@@ -492,11 +492,12 @@ export default function Sidebar() {
       return true;
     }
 
-    if (!tenant || !tenant.subscriptionPlan) {
+    if (!tenant) {
       return false;
     }
 
-    const allowedModules = tenant.subscriptionPlan.allowedModules || [];
+    // Get allowed modules from tenant (prefer tenant.allowedModules, fallback to subscriptionPlan.allowedModules)
+    const allowedModules = tenant.allowedModules || tenant.subscriptionPlan?.allowedModules || [];
     
     // Check if module itself is directly allowed
     if (allowedModules.includes(moduleName)) {
