@@ -889,19 +889,6 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
                   <BookOpen className="h-4 w-4 mr-2 text-indigo-500" />
                   View Ledger
                 </Button>
-
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    setLocation(`/masters/customers?edit=${selectedDebtorForActions.customerId}`);
-                    setIsActionsDialogOpen(false);
-                  }}
-                  data-testid="button-action-edit"
-                >
-                  <Edit className="h-4 w-4 mr-2 text-gray-500" />
-                  Edit Customer
-                </Button>
               </>
             )}
           </div>
