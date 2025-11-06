@@ -84,6 +84,26 @@ const MODULE_MAPPING: Record<string, string> = {
   "Audit Trial Logs": "Settings",
 };
 
+// Parent-child module relationships for hierarchical access control
+// If parent module is accessible, all children are automatically accessible
+const PARENT_CHILD_MODULES: Record<string, string[]> = {
+  "Payment Tracking": ["Debtors", "Credit Management", "Ledger", "Payment Analytics"],
+  "Action Center": ["Daily Dashboard", "Task Manager", "Call Queue", "Activity Logs"],
+  "Team Performance": ["Leaderboard", "Daily Targets"],
+  "Risk & Recovery": ["Client Risk Thermometer", "Payment Risk Forecaster", "Recovery Health Test"],
+  "Credit Control": ["Category Management", "Category Calculation", "Urgent Actions", "Follow-up Automation", "Follow-up Rules"],
+  "Masters": ["Customers", "Items", "Banks", "Voucher Types", "Company Profile"],
+  "Settings": ["User Management", "Roles Management", "Communication Schedules", "Backup & Restore", "Audit Logs", "Email/WhatsApp/Call Integrations"],
+};
+
+// Reverse mapping: child module -> parent module
+const CHILD_TO_PARENT_MODULE: Record<string, string> = {};
+Object.entries(PARENT_CHILD_MODULES).forEach(([parent, children]) => {
+  children.forEach(child => {
+    CHILD_TO_PARENT_MODULE[child] = parent;
+  });
+});
+
 // Module to Permission mapping for permission checking
 // Maps navigation module names to actual permission module names
 // Only modules with exact permission matches are included
