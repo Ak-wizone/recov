@@ -58,9 +58,9 @@ export function EmailDialog({
   const [body, setBody] = useState("");
 
   const { data: templates, isLoading: isLoadingTemplates } = useQuery<EmailTemplate[]>({
-    queryKey: ["/api/email-templates", { module: moduleType }],
+    queryKey: ["/api/email-templates/module", moduleType],
     queryFn: async () => {
-      const response = await fetch(`/api/email-templates?module=${moduleType}`, {
+      const response = await fetch(`/api/email-templates/module/${moduleType}`, {
         credentials: "include",
       });
       if (!response.ok) {
