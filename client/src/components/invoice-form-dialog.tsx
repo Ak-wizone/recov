@@ -251,6 +251,85 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
               </div>
             </div>
 
+            {/* Customer Details */}
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800 space-y-4">
+              <h3 className="text-base font-semibold text-amber-900 dark:text-amber-100">Customer Details</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-900" data-testid="input-category" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="primaryMobile"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Primary Mobile</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-900" data-testid="input-primary-mobile" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="salesPerson"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sales Person</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-900" data-testid="input-sales-person" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-900" data-testid="input-city" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="pincode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pincode</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-900" data-testid="input-pincode" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+
             {/* Financial Details */}
             <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800 space-y-4">
               <h3 className="text-base font-semibold text-green-900 dark:text-green-100">Financial Details</h3>
@@ -290,6 +369,72 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
                           placeholder="0.00" 
                           data-testid="input-gp" 
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="creditLimit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Credit Limit (₹)</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-900" data-testid="input-credit-limit" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="paymentTerms"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Terms (Days)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          value={field.value || ''} 
+                          readOnly 
+                          className="bg-gray-50 dark:bg-gray-900" 
+                          data-testid="input-payment-terms" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="interestRate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Interest Rate (%)</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-900" data-testid="input-interest-rate" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="interestApplicableFrom"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Interest Applicable From</FormLabel>
+                      <FormControl>
+                        <Input {...field} readOnly className="bg-gray-50 dark:bg-gray-900" data-testid="input-interest-from" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
