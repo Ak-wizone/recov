@@ -33,12 +33,46 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
     "Payment Tracking": [
       "Debtors - View", "Debtors - Export", "Debtors - Print",
       "Ledger - View", "Ledger - Export", "Ledger - Print",
+      "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
+      "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
+    ],
+    "Debtors": [
+      "Debtors - View", "Debtors - Export", "Debtors - Print",
+    ],
+    "Ledger": [
+      "Ledger - View", "Ledger - Export", "Ledger - Print",
+    ],
+    "Credit Management": [
+      "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
+    ],
+    "Payment Analytics": [
       "Payment Analytics - View", "Payment Analytics - Export", "Payment Analytics - Print",
     ],
     "Action Center": [
       "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
     ],
+    "Daily Dashboard": [
+      "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
+    ],
+    "Task Manager": [
+      "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
+    ],
+    "Call Queue": [
+      "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
+    ],
+    "Activity Logs": [
+      "Action Center - View", "Action Center - Create", "Action Center - Edit", "Action Center - Delete",
+    ],
     "Team Performance": [
+      "Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete",
+    ],
+    "Leaderboard": [
+      "Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete",
+    ],
+    "Daily Targets": [
+      "Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete",
+    ],
+    "Notification Center": [
       "Team Performance - View", "Team Performance - Create", "Team Performance - Edit", "Team Performance - Delete",
     ],
     "Risk & Recovery": [
@@ -46,16 +80,54 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
       "Risk Management - Payment Risk Forecaster - View",
       "Risk Management - Recovery Health Test - View",
     ],
+    "Client Risk Thermometer": [
+      "Risk Management - Client Risk Thermometer - View",
+    ],
+    "Payment Risk Forecaster": [
+      "Risk Management - Payment Risk Forecaster - View",
+    ],
+    "Recovery Health Test": [
+      "Risk Management - Recovery Health Test - View",
+    ],
     "Credit Control": [
       "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
       "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete", 
       "Credit Control - Export", "Credit Control - Import", "Credit Control - Print",
+    ],
+    "Category Management": [
+      "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete",
+    ],
+    "Follow-up Rules": [
+      "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete",
+    ],
+    "Category Calculation": [
+      "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete",
+    ],
+    "Urgent Actions": [
+      "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete",
+    ],
+    "Follow-up Automation": [
+      "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete",
     ],
     "Masters": [
       "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", 
       "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
       "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", 
       "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
+    ],
+    "Customers": [
+      "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", 
+      "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
+    ],
+    "Items": [
+      "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", 
+      "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
+    ],
+    "Banks": [
+      "Settings - View", "Settings - Edit",
+    ],
+    "Voucher Types": [
+      "Settings - View", "Settings - Edit",
     ],
     "Settings": [
       "Company Profile - View", "Company Profile - Edit",
@@ -66,6 +138,26 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
       "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
       "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
       "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
+      "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
+    ],
+    "Company Profile": [
+      "Company Profile - View", "Company Profile - Edit",
+    ],
+    "User Management": [
+      "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", 
+      "User Management - Export", "User Management - Import", "User Management - Print",
+    ],
+    "Roles Management": [
+      "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", 
+      "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
+    ],
+    "Communication Schedules": [
+      "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
+    ],
+    "Backup & Restore": [
+      "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
+    ],
+    "Audit Logs": [
       "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
     ],
     "Email/WhatsApp/Call Integrations": [
