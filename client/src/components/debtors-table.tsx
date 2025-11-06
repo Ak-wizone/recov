@@ -678,7 +678,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
                   variant="outline"
                   className="w-full justify-start"
                   onClick={() => {
-                    setLocation(`/customer-ledger/${selectedDebtorForActions.customerId}`);
+                    setLocation(`/ledger?customerId=${selectedDebtorForActions.customerId}`);
                     setIsActionsDialogOpen(false);
                   }}
                   data-testid="button-action-ledger"
@@ -691,7 +691,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
                   variant="outline"
                   className="w-full justify-start"
                   onClick={() => {
-                    setLocation(`/customers?edit=${selectedDebtorForActions.customerId}`);
+                    setLocation(`/masters/customers?edit=${selectedDebtorForActions.customerId}`);
                     setIsActionsDialogOpen(false);
                   }}
                   data-testid="button-action-edit"
