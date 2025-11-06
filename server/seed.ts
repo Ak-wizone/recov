@@ -123,12 +123,6 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
       "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", 
       "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
     ],
-    "Banks": [
-      "Settings - View", "Settings - Edit",
-    ],
-    "Voucher Types": [
-      "Settings - View", "Settings - Edit",
-    ],
     "Settings": [
       "Company Profile - View", "Company Profile - Edit",
       "Settings - View", "Settings - Edit",
@@ -136,9 +130,6 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
       "User Management - Export", "User Management - Import", "User Management - Print",
       "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", 
       "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
-      "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
-      "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
-      "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
     ],
     "Company Profile": [
       "Company Profile - View", "Company Profile - Edit",
@@ -150,9 +141,6 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
     "Roles Management": [
       "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", 
       "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
-    ],
-    "Communication Schedules": [
-      "Communication Schedules - View", "Communication Schedules - Create", "Communication Schedules - Edit", "Communication Schedules - Delete",
     ],
     "Backup & Restore": [
       "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
