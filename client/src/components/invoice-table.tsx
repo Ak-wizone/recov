@@ -49,13 +49,9 @@ export function InvoiceTable({
         accessorKey: "invoiceNumber",
         header: "Invoice Number",
         cell: ({ row }) => (
-          <button
-            onClick={() => onEdit(row.original)}
-            className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline text-left"
-            data-testid={`link-invoice-number-${row.original.id}`}
-          >
+          <div className="font-medium" data-testid={`text-invoice-number-${row.original.id}`}>
             {row.original.invoiceNumber}
-          </button>
+          </div>
         ),
         enableSorting: true,
         enableColumnFilter: true,
