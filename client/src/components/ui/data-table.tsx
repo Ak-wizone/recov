@@ -359,13 +359,13 @@ export function DataTable<TData, TValue>({
         </div>
       )}
 
-      <div className="rounded-md border bg-card overflow-hidden">
-        <div className="overflow-x-auto relative">
+      <div className="rounded-md border bg-card">
+        <div className="relative overflow-auto" style={{ maxHeight: "calc(100vh - 420px)" }}>
           <Table>
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="bg-[#F1F5F9] dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600">
-                    {headerGroup.headers.map((header) => {
+            <TableHeader className="sticky top-0 z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="bg-[#F1F5F9] dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600">
+                  {headerGroup.headers.map((header) => {
                     const canSort = header.column.getCanSort();
                     const sortDirection = header.column.getIsSorted();
 
@@ -411,36 +411,36 @@ export function DataTable<TData, TValue>({
                       </TableHead>
                     );
                   })}
-                  </TableRow>
-                ))}
-                {/* Column Filter Row */}
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={`filter-${headerGroup.id}`} className="bg-white dark:bg-gray-900 border-b">
-                    {headerGroup.headers.map((header) => {
-                      const canFilter = header.column.getCanFilter();
-                      const columnFilterValue = header.column.getFilterValue();
+                </TableRow>
+              ))}
+              {/* Column Filter Row */}
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={`filter-${headerGroup.id}`} className="bg-white dark:bg-gray-900 border-b sticky top-[60px] z-10">
+                  {headerGroup.headers.map((header) => {
+                    const canFilter = header.column.getCanFilter();
+                    const columnFilterValue = header.column.getFilterValue();
 
-                      return (
-                        <TableHead key={`filter-${header.id}`} className="py-3 bg-white dark:bg-gray-900">
-                          {canFilter && header.column.id !== "select" ? (
-                            <Input
-                              type="text"
-                              placeholder={`Search ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header.toLowerCase() : ''}...`}
-                              value={(columnFilterValue ?? "") as string}
-                              onChange={(e) => header.column.setFilterValue(e.target.value)}
-                              className="h-10"
-                              data-testid={`input-filter-${header.id}`}
-                            />
-                          ) : null}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>{renderTableBody()}</TableBody>
-            </Table>
-          </div>
+                    return (
+                      <TableHead key={`filter-${header.id}`} className="py-3 bg-white dark:bg-gray-900">
+                        {canFilter && header.column.id !== "select" ? (
+                          <Input
+                            type="text"
+                            placeholder={`Search ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header.toLowerCase() : ''}...`}
+                            value={(columnFilterValue ?? "") as string}
+                            onChange={(e) => header.column.setFilterValue(e.target.value)}
+                            className="h-10"
+                            data-testid={`input-filter-${header.id}`}
+                          />
+                        ) : null}
+                      </TableHead>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>{renderTableBody()}</TableBody>
+          </Table>
+        </div>
       </div>
 
       {enablePagination && !isLoading && data.length > 0 && (
