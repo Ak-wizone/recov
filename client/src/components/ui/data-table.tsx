@@ -397,9 +397,8 @@ export function DataTable<TData, TValue>({
         `}</style>
         {/* Outer container for horizontal scrolling - scrollbar stays at bottom of visible area */}
         <div 
-          className="relative overflow-x-scroll scrollbar-horizontal"
+          className="relative overflow-x-auto scrollbar-horizontal"
           style={{
-            maxHeight: "calc(100vh - 420px)",
             scrollbarWidth: "auto",
             scrollbarColor: "rgb(156 163 175) transparent"
           }}
