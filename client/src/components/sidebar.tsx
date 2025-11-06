@@ -79,7 +79,6 @@ const MODULE_MAPPING: Record<string, string> = {
   "Credit Control": "Credit Control",
   "Masters": "Masters",
   "Settings": "Settings",
-  "Email/WhatsApp/Call Integrations": "Email/WhatsApp/Call Integrations",
   "Backup & Restore": "Backup & Restore",
   "Audit Trial Logs": "Settings",
 };
@@ -155,9 +154,6 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Roles Management": "Roles Management",
   "Backup & Restore": "Backup & Restore",
   "Audit Logs": "Audit Logs",
-  
-  // Email/WhatsApp/Call Integrations
-  "Email/WhatsApp/Call Integrations": "Email/WhatsApp/Call Integrations",
 };
 
 // Platform Admin navigation items
@@ -416,12 +412,6 @@ const navItems: NavItem[] = [
         icon: <Database className="h-4 w-4" />,
         module: "Backup & Restore",
         platformAdminOnly: true,
-      },
-      {
-        name: "Email/WhatsApp/Call Integrations",
-        path: "/settings/integrations",
-        icon: <MessageSquare className="h-4 w-4" />,
-        module: "Email/WhatsApp/Call Integrations",
       },
     ],
   },
