@@ -412,7 +412,7 @@ export function DataTable<TData, TValue>({
               scrollbarColor: "rgb(156 163 175) transparent"
             }}
           >
-            <Table className="min-w-max">
+            <Table className="min-w-max relative">
               <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="border-b-2 border-gray-300 dark:border-gray-600">
