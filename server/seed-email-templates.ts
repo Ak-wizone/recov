@@ -1303,6 +1303,340 @@ const templates = [
     variables: ["{companyName}", "{customerName}", "{totalDue}", "{daysOverdue}", "{followupCount}", "{overdueAmount}", "{pendingInvoices}", "{lastPaymentDate}", "{customerCategory}", "{companyPhone}", "{companyEmail}"],
     isDefault: "No",
   },
+
+  // LEDGER MODULE (1 template)
+  {
+    module: "ledger",
+    name: "Customer Ledger Statement",
+    subject: "Account Statement - {customerName} | {companyName}",
+    body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table width="700" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px;">
+          <tr style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);">
+            <td style="padding: 30px 40px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px;">Account Ledger Statement</h1>
+              <p style="margin: 10px 0 0; color: #e0e7ff; font-size: 16px;">{companyName}</p>
+            </td>
+          </tr>
+          
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px; color: #333333;">Dear {customerName},</h2>
+              
+              <p style="margin: 0 0 20px; color: #555555; font-size: 16px; line-height: 1.6;">
+                Please find your account statement for the period <strong>{ledgerPeriod}</strong>.
+              </p>
+              
+              <table width="100%" style="border: 2px solid #4f46e5; border-radius: 8px; margin: 25px 0;">
+                <tr style="background-color: #4f46e5;">
+                  <td colspan="2" style="padding: 15px; text-align: center; color: #ffffff; font-size: 18px; font-weight: bold;">
+                    Account Summary
+                  </td>
+                </tr>
+                <tr style="background-color: #e0e7ff;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Opening Balance:</strong></td>
+                  <td style="padding: 15px; color: #1e40af; font-size: 16px; font-weight: bold; text-align: right;">{openingBalance}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Total Debits (Invoices):</strong></td>
+                  <td style="padding: 15px; color: #dc2626; font-size: 16px; font-weight: bold; text-align: right;">{totalDebits}</td>
+                </tr>
+                <tr style="background-color: #f0fdf4;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Total Credits (Payments):</strong></td>
+                  <td style="padding: 15px; color: #16a34a; font-size: 16px; font-weight: bold; text-align: right;">{totalCredits}</td>
+                </tr>
+                <tr style="background-color: #fef3c7; border-top: 2px solid #4f46e5;">
+                  <td style="padding: 15px; color: #333; font-size: 16px;"><strong>Closing Balance:</strong></td>
+                  <td style="padding: 15px; color: #92400e; font-size: 18px; font-weight: bold; text-align: right;">{closingBalance}</td>
+                </tr>
+              </table>
+              
+              <p style="margin: 20px 0 10px; color: #555555; font-size: 15px;">
+                <strong>Transaction Count:</strong> {transactionCount} entries
+              </p>
+              
+              <p style="margin: 20px 0; color: #555555; font-size: 16px; line-height: 1.6;">
+                For detailed transaction history, please log in to your account or contact us directly.
+              </p>
+              
+              <div style="background-color: #eff6ff; border-left: 4px solid #4f46e5; padding: 15px; margin: 25px 0;">
+                <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                  <strong>Note:</strong> If you have any questions about this statement, please don't hesitate to reach out to our accounts team.
+                </p>
+              </div>
+              
+              <p style="margin: 20px 0 0; color: #555555; font-size: 16px;">
+                Best regards,<br>
+                <strong>{companyName} Accounts Team</strong>
+              </p>
+            </td>
+          </tr>
+          
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 20px 40px; text-align: center;">
+              <p style="margin: 0 0 5px; color: #4f46e5; font-size: 16px; font-weight: bold;">{companyName}</p>
+              <p style="margin: 0; color: #888888; font-size: 14px;">{companyPhone} | {companyEmail}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    variables: ["{companyName}", "{customerName}", "{ledgerPeriod}", "{openingBalance}", "{totalDebits}", "{totalCredits}", "{closingBalance}", "{transactionCount}", "{companyPhone}", "{companyEmail}"],
+    isDefault: "Yes",
+  },
+
+  // INTEREST CALCULATOR MODULE (1 template)
+  {
+    module: "interest_calculator",
+    name: "Interest Calculation Report",
+    subject: "Interest Statement - Invoice {invoiceNumber} | {companyName}",
+    body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table width="700" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px;">
+          <tr style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+            <td style="padding: 30px 40px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px;">Interest Calculation Report</h1>
+              <p style="margin: 10px 0 0; color: #fed7aa; font-size: 16px;">{companyName}</p>
+            </td>
+          </tr>
+          
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px; color: #333333;">Dear {customerName},</h2>
+              
+              <p style="margin: 0 0 20px; color: #555555; font-size: 16px; line-height: 1.6;">
+                This is your interest calculation report for <strong>Invoice #{invoiceNumber}</strong>.
+              </p>
+              
+              <table width="100%" style="border: 2px solid #f97316; border-radius: 8px; margin: 25px 0;">
+                <tr style="background-color: #f97316;">
+                  <td colspan="2" style="padding: 15px; text-align: center; color: #ffffff; font-size: 18px; font-weight: bold;">
+                    Invoice Details
+                  </td>
+                </tr>
+                <tr style="background-color: #ffedd5;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Invoice Number:</strong></td>
+                  <td style="padding: 15px; color: #ea580c; font-size: 15px; font-weight: bold; text-align: right;">{invoiceNumber}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Invoice Amount:</strong></td>
+                  <td style="padding: 15px; color: #1e40af; font-size: 16px; font-weight: bold; text-align: right;">{invoiceAmount}</td>
+                </tr>
+                <tr style="background-color: #ffedd5;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Invoice Date:</strong></td>
+                  <td style="padding: 15px; color: #555; font-size: 15px; text-align: right;">{invoiceDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Due Date:</strong></td>
+                  <td style="padding: 15px; color: #555; font-size: 15px; text-align: right;">{dueDate}</td>
+                </tr>
+                <tr style="background-color: #ffedd5;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Interest Rate:</strong></td>
+                  <td style="padding: 15px; color: #ea580c; font-size: 15px; font-weight: bold; text-align: right;">{interestRate}% per month</td>
+                </tr>
+              </table>
+              
+              <table width="100%" style="border: 2px solid #dc2626; border-radius: 8px; margin: 25px 0;">
+                <tr style="background-color: #dc2626;">
+                  <td colspan="2" style="padding: 15px; text-align: center; color: #ffffff; font-size: 18px; font-weight: bold;">
+                    Interest Calculation
+                  </td>
+                </tr>
+                <tr style="background-color: #fee2e2;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Days Overdue:</strong></td>
+                  <td style="padding: 15px; color: #dc2626; font-size: 16px; font-weight: bold; text-align: right;">{daysOverdue} days</td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Interest Amount:</strong></td>
+                  <td style="padding: 15px; color: #dc2626; font-size: 18px; font-weight: bold; text-align: right;">{interestAmount}</td>
+                </tr>
+                <tr style="background-color: #fef3c7; border-top: 2px solid #dc2626;">
+                  <td style="padding: 15px; color: #333; font-size: 16px;"><strong>Total Amount Due (with Interest):</strong></td>
+                  <td style="padding: 15px; color: #92400e; font-size: 20px; font-weight: bold; text-align: right;">{totalWithInterest}</td>
+                </tr>
+              </table>
+              
+              <div style="background-color: #fef3c7; border-left: 4px solid #f97316; padding: 15px; margin: 25px 0;">
+                <p style="margin: 0; color: #92400e; font-size: 14px;">
+                  <strong>Interest Calculation Method:</strong> {interestMethod}
+                </p>
+              </div>
+              
+              <p style="margin: 20px 0; color: #555555; font-size: 16px; line-height: 1.6;">
+                Please arrange for payment at your earliest convenience to avoid further interest charges.
+              </p>
+              
+              <p style="margin: 20px 0 0; color: #555555; font-size: 16px;">
+                Regards,<br>
+                <strong>{companyName} Finance Team</strong>
+              </p>
+            </td>
+          </tr>
+          
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 20px 40px; text-align: center;">
+              <p style="margin: 0 0 5px; color: #f97316; font-size: 16px; font-weight: bold;">{companyName}</p>
+              <p style="margin: 0; color: #888888; font-size: 14px;">{companyPhone} | {companyEmail}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    variables: ["{companyName}", "{customerName}", "{invoiceNumber}", "{invoiceAmount}", "{invoiceDate}", "{dueDate}", "{interestRate}", "{daysOverdue}", "{interestAmount}", "{totalWithInterest}", "{interestMethod}", "{companyPhone}", "{companyEmail}"],
+    isDefault: "Yes",
+  },
+
+  // CUSTOMER REPORTS / DEBTOR SUMMARY MODULE (1 template)
+  {
+    module: "customer_reports",
+    name: "Customer Account Summary",
+    subject: "Account Summary Report - {customerName} | {companyName}",
+    body: `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f4; padding: 20px 0;">
+    <tr>
+      <td align="center">
+        <table width="700" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px;">
+          <tr style="background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);">
+            <td style="padding: 30px 40px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 28px;">Customer Account Summary</h1>
+              <p style="margin: 10px 0 0; color: #cffafe; font-size: 16px;">{companyName}</p>
+            </td>
+          </tr>
+          
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 20px; color: #333333;">Customer: {customerName}</h2>
+              
+              <table width="100%" style="border: 2px solid #0891b2; border-radius: 8px; margin: 25px 0;">
+                <tr style="background-color: #0891b2;">
+                  <td colspan="2" style="padding: 15px; text-align: center; color: #ffffff; font-size: 18px; font-weight: bold;">
+                    Account Overview
+                  </td>
+                </tr>
+                <tr style="background-color: #e0f2fe;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Customer Category:</strong></td>
+                  <td style="padding: 15px; color: #0e7490; font-size: 15px; font-weight: bold; text-align: right;">{customerCategory}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Credit Limit:</strong></td>
+                  <td style="padding: 15px; color: #1e40af; font-size: 16px; font-weight: bold; text-align: right;">{creditLimit}</td>
+                </tr>
+                <tr style="background-color: #e0f2fe;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Total Outstanding:</strong></td>
+                  <td style="padding: 15px; color: #dc2626; font-size: 18px; font-weight: bold; text-align: right;">{outstandingBalance}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Available Credit:</strong></td>
+                  <td style="padding: 15px; color: #16a34a; font-size: 16px; font-weight: bold; text-align: right;">{availableCredit}</td>
+                </tr>
+              </table>
+              
+              <table width="100%" style="border: 2px solid #f97316; border-radius: 8px; margin: 25px 0;">
+                <tr style="background-color: #f97316;">
+                  <td colspan="2" style="padding: 15px; text-align: center; color: #ffffff; font-size: 18px; font-weight: bold;">
+                    Aging Analysis
+                  </td>
+                </tr>
+                <tr style="background-color: #ffedd5;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Current (0-30 days):</strong></td>
+                  <td style="padding: 15px; color: #16a34a; font-size: 15px; font-weight: bold; text-align: right;">{aging0to30}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>31-60 days:</strong></td>
+                  <td style="padding: 15px; color: #ea580c; font-size: 15px; font-weight: bold; text-align: right;">{aging31to60}</td>
+                </tr>
+                <tr style="background-color: #ffedd5;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>61-90 days:</strong></td>
+                  <td style="padding: 15px; color: #dc2626; font-size: 15px; font-weight: bold; text-align: right;">{aging61to90}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Over 90 days:</strong></td>
+                  <td style="padding: 15px; color: #991b1b; font-size: 16px; font-weight: bold; text-align: right;">{agingOver90}</td>
+                </tr>
+              </table>
+              
+              <table width="100%" style="border: 2px solid #4f46e5; border-radius: 8px; margin: 25px 0;">
+                <tr style="background-color: #4f46e5;">
+                  <td colspan="2" style="padding: 15px; text-align: center; color: #ffffff; font-size: 18px; font-weight: bold;">
+                    Transaction Summary
+                  </td>
+                </tr>
+                <tr style="background-color: #e0e7ff;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Total Invoices:</strong></td>
+                  <td style="padding: 15px; color: #1e40af; font-size: 15px; font-weight: bold; text-align: right;">{totalInvoices}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Total Payments Received:</strong></td>
+                  <td style="padding: 15px; color: #16a34a; font-size: 15px; font-weight: bold; text-align: right;">{totalPayments}</td>
+                </tr>
+                <tr style="background-color: #e0e7ff;">
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Last Payment Date:</strong></td>
+                  <td style="padding: 15px; color: #555; font-size: 15px; text-align: right;">{lastPaymentDate}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 15px; color: #333; font-size: 15px;"><strong>Last Invoice Date:</strong></td>
+                  <td style="padding: 15px; color: #555; font-size: 15px; text-align: right;">{lastInvoiceDate}</td>
+                </tr>
+              </table>
+              
+              <div style="background-color: #eff6ff; border-left: 4px solid #0891b2; padding: 15px; margin: 25px 0;">
+                <p style="margin: 0; color: #0e7490; font-size: 14px;">
+                  <strong>Payment Terms:</strong> {paymentTerms}<br>
+                  <strong>Sales Person:</strong> {salesPerson}
+                </p>
+              </div>
+              
+              <p style="margin: 20px 0; color: #555555; font-size: 16px; line-height: 1.6;">
+                Thank you for your business. If you have any questions about your account, please don't hesitate to contact us.
+              </p>
+              
+              <p style="margin: 20px 0 0; color: #555555; font-size: 16px;">
+                Best regards,<br>
+                <strong>{companyName} Customer Service</strong>
+              </p>
+            </td>
+          </tr>
+          
+          <tr style="background-color: #f8f9fa;">
+            <td style="padding: 20px 40px; text-align: center;">
+              <p style="margin: 0 0 5px; color: #0891b2; font-size: 16px; font-weight: bold;">{companyName}</p>
+              <p style="margin: 0; color: #888888; font-size: 14px;">{companyPhone} | {companyEmail}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+    variables: ["{companyName}", "{customerName}", "{customerCategory}", "{creditLimit}", "{outstandingBalance}", "{availableCredit}", "{aging0to30}", "{aging31to60}", "{aging61to90}", "{agingOver90}", "{totalInvoices}", "{totalPayments}", "{lastPaymentDate}", "{lastInvoiceDate}", "{paymentTerms}", "{salesPerson}", "{companyPhone}", "{companyEmail}"],
+    isDefault: "Yes",
+  },
 ];
 
 export async function seedEmailTemplates() {
@@ -1352,7 +1686,7 @@ export async function seedEmailTemplates() {
       console.log(`✓ Successfully seeded email templates for ${totalCreated} tenant(s)!`);
       console.log(`  - Created: ${totalCreated * templates.length} templates total`);
       console.log(`  - Skipped: ${totalSkipped} tenants`);
-      console.log("  - Modules covered: leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management, followup_automation");
+      console.log("  - Modules covered: leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management, followup_automation, ledger, interest_calculator, customer_reports");
     } else {
       console.log("✓ All tenants already have email templates");
     }

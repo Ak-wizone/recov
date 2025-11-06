@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import html2pdf from "html2pdf.js";
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { EmailDialog } from "@/components/email-dialog";
 
 const formatLedgerDate = (dateString: string): string => {
   if (!dateString || dateString.trim() === '') {

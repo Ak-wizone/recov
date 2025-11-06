@@ -28,7 +28,7 @@ import { Link } from "wouter";
 interface EmailDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  moduleType: "leads" | "quotations" | "proforma_invoices" | "invoices" | "receipts" | "debtors" | "credit_management";
+  moduleType: "leads" | "quotations" | "proforma_invoices" | "invoices" | "receipts" | "debtors" | "credit_management" | "ledger" | "interest_calculator" | "customer_reports";
   recordData: {
     customerName?: string;
     customerEmail?: string;
@@ -40,6 +40,7 @@ interface EmailDialogProps {
     voucherNumber?: string;
     voucherType?: string;
     receiptId?: string;
+    customerId?: string;
     [key: string]: any;
   };
 }

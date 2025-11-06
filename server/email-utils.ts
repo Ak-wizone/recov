@@ -116,6 +116,15 @@ export async function getEnrichedEmailVariables(
       case 'followup_automation':
         await enrichFollowupAutomationVariables(tenantId, dataId, variables);
         break;
+      case 'ledger':
+        await enrichLedgerVariables(tenantId, dataId, variables);
+        break;
+      case 'interest_calculator':
+        await enrichInterestCalculatorVariables(tenantId, dataId, variables);
+        break;
+      case 'customer_reports':
+        await enrichCustomerReportsVariables(tenantId, dataId, variables);
+        break;
     }
   }
 
@@ -358,6 +367,218 @@ async function enrichFollowupAutomationVariables(
   variables.nextFollowupDate = 'To be scheduled'; // Can be enhanced with automation rules
   variables.customerCategory = customer.category || 'Not categorized';
   variables.pendingInvoices = pendingInvoiceNumbers || 'None';
+}
+
+// Enrich variables for Ledger module
+async function enrichLedgerVariables(
+  tenantId: string,
+  customerId: string,
+  variables: Record<string, string>
+): Promise<void> {
+  const customer = await storage.getCustomer(tenantId, customerId);
+  if (!customer) return;
+
+  // Get all invoices and receipts for this customer
+  const allInvoices = await storage.getInvoices(tenantId);
+  const allReceipts = await storage.getReceipts(tenantId);
+
+  const customerInvoices = allInvoices.filter(inv => inv.customerId === customerId);
+  const customerReceipts = allReceipts.filter(rec => rec.customerId === customerId);
+
+  // Calculate ledger balances
+  const openingBalance = parseFloat(customer.openingBalance || '0');
+  const totalDebits = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.grandTotal), 0);
+  const totalCredits = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+  const closingBalance = openingBalance + totalDebits - totalCredits;
+
+  // Calculate transaction count
+  const transactionCount = customerInvoices.length + customerReceipts.length;
+
+  // Calculate ledger period
+  const sortedInvoices = customerInvoices.sort((a, b) => 
+    new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime()
+  );
+  const sortedReceipts = customerReceipts.sort((a, b) => 
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  const earliestDate = sortedInvoices.length > 0 && sortedReceipts.length > 0
+    ? new Date(Math.min(
+        new Date(sortedInvoices[0].invoiceDate).getTime(),
+        new Date(sortedReceipts[0].date).getTime()
+      ))
+    : sortedInvoices.length > 0
+    ? new Date(sortedInvoices[0].invoiceDate)
+    : sortedReceipts.length > 0
+    ? new Date(sortedReceipts[0].date)
+    : new Date();
+
+  const latestDate = sortedInvoices.length > 0 && sortedReceipts.length > 0
+    ? new Date(Math.max(
+        new Date(sortedInvoices[sortedInvoices.length - 1].invoiceDate).getTime(),
+        new Date(sortedReceipts[sortedReceipts.length - 1].date).getTime()
+      ))
+    : sortedInvoices.length > 0
+    ? new Date(sortedInvoices[sortedInvoices.length - 1].invoiceDate)
+    : sortedReceipts.length > 0
+    ? new Date(sortedReceipts[sortedReceipts.length - 1].date)
+    : new Date();
+
+  const ledgerPeriod = `${formatDate(earliestDate)} to ${formatDate(latestDate)}`;
+
+  variables.customerName = customer.customerName || '';
+  variables.customerEmail = customer.email || '';
+  variables.customerPhone = customer.mobile || '';
+  variables.ledgerPeriod = ledgerPeriod;
+  variables.openingBalance = formatCurrency(openingBalance);
+  variables.totalDebits = formatCurrency(totalDebits);
+  variables.totalCredits = formatCurrency(totalCredits);
+  variables.closingBalance = formatCurrency(closingBalance);
+  variables.transactionCount = transactionCount.toString();
+}
+
+// Enrich variables for Interest Calculator module
+async function enrichInterestCalculatorVariables(
+  tenantId: string,
+  invoiceId: string,
+  variables: Record<string, string>
+): Promise<void> {
+  const invoice = await storage.getInvoice(tenantId, invoiceId);
+  if (!invoice) return;
+
+  const customer = invoice.customerId ? await storage.getCustomer(tenantId, invoice.customerId) : null;
+
+  // Calculate days overdue
+  const dueDate = new Date(invoice.dueDate);
+  const today = new Date();
+  const daysOverdue = dueDate < today 
+    ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  // Get interest rate from invoice or use default
+  const interestRate = invoice.interestRate ? parseFloat(invoice.interestRate.toString()) : 0;
+  
+  // Calculate interest amount (simple interest: Principal × Rate × Time / 100)
+  // For monthly rate, convert days to months
+  const invoiceAmount = parseFloat(invoice.grandTotal);
+  const monthsOverdue = daysOverdue / 30;
+  const interestAmount = daysOverdue > 0 && interestRate > 0
+    ? (invoiceAmount * interestRate * monthsOverdue) / 100
+    : 0;
+
+  const totalWithInterest = invoiceAmount + interestAmount;
+
+  // Determine interest calculation method
+  const interestMethod = interestRate > 0 
+    ? `Simple Interest - ${interestRate}% per month on overdue amount`
+    : 'No interest applied';
+
+  variables.customerName = customer?.customerName || '';
+  variables.customerEmail = customer?.email || '';
+  variables.customerPhone = customer?.mobile || '';
+  variables.invoiceNumber = invoice.invoiceNumber || '';
+  variables.invoiceAmount = formatCurrency(invoiceAmount);
+  variables.invoiceDate = formatDate(invoice.invoiceDate);
+  variables.dueDate = formatDate(invoice.dueDate);
+  variables.interestRate = interestRate.toFixed(2);
+  variables.daysOverdue = daysOverdue.toString();
+  variables.interestAmount = formatCurrency(interestAmount);
+  variables.totalWithInterest = formatCurrency(totalWithInterest);
+  variables.interestMethod = interestMethod;
+}
+
+// Enrich variables for Customer Reports module
+async function enrichCustomerReportsVariables(
+  tenantId: string,
+  customerId: string,
+  variables: Record<string, string>
+): Promise<void> {
+  const customer = await storage.getCustomer(tenantId, customerId);
+  if (!customer) return;
+
+  // Get all invoices and receipts for this customer
+  const allInvoices = await storage.getInvoices(tenantId);
+  const allReceipts = await storage.getReceipts(tenantId);
+
+  const customerInvoices = allInvoices.filter(inv => inv.customerId === customerId);
+  const customerReceipts = allReceipts.filter(rec => rec.customerId === customerId);
+
+  // Calculate totals
+  const totalInvoicesAmount = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.grandTotal), 0);
+  const totalPaymentsAmount = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+  const outstandingBalance = totalInvoicesAmount - totalPaymentsAmount;
+
+  // Calculate credit information
+  const creditLimit = parseFloat(customer.creditLimit || '0');
+  const availableCredit = creditLimit - outstandingBalance;
+
+  // Calculate aging analysis
+  const today = new Date();
+  let aging0to30 = 0;
+  let aging31to60 = 0;
+  let aging61to90 = 0;
+  let agingOver90 = 0;
+
+  for (const invoice of customerInvoices) {
+    const dueDate = new Date(invoice.dueDate);
+    const daysOverdue = dueDate < today 
+      ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+
+    const invoiceAmount = parseFloat(invoice.grandTotal);
+    
+    // Get payments allocated to this invoice
+    const relatedReceipts = customerReceipts.filter(rec => 
+      rec.invoiceNumber === invoice.invoiceNumber || rec.invoiceId === invoice.id
+    );
+    const paidAmount = relatedReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+    const remainingAmount = invoiceAmount - paidAmount;
+
+    if (remainingAmount > 0) {
+      if (daysOverdue <= 30) {
+        aging0to30 += remainingAmount;
+      } else if (daysOverdue <= 60) {
+        aging31to60 += remainingAmount;
+      } else if (daysOverdue <= 90) {
+        aging61to90 += remainingAmount;
+      } else {
+        agingOver90 += remainingAmount;
+      }
+    }
+  }
+
+  // Get last payment and invoice dates
+  const sortedReceipts = customerReceipts.sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  const sortedInvoices = customerInvoices.sort((a, b) => 
+    new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
+  );
+
+  const lastPaymentDate = sortedReceipts.length > 0 
+    ? formatDate(sortedReceipts[0].date) 
+    : 'No payments yet';
+  const lastInvoiceDate = sortedInvoices.length > 0 
+    ? formatDate(sortedInvoices[0].invoiceDate) 
+    : 'No invoices yet';
+
+  variables.customerName = customer.customerName || '';
+  variables.customerEmail = customer.email || '';
+  variables.customerPhone = customer.mobile || '';
+  variables.customerCategory = customer.category || 'Not categorized';
+  variables.creditLimit = formatCurrency(creditLimit);
+  variables.outstandingBalance = formatCurrency(outstandingBalance);
+  variables.availableCredit = formatCurrency(availableCredit);
+  variables.aging0to30 = formatCurrency(aging0to30);
+  variables.aging31to60 = formatCurrency(aging31to60);
+  variables.aging61to90 = formatCurrency(aging61to90);
+  variables.agingOver90 = formatCurrency(agingOver90);
+  variables.totalInvoices = customerInvoices.length.toString();
+  variables.totalPayments = formatCurrency(totalPaymentsAmount);
+  variables.lastPaymentDate = lastPaymentDate;
+  variables.lastInvoiceDate = lastInvoiceDate;
+  variables.paymentTerms = customer.paymentTerms || 'As per agreement';
+  variables.salesPerson = customer.salesPersonName || 'Not assigned';
 }
 
 // Format items table HTML
