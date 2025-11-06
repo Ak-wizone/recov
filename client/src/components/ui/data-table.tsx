@@ -405,7 +405,7 @@ export function DataTable<TData, TValue>({
         >
           {/* Inner container for vertical scrolling */}
           <div 
-            className="overflow-y-auto scrollbar-vertical"
+            className="relative overflow-y-auto scrollbar-vertical"
             style={{ 
               maxHeight: "calc(100vh - 420px)",
               scrollbarWidth: "auto",
@@ -413,9 +413,9 @@ export function DataTable<TData, TValue>({
             }}
           >
             <Table className="min-w-max">
-              <TableHeader className="sticky top-0 z-10">
+              <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="bg-[#F1F5F9] dark:bg-gray-800 border-b-2 border-gray-300 dark:border-gray-600">
+                <TableRow key={headerGroup.id} className="border-b-2 border-gray-300 dark:border-gray-600">
                   {headerGroup.headers.map((header) => {
                     const canSort = header.column.getCanSort();
                     const sortDirection = header.column.getIsSorted();
@@ -425,7 +425,7 @@ export function DataTable<TData, TValue>({
                         key={header.id}
                         className={cn(
                           canSort && "cursor-pointer select-none",
-                          "whitespace-nowrap font-semibold py-4 bg-[#F1F5F9] dark:bg-gray-800"
+                          "sticky top-0 z-20 whitespace-nowrap font-semibold py-4 bg-[#F1F5F9] dark:bg-gray-800"
                         )}
                         onClick={
                           canSort
@@ -466,13 +466,13 @@ export function DataTable<TData, TValue>({
               ))}
               {/* Column Filter Row */}
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={`filter-${headerGroup.id}`} className="bg-white dark:bg-gray-900 border-b sticky top-[60px] z-10">
+                <TableRow key={`filter-${headerGroup.id}`} className="border-b">
                   {headerGroup.headers.map((header) => {
                     const canFilter = header.column.getCanFilter();
                     const columnFilterValue = header.column.getFilterValue();
 
                     return (
-                      <TableHead key={`filter-${header.id}`} className="py-3 bg-white dark:bg-gray-900">
+                      <TableHead key={`filter-${header.id}`} className="sticky top-[60px] z-20 py-3 bg-white dark:bg-gray-900">
                         {canFilter && header.column.id !== "select" ? (
                           <Input
                             type="text"
