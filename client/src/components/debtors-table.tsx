@@ -85,7 +85,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
   
   // Define default column visibility - only show these columns by default
   const [defaultColumnVisibility] = useState<Record<string, boolean>>({
-    // Visible by default
+    // Visible by default (9 data columns as per spec)
     name: true,
     category: true,
     creditLimit: true,
@@ -95,9 +95,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
     balance: true,
     lastFollowUp: true,
     nextFollowUp: true,
-    actions: true,
     
-    // Hidden by default
+    // Hidden by default (optional columns available in column chooser)
     salesPerson: false,
     mobile: false,
     email: false,
@@ -105,6 +104,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
     receiptCount: false,
     lastInvoiceDate: false,
     lastPaymentDate: false,
+    actions: false,  // Action buttons hidden by default, can be shown via column chooser
   });
   
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(defaultColumnVisibility);
@@ -520,21 +520,50 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
       });
       return;
     }
-    // For bulk email, we'll just open dialog for first one
-    // In a real implementation, this would open a bulk email composer
-    onOpenEmail(debtorsWithEmail[0]);
+    
+    // Open email dialog for each selected debtor
+    debtorsWithEmail.forEach((debtor, index) => {
+      setTimeout(() => {
+        onOpenEmail(debtor);
+      }, index * 500); // Stagger dialogs by 500ms to avoid overwhelming
+    });
+    
+    toast({
+      title: "Email dialogs opening",
+      description: `Opening email composer for ${debtorsWithEmail.length} customer(s)`,
+    });
   };
 
   const handleBulkCall = () => {
     if (selectedDebtors.length === 0) return;
-    // For bulk call, open dialog for first one
-    onOpenCall(selectedDebtors[0]);
+    
+    // Open call dialog for each selected debtor
+    selectedDebtors.forEach((debtor, index) => {
+      setTimeout(() => {
+        onOpenCall(debtor);
+      }, index * 500); // Stagger dialogs by 500ms
+    });
+    
+    toast({
+      title: "Call dialogs opening",
+      description: `Opening call dialog for ${selectedDebtors.length} customer(s)`,
+    });
   };
 
   const handleBulkFollowUp = () => {
     if (selectedDebtors.length === 0) return;
-    // For bulk follow-up, open dialog for first one
-    onOpenFollowUp(selectedDebtors[0]);
+    
+    // Open follow-up dialog for each selected debtor
+    selectedDebtors.forEach((debtor, index) => {
+      setTimeout(() => {
+        onOpenFollowUp(debtor);
+      }, index * 500); // Stagger dialogs by 500ms
+    });
+    
+    toast({
+      title: "Follow-up dialogs opening",
+      description: `Opening follow-up scheduler for ${selectedDebtors.length} customer(s)`,
+    });
   };
 
   return (
