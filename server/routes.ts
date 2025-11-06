@@ -2624,44 +2624,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       let isAdminLocked = false; // Flag to indicate locked admin permissions
 
-      // ADMIN USERS: Always have full subscription-based permissions (locked/required)
-      // Admin users cannot have their permissions modified or reduced
-      if (user.isAdmin && user.tenantId) {
+      // ADMIN USERS: Fetch permissions from Admin role (always up-to-date with subscription plan)
+      // Admin users get their permissions from the Admin role which is automatically synced with subscription plan
+      if (user.isAdmin && user.tenantId && user.roleId) {
         isAdminLocked = true;
-        permissions = [
-          // Business Overview
-          "Business Overview - View",
-          // Customer Analytics
-          "Customer Analytics - View",
-          // Leads
-          "Leads - View", "Leads - Create", "Leads - Edit", "Leads - Delete", "Leads - Export", "Leads - Import", "Leads - Print",
-          // Quotations
-          "Quotations - View", "Quotations - Create", "Quotations - Edit", "Quotations - Delete", "Quotations - Export", "Quotations - Import", "Quotations - Print",
-          // Proforma Invoices
-          "Proforma Invoices - View", "Proforma Invoices - Create", "Proforma Invoices - Edit", "Proforma Invoices - Delete", "Proforma Invoices - Export", "Proforma Invoices - Import", "Proforma Invoices - Print",
-          // Invoices
-          "Invoices - View", "Invoices - Create", "Invoices - Edit", "Invoices - Delete", "Invoices - Export", "Invoices - Import", "Invoices - Print",
-          // Receipts
-          "Receipts - View", "Receipts - Create", "Receipts - Edit", "Receipts - Delete", "Receipts - Export", "Receipts - Import", "Receipts - Print",
-          // Debtors
-          "Debtors - View", "Debtors - Export", "Debtors - Print",
-          // Masters - Customers
-          "Masters - Customers - View", "Masters - Customers - Create", "Masters - Customers - Edit", "Masters - Customers - Delete", "Masters - Customers - Export", "Masters - Customers - Import", "Masters - Customers - Print",
-          // Masters - Items
-          "Masters - Items - View", "Masters - Items - Create", "Masters - Items - Edit", "Masters - Items - Delete", "Masters - Items - Export", "Masters - Items - Import", "Masters - Items - Print",
-          // Risk Management
-          "Risk Management - Client Risk Thermometer - View",
-          "Risk Management - Payment Risk Forecaster - View",
-          "Risk Management - Recovery Health Test - View",
-          // Company Settings
-          "Company Settings - View", "Company Settings - Edit",
-          // User Management
-          "User Management - View", "User Management - Create", "User Management - Edit", "User Management - Delete", "User Management - Export", "User Management - Import", "User Management - Print",
-          // Roles Management
-          "Roles Management - View", "Roles Management - Create", "Roles Management - Edit", "Roles Management - Delete", "Roles Management - Export", "Roles Management - Import", "Roles Management - Print",
-          // Reports
-          "Reports - View", "Reports - Export", "Reports - Print",
-        ];
+        const adminRole = await storage.getRole(user.tenantId, user.roleId);
+        if (adminRole) {
+          permissions = adminRole.permissions || [];
+          canViewGP = true; // Admin always has GP access
+          allowedDashboardCards = adminRole.allowedDashboardCards || [];
+          actionPermissions = {
+            canEmail: true,
+            canWhatsApp: true,
+            canSMS: true,
+            canCall: true,
+            canReminder: true,
+            canShare: true,
+          }; // Admin has all action permissions
+        }
       }
 
       // NON-ADMIN USERS: Use role-based permissions
