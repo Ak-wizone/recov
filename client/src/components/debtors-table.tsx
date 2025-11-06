@@ -455,8 +455,21 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
       />
 
       {/* Table with Scrolling */}
-      <div className="rounded-md border overflow-x-auto">
-        <div className="overflow-y-auto" style={{ maxHeight: "calc(100vh - 450px)" }}>
+      <div 
+        className="rounded-md border overflow-x-auto"
+        style={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'rgb(203 213 225) transparent'
+        }}
+      >
+        <div 
+          className="overflow-y-auto" 
+          style={{ 
+            maxHeight: "calc(100vh - 450px)",
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgb(203 213 225) transparent'
+          }}
+        >
           <Table>
             <TableHeader className="sticky top-0 z-10 bg-background">
               {table.getHeaderGroups().map((headerGroup) => (
