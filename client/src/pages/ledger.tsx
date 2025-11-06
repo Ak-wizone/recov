@@ -138,6 +138,7 @@ export default function Ledger() {
   const { fromDate: defaultFromDate, toDate: defaultToDate } = getFinancialYearDates();
   const [fromDate, setFromDate] = useState(defaultFromDate);
   const [toDate, setToDate] = useState(defaultToDate);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const { toast } = useToast();
 
   // Parse URL parameters on mount
@@ -223,10 +224,7 @@ export default function Ledger() {
       return;
     }
 
-    toast({
-      title: "Email Feature",
-      description: "Email functionality will be integrated with your email configuration.",
-    });
+    setIsEmailDialogOpen(true);
   };
 
   const handleWhatsApp = () => {
@@ -900,6 +898,19 @@ export default function Ledger() {
           </>
         )}
       </div>
+
+      {ledgerData && (
+        <EmailDialog
+          isOpen={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          moduleType="ledger"
+          recordData={{
+            customerName: ledgerData.customer.name,
+            customerEmail: ledgerData.customer.email || "",
+            customerId: selectedCustomerId,
+          }}
+        />
+      )}
     </div>
   );
 }

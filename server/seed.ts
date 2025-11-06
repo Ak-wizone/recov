@@ -1,5 +1,6 @@
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
+import { seedEmailTemplates } from "./seed-email-templates";
 
 // Module-to-Permission Mapping: Generate permissions based on allowed modules
 function getPermissionsForModules(moduleNames: string[]): string[] {
@@ -335,6 +336,9 @@ export async function seedDatabase() {
     } else {
       console.log("⚡ Published deployment detected: Skipping heavy seed operations for fast startup");
     }
+
+    // Seed email templates for all active tenants
+    await seedEmailTemplates();
 
     console.log("Seed data check complete!");
   } catch (error) {

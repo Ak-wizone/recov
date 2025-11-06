@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import html2pdf from "html2pdf.js";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { EmailDialog } from "@/components/email-dialog";
 
 interface InterestCalculatorDialogProps {
   invoiceId: string | null;
@@ -74,6 +75,7 @@ interface InterestBreakdown {
 
 export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalculatorDialogProps) {
   const [reportType, setReportType] = useState<'gp' | 'customer'>('gp');
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: profile, isLoading: profileLoading } = useQuery<CompanyProfile>({
@@ -126,26 +128,6 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
     }, 100);
   };
 
-  const sendEmailMutation = useMutation({
-    mutationFn: async (data: { invoiceId: string }) => {
-      const response = await apiRequest("POST", `/api/invoices/${data.invoiceId}/send-interest-email`);
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Email Sent",
-        description: "Interest report has been sent to the customer via email.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send email. Please try again.",
-        variant: "destructive",
-      });
-    }
-  });
-
   const sendWhatsAppMutation = useMutation({
     mutationFn: async (data: { invoiceId: string }) => {
       const response = await apiRequest("POST", `/api/invoices/${data.invoiceId}/send-interest-whatsapp`);
@@ -169,8 +151,8 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
   });
 
   const handleSendEmail = () => {
-    if (!invoiceId) return;
-    sendEmailMutation.mutate({ invoiceId });
+    if (!breakdown) return;
+    setIsEmailDialogOpen(true);
   };
 
   const handleSendWhatsApp = () => {
@@ -215,11 +197,10 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
                 variant="default" 
                 size="sm" 
                 onClick={handleSendEmail}
-                disabled={sendEmailMutation.isPending}
                 data-testid="button-send-email"
               >
                 <Mail className="h-4 w-4 mr-2" />
-                {sendEmailMutation.isPending ? "Sending..." : "Email"}
+                Email
               </Button>
               <Button 
                 variant="default" 
@@ -698,6 +679,20 @@ export function InterestCalculatorDialog({ invoiceId, onClose }: InterestCalcula
           }
         }
       `}</style>
+      
+      {breakdown && (
+        <EmailDialog
+          isOpen={isEmailDialogOpen}
+          onOpenChange={setIsEmailDialogOpen}
+          moduleType="interest_calculator"
+          recordData={{
+            customerName: breakdown.invoice.customerName,
+            customerEmail: "", // Will be enriched from backend
+            invoiceNumber: breakdown.invoice.invoiceNumber,
+            invoiceId: invoiceId || "",
+          }}
+        />
+      )}
     </Dialog>
   );
 }

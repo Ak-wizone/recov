@@ -72,7 +72,17 @@ export function EmailDialog({
   });
 
   const sendEmailMutation = useMutation({
-    mutationFn: async (data: { to: string; subject: string; body: string; quotationId?: string; invoiceId?: string; receiptId?: string }) => {
+    mutationFn: async (data: { 
+      to: string; 
+      subject: string; 
+      body: string; 
+      templateId?: string;
+      module?: string;
+      quotationId?: string; 
+      invoiceId?: string; 
+      receiptId?: string;
+      customerId?: string;
+    }) => {
       const response = await apiRequest("POST", "/api/send-email", data);
       return await response.json();
     },
@@ -140,10 +150,22 @@ export function EmailDialog({
       return;
     }
 
-    const emailData: { to: string; subject: string; body: string; quotationId?: string; invoiceId?: string; receiptId?: string } = {
+    const emailData: { 
+      to: string; 
+      subject: string; 
+      body: string; 
+      templateId?: string;
+      module?: string;
+      quotationId?: string; 
+      invoiceId?: string; 
+      receiptId?: string;
+      customerId?: string;
+    } = {
       to,
       subject,
-      body
+      body,
+      templateId: selectedTemplateId,
+      module: moduleType,
     };
 
     // Include quotationId if available for enriched quotation emails
@@ -159,6 +181,11 @@ export function EmailDialog({
     // Include receiptId if available for enriched receipt emails
     if (recordData.receiptId) {
       emailData.receiptId = recordData.receiptId;
+    }
+
+    // Include customerId if available for enriched ledger/customer report emails
+    if (recordData.customerId) {
+      emailData.customerId = recordData.customerId;
     }
 
     sendEmailMutation.mutate(emailData);

@@ -8359,6 +8359,14 @@ ${profile?.legalName || 'Company'}`;
           moduleType = 'debtors';
           dataId = customerId;
         }
+      } else {
+        // Module type is provided, determine dataId based on what's available
+        if (quotationId) dataId = quotationId;
+        else if (invoiceId) dataId = invoiceId;
+        else if (receiptId) dataId = receiptId;
+        else if (leadId) dataId = leadId;
+        else if (piId) dataId = piId;
+        else if (customerId) dataId = customerId;
       }
 
       // Get baseUrl from request origin for absolute links
