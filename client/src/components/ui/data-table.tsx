@@ -360,7 +360,42 @@ export function DataTable<TData, TValue>({
       )}
 
       <div className="rounded-md border bg-card">
-        <div className="relative overflow-auto" style={{ maxHeight: "calc(100vh - 420px)" }}>
+        <div 
+          className="relative overflow-x-auto overflow-y-auto scrollbar-visible" 
+          style={{ 
+            maxHeight: "calc(100vh - 420px)",
+            scrollbarWidth: "auto",
+            scrollbarColor: "rgb(156 163 175) transparent"
+          }}
+        >
+          <style>{`
+            .scrollbar-visible::-webkit-scrollbar {
+              width: 12px;
+              height: 12px;
+            }
+            .scrollbar-visible::-webkit-scrollbar-track {
+              background: rgb(243 244 246);
+              border-radius: 6px;
+            }
+            .scrollbar-visible::-webkit-scrollbar-thumb {
+              background: rgb(156 163 175);
+              border-radius: 6px;
+              border: 2px solid rgb(243 244 246);
+            }
+            .scrollbar-visible::-webkit-scrollbar-thumb:hover {
+              background: rgb(107 114 128);
+            }
+            .dark .scrollbar-visible::-webkit-scrollbar-track {
+              background: rgb(31 41 55);
+            }
+            .dark .scrollbar-visible::-webkit-scrollbar-thumb {
+              background: rgb(75 85 99);
+              border-color: rgb(31 41 55);
+            }
+            .dark .scrollbar-visible::-webkit-scrollbar-thumb:hover {
+              background: rgb(107 114 128);
+            }
+          `}</style>
           <Table>
             <TableHeader className="sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (
