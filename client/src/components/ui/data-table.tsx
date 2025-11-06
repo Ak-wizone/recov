@@ -61,6 +61,7 @@ interface DataTableProps<TData, TValue> {
   onDeleteSelected?: (rows: TData[]) => void | Promise<void>;
   onExportSelected?: (rows: TData[]) => void | Promise<void>;
   onFiltersChange?: (filters: { globalFilter: string; columnFilters: ColumnFiltersState }) => void;
+  customBulkActions?: (selectedRows: TData[]) => React.ReactNode;
   isLoading?: boolean;
   emptyMessage?: string;
   defaultPageSize?: number;
@@ -80,6 +81,7 @@ export function DataTable<TData, TValue>({
   onDeleteSelected,
   onExportSelected,
   onFiltersChange,
+  customBulkActions,
   isLoading = false,
   emptyMessage = "No data available.",
   defaultPageSize = 10,
@@ -329,6 +331,7 @@ export function DataTable<TData, TValue>({
             {selectedRows.length} row(s) selected
           </span>
           <div className="flex gap-2 ml-auto">
+            {customBulkActions && customBulkActions(selectedRows.map((row) => row.original))}
             {onExportSelected && (
               <Button
                 variant="outline"

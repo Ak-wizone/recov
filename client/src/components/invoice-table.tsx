@@ -420,6 +420,43 @@ export function InvoiceTable({
       enablePagination={true}
       onDeleteSelected={handleBulkDelete}
       onFiltersChange={onFiltersChange}
+      customBulkActions={(selectedInvoices: Invoice[]) => (
+        <>
+          {onWhatsApp && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectedInvoices.forEach(inv => onWhatsApp(inv))}
+              data-testid="button-bulk-whatsapp"
+            >
+              <MessageSquare className="h-4 w-4 mr-1 text-[#25D366]" />
+              WhatsApp
+            </Button>
+          )}
+          {onEmail && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectedInvoices.forEach(inv => onEmail(inv))}
+              data-testid="button-bulk-email"
+            >
+              <Mail className="h-4 w-4 mr-1 text-blue-500" />
+              Email
+            </Button>
+          )}
+          {onCall && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectedInvoices.forEach(inv => onCall(inv))}
+              data-testid="button-bulk-call"
+            >
+              <Phone className="h-4 w-4 mr-1 text-purple-500" />
+              Call
+            </Button>
+          )}
+        </>
+      )}
     />
   );
 }
