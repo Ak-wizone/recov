@@ -175,7 +175,23 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Invoice Details */}
             <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800 space-y-4">
-              <h3 className="text-base font-semibold text-blue-900 dark:text-blue-100">Invoice Details</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-semibold text-blue-900 dark:text-blue-100">Invoice Details</h3>
+                {invoice?.status && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Status:</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      invoice.status === 'Paid' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                        : invoice.status === 'Partial'
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                    }`}>
+                      {invoice.status}
+                    </span>
+                  </div>
+                )}
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
