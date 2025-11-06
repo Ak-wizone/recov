@@ -458,147 +458,153 @@ export default function Home() {
       </div>
 
       {/* Invoice Status Cards - 6 categories based on grace period logic */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {shouldShowCard("Upcoming Invoices", user?.allowedDashboardCards, isPlatformAdmin) && (
           <Card 
-            className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+            className="relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-blue-50 via-white to-blue-50/30 dark:from-blue-950/20 dark:via-gray-900 dark:to-blue-950/10" 
             data-testid="card-upcoming-invoices"
             onClick={() => setLocation('/invoices?status=Unpaid&category=upcoming')}
           >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Upcoming Invoices</CardTitle>
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                <Calendar className="h-5 w-5 text-blue-500" />
+            <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-blue-400 to-blue-600"></div>
+            <CardHeader className="flex flex-row items-center justify-between pb-3 pt-6">
+              <CardTitle className="text-sm font-semibold text-gray-700 dark:text-gray-300">Upcoming Invoices</CardTitle>
+              <div className="p-3 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg">
+                <Calendar className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+            <CardContent className="pb-6">
+              <div className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-blue-500 dark:from-blue-400 dark:to-blue-300 bg-clip-text text-transparent">
                 ₹{(invoiceStatusCards?.upcomingInvoices?.totalAmount || 0).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.upcomingInvoices?.count || 0} invoices</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 font-medium">From {invoiceStatusCards?.upcomingInvoices?.count || 0} invoices</p>
             </CardContent>
           </Card>
         )}
 
         {shouldShowCard("Due Today", user?.allowedDashboardCards, isPlatformAdmin) && (
           <Card 
-            className="border-l-4 border-l-yellow-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+            className="relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-yellow-50 via-white to-yellow-50/30 dark:from-yellow-950/20 dark:via-gray-900 dark:to-yellow-950/10" 
             data-testid="card-due-today"
             onClick={() => setLocation('/invoices?status=Unpaid&category=dueToday')}
           >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Due Today</CardTitle>
-              <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                <Clock className="h-5 w-5 text-yellow-500" />
+            <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-yellow-400 to-yellow-600"></div>
+            <CardHeader className="flex flex-row items-center justify-between pb-3 pt-6">
+              <CardTitle className="text-sm font-semibold text-gray-700 dark:text-gray-300">Due Today</CardTitle>
+              <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl shadow-lg">
+                <Clock className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+            <CardContent className="pb-6">
+              <div className="text-4xl font-extrabold bg-gradient-to-r from-yellow-600 to-yellow-500 dark:from-yellow-400 dark:to-yellow-300 bg-clip-text text-transparent">
                 ₹{(invoiceStatusCards?.dueToday?.totalAmount || 0).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.dueToday?.count || 0} invoices</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 font-medium">From {invoiceStatusCards?.dueToday?.count || 0} invoices</p>
             </CardContent>
           </Card>
         )}
 
         {shouldShowCard("In Grace", user?.allowedDashboardCards, isPlatformAdmin) && (
           <Card 
-            className="border-l-4 border-l-amber-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+            className="relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-amber-50 via-white to-amber-50/30 dark:from-amber-950/20 dark:via-gray-900 dark:to-amber-950/10" 
             data-testid="card-in-grace"
             onClick={() => setLocation('/invoices')}
           >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">In Grace</CardTitle>
-              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-amber-500" />
+            <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-amber-400 to-amber-600"></div>
+            <CardHeader className="flex flex-row items-center justify-between pb-3 pt-6">
+              <CardTitle className="text-sm font-semibold text-gray-700 dark:text-gray-300">In Grace</CardTitle>
+              <div className="p-3 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl shadow-lg">
+                <AlertCircle className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+            <CardContent className="pb-6">
+              <div className="text-4xl font-extrabold bg-gradient-to-r from-amber-600 to-amber-500 dark:from-amber-400 dark:to-amber-300 bg-clip-text text-transparent">
                 ₹{(invoiceStatusCards?.inGrace?.totalAmount || 0).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.inGrace?.count || 0} invoices</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 font-medium">From {invoiceStatusCards?.inGrace?.count || 0} invoices</p>
             </CardContent>
           </Card>
         )}
 
         {shouldShowCard("Overdue", user?.allowedDashboardCards, isPlatformAdmin) && (
           <Card 
-            className="border-l-4 border-l-red-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+            className="relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-red-50 via-white to-red-50/30 dark:from-red-950/20 dark:via-gray-900 dark:to-red-950/10" 
             data-testid="card-overdue"
             onClick={() => setLocation('/invoices?status=Unpaid&category=overdue')}
           >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Overdue</CardTitle>
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-red-500" />
+            <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-red-400 to-red-600"></div>
+            <CardHeader className="flex flex-row items-center justify-between pb-3 pt-6">
+              <CardTitle className="text-sm font-semibold text-gray-700 dark:text-gray-300">Overdue</CardTitle>
+              <div className="p-3 bg-gradient-to-br from-red-400 to-red-600 rounded-xl shadow-lg">
+                <AlertTriangle className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+            <CardContent className="pb-6">
+              <div className="text-4xl font-extrabold bg-gradient-to-r from-red-600 to-red-500 dark:from-red-400 dark:to-red-300 bg-clip-text text-transparent">
                 ₹{(invoiceStatusCards?.overdue?.totalAmount || 0).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.overdue?.count || 0} invoices</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 font-medium">From {invoiceStatusCards?.overdue?.count || 0} invoices</p>
             </CardContent>
           </Card>
         )}
 
         {shouldShowCard("Paid On Time", user?.allowedDashboardCards, isPlatformAdmin) && (
           <Card 
-            className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+            className="relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-green-50 via-white to-green-50/30 dark:from-green-950/20 dark:via-gray-900 dark:to-green-950/10" 
             data-testid="card-paid-on-time"
             onClick={() => setLocation('/invoices?status=Paid&category=paidOnTime')}
           >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Paid On Time</CardTitle>
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-green-400 to-green-600"></div>
+            <CardHeader className="flex flex-row items-center justify-between pb-3 pt-6">
+              <CardTitle className="text-sm font-semibold text-gray-700 dark:text-gray-300">Paid On Time</CardTitle>
+              <div className="p-3 bg-gradient-to-br from-green-400 to-green-600 rounded-xl shadow-lg">
+                <CheckCircle2 className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">
+            <CardContent className="pb-6">
+              <div className="text-4xl font-extrabold bg-gradient-to-r from-green-600 to-green-500 dark:from-green-400 dark:to-green-300 bg-clip-text text-transparent">
                 ₹{(invoiceStatusCards?.paidOnTime?.totalAmount || 0).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.paidOnTime?.count || 0} invoices</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 font-medium">From {invoiceStatusCards?.paidOnTime?.count || 0} invoices</p>
             </CardContent>
           </Card>
         )}
 
         {shouldShowCard("Paid Late", user?.allowedDashboardCards, isPlatformAdmin) && (
           <Card 
-            className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 cursor-pointer" 
+            className="relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300 cursor-pointer hover:scale-[1.02] bg-gradient-to-br from-orange-50 via-white to-orange-50/30 dark:from-orange-950/20 dark:via-gray-900 dark:to-orange-950/10" 
             data-testid="card-paid-late"
             onClick={() => setLocation('/invoices?status=Paid&category=paidLate')}
           >
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700 dark:text-gray-300">Paid Late</CardTitle>
-              <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-                <XCircle className="h-5 w-5 text-orange-500" />
+            <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-orange-400 to-orange-600"></div>
+            <CardHeader className="flex flex-row items-center justify-between pb-3 pt-6">
+              <CardTitle className="text-sm font-semibold text-gray-700 dark:text-gray-300">Paid Late</CardTitle>
+              <div className="p-3 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl shadow-lg">
+                <XCircle className="h-6 w-6 text-white" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+            <CardContent className="pb-6">
+              <div className="text-4xl font-extrabold bg-gradient-to-r from-orange-600 to-orange-500 dark:from-orange-400 dark:to-orange-300 bg-clip-text text-transparent">
                 ₹{(invoiceStatusCards?.paidLate?.totalAmount || 0).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">From {invoiceStatusCards?.paidLate?.count || 0} invoices</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 font-medium">From {invoiceStatusCards?.paidLate?.count || 0} invoices</p>
             </CardContent>
           </Card>
         )}
