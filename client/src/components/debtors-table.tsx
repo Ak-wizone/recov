@@ -28,8 +28,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen, Activity } from "lucide-react";
+import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen, Activity, Edit, Calendar } from "lucide-react";
 import { ColumnChooser } from "@/components/ui/column-chooser";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
@@ -73,6 +80,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
   const [globalFilter, setGlobalFilter] = useState("");
   const [isColumnChooserOpen, setIsColumnChooserOpen] = useState(false);
   const [defaultColumnVisibility] = useState<Record<string, boolean>>({});
+  const [selectedDebtorForActions, setSelectedDebtorForActions] = useState<DebtorData | null>(null);
+  const [isActionsDialogOpen, setIsActionsDialogOpen] = useState(false);
   
   // Page size with localStorage persistence
   const [pageSize, setPageSize] = useState(() => {
@@ -128,9 +137,16 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
       accessorKey: "name",
       header: "Customer Name",
       cell: ({ row }) => (
-        <div className="font-medium" data-testid={`text-name-${row.original.customerId}`}>
+        <button
+          onClick={() => {
+            setSelectedDebtorForActions(row.original);
+            setIsActionsDialogOpen(true);
+          }}
+          className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline text-left"
+          data-testid={`link-name-${row.original.customerId}`}
+        >
           {row.getValue("name")}
-        </div>
+        </button>
       ),
       enableColumnFilter: true,
     },
@@ -593,6 +609,101 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           </div>
         </div>
       </div>
+
+      {/* Customer Actions Dialog */}
+      <Dialog open={isActionsDialogOpen} onOpenChange={setIsActionsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Customer Actions</DialogTitle>
+            <DialogDescription>
+              {selectedDebtorForActions?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            {selectedDebtorForActions && (
+              <>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    handleWhatsAppClick(selectedDebtorForActions);
+                    setIsActionsDialogOpen(false);
+                  }}
+                  data-testid="button-action-whatsapp"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2 text-[#25D366]" />
+                  Send WhatsApp
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    handleEmailClick(selectedDebtorForActions);
+                    setIsActionsDialogOpen(false);
+                  }}
+                  data-testid="button-action-email"
+                >
+                  <Mail className="h-4 w-4 mr-2 text-blue-500" />
+                  Send Email
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    onOpenCall(selectedDebtorForActions);
+                    setIsActionsDialogOpen(false);
+                  }}
+                  data-testid="button-action-call"
+                >
+                  <Phone className="h-4 w-4 mr-2 text-purple-500" />
+                  Make Call
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    onOpenFollowUp(selectedDebtorForActions);
+                    setIsActionsDialogOpen(false);
+                  }}
+                  data-testid="button-action-followup"
+                >
+                  <Calendar className="h-4 w-4 mr-2 text-orange-500" />
+                  Schedule Follow Up
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setLocation(`/customer-ledger/${selectedDebtorForActions.customerId}`);
+                    setIsActionsDialogOpen(false);
+                  }}
+                  data-testid="button-action-ledger"
+                >
+                  <BookOpen className="h-4 w-4 mr-2 text-indigo-500" />
+                  View Ledger
+                </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setLocation(`/customers?edit=${selectedDebtorForActions.customerId}`);
+                    setIsActionsDialogOpen(false);
+                  }}
+                  data-testid="button-action-edit"
+                >
+                  <Edit className="h-4 w-4 mr-2 text-gray-500" />
+                  Edit Customer
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
