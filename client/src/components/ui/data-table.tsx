@@ -399,6 +399,7 @@ export function DataTable<TData, TValue>({
         <div 
           className="relative overflow-x-scroll scrollbar-horizontal"
           style={{
+            maxHeight: "calc(100vh - 420px)",
             scrollbarWidth: "auto",
             scrollbarColor: "rgb(156 163 175) transparent"
           }}
