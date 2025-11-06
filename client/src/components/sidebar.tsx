@@ -496,10 +496,20 @@ export default function Sidebar() {
       return false;
     }
 
-    // Strict subscription enforcement: ONLY use subscription plan's allowed modules
     const allowedModules = tenant.subscriptionPlan.allowedModules || [];
     
-    return allowedModules.includes(moduleName);
+    // Check if module itself is directly allowed
+    if (allowedModules.includes(moduleName)) {
+      return true;
+    }
+    
+    // Hierarchical access: If module is a child, check if parent is allowed
+    const parentModule = CHILD_TO_PARENT_MODULE[moduleName];
+    if (parentModule && allowedModules.includes(parentModule)) {
+      return true;
+    }
+    
+    return false;
   };
 
   // Helper function to check if user has VIEW permission for a module
