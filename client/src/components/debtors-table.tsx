@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen, Activity, Edit, Calendar, X } from "lucide-react";
+import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen, Activity, Edit, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ColumnChooser } from "@/components/ui/column-chooser";
 import {
@@ -694,14 +694,36 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
+                    const isSortable = header.column.getCanSort();
+                    const sortDirection = header.column.getIsSorted();
+                    
                     return (
                       <TableHead key={header.id} className="py-2 bg-background">
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
+                        {header.isPlaceholder ? null : (
+                          <div
+                            className={`flex items-center gap-2 ${
+                              isSortable ? "cursor-pointer select-none hover:text-primary" : ""
+                            }`}
+                            onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
+                            data-testid={`header-${header.id}`}
+                          >
+                            {flexRender(
                               header.column.columnDef.header,
                               header.getContext()
                             )}
+                            {isSortable && (
+                              <span className="ml-1">
+                                {sortDirection === "asc" ? (
+                                  <ArrowUp className="h-4 w-4" />
+                                ) : sortDirection === "desc" ? (
+                                  <ArrowDown className="h-4 w-4" />
+                                ) : (
+                                  <ArrowUpDown className="h-4 w-4 opacity-50" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </TableHead>
                     );
                   })}
