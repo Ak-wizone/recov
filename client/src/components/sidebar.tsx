@@ -84,25 +84,9 @@ const MODULE_MAPPING: Record<string, string> = {
   "Audit Trial Logs": "Settings",
 };
 
-// Parent-child module relationships for hierarchical access control
-// If parent module is accessible, all children are automatically accessible
-const PARENT_CHILD_MODULES: Record<string, string[]> = {
-  "Payment Tracking": ["Debtors", "Credit Management", "Ledger", "Payment Analytics"],
-  "Action Center": ["Daily Dashboard", "Task Manager", "Call Queue", "Activity Logs"],
-  "Team Performance": ["Leaderboard", "Daily Targets"],
-  "Risk & Recovery": ["Client Risk Thermometer", "Payment Risk Forecaster", "Recovery Health Test"],
-  "Credit Control": ["Category Management", "Category Calculation", "Urgent Actions", "Follow-up Automation", "Follow-up Rules"],
-  "Masters": ["Customers", "Items", "Banks", "Voucher Types", "Company Profile"],
-  "Settings": ["User Management", "Roles Management", "Communication Schedules", "Backup & Restore", "Audit Logs", "Email/WhatsApp/Call Integrations"],
-};
-
-// Reverse mapping: child module -> parent module
-const CHILD_TO_PARENT_MODULE: Record<string, string> = {};
-Object.entries(PARENT_CHILD_MODULES).forEach(([parent, children]) => {
-  children.forEach(child => {
-    CHILD_TO_PARENT_MODULE[child] = parent;
-  });
-});
+// NOTE: Parent-child module inheritance REMOVED for strict subscription enforcement
+// Each module must be EXPLICITLY in tenant.allowedModules to be accessible
+// NO automatic inheritance from parent modules
 
 // Module to Permission mapping for permission checking
 // Maps navigation module names to actual permission module names
@@ -163,17 +147,14 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Masters": "Masters - Customers",
   "Customers": "Masters - Customers",
   "Items": "Masters - Items",
-  "Banks": "Settings",
-  "Voucher Types": "Settings",
   "Company Profile": "Company Profile",
   
   // Settings - Parent shown if any child is accessible
   "Settings": "Settings",
   "User Management": "User Management",
   "Roles Management": "Roles Management",
-  "Communication Schedules": "Settings",
-  "Backup & Restore": "Settings",
-  "Audit Logs": "Settings",
+  "Backup & Restore": "Backup & Restore",
+  "Audit Logs": "Audit Logs",
   
   // Email/WhatsApp/Call Integrations
   "Email/WhatsApp/Call Integrations": "Email/WhatsApp/Call Integrations",
@@ -404,18 +385,6 @@ const navItems: NavItem[] = [
         module: "Items",
       },
       {
-        name: "Banks",
-        path: "/masters/banks",
-        icon: <Building2 className="h-4 w-4" />,
-        module: "Banks",
-      },
-      {
-        name: "Voucher Types",
-        path: "/masters/voucher-types",
-        icon: <FileText className="h-4 w-4" />,
-        module: "Voucher Types",
-      },
-      {
         name: "Company Settings",
         path: "/company-settings",
         icon: <Settings className="h-4 w-4" />,
@@ -446,12 +415,7 @@ const navItems: NavItem[] = [
         path: "/settings/backup-restore",
         icon: <Database className="h-4 w-4" />,
         module: "Backup & Restore",
-      },
-      {
-        name: "Communication Schedules",
-        path: "/communication-schedules",
-        icon: <Settings className="h-4 w-4" />,
-        module: "Communication Schedules",
+        platformAdminOnly: true,
       },
       {
         name: "Email/WhatsApp/Call Integrations",
@@ -466,6 +430,7 @@ const navItems: NavItem[] = [
     path: "/audit-logs",
     icon: <FileCheck className="h-5 w-5" />,
     module: "Audit Logs",
+    platformAdminOnly: true,
   },
 ];
 
@@ -487,6 +452,7 @@ export default function Sidebar() {
   });
 
   // Helper function to check if a module is accessible
+  // STRICT ENFORCEMENT: Only modules EXPLICITLY in tenant.allowedModules are accessible
   const isModuleAccessible = (moduleName: string): boolean => {
     if (isPlatformAdmin) {
       return true;
@@ -499,18 +465,8 @@ export default function Sidebar() {
     // Get allowed modules from tenant (prefer tenant.allowedModules, fallback to subscriptionPlan.allowedModules)
     const allowedModules = tenant.allowedModules || tenant.subscriptionPlan?.allowedModules || [];
     
-    // Check if module itself is directly allowed
-    if (allowedModules.includes(moduleName)) {
-      return true;
-    }
-    
-    // Hierarchical access: If module is a child, check if parent is allowed
-    const parentModule = CHILD_TO_PARENT_MODULE[moduleName];
-    if (parentModule && allowedModules.includes(parentModule)) {
-      return true;
-    }
-    
-    return false;
+    // STRICT CHECK: Module must be EXPLICITLY in allowedModules (no parent-child inheritance)
+    return allowedModules.includes(moduleName);
   };
 
   // Helper function to check if user has VIEW permission for a module
@@ -544,13 +500,23 @@ export default function Sidebar() {
 
     return navItems
       .map((item) => {
+        // Platform admin only modules - hide for tenant users
+        if ((item as any).platformAdminOnly) {
+          return null;
+        }
+
         // For items with sub-items, filter the sub-items first
         if (item.subItems) {
           const filteredSubItems = item.subItems.filter((subItem) => {
+            // Platform admin only submodules - hide for tenant users
+            if ((subItem as any).platformAdminOnly) {
+              return false;
+            }
+            
             if (!subItem.module) {
               return true;
             }
-            // Check both module access AND user permission for sub-items
+            // STRICT ENFORCEMENT: Only show modules EXPLICITLY in tenant.allowedModules
             if (!isModuleAccessible(subItem.module)) {
               return false;
             }
@@ -572,6 +538,7 @@ export default function Sidebar() {
           return item;
         }
         
+        // STRICT ENFORCEMENT: Only show modules EXPLICITLY in tenant.allowedModules
         if (!isModuleAccessible(item.module)) {
           return null;
         }
