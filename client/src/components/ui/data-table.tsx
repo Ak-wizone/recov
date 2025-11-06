@@ -425,7 +425,7 @@ export function DataTable<TData, TValue>({
                         key={header.id}
                         className={cn(
                           canSort && "cursor-pointer select-none",
-                          "sticky top-0 z-20 whitespace-nowrap font-semibold py-4 bg-[#F1F5F9] dark:bg-gray-800"
+                          "sticky top-0 z-20 whitespace-nowrap font-semibold py-2 bg-[#F1F5F9] dark:bg-gray-800"
                         )}
                         onClick={
                           canSort
@@ -472,7 +472,7 @@ export function DataTable<TData, TValue>({
                     const columnFilterValue = header.column.getFilterValue();
 
                     return (
-                      <TableHead key={`filter-${header.id}`} className="sticky top-[60px] z-20 py-3 bg-white dark:bg-gray-900">
+                      <TableHead key={`filter-${header.id}`} className="sticky top-[48px] z-20 py-2 bg-white dark:bg-gray-900">
                         {canFilter && header.column.id !== "select" ? (
                           <Input
                             type="text"
