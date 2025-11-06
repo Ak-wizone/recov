@@ -149,9 +149,6 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
         </button>
       ),
       enableColumnFilter: true,
-      meta: {
-        sticky: true,
-      },
     },
     {
       accessorKey: "category",
@@ -494,13 +491,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
-                    const isSticky = header.column.columnDef.meta?.sticky;
                     return (
-                      <TableHead 
-                        key={header.id} 
-                        className="py-2 bg-background"
-                        style={isSticky ? { position: 'sticky', left: 0, zIndex: 20 } : undefined}
-                      >
+                      <TableHead key={header.id} className="py-2 bg-background">
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -517,14 +509,9 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
                   {headerGroup.headers.map((header) => {
                     const canFilter = header.column.getCanFilter();
                     const columnFilterValue = header.column.getFilterValue();
-                    const isSticky = header.column.columnDef.meta?.sticky;
 
                     return (
-                      <TableHead 
-                        key={`filter-${header.id}`} 
-                        className="py-2 bg-background"
-                        style={isSticky ? { position: 'sticky', left: 0, zIndex: 20 } : undefined}
-                      >
+                      <TableHead key={`filter-${header.id}`} className="py-2 bg-background">
                         {canFilter ? (
                           <Input
                             type="text"
@@ -550,21 +537,14 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
                     className="hover:bg-muted/50 transition-colors"
                     data-testid={`row-debtor-${row.original.customerId}`}
                   >
-                    {row.getVisibleCells().map((cell) => {
-                      const isSticky = cell.column.columnDef.meta?.sticky;
-                      return (
-                        <TableCell 
-                          key={cell.id}
-                          className={isSticky ? "bg-background" : undefined}
-                          style={isSticky ? { position: 'sticky', left: 0, zIndex: 10 } : undefined}
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </TableCell>
-                      );
-                    })}
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
                   </TableRow>
                 ))
               ) : (
