@@ -361,7 +361,7 @@ export function DataTable<TData, TValue>({
 
       <div className="rounded-md border bg-card">
         <div 
-          className="relative overflow-x-auto overflow-y-auto scrollbar-visible" 
+          className="relative overflow-x-scroll overflow-y-auto scrollbar-visible" 
           style={{ 
             maxHeight: "calc(100vh - 420px)",
             scrollbarWidth: "auto",
