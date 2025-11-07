@@ -214,10 +214,6 @@ const MODULE_CATEGORIES = [
         module: "Risk Management - Recovery Health Test",
         operations: ["View"]
       },
-      {
-        module: "Instant Recovery",
-        operations: ["View", "Create", "Edit", "Delete"]
-      },
     ]
   },
   {
@@ -356,26 +352,11 @@ export default function Roles() {
       if (allowedModules.length === 0) return true;
       
       // Check if the module is in the allowed list
-      return allowedModules.some((allowedModule: string) => {
-        // Exact match - always show if module is directly in subscription
+      // Handle variations like "Masters - Customers" vs "Masters", "Risk Management - X" vs "Risk & Recovery"
+      return allowedModules.some(allowedModule => {
         if (moduleConfig.module === allowedModule) return true;
-        
-        // Masters parent-child: If subscription has "Masters", show all Masters children
         if (moduleConfig.module.startsWith("Masters") && allowedModule === "Masters") return true;
-        
-        // Risk & Recovery parent-child: If subscription has "Risk & Recovery", show ALL modules in this category
-        // This includes the 3 "Risk Management -" modules AND "Instant Recovery"
-        if (category.category === "Risk & Recovery" && allowedModule === "Risk & Recovery") return true;
-        
-        // Action Center parent-child: If subscription has "Action Center", show all Action Center children
-        if (moduleConfig.module === "Action Center" && allowedModule === "Action Center") return true;
-        
-        // Team Performance parent-child: If subscription has "Team Performance", show all Team Performance children
-        if (moduleConfig.module === "Team Performance" && allowedModule === "Team Performance") return true;
-        
-        // Credit Control parent-child: If subscription has "Credit Control", show all Credit Control children
-        if (moduleConfig.module === "Credit Control" && allowedModule === "Credit Control") return true;
-        
+        if (moduleConfig.module.startsWith("Risk Management") && allowedModule === "Risk & Recovery") return true;
         return false;
       });
     })

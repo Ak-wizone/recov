@@ -1,16 +1,12 @@
-import { useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useQuery } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
-import { Target, PhoneCall } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Target } from "lucide-react";
 import NotificationCenter from "./notification-center";
-import InstantRecoveryDialog from "./instant-recovery-dialog";
 import { formatCurrency } from "@/lib/utils";
 
 export default function Header() {
   const { user } = useAuth();
-  const [recoveryDialogOpen, setRecoveryDialogOpen] = useState(false);
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? "Good Morning" : currentHour < 17 ? "Good Afternoon" : "Good Evening";
 
@@ -60,23 +56,9 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button
-            onClick={() => setRecoveryDialogOpen(true)}
-            className="bg-red-600 hover:bg-red-700 text-yellow-400 font-semibold animate-pulse shadow-lg hover:shadow-xl transition-all"
-            data-testid="button-instant-recovery"
-          >
-            <PhoneCall className="h-4 w-4 mr-2" />
-            Instant Recovery
-          </Button>
-          
           <NotificationCenter />
         </div>
       </div>
-
-      <InstantRecoveryDialog 
-        open={recoveryDialogOpen} 
-        onOpenChange={setRecoveryDialogOpen} 
-      />
     </header>
   );
 }

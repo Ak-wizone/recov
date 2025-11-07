@@ -319,7 +319,6 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
       "Risk Management - Client Risk Thermometer - View",
       "Risk Management - Payment Risk Forecaster - View",
       "Risk Management - Recovery Health Test - View",
-      "Instant Recovery - View", "Instant Recovery - Create", "Instant Recovery - Edit", "Instant Recovery - Delete",
     ],
     // Risk & Recovery submodules
     "Client Risk Thermometer": [
@@ -330,9 +329,6 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
     ],
     "Recovery Health Test": [
       "Risk Management - Recovery Health Test - View",
-    ],
-    "Instant Recovery": [
-      "Instant Recovery - View", "Instant Recovery - Create", "Instant Recovery - Edit", "Instant Recovery - Delete",
     ],
     "Credit Control": [
       "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
@@ -2539,7 +2535,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Risk Management - Client Risk Thermometer - View",
           "Risk Management - Payment Risk Forecaster - View",
           "Risk Management - Recovery Health Test - View",
-          "Instant Recovery - View", "Instant Recovery - Create", "Instant Recovery - Edit", "Instant Recovery - Delete",
           // Company Settings
           "Company Settings - View", "Company Settings - Edit",
           // User Management
@@ -7461,14 +7456,12 @@ ${profile?.legalName || 'Company'}`;
       "Risk & Recovery": [
         "Risk Management - Client Risk Thermometer - View",
         "Risk Management - Payment Risk Forecaster - View",
-        "Risk Management - Recovery Health Test - View",
-        "Instant Recovery - View", "Instant Recovery - Create", "Instant Recovery - Edit", "Instant Recovery - Delete"
+        "Risk Management - Recovery Health Test - View"
       ],
       // Risk & Recovery submodules
       "Client Risk Thermometer": ["Risk Management - Client Risk Thermometer - View"],
       "Payment Risk Forecaster": ["Risk Management - Payment Risk Forecaster - View"],
       "Recovery Health Test": ["Risk Management - Recovery Health Test - View"],
-      "Instant Recovery": ["Instant Recovery - View", "Instant Recovery - Create", "Instant Recovery - Edit", "Instant Recovery - Delete"],
       "Credit Control": [
         "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
         "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete",
@@ -9244,130 +9237,6 @@ ${profile?.legalName || 'Company'}`;
         return res.status(404).json({ message: "Schedule not found" });
       }
       res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // ============ INSTANT PAYMENT RECOVERY REQUESTS ROUTES ============
-
-  // Get all recovery requests
-  app.get("/api/recovery-requests", requirePermission("Instant Recovery", "view"), async (req, res) => {
-    try {
-      const requests = await storage.getRecoveryRequests(req.tenantId!);
-      res.json(requests);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Get single recovery request
-  app.get("/api/recovery-requests/:id", requirePermission("Instant Recovery", "view"), async (req, res) => {
-    try {
-      const request = await storage.getRecoveryRequest(req.tenantId!, req.params.id);
-      if (!request) {
-        return res.status(404).json({ message: "Recovery request not found" });
-      }
-      res.json(request);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Create recovery request with optional file upload
-  app.post("/api/recovery-requests", requirePermission("Instant Recovery", "create"), upload.single("invoiceFile"), async (req, res) => {
-    try {
-      const result = insertRecoveryRequestSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: fromZodError(result.error).message });
-      }
-
-      let uploadedInvoiceUrl: string | undefined;
-      if (req.file) {
-        const timestamp = Date.now();
-        const fileName = `recovery_invoice_${timestamp}_${req.file.originalname}`;
-        uploadedInvoiceUrl = `/uploads/recovery/${fileName}`;
-        
-        // TODO: Implement actual file storage (S3, local filesystem, etc.)
-        // For now, we'll just store the path
-      }
-
-      const requestData = {
-        ...result.data,
-        uploadedInvoiceUrl: uploadedInvoiceUrl || result.data.uploadedInvoiceUrl,
-        status: result.data.status || "draft",
-      };
-
-      const newRequest = await storage.createRecoveryRequest(req.tenantId!, req.user!.id, requestData);
-      res.json(newRequest);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Update recovery request
-  app.put("/api/recovery-requests/:id", requirePermission("Instant Recovery", "edit"), upload.single("invoiceFile"), async (req, res) => {
-    try {
-      const result = insertRecoveryRequestSchema.partial().safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: fromZodError(result.error).message });
-      }
-
-      let uploadedInvoiceUrl: string | undefined;
-      if (req.file) {
-        const timestamp = Date.now();
-        const fileName = `recovery_invoice_${timestamp}_${req.file.originalname}`;
-        uploadedInvoiceUrl = `/uploads/recovery/${fileName}`;
-        
-        // TODO: Implement actual file storage
-      }
-
-      const updateData = {
-        ...result.data,
-        ...(uploadedInvoiceUrl && { uploadedInvoiceUrl }),
-      };
-
-      const updated = await storage.updateRecoveryRequest(req.tenantId!, req.params.id, updateData);
-      if (!updated) {
-        return res.status(404).json({ message: "Recovery request not found" });
-      }
-      res.json(updated);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Delete recovery request
-  app.delete("/api/recovery-requests/:id", requirePermission("Instant Recovery", "delete"), async (req, res) => {
-    try {
-      const deleted = await storage.deleteRecoveryRequest(req.tenantId!, req.params.id);
-      if (!deleted) {
-        return res.status(404).json({ message: "Recovery request not found" });
-      }
-      res.json({ success: true });
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Trigger automated recovery calls
-  app.post("/api/recovery-requests/:id/trigger", requirePermission("Instant Recovery", "edit"), async (req, res) => {
-    try {
-      const request = await storage.getRecoveryRequest(req.tenantId!, req.params.id);
-      if (!request) {
-        return res.status(404).json({ message: "Recovery request not found" });
-      }
-
-      // TODO: Implement Ringg.ai integration to trigger calls
-      // This will be handled in the next task
-      
-      // Update request status to active
-      const updated = await storage.updateRecoveryRequest(req.tenantId!, req.params.id, {
-        status: "active",
-        nextCallAt: new Date(Date.now() + request.callFrequencyMinutes * 60 * 1000),
-      });
-
-      res.json({ message: "Recovery calls triggered successfully", request: updated });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }

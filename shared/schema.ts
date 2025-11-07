@@ -1514,53 +1514,6 @@ export const insertCommunicationScheduleSchema = createInsertSchema(communicatio
 export type InsertCommunicationSchedule = z.infer<typeof insertCommunicationScheduleSchema>;
 export type CommunicationSchedule = typeof communicationSchedules.$inferSelect;
 
-// Instant Payment Recovery Requests table
-export const recoveryRequests = pgTable("recovery_requests", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
-  debtorCompanyName: text("debtor_company_name").notNull(),
-  debtorMobile: text("debtor_mobile").notNull(),
-  totalAmountDue: decimal("total_amount_due", { precision: 12, scale: 2 }).notNull(),
-  daysDelayed: integer("days_delayed").notNull(),
-  callFrequencyMinutes: integer("call_frequency_minutes").notNull(),
-  language: text("language").notNull(), // 'hindi' or 'english'
-  status: text("status").notNull().default("draft"), // 'draft', 'active', 'completed', 'cancelled'
-  ringgAutomationId: text("ringg_automation_id"),
-  uploadedInvoiceUrl: text("uploaded_invoice_url"),
-  nextCallAt: timestamp("next_call_at"),
-  lastCallAt: timestamp("last_call_at"),
-  totalCallsMade: integer("total_calls_made").notNull().default(0),
-  followupNotes: text("followup_notes"),
-  createdBy: varchar("created_by").notNull().references(() => users.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertRecoveryRequestSchema = createInsertSchema(recoveryRequests).pick({
-  debtorCompanyName: true,
-  debtorMobile: true,
-  totalAmountDue: true,
-  daysDelayed: true,
-  callFrequencyMinutes: true,
-  language: true,
-  status: true,
-  uploadedInvoiceUrl: true,
-  followupNotes: true,
-}).extend({
-  debtorCompanyName: z.string().min(1, "Debtor company name is required"),
-  debtorMobile: z.string().regex(/^\d{10}$/, "Mobile number must be exactly 10 digits"),
-  totalAmountDue: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid amount format"),
-  daysDelayed: z.number().int().min(0, "Days delayed cannot be negative"),
-  callFrequencyMinutes: z.number().int().min(1, "Call frequency must be at least 1 minute"),
-  language: z.enum(["hindi", "english"], { errorMap: () => ({ message: "Language must be Hindi or English" }) }),
-  status: z.enum(["draft", "active", "completed", "cancelled"]).default("draft"),
-  uploadedInvoiceUrl: z.string().optional(),
-  followupNotes: z.string().optional(),
-});
-
-export type InsertRecoveryRequest = z.infer<typeof insertRecoveryRequestSchema>;
-export type RecoveryRequest = typeof recoveryRequests.$inferSelect;
-
 // Password Reset Tokens table
 export const passwordResetTokens = pgTable("password_reset_tokens", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

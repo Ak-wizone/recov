@@ -108,11 +108,10 @@ const MODULE_HIERARCHY = {
   "Risk & Recovery": {
     color: "text-red-600 dark:text-red-400",
     modules: [
-      { name: "Risk & Recovery", isParent: true, children: ["Client Risk Thermometer", "Payment Risk Forecaster", "Recovery Health Test", "Instant Recovery"] },
+      { name: "Risk & Recovery", isParent: true, children: ["Client Risk Thermometer", "Payment Risk Forecaster", "Recovery Health Test"] },
       { name: "Client Risk Thermometer", isParent: false, parent: "Risk & Recovery" },
       { name: "Payment Risk Forecaster", isParent: false, parent: "Risk & Recovery" },
       { name: "Recovery Health Test", isParent: false, parent: "Risk & Recovery" },
-      { name: "Instant Recovery", isParent: false, parent: "Risk & Recovery" },
     ]
   },
   "Credit Control": {

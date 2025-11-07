@@ -31,7 +31,6 @@ import {
   Calculator,
   CheckSquare,
   Phone,
-  PhoneCall,
   ClipboardList,
   Target,
   Trophy,
@@ -133,7 +132,6 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Client Risk Thermometer": "Risk Management - Client Risk Thermometer",
   "Payment Risk Forecaster": "Risk Management - Payment Risk Forecaster",
   "Recovery Health Test": "Risk Management - Recovery Health Test",
-  "Instant Recovery": "Instant Recovery - View",
   
   // Credit Control - Only exact match
   "Credit Control": "Credit Control",
@@ -323,12 +321,6 @@ const navItems: NavItem[] = [
         path: "/risk/recovery-health",
         icon: <Heart className="h-4 w-4" />,
         module: "Recovery Health Test",
-      },
-      {
-        name: "Instant Payment Recovery",
-        path: "/instant-recovery",
-        icon: <PhoneCall className="h-4 w-4" />,
-        module: "Instant Recovery",
       },
     ],
   },

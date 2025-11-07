@@ -248,7 +248,6 @@ export async function seedDatabase() {
           "Credit Management",
           "Ledger",
           "Payment Analytics",
-          "Instant Recovery",
           "Credit Control",
           "Category Management",
           "Follow-up Rules",
