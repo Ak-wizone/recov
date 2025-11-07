@@ -214,6 +214,10 @@ const MODULE_CATEGORIES = [
         module: "Risk Management - Recovery Health Test",
         operations: ["View"]
       },
+      {
+        module: "Instant Recovery",
+        operations: ["View", "Create", "Edit", "Delete"]
+      },
     ]
   },
   {
