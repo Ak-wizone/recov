@@ -61,6 +61,7 @@ import PaymentSuccess from "@/pages/payment-success";
 import PaymentFailed from "@/pages/payment-failed";
 import Landing from "@/pages/landing";
 import TenantProfile from "@/pages/tenant-profile";
+import InstantRecoveryPage from "@/pages/instant-recovery";
 
 function Router() {
   return (
@@ -106,6 +107,7 @@ function Router() {
               <Route path="/credit-control/category-calculation" component={CategoryCalculation} />
               <Route path="/credit-control/urgent-actions" component={UrgentActions} />
               <Route path="/credit-control/followup-automation" component={FollowupAutomation} />
+              <Route path="/instant-recovery" component={InstantRecoveryPage} />
               <Route path="/action-center/dashboard" component={DailyDashboard} />
               <Route path="/action-center/tasks" component={Tasks} />
               <Route path="/action-center/call-queue" component={CallQueue} />
