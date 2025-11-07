@@ -319,6 +319,7 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
       "Risk Management - Client Risk Thermometer - View",
       "Risk Management - Payment Risk Forecaster - View",
       "Risk Management - Recovery Health Test - View",
+      "Instant Recovery - View", "Instant Recovery - Create", "Instant Recovery - Edit", "Instant Recovery - Delete",
     ],
     // Risk & Recovery submodules
     "Client Risk Thermometer": [
@@ -329,6 +330,9 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
     ],
     "Recovery Health Test": [
       "Risk Management - Recovery Health Test - View",
+    ],
+    "Instant Recovery": [
+      "Instant Recovery - View", "Instant Recovery - Create", "Instant Recovery - Edit", "Instant Recovery - Delete",
     ],
     "Credit Control": [
       "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
@@ -2535,6 +2539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Risk Management - Client Risk Thermometer - View",
           "Risk Management - Payment Risk Forecaster - View",
           "Risk Management - Recovery Health Test - View",
+          "Instant Recovery - View", "Instant Recovery - Create", "Instant Recovery - Edit", "Instant Recovery - Delete",
           // Company Settings
           "Company Settings - View", "Company Settings - Edit",
           // User Management
@@ -7456,12 +7461,14 @@ ${profile?.legalName || 'Company'}`;
       "Risk & Recovery": [
         "Risk Management - Client Risk Thermometer - View",
         "Risk Management - Payment Risk Forecaster - View",
-        "Risk Management - Recovery Health Test - View"
+        "Risk Management - Recovery Health Test - View",
+        "Instant Recovery - View", "Instant Recovery - Create", "Instant Recovery - Edit", "Instant Recovery - Delete"
       ],
       // Risk & Recovery submodules
       "Client Risk Thermometer": ["Risk Management - Client Risk Thermometer - View"],
       "Payment Risk Forecaster": ["Risk Management - Payment Risk Forecaster - View"],
       "Recovery Health Test": ["Risk Management - Recovery Health Test - View"],
+      "Instant Recovery": ["Instant Recovery - View", "Instant Recovery - Create", "Instant Recovery - Edit", "Instant Recovery - Delete"],
       "Credit Control": [
         "Credit Management - View", "Credit Management - Export", "Credit Management - Print",
         "Credit Control - View", "Credit Control - Create", "Credit Control - Edit", "Credit Control - Delete",
@@ -9245,7 +9252,7 @@ ${profile?.legalName || 'Company'}`;
   // ============ INSTANT PAYMENT RECOVERY REQUESTS ROUTES ============
 
   // Get all recovery requests
-  app.get("/api/recovery-requests", async (req, res) => {
+  app.get("/api/recovery-requests", requirePermission("Instant Recovery", "view"), async (req, res) => {
     try {
       const requests = await storage.getRecoveryRequests(req.tenantId!);
       res.json(requests);
@@ -9255,7 +9262,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Get single recovery request
-  app.get("/api/recovery-requests/:id", async (req, res) => {
+  app.get("/api/recovery-requests/:id", requirePermission("Instant Recovery", "view"), async (req, res) => {
     try {
       const request = await storage.getRecoveryRequest(req.tenantId!, req.params.id);
       if (!request) {
@@ -9268,7 +9275,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Create recovery request with optional file upload
-  app.post("/api/recovery-requests", upload.single("invoiceFile"), async (req, res) => {
+  app.post("/api/recovery-requests", requirePermission("Instant Recovery", "create"), upload.single("invoiceFile"), async (req, res) => {
     try {
       const result = insertRecoveryRequestSchema.safeParse(req.body);
       if (!result.success) {
@@ -9299,7 +9306,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Update recovery request
-  app.put("/api/recovery-requests/:id", upload.single("invoiceFile"), async (req, res) => {
+  app.put("/api/recovery-requests/:id", requirePermission("Instant Recovery", "edit"), upload.single("invoiceFile"), async (req, res) => {
     try {
       const result = insertRecoveryRequestSchema.partial().safeParse(req.body);
       if (!result.success) {
@@ -9331,7 +9338,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Delete recovery request
-  app.delete("/api/recovery-requests/:id", async (req, res) => {
+  app.delete("/api/recovery-requests/:id", requirePermission("Instant Recovery", "delete"), async (req, res) => {
     try {
       const deleted = await storage.deleteRecoveryRequest(req.tenantId!, req.params.id);
       if (!deleted) {
@@ -9344,7 +9351,7 @@ ${profile?.legalName || 'Company'}`;
   });
 
   // Trigger automated recovery calls
-  app.post("/api/recovery-requests/:id/trigger", async (req, res) => {
+  app.post("/api/recovery-requests/:id/trigger", requirePermission("Instant Recovery", "edit"), async (req, res) => {
     try {
       const request = await storage.getRecoveryRequest(req.tenantId!, req.params.id);
       if (!request) {
