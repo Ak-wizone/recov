@@ -461,7 +461,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto" data-testid="dialog-import">
+      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto" data-testid="dialog-import">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2" data-testid="text-import-title">
             <FileSpreadsheet className="h-5 w-5" />
