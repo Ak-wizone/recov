@@ -618,9 +618,9 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
               )}
 
               {previewData.length > 0 && !isEditMode && (
-                <div className="border rounded-lg overflow-hidden" data-testid="preview-table">
+                <div className="border rounded-lg" data-testid="preview-table">
                   <div className="max-h-64 overflow-x-auto overflow-y-auto">
-                    <Table>
+                    <Table className="min-w-[900px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead data-testid="header-row">Row</TableHead>
@@ -682,15 +682,15 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
               )}
 
               {previewData.length > 0 && isEditMode && module === 'customers' && (
-                <div className="border rounded-lg overflow-hidden" data-testid="edit-table">
-                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between">
+                <div className="border rounded-lg" data-testid="edit-table">
+                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between overflow-hidden">
                     <div className="flex items-center gap-2">
                       <Edit className="h-4 w-4 text-blue-600" />
                       <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
                     </div>
                   </div>
                   <div className="max-h-96 overflow-x-auto overflow-y-auto">
-                    <Table>
+                    <Table className="min-w-[1200px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-16">Row</TableHead>
@@ -894,15 +894,15 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
               )}
 
               {previewData.length > 0 && isEditMode && module === 'items' && (
-                <div className="border rounded-lg overflow-hidden" data-testid="edit-table">
-                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between">
+                <div className="border rounded-lg" data-testid="edit-table">
+                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between overflow-hidden">
                     <div className="flex items-center gap-2">
                       <Edit className="h-4 w-4 text-blue-600" />
                       <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
                     </div>
                   </div>
                   <div className="max-h-96 overflow-x-auto overflow-y-auto">
-                    <Table>
+                    <Table className="min-w-[900px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-16">Row</TableHead>
@@ -1023,15 +1023,15 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
               )}
 
               {previewData.length > 0 && isEditMode && module === 'invoices' && (
-                <div className="border rounded-lg overflow-hidden" data-testid="edit-table">
-                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between">
+                <div className="border rounded-lg" data-testid="edit-table">
+                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between overflow-hidden">
                     <div className="flex items-center gap-2">
                       <Edit className="h-4 w-4 text-blue-600" />
                       <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
                     </div>
                   </div>
                   <div className="max-h-96 overflow-x-auto overflow-y-auto">
-                    <Table>
+                    <Table className="min-w-[900px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-16">Row</TableHead>
@@ -1152,15 +1152,15 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
               )}
 
               {previewData.length > 0 && isEditMode && module === 'receipts' && (
-                <div className="border rounded-lg overflow-hidden" data-testid="edit-table">
-                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between">
+                <div className="border rounded-lg" data-testid="edit-table">
+                  <div className="bg-blue-50 px-4 py-2 border-b flex items-center justify-between overflow-hidden">
                     <div className="flex items-center gap-2">
                       <Edit className="h-4 w-4 text-blue-600" />
                       <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
                     </div>
                   </div>
                   <div className="max-h-96 overflow-x-auto overflow-y-auto">
-                    <Table>
+                    <Table className="min-w-[800px]">
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-16">Row</TableHead>
