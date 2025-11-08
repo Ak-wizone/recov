@@ -3548,6 +3548,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk assign sales person to customers
+  app.post("/api/customers/bulk-assign-salesperson", async (req, res) => {
+    try {
+      const { customerIds, salesPerson } = req.body;
+      
+      if (!customerIds || !Array.isArray(customerIds) || customerIds.length === 0) {
+        return res.status(400).json({ message: "customerIds array is required" });
+      }
+      
+      if (!salesPerson || typeof salesPerson !== 'string') {
+        return res.status(400).json({ message: "salesPerson is required" });
+      }
+
+      let updatedCount = 0;
+      for (const customerId of customerIds) {
+        const customer = await storage.getMasterCustomer(req.tenantId!, customerId);
+        if (customer) {
+          await storage.updateMasterCustomer(req.tenantId!, customerId, { salesPerson });
+          updatedCount++;
+        }
+      }
+
+      res.json({ 
+        message: `Successfully assigned ${updatedCount} customer(s) to ${salesPerson}`,
+        updatedCount
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get payments for a customer
   app.get("/api/customers/:id/payments", async (req, res) => {
     try {

@@ -37,6 +37,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
@@ -132,11 +133,16 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
   // Bulk assign sales person mutation
   const assignSalesPersonMutation = useMutation({
     mutationFn: async (data: { customerIds: string[]; salesPerson: string }) => {
-      return await apiRequest("/api/customers/bulk-assign-salesperson", {
+      const response = await fetch("/api/customers/bulk-assign-salesperson", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to assign sales person");
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
@@ -672,6 +678,16 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
               <Calendar className="h-4 w-4 mr-2" />
               Follow-up
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAssignDialogOpen(true)}
+              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950"
+              data-testid="button-bulk-assign"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Assign to
+            </Button>
           </div>
         </div>
       )}
@@ -951,6 +967,64 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
               </>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Sales Person Dialog */}
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign to Sales Person</DialogTitle>
+            <DialogDescription>
+              Select a sales person to assign {selectedDebtors.length} debtor(s)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Select value={selectedSalesPerson} onValueChange={setSelectedSalesPerson}>
+              <SelectTrigger data-testid="select-sales-person">
+                <SelectValue placeholder="Select sales person..." />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user: any) => (
+                  <SelectItem key={user.id} value={user.userName} data-testid={`option-user-${user.id}`}>
+                    {user.userName} ({user.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAssignDialogOpen(false);
+                setSelectedSalesPerson("");
+              }}
+              data-testid="button-cancel-assign"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!selectedSalesPerson) {
+                  toast({
+                    title: "No selection",
+                    description: "Please select a sales person",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                assignSalesPersonMutation.mutate({
+                  customerIds: selectedDebtors.map(d => d.customerId),
+                  salesPerson: selectedSalesPerson,
+                });
+              }}
+              disabled={!selectedSalesPerson || assignSalesPersonMutation.isPending}
+              data-testid="button-confirm-assign"
+            >
+              {assignSalesPersonMutation.isPending ? "Assigning..." : "Assign"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
