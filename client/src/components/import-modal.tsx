@@ -619,7 +619,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
 
               {previewData.length > 0 && !isEditMode && (
                 <div className="border rounded-lg overflow-hidden" data-testid="preview-table">
-                  <div className="max-h-64 overflow-y-auto">
+                  <div className="max-h-64 overflow-x-auto overflow-y-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -689,7 +689,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                       <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
                     </div>
                   </div>
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-96 overflow-x-auto overflow-y-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -901,7 +901,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                       <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
                     </div>
                   </div>
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-96 overflow-x-auto overflow-y-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -1030,7 +1030,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                       <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
                     </div>
                   </div>
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-96 overflow-x-auto overflow-y-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -1159,7 +1159,7 @@ export function ImportModal({ open, onOpenChange, module = 'customers' }: Import
                       <span className="font-semibold text-blue-800">Edit Mode - Fix errors and click Import when ready</span>
                     </div>
                   </div>
-                  <div className="max-h-96 overflow-y-auto">
+                  <div className="max-h-96 overflow-x-auto overflow-y-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
