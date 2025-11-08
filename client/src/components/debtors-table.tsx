@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen, Activity, Edit, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen, Activity, Edit, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown, UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ColumnChooser } from "@/components/ui/column-chooser";
 import {
@@ -43,6 +43,8 @@ import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 
 interface DebtorData {
   customerId: string;
@@ -82,6 +84,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
   const [selectedDebtorForActions, setSelectedDebtorForActions] = useState<DebtorData | null>(null);
   const [isActionsDialogOpen, setIsActionsDialogOpen] = useState(false);
   const [rowSelection, setRowSelection] = useState({});
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [selectedSalesPerson, setSelectedSalesPerson] = useState<string>("");
   
   // Define default column visibility - only show these columns by default
   const [defaultColumnVisibility] = useState<Record<string, boolean>>({
@@ -119,6 +123,39 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
   useEffect(() => {
     localStorage.setItem('debtors-table-page-size', pageSize.toString());
   }, [pageSize]);
+
+  // Fetch users for sales person assignment
+  const { data: users = [] } = useQuery<any[]>({
+    queryKey: ["/api/users"],
+  });
+
+  // Bulk assign sales person mutation
+  const assignSalesPersonMutation = useMutation({
+    mutationFn: async (data: { customerIds: string[]; salesPerson: string }) => {
+      return await apiRequest("/api/customers/bulk-assign-salesperson", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
+      toast({
+        title: "Success",
+        description: `Assigned ${selectedDebtors.length} debtor(s) to sales person`,
+      });
+      setIsAssignDialogOpen(false);
+      setSelectedSalesPerson("");
+      table.resetRowSelection();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to assign sales person",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleWhatsAppClick = (debtor: DebtorData) => {
     if (!debtor.mobile) {
