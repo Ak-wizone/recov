@@ -220,16 +220,6 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
       enableColumnFilter: true,
     },
     {
-      accessorKey: "salesPerson",
-      header: "Assigned Sales Person",
-      cell: ({ row }) => (
-        <div data-testid={`text-salesperson-${row.original.customerId}`}>
-          {row.getValue("salesPerson") || "-"}
-        </div>
-      ),
-      enableColumnFilter: true,
-    },
-    {
       accessorKey: "mobile",
       header: "Mobile",
       cell: ({ row }) => (
@@ -380,6 +370,16 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
           </div>
         );
       },
+    },
+    {
+      accessorKey: "salesPerson",
+      header: "Assigned Sales Person",
+      cell: ({ row }) => (
+        <div data-testid={`text-salesperson-${row.original.customerId}`}>
+          {row.getValue("salesPerson") || "-"}
+        </div>
+      ),
+      enableColumnFilter: true,
     },
     {
       id: "actions",
