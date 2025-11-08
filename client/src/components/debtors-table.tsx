@@ -85,9 +85,10 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
   
   // Define default column visibility - only show these columns by default
   const [defaultColumnVisibility] = useState<Record<string, boolean>>({
-    // Visible by default (9 data columns as per spec)
+    // Visible by default (10 data columns as per spec)
     name: true,
     category: true,
+    salesPerson: true,
     creditLimit: true,
     openingBalance: true,
     totalInvoices: true,
@@ -97,7 +98,6 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
     nextFollowUp: true,
     
     // Hidden by default (optional columns available in column chooser)
-    salesPerson: false,
     mobile: false,
     email: false,
     invoiceCount: false,
