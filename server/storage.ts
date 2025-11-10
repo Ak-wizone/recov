@@ -1,7 +1,8 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type UserColumnPreference, type InsertUserColumnPreference, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type PaymentPattern, type InsertPaymentPattern, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, userColumnPreferences, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, paymentPatterns, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory, assistantSettings } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type UserColumnPreference, type InsertUserColumnPreference, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type PaymentPattern, type InsertPaymentPattern, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, userColumnPreferences, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, paymentPatterns, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory, type WhisperConfig, type InsertWhisperConfig, type WhisperCredits, type InsertWhisperCredits, type WhisperUsage, type InsertWhisperUsage, type WhisperTransaction, type InsertWhisperTransaction, assistantSettings, whisperConfig, whisperCredits, whisperUsage, whisperTransactions } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, lt, gte, lte } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { encryptApiKey, decryptApiKey } from "./encryption";
 
 export interface IStorage {
   // Customer operations
@@ -295,6 +296,25 @@ export interface IStorage {
   // Voice Assistant Settings operations
   getAssistantSettings(tenantId: string, userId: string): Promise<any | undefined>;
   updateAssistantSettings(tenantId: string, userId: string, settings: any): Promise<any>;
+  
+  // Whisper Voice AI operations
+  getWhisperConfig(): Promise<any | undefined>;
+  getWhisperConfigSecure(): Promise<{ config: any; decryptedApiKey: string } | undefined>;
+  createWhisperConfig(config: any): Promise<any>;
+  updateWhisperConfig(id: string, updates: any): Promise<any | undefined>;
+  
+  getWhisperCredits(tenantId: string): Promise<any | undefined>;
+  getWhisperCreditsWithReset(tenantId: string): Promise<{ credits: any; wasReset: boolean }>;
+  createWhisperCredits(tenantId: string, credits: any): Promise<any>;
+  updateWhisperCredits(tenantId: string, updates: any): Promise<any | undefined>;
+  deductWhisperCredits(tenantId: string, minutesUsed: number): Promise<{ success: boolean; remainingMinutes: number; error?: string }>;
+  
+  createWhisperUsage(usage: any): Promise<any>;
+  getWhisperUsage(tenantId: string, filters?: any): Promise<any[]>;
+  getWhisperUsageStats(tenantId: string): Promise<any>;
+  
+  createWhisperTransaction(transaction: any): Promise<any>;
+  getWhisperTransactions(tenantId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2771,6 +2791,246 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return created;
     }
+  }
+
+  async getWhisperConfig(): Promise<any | undefined> {
+    const [config] = await db.select().from(whisperConfig).limit(1);
+    return config || undefined;
+  }
+
+  async getWhisperConfigSecure(): Promise<{ config: any; decryptedApiKey: string } | undefined> {
+    const config = await this.getWhisperConfig();
+    if (!config) return undefined;
+    
+    try {
+      const decryptedApiKey = decryptApiKey(config.encryptedApiKey);
+      return { config, decryptedApiKey };
+    } catch (error) {
+      console.error("Failed to decrypt Whisper API key:", error);
+      return undefined;
+    }
+  }
+
+  async createWhisperConfig(insertConfig: any): Promise<any> {
+    const encryptedKey = encryptApiKey(insertConfig.apiKey);
+    const [config] = await db
+      .insert(whisperConfig)
+      .values({
+        ...insertConfig,
+        encryptedApiKey: encryptedKey,
+        keyVersion: 1,
+      })
+      .returning();
+    return config;
+  }
+
+  async updateWhisperConfig(id: string, updates: any): Promise<any | undefined> {
+    const updateData: any = { ...updates };
+    
+    if (updates.apiKey) {
+      updateData.encryptedApiKey = encryptApiKey(updates.apiKey);
+      updateData.keyVersion = (updates.keyVersion || 1) + 1;
+      delete updateData.apiKey;
+    }
+    
+    const [config] = await db
+      .update(whisperConfig)
+      .set(updateData)
+      .where(eq(whisperConfig.id, id))
+      .returning();
+    return config || undefined;
+  }
+
+  async getWhisperCredits(tenantId: string): Promise<any | undefined> {
+    const [credits] = await db
+      .select()
+      .from(whisperCredits)
+      .where(eq(whisperCredits.tenantId, tenantId));
+    return credits || undefined;
+  }
+
+  async getWhisperCreditsWithReset(tenantId: string): Promise<{ credits: any; wasReset: boolean }> {
+    return await db.transaction(async (tx) => {
+      const [credits] = await tx
+        .select()
+        .from(whisperCredits)
+        .where(eq(whisperCredits.tenantId, tenantId))
+        .for("update");
+      
+      if (!credits) {
+        throw new Error("Credits not found for tenant");
+      }
+
+      const now = new Date();
+      const shouldReset = credits.nextResetAt && now >= new Date(credits.nextResetAt);
+
+      if (shouldReset) {
+        const resetDate = new Date(now);
+        resetDate.setMonth(resetDate.getMonth() + 1);
+
+        const [updated] = await tx
+          .update(whisperCredits)
+          .set({
+            planMinutesCurrent: credits.planMinutesAllocated,
+            usedPlanMinutes: 0,
+            nextResetAt: resetDate,
+            lastResetAt: now,
+          })
+          .where(eq(whisperCredits.tenantId, tenantId))
+          .returning();
+
+        await tx.insert(whisperTransactions).values({
+          tenantId,
+          transactionType: "plan_reset",
+          minutesChange: credits.planMinutesAllocated,
+          balanceAfter: credits.planMinutesAllocated + credits.addonMinutesBalance,
+          description: "Monthly plan minutes reset",
+        });
+
+        return { credits: updated, wasReset: true };
+      }
+
+      return { credits, wasReset: false };
+    });
+  }
+
+  async createWhisperCredits(tenantId: string, insertCredits: any): Promise<any> {
+    const [credits] = await db
+      .insert(whisperCredits)
+      .values({ ...insertCredits, tenantId })
+      .returning();
+    return credits;
+  }
+
+  async updateWhisperCredits(tenantId: string, updates: any): Promise<any | undefined> {
+    const [credits] = await db
+      .update(whisperCredits)
+      .set(updates)
+      .where(eq(whisperCredits.tenantId, tenantId))
+      .returning();
+    return credits || undefined;
+  }
+
+  async deductWhisperCredits(tenantId: string, minutesUsed: number): Promise<{ success: boolean; remainingMinutes: number; error?: string }> {
+    try {
+      return await db.transaction(async (tx) => {
+        const { credits, wasReset } = await this.getWhisperCreditsWithReset(tenantId);
+        
+        const totalRemaining = credits.planMinutesCurrent + credits.addonMinutesBalance;
+        
+        if (totalRemaining < minutesUsed) {
+          return {
+            success: false,
+            remainingMinutes: totalRemaining,
+            error: "Insufficient credits",
+          };
+        }
+
+        let updatedPlan = credits.planMinutesCurrent;
+        let updatedAddon = credits.addonMinutesBalance;
+        let updatedUsedPlan = credits.usedPlanMinutes;
+        let updatedUsedAddon = credits.usedAddonMinutes;
+
+        let remainingToDeduct = minutesUsed;
+
+        if (updatedPlan >= remainingToDeduct) {
+          updatedPlan -= remainingToDeduct;
+          updatedUsedPlan += remainingToDeduct;
+          remainingToDeduct = 0;
+        } else {
+          updatedUsedPlan += updatedPlan;
+          remainingToDeduct -= updatedPlan;
+          updatedPlan = 0;
+
+          updatedAddon -= remainingToDeduct;
+          updatedUsedAddon += remainingToDeduct;
+        }
+
+        const [updated] = await tx
+          .update(whisperCredits)
+          .set({
+            planMinutesCurrent: updatedPlan,
+            addonMinutesBalance: updatedAddon,
+            usedPlanMinutes: updatedUsedPlan,
+            usedAddonMinutes: updatedUsedAddon,
+          })
+          .where(eq(whisperCredits.tenantId, tenantId))
+          .returning();
+
+        await tx.insert(whisperTransactions).values({
+          tenantId,
+          transactionType: "usage_deduction",
+          minutesChange: -minutesUsed,
+          balanceAfter: updatedPlan + updatedAddon,
+          description: `Voice AI usage: ${minutesUsed} minutes`,
+        });
+
+        return {
+          success: true,
+          remainingMinutes: updatedPlan + updatedAddon,
+        };
+      });
+    } catch (error) {
+      console.error("Error deducting credits:", error);
+      return {
+        success: false,
+        remainingMinutes: 0,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  }
+
+  async createWhisperUsage(insertUsage: any): Promise<any> {
+    const [usage] = await db.insert(whisperUsage).values(insertUsage).returning();
+    return usage;
+  }
+
+  async getWhisperUsage(tenantId: string, filters?: any): Promise<any[]> {
+    let query = db.select().from(whisperUsage).where(eq(whisperUsage.tenantId, tenantId));
+    
+    if (filters?.startDate) {
+      query = query.where(and(gte(whisperUsage.createdAt, filters.startDate)));
+    }
+    if (filters?.endDate) {
+      query = query.where(and(lte(whisperUsage.createdAt, filters.endDate)));
+    }
+    if (filters?.operation) {
+      query = query.where(and(eq(whisperUsage.operation, filters.operation)));
+    }
+    
+    return await query.orderBy(desc(whisperUsage.createdAt));
+  }
+
+  async getWhisperUsageStats(tenantId: string): Promise<any> {
+    const usage = await this.getWhisperUsage(tenantId);
+    
+    const totalMinutes = usage.reduce((sum, u) => sum + (u.minutesUsed || 0), 0);
+    const totalCalls = usage.length;
+    
+    const operationBreakdown = usage.reduce((acc, u) => {
+      acc[u.operation] = (acc[u.operation] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return {
+      totalMinutes,
+      totalCalls,
+      operationBreakdown,
+      recentUsage: usage.slice(0, 10),
+    };
+  }
+
+  async createWhisperTransaction(insertTransaction: any): Promise<any> {
+    const [transaction] = await db.insert(whisperTransactions).values(insertTransaction).returning();
+    return transaction;
+  }
+
+  async getWhisperTransactions(tenantId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(whisperTransactions)
+      .where(eq(whisperTransactions.tenantId, tenantId))
+      .orderBy(desc(whisperTransactions.createdAt));
   }
 }
 

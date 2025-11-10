@@ -2301,3 +2301,139 @@ export const insertAssistantAnalyticsSchema = createInsertSchema(assistantAnalyt
 export type InsertAssistantAnalytics = z.infer<typeof insertAssistantAnalyticsSchema>;
 export type AssistantAnalytics = typeof assistantAnalytics.$inferSelect;
 
+// ============ WHISPER VOICE AI TABLES ============
+
+// Platform-level Whisper Configuration
+export const whisperConfig = pgTable("whisper_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  apiKey: text("api_key").notNull(), // AES-256-GCM encrypted OpenAI API key
+  keyVersion: integer("key_version").notNull().default(1), // For key rotation support
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  // Plan-wise minute allocations
+  starterMinutes: integer("starter_minutes").notNull().default(100),
+  professionalMinutes: integer("professional_minutes").notNull().default(500),
+  enterpriseMinutes: integer("enterprise_minutes").notNull().default(2000),
+  // Addon pricing tiers (stored as JSON)
+  addonPricingTiers: text("addon_pricing_tiers").notNull().default('[{"minutes":100,"price":50},{"minutes":500,"price":200},{"minutes":1000,"price":350}]'),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWhisperConfigSchema = createInsertSchema(whisperConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  apiKey: z.string().min(1, "API key is required"),
+  keyVersion: z.number().int().default(1),
+  isEnabled: z.boolean().default(true),
+  starterMinutes: z.number().int().min(0).default(100),
+  professionalMinutes: z.number().int().min(0).default(500),
+  enterpriseMinutes: z.number().int().min(0).default(2000),
+  addonPricingTiers: z.string().default('[{"minutes":100,"price":50},{"minutes":500,"price":200},{"minutes":1000,"price":350}]'),
+});
+
+export type InsertWhisperConfig = z.infer<typeof insertWhisperConfigSchema>;
+export type WhisperConfig = typeof whisperConfig.$inferSelect;
+
+// Tenant-scoped Credit Tracking
+export const whisperCredits = pgTable("whisper_credits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().unique().references(() => tenants.id, { onDelete: "cascade" }),
+  // Current plan minutes allocation
+  planMinutesCurrent: integer("plan_minutes_current").notNull().default(0),
+  // Addon minutes balance (rollover, never expire)
+  addonMinutesBalance: integer("addon_minutes_balance").notNull().default(0),
+  // Usage tracking
+  usedPlanMinutes: integer("used_plan_minutes").notNull().default(0),
+  usedAddonMinutes: integer("used_addon_minutes").notNull().default(0),
+  // Rollover tracking
+  rolloverAddonMinutes: integer("rollover_addon_minutes").notNull().default(0),
+  // Reset dates
+  lastResetAt: timestamp("last_reset_at"),
+  nextResetAt: timestamp("next_reset_at").notNull(),
+  // Status
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertWhisperCreditsSchema = createInsertSchema(whisperCredits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  tenantId: z.string(),
+  planMinutesCurrent: z.number().int().min(0).default(0),
+  addonMinutesBalance: z.number().int().min(0).default(0),
+  usedPlanMinutes: z.number().int().min(0).default(0),
+  usedAddonMinutes: z.number().int().min(0).default(0),
+  rolloverAddonMinutes: z.number().int().min(0).default(0),
+  lastResetAt: z.date().optional(),
+  nextResetAt: z.date(),
+  enabled: z.boolean().default(true),
+});
+
+export type InsertWhisperCredits = z.infer<typeof insertWhisperCreditsSchema>;
+export type WhisperCredits = typeof whisperCredits.$inferSelect;
+
+// Append-only Usage Log
+export const whisperUsage = pgTable("whisper_usage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id"), // Nullable for system events
+  feature: text("feature").notNull(), // voice_command, voice_note, call_transcription, voice_search, voice_data_entry
+  secondsUsed: decimal("seconds_used", { precision: 10, scale: 2 }).notNull(), // Actual audio duration
+  minutesBilled: integer("minutes_billed").notNull(), // Rounded up minutes for billing
+  costMinorUnits: integer("cost_minor_units").notNull(), // Cost in paise (₹0.006/min = 0.6 paise/min for OpenAI)
+  transcriptPreview: text("transcript_preview"), // First 200 chars of transcript
+  audioUrl: text("audio_url"), // Optional: URL to stored audio file
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertWhisperUsageSchema = createInsertSchema(whisperUsage).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  tenantId: z.string(),
+  userId: z.string().optional(),
+  feature: z.enum(["voice_command", "voice_note", "call_transcription", "voice_search", "voice_data_entry"]),
+  secondsUsed: z.string().regex(/^\d+(\.\d{1,2})?$/, "Invalid seconds format"),
+  minutesBilled: z.number().int().min(0),
+  costMinorUnits: z.number().int().min(0),
+  transcriptPreview: z.string().optional(),
+  audioUrl: z.string().optional(),
+});
+
+export type InsertWhisperUsage = z.infer<typeof insertWhisperUsageSchema>;
+export type WhisperUsage = typeof whisperUsage.$inferSelect;
+
+// Immutable Transaction Ledger
+export const whisperTransactions = pgTable("whisper_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // plan_allocation, addon_purchase, usage_charge, manual_adjustment, monthly_reset
+  minutesDelta: integer("minutes_delta").notNull(), // Signed integer (positive for credit, negative for debit)
+  amountMinorUnits: integer("amount_minor_units").notNull().default(0), // Amount in paise for purchases
+  balanceAfterMinutes: integer("balance_after_minutes").notNull(), // Total remaining minutes after this transaction
+  paymentId: text("payment_id").unique(), // PayU transaction ID for purchases
+  metadata: text("metadata"), // JSON for additional context
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertWhisperTransactionSchema = createInsertSchema(whisperTransactions).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  tenantId: z.string(),
+  type: z.enum(["plan_allocation", "addon_purchase", "usage_charge", "manual_adjustment", "monthly_reset"]),
+  minutesDelta: z.number().int(),
+  amountMinorUnits: z.number().int().default(0),
+  balanceAfterMinutes: z.number().int().min(0),
+  paymentId: z.string().optional(),
+  metadata: z.string().optional(),
+});
+
+export type InsertWhisperTransaction = z.infer<typeof insertWhisperTransactionSchema>;
+export type WhisperTransaction = typeof whisperTransactions.$inferSelect;
+
