@@ -32,7 +32,7 @@ export default function WhisperVoicePage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  const { data: credits } = useQuery<{ 
+  const { data: credits, isLoading: isLoadingCredits } = useQuery<{ 
     planMinutes: number;
     addonMinutes: number;
     usedMinutes: number;
@@ -82,6 +82,15 @@ export default function WhisperVoicePage() {
   });
 
   const startRecording = async () => {
+    // Wait for credits to load before checking
+    if (isLoadingCredits) {
+      toast({
+        title: "Loading Credits",
+        description: "Please wait while we fetch your credit balance.",
+      });
+      return;
+    }
+    
     if (remainingMinutes <= 0) {
       toast({
         title: "No Credits Available",
@@ -135,12 +144,23 @@ export default function WhisperVoicePage() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Wait for credits to load before checking
+    if (isLoadingCredits) {
+      toast({
+        title: "Loading Credits",
+        description: "Please wait while we fetch your credit balance.",
+      });
+      event.target.value = ""; // Reset input
+      return;
+    }
+
     if (remainingMinutes <= 0) {
       toast({
         title: "No Credits Available",
         description: "Please purchase addon credits from Voice AI Credits page.",
         variant: "destructive",
       });
+      event.target.value = ""; // Reset input
       return;
     }
 
@@ -197,7 +217,7 @@ export default function WhisperVoicePage() {
           </p>
         </div>
         <Badge variant="outline" className="text-base px-4 py-2" data-testid="badge-credits-remaining">
-          {remainingMinutes.toFixed(1)} min remaining
+          {isLoadingCredits ? "Loading..." : `${remainingMinutes.toFixed(1)} min remaining`}
         </Badge>
       </div>
 
@@ -222,11 +242,11 @@ export default function WhisperVoicePage() {
                   onClick={startRecording}
                   size="lg"
                   className="w-full"
-                  disabled={remainingMinutes <= 0}
+                  disabled={isLoadingCredits || remainingMinutes <= 0}
                   data-testid="button-start-recording"
                 >
                   <Mic className="h-5 w-5 mr-2" />
-                  Start Recording
+                  {isLoadingCredits ? "Loading..." : "Start Recording"}
                 </Button>
               ) : (
                 <Button
@@ -280,7 +300,7 @@ export default function WhisperVoicePage() {
                 />
                 <Button
                   onClick={handleTranscribe}
-                  disabled={transcribeMutation.isPending || remainingMinutes <= 0}
+                  disabled={isLoadingCredits || transcribeMutation.isPending || remainingMinutes <= 0}
                   className="w-full"
                   data-testid="button-transcribe"
                 >
