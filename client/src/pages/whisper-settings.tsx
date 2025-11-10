@@ -82,6 +82,7 @@ export default function WhisperSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/whisper/config"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/plans"] });
       toast({
         title: "Success",
         description: "Whisper configuration saved successfully",
