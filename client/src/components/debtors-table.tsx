@@ -72,9 +72,10 @@ interface DebtorsTableProps {
   onOpenFollowUp: (debtor: DebtorData) => void;
   onOpenEmail: (debtor: DebtorData) => void;
   onOpenCall: (debtor: DebtorData) => void;
+  onFilteredDataChange?: (rows: DebtorData[]) => void;
 }
 
-export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: DebtorsTableProps) {
+export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, onFilteredDataChange }: DebtorsTableProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { canPerformAction } = useAuth();
@@ -565,6 +566,14 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
     },
     getRowId: (row) => row.customerId,
   });
+
+  // Notify parent when filtered data changes
+  useEffect(() => {
+    if (onFilteredDataChange) {
+      const filteredRows = table.getFilteredRowModel().rows.map(r => r.original);
+      onFilteredDataChange(filteredRows);
+    }
+  }, [globalFilter, columnFilters, data, onFilteredDataChange, table]);
 
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const selectedDebtors = selectedRows.map(row => row.original);

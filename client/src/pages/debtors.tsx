@@ -56,6 +56,7 @@ export default function Debtors() {
   const [selectedEmailCustomer, setSelectedEmailCustomer] = useState<any | null>(null);
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [selectedDebtorForCall, setSelectedDebtorForCall] = useState<any | null>(null);
+  const [searchFilteredDebtors, setSearchFilteredDebtors] = useState<any[]>([]);
 
   const { data: debtorsData, isLoading } = useQuery<any>({
     queryKey: ["/api/debtors"],
@@ -93,17 +94,15 @@ export default function Debtors() {
     },
   });
 
-  const categoryWise = debtorsData?.categoryWise || {
-    Alpha: { count: 0, totalBalance: 0, debtors: [] },
-    Beta: { count: 0, totalBalance: 0, debtors: [] },
-    Gamma: { count: 0, totalBalance: 0, debtors: [] },
-    Delta: { count: 0, totalBalance: 0, debtors: [] },
-  };
-
   const allDebtors = debtorsData?.allDebtors || [];
+  
+  // Use search-filtered debtors if available, otherwise use all debtors
+  const baseDebtors = searchFilteredDebtors.length > 0 || allDebtors.length === 0 
+    ? searchFilteredDebtors 
+    : allDebtors;
 
-  // Apply category and follow-up filters
-  const filteredDebtors = allDebtors.filter((d: any) => {
+  // Apply category and follow-up filters on top of search filter
+  const filteredDebtors = baseDebtors.filter((d: any) => {
     if (categoryFilter && d.category !== categoryFilter) return false;
     
     if (followUpFilter) {
@@ -137,6 +136,23 @@ export default function Debtors() {
     }
     
     return true;
+  });
+
+  // Calculate category-wise totals from search-filtered debtors
+  const categoryWise = baseDebtors.reduce((acc: any, debtor: any) => {
+    const category = debtor.category as 'Alpha' | 'Beta' | 'Gamma' | 'Delta';
+    if (!acc[category]) {
+      acc[category] = { count: 0, totalBalance: 0, debtors: [] };
+    }
+    acc[category].count++;
+    acc[category].totalBalance += debtor.balance;
+    acc[category].debtors.push(debtor);
+    return acc;
+  }, {
+    Alpha: { count: 0, totalBalance: 0, debtors: [] },
+    Beta: { count: 0, totalBalance: 0, debtors: [] },
+    Gamma: { count: 0, totalBalance: 0, debtors: [] },
+    Delta: { count: 0, totalBalance: 0, debtors: [] },
   });
 
   // Calculate total balance for filtered debtors
@@ -615,10 +631,11 @@ export default function Debtors() {
               </div>
             ) : (
               <DebtorsTable
-                data={filteredDebtors}
+                data={allDebtors}
                 onOpenFollowUp={handleOpenFollowUp}
                 onOpenEmail={handleOpenEmail}
                 onOpenCall={handleOpenCall}
+                onFilteredDataChange={setSearchFilteredDebtors}
               />
             )}
           </CardContent>
