@@ -24,7 +24,39 @@ import crypto from "crypto";
 import OpenAI from "openai";
 import { decryptApiKey } from "./encryption";
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25MB max (OpenAI limit)
+  }
+});
+
+// Audio upload configuration for Whisper
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 25 * 1024 * 1024, // 25MB max file size (OpenAI Whisper limit)
+  },
+  fileFilter: (req, file, cb) => {
+    // Validate audio MIME types
+    const allowedMimes = [
+      "audio/mpeg", // mp3
+      "audio/mp4", // mp4, m4a
+      "audio/wav", // wav
+      "audio/webm", // webm
+      "audio/ogg", // ogg
+      "audio/flac", // flac
+      "audio/x-wav", // wav alternative
+      "audio/x-m4a", // m4a alternative
+    ];
+    
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid audio format. Supported: MP3, MP4, M4A, WAV, WebM, OGG, FLAC`));
+    }
+  }
+});
 
 // Centralized credential email template
 const CREDENTIAL_EMAIL_TEMPLATE = `
@@ -2858,6 +2890,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[Whisper] Addon purchase error:", error);
       res.status(500).json({ code: "PURCHASE_ERROR", message: error.message });
+    }
+  });
+
+  // Tenant - Transcribe Audio
+  app.post("/api/whisper/transcribe", audioUpload.single("audio"), async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      }
+
+      const tenantId = req.user.tenantId;
+      const userId = req.user.id;
+
+      if (!tenantId) {
+        return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot use transcription" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ code: "NO_FILE", message: "No audio file provided" });
+      }
+
+      const { WhisperService } = await import("./services/whisper");
+      const { parseVoiceCommand } = await import("./services/commandParser");
+
+      const whisperService = new WhisperService(storage);
+
+      const result = await whisperService.transcribeWithCreditDeduction(
+        req.file.buffer,
+        req.file.originalname,
+        tenantId,
+        userId,
+        req.body.feature || "voice_command",
+        {
+          language: req.body.language,
+          prompt: req.body.prompt
+        }
+      );
+
+      const command = parseVoiceCommand(result.text);
+
+      res.json({
+        success: true,
+        transcript: result.text,
+        language: result.language,
+        duration: result.duration,
+        cost: result.cost,
+        command: command.type !== "unknown" ? command : null
+      });
+    } catch (error: any) {
+      console.error("[Whisper] Transcription error:", error);
+      
+      // Sanitized error responses - don't leak internal details
+      if (error.message?.includes("Insufficient") || error.message?.includes("credits")) {
+        return res.status(402).json({ 
+          code: "INSUFFICIENT_CREDITS", 
+          message: "Insufficient Voice AI credits. Please purchase addon credits."
+        });
+      }
+      
+      if (error.message?.includes("not enabled") || error.message?.includes("not initialized")) {
+        return res.status(403).json({ 
+          code: "SERVICE_DISABLED", 
+          message: "Voice AI service is not available for your account"
+        });
+      }
+
+      if (error.message?.includes("configuration error")) {
+        return res.status(500).json({ 
+          code: "SERVICE_ERROR", 
+          message: "Voice AI service configuration error. Please contact support."
+        });
+      }
+
+      // Generic error - don't expose internals
+      res.status(500).json({ 
+        code: "TRANSCRIPTION_ERROR", 
+        message: "Transcription failed. Please try again or contact support if the issue persists."
+      });
     }
   });
 
