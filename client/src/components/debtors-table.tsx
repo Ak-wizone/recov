@@ -87,6 +87,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
   const [rowSelection, setRowSelection] = useState({});
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [selectedSalesPerson, setSelectedSalesPerson] = useState<string>("");
+  const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
+  const [reassignSalesPerson, setReassignSalesPerson] = useState<string>("");
   
   // Define default column visibility - only show these columns by default
   const [defaultColumnVisibility] = useState<Record<string, boolean>>({
@@ -158,6 +160,39 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
       toast({
         title: "Error",
         description: error.message || "Failed to assign sales person",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Single customer reassignment mutation
+  const reassignSalesPersonMutation = useMutation({
+    mutationFn: async (data: { customerIds: string[]; salesPerson: string }) => {
+      const response = await fetch("/api/customers/bulk-assign-salesperson", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to reassign sales person");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
+      toast({
+        title: "Success",
+        description: "Debtor reassigned successfully",
+      });
+      setIsReassignDialogOpen(false);
+      setReassignSalesPerson("");
+      setIsActionsDialogOpen(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to reassign sales person",
         variant: "destructive",
       });
     },
@@ -737,7 +772,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
         <div 
           className="overflow-y-auto" 
           style={{ 
-            maxHeight: "calc(100vh - 450px)",
+            minHeight: "500px",
+            maxHeight: "calc(100vh - 350px)",
             scrollbarWidth: 'thin',
             scrollbarColor: 'rgb(203 213 225) transparent'
           }}
@@ -964,9 +1000,82 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall }: 
                   <BookOpen className="h-4 w-4 mr-2 text-indigo-500" />
                   View Ledger
                 </Button>
+
+                <Button
+                  variant="outline"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    setReassignSalesPerson(selectedDebtorForActions.salesPerson || "");
+                    setIsReassignDialogOpen(true);
+                  }}
+                  data-testid="button-action-reassign"
+                >
+                  <UserPlus className="h-4 w-4 mr-2 text-orange-500" />
+                  Reassign Sales Person
+                </Button>
               </>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reassign Sales Person Dialog */}
+      <Dialog open={isReassignDialogOpen} onOpenChange={setIsReassignDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reassign Sales Person</DialogTitle>
+            <DialogDescription>
+              Reassign {selectedDebtorForActions?.name} to a different sales person
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <Select value={reassignSalesPerson} onValueChange={setReassignSalesPerson}>
+              <SelectTrigger data-testid="select-reassign-sales-person">
+                <SelectValue placeholder="Select sales person..." />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user: any) => (
+                  <SelectItem key={user.id} value={user.name} data-testid={`option-reassign-user-${user.id}`}>
+                    {user.name} ({user.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsReassignDialogOpen(false);
+                setReassignSalesPerson("");
+              }}
+              data-testid="button-cancel-reassign"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!reassignSalesPerson) {
+                  toast({
+                    title: "No selection",
+                    description: "Please select a sales person",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                if (selectedDebtorForActions) {
+                  reassignSalesPersonMutation.mutate({
+                    customerIds: [selectedDebtorForActions.customerId],
+                    salesPerson: reassignSalesPerson,
+                  });
+                }
+              }}
+              disabled={!reassignSalesPerson || reassignSalesPersonMutation.isPending}
+              data-testid="button-confirm-reassign"
+            >
+              {reassignSalesPersonMutation.isPending ? "Reassigning..." : "Reassign"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
