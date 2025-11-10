@@ -2554,6 +2554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         roleId: user.roleId,
         roleName: user.roleName,
         tenantId: user.tenantId,
+        isAdmin: user.isAdmin,
         permissions,
       };
 
@@ -3782,7 +3783,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all master customers
   app.get("/api/masters/customers", async (req, res) => {
     try {
-      const customers = await storage.getMasterCustomers(req.tenantId!);
+      const sessionUser = (req.session as any).user;
+      let customers = await storage.getMasterCustomers(req.tenantId!);
+      
+      // For non-admin users, filter customers to show only those assigned to them
+      if (sessionUser && !sessionUser.isAdmin) {
+        const userDetails = await storage.getUser(req.tenantId!, sessionUser.id);
+        if (userDetails) {
+          const userName = userDetails.name;
+          customers = customers.filter(
+            (customer: any) => customer.salesPerson === userName
+          );
+        }
+      }
+      
       res.json(customers);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -3892,7 +3906,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export all master customers to Excel (MUST BE BEFORE /:id)
   app.get("/api/masters/customers/export", async (req, res) => {
     try {
-      const customers = await storage.getMasterCustomers(req.tenantId!);
+      const sessionUser = (req.session as any).user;
+      let customers = await storage.getMasterCustomers(req.tenantId!);
+      
+      // For non-admin users, filter customers to show only those assigned to them
+      if (sessionUser && !sessionUser.isAdmin) {
+        const userDetails = await storage.getUser(req.tenantId!, sessionUser.id);
+        if (userDetails) {
+          const userName = userDetails.name;
+          customers = customers.filter(
+            (customer: any) => customer.salesPerson === userName
+          );
+        }
+      }
       
       const data = customers.map(customer => ({
         "CLIENT NAME": customer.clientName,
@@ -6937,8 +6963,20 @@ ${profile?.legalName || 'Company'}`;
   // Export debtors (MUST BE BEFORE /api/debtors to avoid route collision)
   app.get("/api/debtors/export", async (req, res) => {
     try {
+      const sessionUser = (req.session as any).user;
       const debtorsData = await storage.getDebtorsList(req.tenantId!);
-      const allDebtors = debtorsData.allDebtors || [];
+      let allDebtors = debtorsData.allDebtors || [];
+      
+      // For non-admin users, filter debtors to show only those assigned to them
+      if (sessionUser && !sessionUser.isAdmin) {
+        const userDetails = await storage.getUser(req.tenantId!, sessionUser.id);
+        if (userDetails) {
+          const userName = userDetails.name;
+          allDebtors = allDebtors.filter(
+            (debtor: any) => debtor.salesPerson === userName
+          );
+        }
+      }
       
       // Get company profile for header
       const companyProfile = await storage.getCompanyProfile(req.tenantId!);
@@ -7069,7 +7107,34 @@ ${profile?.legalName || 'Company'}`;
   // Get debtors list with category-wise breakdown
   app.get("/api/debtors", async (req, res) => {
     try {
+      const sessionUser = (req.session as any).user;
       const data = await storage.getDebtorsList(req.tenantId!);
+      
+      // For non-admin users, filter debtors to show only those assigned to them
+      if (sessionUser && !sessionUser.isAdmin) {
+        const userDetails = await storage.getUser(req.tenantId!, sessionUser.id);
+        if (userDetails) {
+          const userName = userDetails.name;
+          // Filter allDebtors to show only those assigned to this user
+          if (data.allDebtors) {
+            data.allDebtors = data.allDebtors.filter(
+              (debtor: any) => debtor.salesPerson === userName
+            );
+          }
+          
+          // Recalculate summary stats based on filtered debtors
+          if (data.allDebtors) {
+            const filteredDebtors = data.allDebtors;
+            data.totalOutstanding = filteredDebtors.reduce((sum: number, d: any) => sum + (d.totalOutstanding || 0), 0);
+            data.totalOverdue = filteredDebtors.reduce((sum: number, d: any) => sum + (d.overdueAmount || 0), 0);
+            data.totalDebtors = filteredDebtors.length;
+            data.avgOutstanding = filteredDebtors.length > 0 
+              ? data.totalOutstanding / filteredDebtors.length 
+              : 0;
+          }
+        }
+      }
+      
       res.json(data);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
