@@ -7849,7 +7849,7 @@ ${profile?.legalName || 'Company'}`;
   // ============ USERS ROUTES ============
   
   // Get all users
-  app.get("/api/users", requirePermission("User Management", "view"), async (req, res) => {
+  app.get("/api/users", async (req, res) => {
     try {
       const users = await storage.getUsers(req.tenantId!);
       res.json(users);
