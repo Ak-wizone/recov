@@ -2321,6 +2321,264 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ========== END SUBSCRIPTION PLANS API ==========
 
+  // ========== WHISPER VOICE AI API ==========
+  
+  // Platform Admin - Get Whisper Configuration
+  app.get("/api/whisper/config", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getWhisperConfig();
+      
+      if (!config) {
+        return res.json({
+          exists: false,
+          message: "Whisper configuration not set up yet"
+        });
+      }
+      
+      // Never return the decrypted API key to the client
+      const { encryptedApiKey, ...safeConfig } = config;
+      
+      res.json({
+        exists: true,
+        config: {
+          ...safeConfig,
+          hasApiKey: !!encryptedApiKey
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch Whisper config:", error);
+      res.status(500).json({ code: "FETCH_ERROR", message: error.message });
+    }
+  });
+  
+  // Platform Admin - Create/Update Whisper Configuration
+  app.post("/api/whisper/config", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const {
+        apiKey,
+        isEnabled,
+        starterMinutes,
+        professionalMinutes,
+        enterpriseMinutes,
+        addonPricingTiers
+      } = req.body;
+      
+      // Check if config already exists
+      const existingConfig = await storage.getWhisperConfig();
+      
+      // Validate API key: Required for new config, optional for updates
+      if (!existingConfig && (!apiKey || typeof apiKey !== "string")) {
+        return res.status(400).json({ 
+          code: "VALIDATION_ERROR", 
+          message: "API key is required when creating new configuration" 
+        });
+      }
+      
+      // If apiKey is provided during update, validate it
+      if (existingConfig && apiKey && typeof apiKey !== "string") {
+        return res.status(400).json({ 
+          code: "VALIDATION_ERROR", 
+          message: "API key must be a string" 
+        });
+      }
+      
+      let result;
+      if (existingConfig) {
+        // Update existing config - only include apiKey if provided
+        const updateData: any = {
+          isEnabled: isEnabled ?? true,
+          starterMinutes: starterMinutes ?? 100,
+          professionalMinutes: professionalMinutes ?? 500,
+          enterpriseMinutes: enterpriseMinutes ?? 2000,
+          addonPricingTiers: addonPricingTiers ?? '[{"minutes":100,"price":50},{"minutes":500,"price":200},{"minutes":1000,"price":350}]'
+        };
+        
+        // Only update API key if a new one is provided
+        if (apiKey) {
+          updateData.apiKey = apiKey;
+        }
+        
+        result = await storage.updateWhisperConfig(existingConfig.id, updateData);
+      } else {
+        // Create new config - apiKey is required here (validated above)
+        result = await storage.createWhisperConfig({
+          apiKey,
+          isEnabled: isEnabled ?? true,
+          starterMinutes: starterMinutes ?? 100,
+          professionalMinutes: professionalMinutes ?? 500,
+          enterpriseMinutes: enterpriseMinutes ?? 2000,
+          addonPricingTiers: addonPricingTiers ?? '[{"minutes":100,"price":50},{"minutes":500,"price":200},{"minutes":1000,"price":350}]'
+        });
+      }
+      
+      if (!result) {
+        return res.status(500).json({ 
+          code: "SAVE_ERROR", 
+          message: "Failed to save Whisper configuration" 
+        });
+      }
+      
+      // Return safe config without decrypted key
+      const { encryptedApiKey, ...safeConfig } = result;
+      
+      res.json({
+        success: true,
+        message: existingConfig ? "Configuration updated successfully" : "Configuration created successfully",
+        config: {
+          ...safeConfig,
+          hasApiKey: !!encryptedApiKey
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to save Whisper config:", error);
+      res.status(500).json({ code: "SAVE_ERROR", message: error.message });
+    }
+  });
+  
+  // Platform Admin - Get All Tenant Usage Analytics
+  app.get("/api/whisper/usage/platform", adminOnlyMiddleware, async (req, res) => {
+    try {
+      // TODO: Implement cross-tenant usage aggregation
+      // For now, return placeholder
+      res.json({
+        message: "Platform-wide usage analytics - Coming soon",
+        totalTenants: 0,
+        totalMinutesUsed: 0,
+        totalCost: 0
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch platform usage:", error);
+      res.status(500).json({ code: "FETCH_ERROR", message: error.message });
+    }
+  });
+  
+  // Tenant - Get Credit Balance
+  app.get("/api/whisper/credits", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      }
+      
+      const tenantId = req.user.tenantId;
+      if (!tenantId) {
+        return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot access tenant credits" });
+      }
+      
+      let credits = await storage.getWhisperCredits(tenantId);
+      
+      if (!credits) {
+        // Initialize credits for new tenant
+        const nextReset = new Date();
+        nextReset.setMonth(nextReset.getMonth() + 1);
+        
+        credits = await storage.createWhisperCredits(tenantId, {
+          planMinutesCurrent: 0,
+          addonMinutesBalance: 0,
+          usedPlanMinutes: 0,
+          usedAddonMinutes: 0,
+          rolloverAddonMinutes: 0,
+          nextResetAt: nextReset,
+          enabled: true
+        });
+      }
+      
+      // Calculate remaining minutes
+      const remainingMinutes = credits.planMinutesCurrent + credits.addonMinutesBalance;
+      
+      res.json({
+        ...credits,
+        remainingMinutes,
+        totalAllocated: credits.planMinutesAllocated || 0
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch credits:", error);
+      res.status(500).json({ code: "FETCH_ERROR", message: error.message });
+    }
+  });
+  
+  // Tenant - Get Usage History
+  app.get("/api/whisper/usage", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      }
+      
+      const tenantId = req.user.tenantId;
+      if (!tenantId) {
+        return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot access tenant usage" });
+      }
+      
+      const { operation, startDate, endDate } = req.query;
+      
+      const filters: any = {};
+      if (operation) filters.operation = operation;
+      if (startDate) filters.startDate = new Date(startDate as string);
+      if (endDate) filters.endDate = new Date(endDate as string);
+      
+      const usage = await storage.getWhisperUsage(tenantId, filters);
+      const stats = await storage.getWhisperUsageStats(tenantId);
+      
+      res.json({
+        usage,
+        stats
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch usage:", error);
+      res.status(500).json({ code: "FETCH_ERROR", message: error.message });
+    }
+  });
+  
+  // Tenant - Get Transaction History
+  app.get("/api/whisper/transactions", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      }
+      
+      const tenantId = req.user.tenantId;
+      if (!tenantId) {
+        return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot access tenant transactions" });
+      }
+      
+      const transactions = await storage.getWhisperTransactions(tenantId);
+      
+      res.json({
+        transactions
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch transactions:", error);
+      res.status(500).json({ code: "FETCH_ERROR", message: error.message });
+    }
+  });
+  
+  // Tenant - Transcribe Audio (Placeholder - will implement OpenAI integration next)
+  app.post("/api/whisper/transcribe", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      }
+      
+      const tenantId = req.user.tenantId;
+      const userId = req.user.id;
+      
+      if (!tenantId) {
+        return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot use transcription" });
+      }
+      
+      // TODO: Implement file upload with multer, audio validation, OpenAI Whisper API call
+      // For now, return placeholder response
+      res.status(501).json({
+        code: "NOT_IMPLEMENTED",
+        message: "Transcription endpoint will be implemented with OpenAI Whisper integration"
+      });
+    } catch (error: any) {
+      console.error("Failed to transcribe:", error);
+      res.status(500).json({ code: "TRANSCRIBE_ERROR", message: error.message });
+    }
+  });
+  
+  // ========== END WHISPER VOICE AI API ==========
+
   // Cleanup orphaned users (admin only) - Deletes users whose tenant no longer exists
   app.post("/api/cleanup-orphaned-users", adminOnlyMiddleware, async (req, res) => {
     try {

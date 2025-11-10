@@ -5,14 +5,24 @@ const IV_LENGTH = 16;
 const AUTH_TAG_LENGTH = 16;
 const SALT_LENGTH = 32;
 
-if (!process.env.ENCRYPTION_KEY) {
-  throw new Error(
-    "ENCRYPTION_KEY environment variable is required for API key encryption. " +
-    "Generate a secure key with: openssl rand -base64 32"
-  );
+function getEncryptionKey(): string {
+  const key = process.env.ENCRYPTION_KEY;
+  
+  if (!key) {
+    throw new Error(
+      "ENCRYPTION_KEY environment variable is required for API key encryption. " +
+      "Generate a secure key with: openssl rand -base64 32"
+    );
+  }
+  
+  if (key.length < 32) {
+    throw new Error(
+      "ENCRYPTION_KEY must be at least 32 characters long for AES-256 security"
+    );
+  }
+  
+  return key;
 }
-
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
 export interface EncryptedData {
   encryptedText: string;
@@ -35,8 +45,9 @@ export function encrypt(text: string, keyVersion: number = 1): EncryptedData {
     throw new Error("Invalid keyVersion: must be a positive integer");
   }
 
+  const encryptionKey = getEncryptionKey();
   const salt = crypto.randomBytes(SALT_LENGTH);
-  const key = deriveKey(ENCRYPTION_KEY, salt);
+  const key = deriveKey(encryptionKey, salt);
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
   
@@ -70,8 +81,9 @@ export function decrypt(encryptedData: EncryptedData): string {
   }
 
   try {
+    const encryptionKey = getEncryptionKey();
     const saltBuffer = Buffer.from(salt, "hex");
-    const key = deriveKey(ENCRYPTION_KEY, saltBuffer);
+    const key = deriveKey(encryptionKey, saltBuffer);
     
     const decipher = crypto.createDecipheriv(
       ALGORITHM,
@@ -130,5 +142,10 @@ export function decryptApiKey(encryptedJson: string): string {
 }
 
 export function validateEncryptionKey(): boolean {
-  return !!process.env.ENCRYPTION_KEY && process.env.ENCRYPTION_KEY.length >= 32;
+  try {
+    const key = getEncryptionKey();
+    return key.length >= 32;
+  } catch {
+    return false;
+  }
 }

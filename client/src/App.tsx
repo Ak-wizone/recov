@@ -55,6 +55,7 @@ import Leaderboard from "@/pages/leaderboard";
 import DailyTargets from "@/pages/daily-targets";
 import AuditLogs from "@/pages/audit-logs";
 import SubscriptionPlans from "@/pages/subscription-plans";
+import WhisperSettings from "@/pages/whisper-settings";
 import BackupRestore from "@/pages/backup-restore";
 import Pricing from "@/pages/pricing";
 import PaymentSuccess from "@/pages/payment-success";
@@ -128,6 +129,7 @@ function Router() {
               <Route path="/audit-logs" component={AuditLogs} />
               <Route path="/tenant-registrations" component={TenantRegistrations} />
               <Route path="/subscription-plans" component={SubscriptionPlans} />
+              <Route path="/whisper-settings" component={WhisperSettings} />
               <Route component={NotFound} />
             </Switch>
           </Layout>
