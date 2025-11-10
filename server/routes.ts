@@ -2391,9 +2391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const {
         apiKey,
         isEnabled,
-        starterMinutes,
-        professionalMinutes,
-        enterpriseMinutes,
+        planAllocations,
         addonPricingTiers
       } = req.body;
       
@@ -2421,9 +2419,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Update existing config - only include apiKey if provided
         const updateData: any = {
           isEnabled: isEnabled ?? true,
-          starterMinutes: starterMinutes ?? 100,
-          professionalMinutes: professionalMinutes ?? 500,
-          enterpriseMinutes: enterpriseMinutes ?? 2000,
           addonPricingTiers: addonPricingTiers ?? '[{"minutes":100,"price":50},{"minutes":500,"price":200},{"minutes":1000,"price":350}]'
         };
         
@@ -2438,9 +2433,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         result = await storage.createWhisperConfig({
           apiKey,
           isEnabled: isEnabled ?? true,
-          starterMinutes: starterMinutes ?? 100,
-          professionalMinutes: professionalMinutes ?? 500,
-          enterpriseMinutes: enterpriseMinutes ?? 2000,
           addonPricingTiers: addonPricingTiers ?? '[{"minutes":100,"price":50},{"minutes":500,"price":200},{"minutes":1000,"price":350}]'
         });
       }
@@ -2450,6 +2442,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           code: "SAVE_ERROR", 
           message: "Failed to save Whisper configuration" 
         });
+      }
+
+      // Update plan allocations if provided
+      if (planAllocations && typeof planAllocations === 'object') {
+        for (const [planId, minutes] of Object.entries(planAllocations)) {
+          await db
+            .update(subscriptionPlans)
+            .set({ whisperDefaultMinutes: minutes as number })
+            .where(eq(subscriptionPlans.id, planId));
+        }
       }
       
       // Return safe config without decrypted key

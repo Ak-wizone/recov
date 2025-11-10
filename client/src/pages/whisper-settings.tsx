@@ -4,12 +4,18 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { WhisperConfig } from "@shared/schema";
+import { WhisperConfig, SubscriptionPlan } from "@shared/schema";
 
 interface WhisperConfigResponse {
   exists: boolean;
   message?: string;
   config?: WhisperConfig & { hasApiKey: boolean };
+}
+
+interface PlanWhisperAllocation {
+  planId: string;
+  planName: string;
+  minutes: number;
 }
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -25,9 +31,7 @@ export default function WhisperSettings() {
   const [, setLocation] = useLocation();
   const [apiKey, setApiKey] = useState("");
   const [isEnabled, setIsEnabled] = useState(true);
-  const [starterMinutes, setStarterMinutes] = useState(100);
-  const [professionalMinutes, setProfessionalMinutes] = useState(500);
-  const [enterpriseMinutes, setEnterpriseMinutes] = useState(2000);
+  const [planAllocations, setPlanAllocations] = useState<Record<string, number>>({});
   
   // Platform admin guard - redirect non-platform-admin users
   useEffect(() => {
@@ -42,20 +46,34 @@ export default function WhisperSettings() {
     }
   }, [user, isAuthLoading, setLocation, toast]);
 
+  // Fetch subscription plans
+  const { data: subscriptionPlans, isLoading: isLoadingPlans } = useQuery<SubscriptionPlan[]>({
+    queryKey: ["/api/public/plans"],
+  });
+
   // Fetch current configuration
-  const { data: configData, isLoading } = useQuery<WhisperConfigResponse>({
+  const { data: configData, isLoading: isLoadingConfig } = useQuery<WhisperConfigResponse>({
     queryKey: ["/api/whisper/config"],
   });
 
-  // Hydrate state when data loads
+  // Hydrate state when plans and config load
+  useEffect(() => {
+    if (subscriptionPlans && subscriptionPlans.length > 0) {
+      const allocations: Record<string, number> = {};
+      subscriptionPlans.forEach(plan => {
+        allocations[plan.id] = plan.whisperDefaultMinutes || 0;
+      });
+      setPlanAllocations(allocations);
+    }
+  }, [subscriptionPlans]);
+
   useEffect(() => {
     if (configData?.exists && configData?.config) {
       setIsEnabled(configData.config.enabled ?? true);
-      setStarterMinutes(configData.config.starterMinutes ?? 100);
-      setProfessionalMinutes(configData.config.professionalMinutes ?? 500);
-      setEnterpriseMinutes(configData.config.enterpriseMinutes ?? 2000);
     }
   }, [configData]);
+
+  const isLoading = isLoadingPlans || isLoadingConfig;
 
   // Save configuration mutation
   const saveConfigMutation = useMutation({
@@ -79,7 +97,7 @@ export default function WhisperSettings() {
     },
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!apiKey && !configData?.config?.hasApiKey) {
       toast({
         title: "Validation Error",
@@ -91,14 +109,12 @@ export default function WhisperSettings() {
 
     const payload: any = {
       isEnabled,
-      starterMinutes,
-      professionalMinutes,
-      enterpriseMinutes,
       addonPricingTiers: JSON.stringify([
         { minutes: 100, price: 50 },
         { minutes: 500, price: 200 },
         { minutes: 1000, price: 350 },
       ]),
+      planAllocations: planAllocations,
     };
 
     if (apiKey) {
@@ -180,44 +196,41 @@ export default function WhisperSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="starterMinutes">Starter Plan</Label>
-              <Input
-                id="starterMinutes"
-                type="number"
-                min="0"
-                value={starterMinutes}
-                onChange={(e) => setStarterMinutes(parseInt(e.target.value) || 0)}
-                data-testid="input-starter-minutes"
-              />
-              <p className="text-xs text-muted-foreground">Minutes per month</p>
+          {subscriptionPlans && subscriptionPlans.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-3">
+              {subscriptionPlans.map((plan) => (
+                <div key={plan.id} className="space-y-2">
+                  <Label htmlFor={`plan-${plan.id}`}>
+                    {plan.name}
+                    <Badge 
+                      variant="outline" 
+                      className="ml-2" 
+                      style={{ borderColor: plan.color, color: plan.color }}
+                    >
+                      {plan.billingCycle}
+                    </Badge>
+                  </Label>
+                  <Input
+                    id={`plan-${plan.id}`}
+                    type="number"
+                    min="0"
+                    value={planAllocations[plan.id] || 0}
+                    onChange={(e) => setPlanAllocations(prev => ({
+                      ...prev,
+                      [plan.id]: parseInt(e.target.value) || 0
+                    }))}
+                    data-testid={`input-plan-${plan.id}-minutes`}
+                  />
+                  <p className="text-xs text-muted-foreground">Minutes per month</p>
+                </div>
+              ))}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="professionalMinutes">Professional Plan</Label>
-              <Input
-                id="professionalMinutes"
-                type="number"
-                min="0"
-                value={professionalMinutes}
-                onChange={(e) => setProfessionalMinutes(parseInt(e.target.value) || 0)}
-                data-testid="input-professional-minutes"
-              />
-              <p className="text-xs text-muted-foreground">Minutes per month</p>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No subscription plans found.</p>
+              <p className="text-sm mt-2">Create subscription plans first to configure Whisper allocations.</p>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="enterpriseMinutes">Enterprise Plan</Label>
-              <Input
-                id="enterpriseMinutes"
-                type="number"
-                min="0"
-                value={enterpriseMinutes}
-                onChange={(e) => setEnterpriseMinutes(parseInt(e.target.value) || 0)}
-                data-testid="input-enterprise-minutes"
-              />
-              <p className="text-xs text-muted-foreground">Minutes per month</p>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
