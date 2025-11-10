@@ -422,9 +422,23 @@ const navItems: NavItem[] = [
   },
   {
     name: "Whisper Voice AI",
-    path: "/whisper-credits",
+    path: "#",
     icon: <Mic className="h-5 w-5" />,
     module: "Whisper Voice AI",
+    subItems: [
+      {
+        name: "Voice AI",
+        path: "/whisper-voice",
+        icon: <Mic className="h-4 w-4" />,
+        module: "Whisper Voice AI",
+      },
+      {
+        name: "Voice Credits",
+        path: "/whisper-credits",
+        icon: <CreditCard className="h-4 w-4" />,
+        module: "Whisper Voice AI",
+      },
+    ],
   },
   {
     name: "Audit Logs",
