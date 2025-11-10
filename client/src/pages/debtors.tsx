@@ -95,14 +95,9 @@ export default function Debtors() {
   });
 
   const allDebtors = debtorsData?.allDebtors || [];
-  
-  // Use search-filtered debtors if available, otherwise use all debtors
-  const baseDebtors = searchFilteredDebtors.length > 0 || allDebtors.length === 0 
-    ? searchFilteredDebtors 
-    : allDebtors;
 
-  // Apply category and follow-up filters on top of search filter
-  const filteredDebtors = baseDebtors.filter((d: any) => {
+  // First apply category and follow-up filters
+  const categoryFollowupFiltered = allDebtors.filter((d: any) => {
     if (categoryFilter && d.category !== categoryFilter) return false;
     
     if (followUpFilter) {
@@ -138,8 +133,14 @@ export default function Debtors() {
     return true;
   });
 
-  // Calculate category-wise totals from search-filtered debtors
-  const categoryWise = baseDebtors.reduce((acc: any, debtor: any) => {
+  // Use search-filtered debtors (after table applies search) if available
+  // This represents what's actually visible in the grid
+  const visibleDebtors = searchFilteredDebtors.length > 0 || allDebtors.length === 0 
+    ? searchFilteredDebtors 
+    : categoryFollowupFiltered;
+
+  // Calculate category-wise totals from visible debtors (what's shown in grid)
+  const categoryWise = visibleDebtors.reduce((acc: any, debtor: any) => {
     const category = debtor.category as 'Alpha' | 'Beta' | 'Gamma' | 'Delta';
     if (!acc[category]) {
       acc[category] = { count: 0, totalBalance: 0, debtors: [] };
@@ -155,8 +156,8 @@ export default function Debtors() {
     Delta: { count: 0, totalBalance: 0, debtors: [] },
   });
 
-  // Calculate total balance for filtered debtors
-  const totalBalanceFiltered = filteredDebtors.reduce((sum: number, d: any) => sum + d.balance, 0);
+  // Calculate total balance from visible debtors (sum of what's shown in grid)
+  const totalBalanceFiltered = visibleDebtors.reduce((sum: number, d: any) => sum + d.balance, 0);
 
   const handleOpenFollowUp = (debtor: any) => {
     setSelectedCustomer(debtor);
@@ -631,7 +632,7 @@ export default function Debtors() {
               </div>
             ) : (
               <DebtorsTable
-                data={allDebtors}
+                data={categoryFollowupFiltered}
                 onOpenFollowUp={handleOpenFollowUp}
                 onOpenEmail={handleOpenEmail}
                 onOpenCall={handleOpenCall}
