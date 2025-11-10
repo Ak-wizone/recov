@@ -13,6 +13,7 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull().default("0"),
   billingCycle: text("billing_cycle").notNull().default("monthly"), // monthly, annual, lifetime
   allowedModules: text("allowed_modules").array().notNull(),
+  whisperDefaultMinutes: integer("whisper_default_minutes"), // Default Whisper Voice AI minutes for this plan
   color: text("color").notNull().default("#3B82F6"), // For UI badges
   isActive: boolean("is_active").notNull().default(true),
   displayOrder: integer("display_order").notNull().default(0),

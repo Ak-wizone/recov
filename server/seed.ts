@@ -222,8 +222,10 @@ export async function seedDatabase() {
           "Settings",
           "Company Profile",
           "User Management",
-          "Roles Management"
+          "Roles Management",
+          "Whisper Voice AI"
         ],
+        whisperDefaultMinutes: 300,
         color: "#3b82f6",
         displayOrder: 1,
         isActive: true
@@ -261,8 +263,10 @@ export async function seedDatabase() {
           "Company Profile",
           "User Management",
           "Roles Management",
-          "Email/WhatsApp/Call Integrations"
+          "Email/WhatsApp/Call Integrations",
+          "Whisper Voice AI"
         ],
+        whisperDefaultMinutes: 1000,
         color: "#8b5cf6",
         displayOrder: 2,
         isActive: true
@@ -311,8 +315,10 @@ export async function seedDatabase() {
           "User Management",
           "Roles Management",
           "Email/WhatsApp/Call Integrations",
-          "RECOV Voice Assistant"
+          "RECOV Voice Assistant",
+          "Whisper Voice AI"
         ],
+        whisperDefaultMinutes: 3000,
         color: "#f59e0b",
         displayOrder: 3,
         isActive: true
