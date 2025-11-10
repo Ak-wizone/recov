@@ -42,6 +42,7 @@ import {
   Database,
   ListChecks,
   MessageSquare,
+  Mic,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -81,6 +82,7 @@ const MODULE_MAPPING: Record<string, string> = {
   "Settings": "Settings",
   "Backup & Restore": "Backup & Restore",
   "Audit Trial Logs": "Settings",
+  "Whisper Voice AI": "Whisper Voice AI",
 };
 
 // NOTE: Parent-child module inheritance REMOVED for strict subscription enforcement
@@ -154,6 +156,9 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Roles Management": "Roles Management",
   "Backup & Restore": "Backup & Restore",
   "Audit Logs": "Audit Logs",
+  
+  // Voice AI
+  "Whisper Voice AI": "Whisper Voice AI",
 };
 
 // Platform Admin navigation items
@@ -414,6 +419,12 @@ const navItems: NavItem[] = [
         platformAdminOnly: true,
       },
     ],
+  },
+  {
+    name: "Whisper Voice AI",
+    path: "/whisper-credits",
+    icon: <Mic className="h-5 w-5" />,
+    module: "Whisper Voice AI",
   },
   {
     name: "Audit Logs",

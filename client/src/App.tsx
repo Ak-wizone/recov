@@ -56,6 +56,7 @@ import DailyTargets from "@/pages/daily-targets";
 import AuditLogs from "@/pages/audit-logs";
 import SubscriptionPlans from "@/pages/subscription-plans";
 import WhisperSettings from "@/pages/whisper-settings";
+import { WhisperCredits } from "@/pages/whisper-credits";
 import BackupRestore from "@/pages/backup-restore";
 import Pricing from "@/pages/pricing";
 import PaymentSuccess from "@/pages/payment-success";
@@ -130,6 +131,7 @@ function Router() {
               <Route path="/tenant-registrations" component={TenantRegistrations} />
               <Route path="/subscription-plans" component={SubscriptionPlans} />
               <Route path="/whisper-settings" component={WhisperSettings} />
+              <Route path="/whisper-credits" component={WhisperCredits} />
               <Route component={NotFound} />
             </Switch>
           </Layout>

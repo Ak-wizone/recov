@@ -315,6 +315,10 @@ export interface IStorage {
   
   createWhisperTransaction(transaction: any): Promise<any>;
   getWhisperTransactions(tenantId: string): Promise<any[]>;
+  
+  getWhisperAddonPackages(): Promise<{ minutes: number; price: number }[]>;
+  addWhisperAddonCredits(tenantId: string, minutes: number, transactionDetails: any): Promise<boolean>;
+  initializeWhisperCredits(tenantId: string): Promise<any | null>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3031,6 +3035,146 @@ export class DatabaseStorage implements IStorage {
       .from(whisperTransactions)
       .where(eq(whisperTransactions.tenantId, tenantId))
       .orderBy(desc(whisperTransactions.createdAt));
+  }
+
+  async getWhisperAddonPackages(): Promise<{ minutes: number; price: number }[]> {
+    const config = await this.getWhisperConfig();
+    if (!config || !config.addonPricingTiers) {
+      return [
+        { minutes: 100, price: 50 },
+        { minutes: 500, price: 200 },
+        { minutes: 1000, price: 350 }
+      ];
+    }
+    
+    try {
+      return JSON.parse(config.addonPricingTiers);
+    } catch (error) {
+      console.error("[Whisper] Failed to parse addon pricing tiers:", error);
+      return [
+        { minutes: 100, price: 50 },
+        { minutes: 500, price: 200 },
+        { minutes: 1000, price: 350 }
+      ];
+    }
+  }
+
+  async addWhisperAddonCredits(tenantId: string, minutes: number, transactionDetails: any): Promise<boolean> {
+    try {
+      let credits = await this.getWhisperCredits(tenantId);
+      if (!credits) {
+        credits = await this.initializeWhisperCredits(tenantId);
+        if (!credits) {
+          console.error("[Whisper] Failed to initialize credits for addon purchase");
+          return false;
+        }
+      }
+
+      await db.transaction(async (tx) => {
+        const [currentCredits] = await tx
+          .select()
+          .from(whisperCredits)
+          .where(eq(whisperCredits.tenantId, tenantId))
+          .for('update');
+
+        if (!currentCredits) {
+          throw new Error("Credits row disappeared during transaction");
+        }
+
+        const newAddonMinutes = (currentCredits.addonMinutes || 0) + minutes;
+
+        await tx
+          .update(whisperCredits)
+          .set({ 
+            addonMinutes: newAddonMinutes,
+            updatedAt: new Date()
+          })
+          .where(eq(whisperCredits.tenantId, tenantId));
+
+        await tx.insert(whisperTransactions).values({
+          tenantId,
+          type: "addon_purchase",
+          minutes,
+          amount: transactionDetails.amount || 0,
+          description: transactionDetails.description || `Added ${minutes} addon minutes`,
+          metadata: JSON.stringify(transactionDetails),
+          createdAt: new Date()
+        });
+      });
+
+      return true;
+    } catch (error) {
+      console.error("[Whisper] Failed to add addon credits:", error);
+      return false;
+    }
+  }
+
+  async initializeWhisperCredits(tenantId: string): Promise<any | null> {
+    try {
+      const [tenant] = await db
+        .select({
+          id: tenants.id,
+          subscriptionPlanId: tenants.subscriptionPlanId,
+          planType: tenants.planType
+        })
+        .from(tenants)
+        .where(eq(tenants.id, tenantId))
+        .limit(1);
+
+      if (!tenant) {
+        return null;
+      }
+
+      const config = await this.getWhisperConfig();
+      if (!config) {
+        return null;
+      }
+
+      let planName = "starter";
+      
+      if (tenant.subscriptionPlanId) {
+        const [plan] = await db
+          .select({ name: subscriptionPlans.name })
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.id, tenant.subscriptionPlanId))
+          .limit(1);
+        
+        if (plan && plan.name) {
+          planName = plan.name.toLowerCase();
+        }
+      } else if (tenant.planType) {
+        planName = tenant.planType.toLowerCase();
+      }
+
+      let planMinutes = config.starterMinutes || 100;
+      if (planName === "professional") {
+        planMinutes = config.professionalMinutes || 500;
+      } else if (planName === "enterprise") {
+        planMinutes = config.enterpriseMinutes || 2000;
+      }
+
+      const resetDate = new Date();
+      resetDate.setMonth(resetDate.getMonth() + 1);
+
+      const [credits] = await db
+        .insert(whisperCredits)
+        .values({
+          tenantId,
+          planMinutes,
+          addonMinutes: 0,
+          usedMinutes: 0,
+          resetDate,
+          enabled: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      return credits;
+    } catch (error) {
+      console.error("[Whisper] Failed to initialize credits:", error);
+      return null;
+    }
   }
 }
 

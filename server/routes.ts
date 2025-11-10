@@ -2762,6 +2762,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Tenant - Get Available Addon Packages
+  app.get("/api/whisper/addon-packages", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      }
+
+      const tenantId = req.user.tenantId;
+      if (!tenantId) {
+        return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot purchase addons" });
+      }
+
+      const packages = await storage.getWhisperAddonPackages();
+      
+      res.json({
+        success: true,
+        packages
+      });
+    } catch (error: any) {
+      console.error("[Whisper] Failed to get addon packages:", error);
+      res.status(500).json({ code: "FETCH_ERROR", message: error.message });
+    }
+  });
+
+  // Tenant - Purchase Addon Credits
+  app.post("/api/whisper/purchase-addon", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
+      }
+
+      const tenantId = req.user.tenantId;
+      const userId = req.user.id;
+
+      if (!tenantId) {
+        return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot purchase addons" });
+      }
+
+      const schema = z.object({
+        packageMinutes: z.number().int().positive(),
+        packagePrice: z.number().positive(),
+        paymentMethod: z.string().optional(),
+        paymentReference: z.string().optional()
+      });
+
+      const validated = schema.safeParse(req.body);
+      if (!validated.success) {
+        return res.status(400).json({ 
+          code: "VALIDATION_ERROR", 
+          message: validated.error.errors[0].message 
+        });
+      }
+
+      const { packageMinutes, packagePrice, paymentMethod, paymentReference } = validated.data;
+
+      const packages = await storage.getWhisperAddonPackages();
+      const validPackage = packages.find(
+        p => p.minutes === packageMinutes && p.price === packagePrice
+      );
+
+      if (!validPackage) {
+        return res.status(400).json({
+          code: "INVALID_PACKAGE",
+          message: "Invalid package selection. Please choose a valid addon package."
+        });
+      }
+
+      const success = await storage.addWhisperAddonCredits(tenantId, packageMinutes, {
+        amount: packagePrice,
+        description: `Purchased ${packageMinutes} minutes addon package`,
+        paymentMethod,
+        paymentReference,
+        purchasedBy: userId,
+        purchasedAt: new Date().toISOString()
+      });
+
+      if (!success) {
+        return res.status(500).json({
+          code: "PURCHASE_FAILED",
+          message: "Failed to add addon credits. Please try again."
+        });
+      }
+
+      const updatedCredits = await storage.getWhisperCredits(tenantId);
+      const remainingMinutes = updatedCredits
+        ? (updatedCredits.planMinutes || 0) + (updatedCredits.addonMinutes || 0) - (updatedCredits.usedMinutes || 0)
+        : 0;
+
+      res.json({
+        success: true,
+        message: `Successfully added ${packageMinutes} minutes to your account`,
+        creditsRemaining: remainingMinutes.toFixed(2)
+      });
+    } catch (error: any) {
+      console.error("[Whisper] Addon purchase error:", error);
+      res.status(500).json({ code: "PURCHASE_ERROR", message: error.message });
+    }
+  });
+
   // ========== END WHISPER VOICE AI API ==========
 
   // Cleanup orphaned users (admin only) - Deletes users whose tenant no longer exists
