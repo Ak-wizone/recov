@@ -2491,11 +2491,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant - Get Credit Balance
   app.get("/api/whisper/credits", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
         return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
       }
       
-      const tenantId = req.user.tenantId;
+      const tenantId = sessionUser.tenantId;
       if (!tenantId) {
         return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot access tenant credits" });
       }
@@ -2535,11 +2536,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant - Get Usage History
   app.get("/api/whisper/usage", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
         return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
       }
       
-      const tenantId = req.user.tenantId;
+      const tenantId = sessionUser.tenantId;
       if (!tenantId) {
         return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot access tenant usage" });
       }
@@ -2567,11 +2569,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant - Get Transaction History
   app.get("/api/whisper/transactions", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
         return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
       }
       
-      const tenantId = req.user.tenantId;
+      const tenantId = sessionUser.tenantId;
       if (!tenantId) {
         return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot access tenant transactions" });
       }
@@ -2590,11 +2593,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant - Get Available Addon Packages
   app.get("/api/whisper/addon-packages", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
         return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
       }
 
-      const tenantId = req.user.tenantId;
+      const tenantId = sessionUser.tenantId;
       if (!tenantId) {
         return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot purchase addons" });
       }
@@ -2614,12 +2618,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant - Purchase Addon Credits
   app.post("/api/whisper/purchase-addon", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
         return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
       }
 
-      const tenantId = req.user.tenantId;
-      const userId = req.user.id;
+      const tenantId = sessionUser.tenantId;
+      const userId = sessionUser.id;
 
       if (!tenantId) {
         return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot purchase addons" });
@@ -2689,12 +2694,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Tenant - Transcribe Audio
   app.post("/api/whisper/transcribe", audioUpload.single("audio"), async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !req.user) {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
         return res.status(401).json({ code: "UNAUTHORIZED", message: "Not authenticated" });
       }
 
-      const tenantId = req.user.tenantId;
-      const userId = req.user.id;
+      const tenantId = sessionUser.tenantId;
+      const userId = sessionUser.id;
 
       if (!tenantId) {
         return res.status(403).json({ code: "FORBIDDEN", message: "Platform admins cannot use transcription" });
