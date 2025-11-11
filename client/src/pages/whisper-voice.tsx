@@ -33,17 +33,17 @@ export default function WhisperVoicePage() {
   const audioChunksRef = useRef<Blob[]>([]);
 
   const { data: credits, isLoading: isLoadingCredits } = useQuery<{ 
-    planMinutes: number;
-    addonMinutes: number;
-    usedMinutes: number;
-    resetDate: string;
+    planMinutesCurrent: number;
+    addonMinutesBalance: number;
+    usedPlanMinutes: number;
+    usedAddonMinutes: number;
+    remainingMinutes: number;
+    nextResetAt: string;
   }>({
     queryKey: ["/api/whisper/credits"],
   });
 
-  const remainingMinutes = credits 
-    ? (credits.planMinutes || 0) + (credits.addonMinutes || 0) - (credits.usedMinutes || 0)
-    : 0;
+  const remainingMinutes = credits?.remainingMinutes || 0;
 
   const transcribeMutation = useMutation({
     mutationFn: async (file: File) => {
