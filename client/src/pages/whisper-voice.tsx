@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Mic, Square, Upload, Loader2, AlertCircle, CheckCircle2, Lightbulb, Volume2 } from "lucide-react";
+import { Mic, Square, Loader2, AlertCircle, CheckCircle2, Lightbulb, Volume2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -140,44 +139,6 @@ export default function WhisperVoicePage() {
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Wait for credits to load before checking
-    if (isLoadingCredits) {
-      toast({
-        title: "Loading Credits",
-        description: "Please wait while we fetch your credit balance.",
-      });
-      event.target.value = ""; // Reset input
-      return;
-    }
-
-    if (remainingMinutes <= 0) {
-      toast({
-        title: "No Credits Available",
-        description: "Please purchase addon credits from Voice AI Credits page.",
-        variant: "destructive",
-      });
-      event.target.value = ""; // Reset input
-      return;
-    }
-
-    const maxSize = 25 * 1024 * 1024; // 25MB
-    if (file.size > maxSize) {
-      toast({
-        title: "File Too Large",
-        description: "Maximum file size is 25MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setAudioBlob(file);
-    setAudioUrl(URL.createObjectURL(file));
-    setResult(null);
-  };
 
   const handleTranscribe = () => {
     if (!audioBlob) return;
@@ -213,7 +174,7 @@ export default function WhisperVoicePage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Voice AI</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Record or upload audio to transcribe with AI-powered voice recognition
+            Record audio to transcribe with AI-powered voice recognition
           </p>
         </div>
         <Badge variant="outline" className="text-base px-4 py-2" data-testid="badge-credits-remaining">
@@ -228,7 +189,7 @@ export default function WhisperVoicePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Volume2 className="h-5 w-5" />
-              Record or Upload Audio
+              Record Audio
             </CardTitle>
             <CardDescription>
               Speak commands in English, Hindi, or Hinglish
@@ -262,29 +223,6 @@ export default function WhisperVoicePage() {
               )}
             </div>
 
-            <Separator />
-
-            {/* File Upload */}
-            <div className="space-y-2">
-              <label
-                htmlFor="audio-upload"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                Or upload an audio file
-              </label>
-              <input
-                id="audio-upload"
-                type="file"
-                accept="audio/*"
-                onChange={handleFileUpload}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
-                data-testid="input-audio-upload"
-              />
-              <p className="text-xs text-muted-foreground">
-                Supports: MP3, MP4, M4A, WAV, WebM, OGG, FLAC (max 25MB)
-              </p>
-            </div>
-
             {/* Audio Preview */}
             {audioUrl && (
               <div className="space-y-3 p-4 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
@@ -311,7 +249,7 @@ export default function WhisperVoicePage() {
                     </>
                   ) : (
                     <>
-                      <Upload className="h-4 w-4 mr-2" />
+                      <Mic className="h-4 w-4 mr-2" />
                       Transcribe Audio
                     </>
                   )}
@@ -411,7 +349,7 @@ export default function WhisperVoicePage() {
             ) : (
               <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground">
                 <Mic className="h-12 w-12 mb-4 opacity-20" />
-                <p className="text-sm">Record or upload audio to see transcription results</p>
+                <p className="text-sm">Record audio to see transcription results</p>
               </div>
             )}
           </CardContent>
