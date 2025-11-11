@@ -18,6 +18,11 @@ interface TranscriptionResult {
     entities: Record<string, any>;
     confidence: number;
   };
+  report?: {
+    type: string;
+    data: any;
+    summary?: string;
+  };
 }
 
 export default function WhisperVoicePage() {
@@ -341,9 +346,182 @@ export default function WhisperVoicePage() {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      No command detected. Try saying "create lead", "create quotation", "create customer", or "create invoice".
+                      No command detected. Try reports like "top 5 debtors", "today collection", or commands like "create lead".
                     </AlertDescription>
                   </Alert>
+                )}
+
+                {/* Report Results */}
+                {result.report && (
+                  <div className="space-y-3 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-blue-900 dark:text-blue-100">
+                        {result.report.type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} Report
+                      </h3>
+                      <Badge variant="secondary" className="text-xs">
+                        {result.report.summary}
+                      </Badge>
+                    </div>
+                    
+                    {/* Top Debtors/Customers/Payments Table */}
+                    {(result.report.type === 'top_debtors' || 
+                      result.report.type === 'top_customers_month' || 
+                      result.report.type === 'top_payments_month') && Array.isArray(result.report.data) && (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-blue-200 dark:border-blue-800">
+                              <th className="text-left p-2 font-medium text-blue-900 dark:text-blue-100">
+                                {result.report.type === 'top_payments_month' ? 'Customer / Date' : 'Customer'}
+                              </th>
+                              <th className="text-right p-2 font-medium text-blue-900 dark:text-blue-100">
+                                {result.report.type === 'top_debtors' ? 'Outstanding' : 
+                                 result.report.type === 'top_customers_month' ? 'Revenue' : 'Amount'}
+                              </th>
+                              {result.report.type !== 'top_payments_month' && (
+                                <th className="text-center p-2 font-medium text-blue-900 dark:text-blue-100">
+                                  {result.report.type === 'top_debtors' ? 'Invoices' : 'Orders'}
+                                </th>
+                              )}
+                              {result.report.type === 'top_payments_month' && (
+                                <th className="text-center p-2 font-medium text-blue-900 dark:text-blue-100">Mode</th>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {result.report.data.map((item: any, idx: number) => (
+                              <tr key={idx} className="border-b border-blue-100 dark:border-blue-900">
+                                <td className="p-2 text-blue-800 dark:text-blue-200">
+                                  {item.customerName}
+                                  {item.paymentDate && (
+                                    <div className="text-xs text-muted-foreground">
+                                      {new Date(item.paymentDate).toLocaleDateString()}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="text-right p-2 font-semibold text-blue-900 dark:text-blue-100">
+                                  ₹{(item.outstanding || item.revenue || item.amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                </td>
+                                {result.report.type !== 'top_payments_month' && (
+                                  <td className="text-center p-2 text-blue-700 dark:text-blue-300">
+                                    {item.invoiceCount}
+                                  </td>
+                                )}
+                                {result.report.type === 'top_payments_month' && (
+                                  <td className="text-center p-2">
+                                    <Badge variant="outline" className="text-xs">{item.paymentMode}</Badge>
+                                  </td>
+                                )}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Collection/Revenue Summary Cards */}
+                    {(result.report.type === 'today_collection' || 
+                      result.report.type === 'weekly_revenue' || 
+                      result.report.type === 'monthly_revenue') && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-white dark:bg-gray-900 rounded-md">
+                          <div className="text-xs text-muted-foreground">Total Amount</div>
+                          <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                            ₹{(result.report.data.total || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-white dark:bg-gray-900 rounded-md">
+                          <div className="text-xs text-muted-foreground">
+                            {result.report.type === 'today_collection' ? 'Payments' : 'Invoices'}
+                          </div>
+                          <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                            {result.report.data.count || result.report.data.invoiceCount || 0}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pending/Overdue Invoices */}
+                    {(result.report.type === 'pending_invoices' || result.report.type === 'overdue_invoices') && (
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="p-3 bg-white dark:bg-gray-900 rounded-md">
+                            <div className="text-xs text-muted-foreground">Total Amount</div>
+                            <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                              ₹{(result.report.data.total || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                            </div>
+                          </div>
+                          <div className="p-3 bg-white dark:bg-gray-900 rounded-md">
+                            <div className="text-xs text-muted-foreground">Invoice Count</div>
+                            <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                              {result.report.data.count || 0}
+                            </div>
+                          </div>
+                        </div>
+                        {result.report.data.invoices && result.report.data.invoices.length > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            Showing first {result.report.data.invoices.length} invoices
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Total Outstanding */}
+                    {result.report.type === 'total_outstanding' && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-white dark:bg-gray-900 rounded-md">
+                          <div className="text-xs text-muted-foreground">Total Outstanding</div>
+                          <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                            ₹{(result.report.data.total || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-white dark:bg-gray-900 rounded-md">
+                          <div className="text-xs text-muted-foreground">Customers</div>
+                          <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                            {result.report.data.customerCount || 0}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Conversion Rate */}
+                    {result.report.type === 'conversion_rate' && (
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="p-3 bg-white dark:bg-gray-900 rounded-md">
+                          <div className="text-xs text-muted-foreground">Conversion Rate</div>
+                          <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                            {result.report.data.conversionRate?.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div className="p-3 bg-white dark:bg-gray-900 rounded-md">
+                          <div className="text-xs text-muted-foreground">Total Leads</div>
+                          <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                            {result.report.data.totalLeads || 0}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-white dark:bg-gray-900 rounded-md">
+                          <div className="text-xs text-muted-foreground">Converted</div>
+                          <div className="text-xl font-bold text-blue-900 dark:text-blue-100">
+                            {result.report.data.convertedLeads || 0}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Recent Leads */}
+                    {result.report.type === 'recent_leads' && Array.isArray(result.report.data) && (
+                      <div className="space-y-2">
+                        {result.report.data.map((lead: any, idx: number) => (
+                          <div key={idx} className="p-2 bg-white dark:bg-gray-900 rounded-md text-sm">
+                            <div className="font-medium text-blue-900 dark:text-blue-100">{lead.companyName}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {lead.contactPerson} • {lead.status} • {new Date(lead.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 )}
               </>
             ) : (
@@ -362,18 +540,46 @@ export default function WhisperVoicePage() {
           <CardTitle className="text-base">Voice Command Examples</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-md">
-              <span className="font-medium">Create Lead:</span> "Create lead for John Doe, phone 9876543210"
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Reports & Analytics</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                <div className="p-2 bg-blue-50 dark:bg-blue-950 rounded-md">
+                  "Top 5 debtors" or "sabse jyada debt"
+                </div>
+                <div className="p-2 bg-blue-50 dark:bg-blue-950 rounded-md">
+                  "Today's collection" or "aaj ka collection"
+                </div>
+                <div className="p-2 bg-blue-50 dark:bg-blue-950 rounded-md">
+                  "Top customers this month"
+                </div>
+                <div className="p-2 bg-blue-50 dark:bg-blue-950 rounded-md">
+                  "Weekly revenue" or "is hafte ki sales"
+                </div>
+                <div className="p-2 bg-blue-50 dark:bg-blue-950 rounded-md">
+                  "Pending invoices" or "baaki invoice"
+                </div>
+                <div className="p-2 bg-blue-50 dark:bg-blue-950 rounded-md">
+                  "Total outstanding" or "kitna baaki hai"
+                </div>
+              </div>
             </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-md">
-              <span className="font-medium">Create Quotation:</span> "Create quotation for 50000 rupees for ABC Company"
-            </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-md">
-              <span className="font-medium">Create Customer:</span> "Create customer Rajesh Kumar, email rajesh@example.com"
-            </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-md">
-              <span className="font-medium">Create Invoice:</span> "Create invoice for 75000 for XYZ Limited"
+            <div>
+              <h3 className="text-sm font-semibold mb-2 text-gray-700 dark:text-gray-300">Create Records</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                <div className="p-2 bg-gray-50 dark:bg-gray-900 rounded-md">
+                  "Create lead for John Doe, phone 9876543210"
+                </div>
+                <div className="p-2 bg-gray-50 dark:bg-gray-900 rounded-md">
+                  "Create quotation for 50000 rupees"
+                </div>
+                <div className="p-2 bg-gray-50 dark:bg-gray-900 rounded-md">
+                  "Create customer Rajesh Kumar"
+                </div>
+                <div className="p-2 bg-gray-50 dark:bg-gray-900 rounded-md">
+                  "Create invoice for 75000"
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
