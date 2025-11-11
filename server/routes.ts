@@ -2729,13 +2729,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const command = parseVoiceCommand(result.text);
 
+      // If it's a report command, fetch the report data
+      let reportData = null;
+      if (command.type !== "unknown" && command.type !== "create_lead" && 
+          command.type !== "create_quotation" && command.type !== "create_customer" && 
+          command.type !== "create_invoice") {
+        try {
+          const { ReportService } = await import("./services/reportService");
+          const reportService = new ReportService(storage);
+          reportData = await reportService.generateReport(
+            command.type, 
+            tenantId, 
+            command.entities.limit || 5
+          );
+        } catch (reportError: any) {
+          console.error("[Whisper] Report generation error:", reportError);
+          // Don't fail the transcription, just log the error
+        }
+      }
+
       res.json({
         success: true,
         transcript: result.text,
         language: result.language,
         duration: result.duration,
         cost: result.cost,
-        command: command.type !== "unknown" ? command : null
+        command: command.type !== "unknown" ? command : null,
+        report: reportData
       });
     } catch (error: any) {
       console.error("[Whisper] Transcription error:", error);
