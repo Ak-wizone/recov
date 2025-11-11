@@ -2884,10 +2884,10 @@ export class DatabaseStorage implements IStorage {
 
         await tx.insert(whisperTransactions).values({
           tenantId,
-          transactionType: "plan_reset",
-          minutesChange: credits.planMinutesAllocated,
-          balanceAfter: credits.planMinutesAllocated + credits.addonMinutesBalance,
-          description: "Monthly plan minutes reset",
+          type: "plan_reset",
+          minutesDelta: credits.planMinutesAllocated,
+          balanceAfterMinutes: credits.planMinutesAllocated + credits.addonMinutesBalance,
+          metadata: JSON.stringify({ description: "Monthly plan minutes reset" }),
         });
 
         return { credits: updated, wasReset: true };
@@ -2962,10 +2962,10 @@ export class DatabaseStorage implements IStorage {
 
         await tx.insert(whisperTransactions).values({
           tenantId,
-          transactionType: "usage_deduction",
-          minutesChange: -minutesUsed,
-          balanceAfter: updatedPlan + updatedAddon,
-          description: `Voice AI usage: ${minutesUsed} minutes`,
+          type: "usage_deduction",
+          minutesDelta: -minutesUsed,
+          balanceAfterMinutes: updatedPlan + updatedAddon,
+          metadata: JSON.stringify({ description: `Voice AI usage: ${minutesUsed} minutes` }),
         });
 
         return {
