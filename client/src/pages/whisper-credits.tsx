@@ -72,11 +72,13 @@ export function WhisperCredits() {
     });
   };
 
-  const planMinutes = credits?.planMinutes || 0;
-  const addonMinutes = credits?.addonMinutes || 0;
-  const usedMinutes = credits?.usedMinutes || 0;
+  const planMinutes = credits?.planMinutesCurrent || 0;
+  const addonMinutes = credits?.addonMinutesBalance || 0;
+  const usedPlanMinutes = credits?.usedPlanMinutes || 0;
+  const usedAddonMinutes = credits?.usedAddonMinutes || 0;
   const totalMinutes = planMinutes + addonMinutes;
-  const remainingMinutes = totalMinutes - usedMinutes;
+  const usedMinutes = usedPlanMinutes + usedAddonMinutes;
+  const remainingMinutes = credits?.remainingMinutes || 0;
   const usagePercentage = totalMinutes > 0 ? (usedMinutes / totalMinutes) * 100 : 0;
 
   const packages = packagesData?.packages || [];
@@ -180,10 +182,10 @@ export function WhisperCredits() {
             ) : (
               <>
                 <div className="text-2xl font-bold" data-testid="text-reset-date">
-                  {credits?.resetDate ? new Date(credits.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
+                  {credits?.nextResetAt ? new Date(credits.nextResetAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {credits?.resetDate ? formatDistanceToNow(new Date(credits.resetDate), { addSuffix: true }) : 'Not set'}
+                  {credits?.nextResetAt ? formatDistanceToNow(new Date(credits.nextResetAt), { addSuffix: true }) : 'Not set'}
                 </p>
               </>
             )}
