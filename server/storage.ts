@@ -2807,7 +2807,7 @@ export class DatabaseStorage implements IStorage {
     if (!config) return undefined;
     
     try {
-      const decryptedApiKey = decryptApiKey(config.encryptedApiKey);
+      const decryptedApiKey = decryptApiKey(config.apiKey);
       return { config, decryptedApiKey };
     } catch (error) {
       console.error("Failed to decrypt Whisper API key:", error);
@@ -2821,7 +2821,7 @@ export class DatabaseStorage implements IStorage {
       .insert(whisperConfig)
       .values({
         ...insertConfig,
-        encryptedApiKey: encryptedKey,
+        apiKey: encryptedKey,
         keyVersion: 1,
       })
       .returning();
@@ -2832,9 +2832,8 @@ export class DatabaseStorage implements IStorage {
     const updateData: any = { ...updates };
     
     if (updates.apiKey) {
-      updateData.encryptedApiKey = encryptApiKey(updates.apiKey);
+      updateData.apiKey = encryptApiKey(updates.apiKey);
       updateData.keyVersion = (updates.keyVersion || 1) + 1;
-      delete updateData.apiKey;
     }
     
     const [config] = await db
