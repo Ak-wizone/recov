@@ -346,6 +346,9 @@ export async function seedDatabase() {
     // Seed email templates for all active tenants
     await seedEmailTemplates();
 
+    // Initialize Whisper credits for all active tenants (production-safe - only creates missing records)
+    await initializeWhisperCreditsForAllTenants();
+
     console.log("Seed data check complete!");
   } catch (error) {
     console.error("Error seeding database:", error);
@@ -545,6 +548,86 @@ export async function createTenantUsers() {
   } catch (error) {
     console.error("Error creating tenant users:", error);
     throw error;
+  }
+}
+
+// Initialize Whisper credits for all active tenants based on their subscription plan
+async function initializeWhisperCreditsForAllTenants() {
+  console.log("\n🎤 Initializing Whisper Voice AI credits for tenants...");
+  
+  try {
+    const { db } = await import("./db");
+    const { tenants, subscriptionPlans, whisperCredits } = await import("../shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    // Get all active tenants
+    const allTenants = await db.select().from(tenants).where(eq(tenants.status, "active"));
+    
+    let created = 0;
+    let skipped = 0;
+    
+    for (const tenant of allTenants) {
+      try {
+        // Check if tenant already has whisper credits
+        const [existingCredits] = await db
+          .select()
+          .from(whisperCredits)
+          .where(eq(whisperCredits.tenantId, tenant.id))
+          .limit(1);
+        
+        if (existingCredits) {
+          skipped++;
+          continue;
+        }
+        
+        // Get tenant's subscription plan to determine default minutes
+        let planMinutes = 0;
+        
+        if (tenant.subscriptionPlanId) {
+          const [plan] = await db
+            .select()
+            .from(subscriptionPlans)
+            .where(eq(subscriptionPlans.id, tenant.subscriptionPlanId))
+            .limit(1);
+          
+          if (plan && plan.whisperDefaultMinutes) {
+            planMinutes = plan.whisperDefaultMinutes;
+          }
+        }
+        
+        // Calculate next reset date (first day of next month)
+        const nextReset = new Date();
+        nextReset.setMonth(nextReset.getMonth() + 1);
+        nextReset.setDate(1);
+        nextReset.setHours(0, 0, 0, 0);
+        
+        // Create whisper credits record
+        await db.insert(whisperCredits).values({
+          tenantId: tenant.id,
+          planMinutesCurrent: planMinutes,
+          planMinutesAllocated: planMinutes,
+          addonMinutesBalance: 0,
+          usedPlanMinutes: 0,
+          usedAddonMinutes: 0,
+          rolloverAddonMinutes: 0,
+          nextResetAt: nextReset,
+          enabled: true
+        });
+        
+        created++;
+        console.log(`  ✓ Created Whisper credits for ${tenant.businessName} (${planMinutes} minutes)`);
+        
+      } catch (error) {
+        console.error(`  ✗ Error initializing credits for ${tenant.businessName}:`, error);
+      }
+    }
+    
+    console.log(`\n✅ Whisper credits initialization complete!`);
+    console.log(`  - Created: ${created} credit records`);
+    console.log(`  - Skipped: ${skipped} (already exist)`);
+    
+  } catch (error) {
+    console.error("Error initializing Whisper credits:", error);
   }
 }
 
