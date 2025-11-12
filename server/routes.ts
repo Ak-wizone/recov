@@ -3454,7 +3454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           daysOverdue: Math.floor((today.getTime() - new Date(inv.invoiceDate).getTime()) / (1000 * 60 * 60 * 24))
         }));
 
-      // Category-wise outstanding (includes negative balances for customers with advance payments)
+      // Category-wise outstanding
       const categoryStats: { [key: string]: number } = {};
       allMasterCustomers.forEach((customer) => {
         const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
@@ -3464,9 +3464,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const openingBalance = parseFloat(customer.openingBalance || "0");
         const outstanding = openingBalance + invoiceTotal - receiptTotal;
         
-        // Include all outstanding amounts, even negative (advance payments)
-        const category = customer.category || 'Uncategorized';
-        categoryStats[category] = (categoryStats[category] || 0) + outstanding;
+        if (outstanding > 0) {
+          const category = customer.category || 'Uncategorized';
+          categoryStats[category] = (categoryStats[category] || 0) + outstanding;
+        }
       });
 
       const categoryOutstanding = Object.entries(categoryStats).map(([category, amount]) => ({

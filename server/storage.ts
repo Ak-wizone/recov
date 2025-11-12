@@ -1369,10 +1369,9 @@ export class DatabaseStorage implements IStorage {
       const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
       const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
 
-      const openingBalance = customer.openingBalance ? parseFloat(customer.openingBalance.toString()) : 0;
       const totalInvoices = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()), 0);
       const totalReceipts = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount.toString()), 0);
-      const utilizedLimit = openingBalance + totalInvoices - totalReceipts;
+      const utilizedLimit = totalInvoices - totalReceipts;
 
       const creditLimit = parseFloat(customer.creditLimit || "0");
       const availableLimit = creditLimit - utilizedLimit;
