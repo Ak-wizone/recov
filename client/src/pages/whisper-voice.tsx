@@ -332,7 +332,7 @@ export default function WhisperVoicePage() {
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Badge variant="outline" className="text-xs">
-                          {(commandInfo.confidence * 100).toFixed(0)}% confidence
+                          {commandInfo.confidence.toFixed(0)}% confidence
                         </Badge>
                         {Object.keys(commandInfo.entities).length > 0 && (
                           <span>
