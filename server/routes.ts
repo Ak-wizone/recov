@@ -3305,7 +3305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Business Overview Dashboard Analytics
-  app.get("/api/dashboard/business-overview", async (req, res) => {
+  app.get("/api/dashboard/business-overview", tenantMiddleware, async (req, res) => {
     try {
       const [allInvoices, allReceipts, allMasterCustomers] = await Promise.all([
         storage.getInvoices(req.tenantId!),
@@ -3535,7 +3535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invoice Status Cards (6 categories based on grace period logic)
-  app.get("/api/dashboard/invoice-status-cards", async (req, res) => {
+  app.get("/api/dashboard/invoice-status-cards", tenantMiddleware, async (req, res) => {
     try {
       const stats = await storage.getInvoiceStatusCards(req.tenantId!);
       res.json(stats);
