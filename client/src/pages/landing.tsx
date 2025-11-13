@@ -30,6 +30,8 @@ import {
   Sparkles,
   Timer,
   ChevronDown,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 
 const fadeIn = {
@@ -517,95 +519,172 @@ export default function Landing() {
           </motion.div>
 
           {plansLoading && (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">Loading pricing plans...</p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="h-full relative overflow-hidden" data-testid={`skeleton-plan-${i}`}>
+                  <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                  <CardHeader className="text-center space-y-4">
+                    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse w-3/4 mx-auto" />
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse w-1/2 mx-auto" />
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse" />
+                    {[1, 2, 3, 4, 5].map((j) => (
+                      <div key={j} className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse w-5/6" />
+                    ))}
+                    <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse mt-6" />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
 
           {plansError && (
-            <div className="text-center py-12">
-              <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-6 max-w-md mx-auto">
-                <p className="text-red-600 dark:text-red-400 font-semibold mb-2">Unable to load pricing plans</p>
-                <p className="text-red-600/80 dark:text-red-400/80 text-sm">{plansError}</p>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+              className="text-center py-12"
+            >
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 border-2 border-red-200 dark:border-red-800 rounded-2xl p-8 max-w-md mx-auto shadow-lg">
+                <div className="mb-4 flex justify-center">
+                  <div className="bg-red-100 dark:bg-red-900 rounded-full p-4">
+                    <AlertCircle className="h-12 w-12 text-red-600 dark:text-red-400" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold text-red-600 dark:text-red-400 mb-2">
+                  Oops! Plans Aren't Loading
+                </h3>
+                <p className="text-red-600/80 dark:text-red-400/80 mb-6">
+                  Please check your connection and try again
+                </p>
                 <Button 
-                  className="mt-4" 
+                  className="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 hover:scale-105" 
                   onClick={() => window.location.reload()}
                   data-testid="button-retry-plans"
                 >
-                  Retry
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
                 </Button>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {!plansLoading && !plansError && subscriptionPlans.length > 0 && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {subscriptionPlans.map((plan, index) => (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="relative"
-              >
-                {index === 1 && (
-                  <div className="absolute -top-4 left-0 right-0 flex justify-center z-10">
-                    <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold px-4 py-1">
-                      <Star className="h-3 w-3 mr-1" />
-                      MOST POPULAR
-                    </Badge>
-                  </div>
-                )}
-                <Card className={`h-full ${index === 1 ? 'border-4 border-yellow-400 shadow-2xl scale-105' : 'border-2'}`} data-testid={`card-plan-${index}`}>
-                  <CardHeader className="text-center">
-                    <CardTitle className="text-2xl font-bold mb-2">{plan.name.toUpperCase()}</CardTitle>
-                    <div className="mb-4">
-                      <div className="text-4xl font-bold text-blue-600">₹{plan.price}</div>
-                      <div className="text-sm text-gray-500">per month</div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="text-center text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                      Available Modules:
-                    </div>
-                    {(plan.allowedModules ?? []).slice(0, 8).map((module: string, i: number) => (
-                      <div key={i} className="flex items-start gap-2">
-                        <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">{module}</span>
-                      </div>
-                    ))}
-                    {(plan.allowedModules ?? []).length > 8 && (
-                      <div className="text-sm text-gray-500 text-center italic">
-                        +{(plan.allowedModules ?? []).length - 8} more modules
+              {subscriptionPlans.map((plan, index) => {
+                const planColors = [
+                  { gradient: 'from-blue-500 to-blue-600', border: 'border-blue-300', bg: 'bg-blue-50 dark:bg-blue-950' },
+                  { gradient: 'from-purple-500 to-purple-600', border: 'border-purple-300', bg: 'bg-purple-50 dark:bg-purple-950' },
+                  { gradient: 'from-amber-500 to-amber-600', border: 'border-amber-300', bg: 'bg-amber-50 dark:bg-amber-950' }
+                ];
+                const colors = planColors[index % 3];
+                const moduleCount = (plan.allowedModules ?? []).length;
+                
+                return (
+                  <motion.div
+                    key={plan.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                    className="relative"
+                  >
+                    {index === 1 && (
+                      <div className="absolute -top-4 left-0 right-0 flex justify-center z-10">
+                        <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold px-4 py-1 shadow-lg animate-pulse">
+                          <Star className="h-3 w-3 mr-1 fill-current" />
+                          MOST POPULAR
+                        </Badge>
                       </div>
                     )}
-                    
-                    <div className="pt-4 border-t">
-                      <p className="text-xs text-center text-green-600 dark:text-green-400 font-semibold">
-                        ✓ 7 days on the spot refund guaranteed<br/>no questions asked
-                      </p>
-                    </div>
-                    
-                    <Button 
-                      className={`w-full mt-6 ${index === 1 ? 'bg-yellow-400 text-black hover:bg-yellow-300 font-bold' : 'bg-blue-600 hover:bg-blue-700'}`}
-                      onClick={() => {
-                        setSelectedPlan(plan);
-                        setPaymentForm({ ...paymentForm, plan: plan.name });
-                        setShowRegistrationForm(true);
-                        setTimeout(() => {
-                          document.getElementById('registration-form')?.scrollIntoView({ behavior: 'smooth' });
-                        }, 100);
-                      }}
-                      data-testid={`button-select-plan-${index}`}
+                    <Card 
+                      className={`h-full transition-all duration-300 hover:shadow-2xl ${
+                        index === 1 
+                          ? 'border-4 border-yellow-400 shadow-2xl scale-105' 
+                          : `border-2 ${colors.border} hover:${colors.border}`
+                      }`} 
+                      data-testid={`card-plan-${index}`}
                     >
-                      Select {plan.name.toUpperCase()}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-              ))}
+                      <CardHeader className={`text-center ${colors.bg} rounded-t-lg pb-6`}>
+                        <div className="mb-2">
+                          <Badge className={`bg-gradient-to-r ${colors.gradient} text-white px-3 py-1`}>
+                            <Sparkles className="h-3 w-3 mr-1" />
+                            {moduleCount} Modules
+                          </Badge>
+                        </div>
+                        <CardTitle className="text-2xl font-bold mb-2">{plan.name.toUpperCase()}</CardTitle>
+                        <div className="mb-2">
+                          <div className={`text-5xl font-bold bg-gradient-to-r ${colors.gradient} bg-clip-text text-transparent`}>
+                            ₹{plan.price}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">per month</div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3 pt-6">
+                        <div className="text-center text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center justify-center gap-2">
+                          <Shield className="h-4 w-4 text-green-600" />
+                          Full Access To:
+                        </div>
+                        {(plan.allowedModules ?? []).slice(0, 8).map((module: string, i: number) => (
+                          <motion.div 
+                            key={i} 
+                            className="flex items-start gap-2"
+                            initial={{ opacity: 0, x: -10 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: i * 0.05 }}
+                          >
+                            <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                            <span className="text-sm font-medium">{module}</span>
+                          </motion.div>
+                        ))}
+                        {moduleCount > 8 && (
+                          <div className="text-sm text-gray-500 text-center italic font-semibold">
+                            +{moduleCount - 8} more modules
+                          </div>
+                        )}
+                        
+                        <div className={`pt-4 border-t-2 ${colors.border} mt-4`}>
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <Shield className="h-5 w-5 text-green-600" />
+                            <p className="text-sm text-center text-green-600 dark:text-green-400 font-bold">
+                              7-Day Money-Back Guarantee
+                            </p>
+                          </div>
+                          <p className="text-xs text-center text-gray-600 dark:text-gray-400">
+                            Full refund, no questions asked
+                          </p>
+                        </div>
+                        
+                        <Button 
+                          className={`w-full mt-6 transition-all duration-300 hover:scale-105 shadow-md hover:shadow-xl ${
+                            index === 1 
+                              ? 'bg-yellow-400 text-black hover:bg-yellow-300 font-bold' 
+                              : `bg-gradient-to-r ${colors.gradient} hover:opacity-90 text-white font-semibold`
+                          }`}
+                          onClick={() => {
+                            setSelectedPlan(plan);
+                            setPaymentForm({ ...paymentForm, plan: plan.name });
+                            setShowRegistrationForm(true);
+                            setTimeout(() => {
+                              document.getElementById('registration-form')?.scrollIntoView({ behavior: 'smooth' });
+                            }, 100);
+                          }}
+                          data-testid={`button-select-plan-${index}`}
+                        >
+                          <Zap className="h-4 w-4 mr-2" />
+                          Select {plan.name.toUpperCase()}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
           )}
 

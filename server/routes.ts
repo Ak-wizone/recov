@@ -2064,6 +2064,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========== PUBLIC ROUTES (Before tenant middleware) ==========
+  
+  // Get active subscription plans only (public route for landing page)
+  app.get("/api/subscription-plans/active", async (req, res) => {
+    try {
+      const plans = await storage.getActiveSubscriptionPlans();
+      res.json(plans);
+    } catch (error: any) {
+      console.error("Failed to fetch active subscription plans:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Apply tenant-aware middleware to all API routes EXCEPT public endpoints
   app.use('/api', tenantMiddleware);
 
@@ -2076,17 +2089,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(plans);
     } catch (error: any) {
       console.error("Failed to fetch subscription plans:", error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Get active subscription plans only (public route for landing page)
-  app.get("/api/subscription-plans/active", async (req, res) => {
-    try {
-      const plans = await storage.getActiveSubscriptionPlans();
-      res.json(plans);
-    } catch (error: any) {
-      console.error("Failed to fetch active subscription plans:", error);
       res.status(500).json({ message: error.message });
     }
   });
