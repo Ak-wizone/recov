@@ -38,76 +38,6 @@ const fadeIn = {
   transition: { duration: 0.5 }
 };
 
-const pricingPlans = [
-  {
-    name: "STANDARD",
-    price: "₹10,000",
-    period: "per month",
-    features: [
-      "Up to 10 Users",
-      "Basic CRM Features",
-      "Email Support",
-      "Invoice Management",
-      "Payment Tracking",
-      "Basic Reports"
-    ],
-    highlighted: false,
-    items: "10",
-  },
-  {
-    name: "PREMIUM",
-    price: "₹25,000",
-    period: "per month",
-    features: [
-      "Up to 25 Users",
-      "Advanced CRM Features",
-      "Priority Support",
-      "Automated Follow-ups",
-      "WhatsApp Integration",
-      "Advanced Analytics",
-      "Credit Management",
-      "Risk Assessment"
-    ],
-    highlighted: true,
-    badge: "HIGHEST SELLING",
-    items: "25",
-  },
-  {
-    name: "STAR",
-    price: "₹35,000",
-    period: "per month",
-    features: [
-      "Up to 35 Users",
-      "All Premium Features",
-      "AI Voice Calling",
-      "Custom Workflows",
-      "Dedicated Manager",
-      "API Access",
-      "Custom Reports",
-      "Multi-branch Support"
-    ],
-    highlighted: false,
-    items: "35",
-  },
-  {
-    name: "PLATINUM",
-    price: "Contact Us",
-    period: "custom pricing",
-    features: [
-      "Unlimited Users",
-      "All Star Features",
-      "White Label Solution",
-      "Custom Integrations",
-      "24/7 Support",
-      "Training Sessions",
-      "Custom Development",
-      "SLA Guarantee"
-    ],
-    highlighted: false,
-    items: "Unlimited",
-  }
-];
-
 const benefits = [
   {
     icon: Zap,
@@ -120,12 +50,6 @@ const benefits = [
     title: "Credit Risk Management",
     description: "Advanced AI algorithms predict payment delays and categorize customers automatically",
     color: "bg-blue-100 text-blue-600"
-  },
-  {
-    icon: TrendingUp,
-    title: "Boost Collections by 40%",
-    description: "Our clients see an average 40% improvement in payment collection rates within 3 months",
-    color: "bg-green-100 text-green-600"
   },
   {
     icon: Users,
@@ -176,11 +100,50 @@ const testimonials = [
 
 export default function Landing() {
   const { toast } = useToast();
-  const [timeLeft, setTimeLeft] = useState({ days: 3, hours: 12, minutes: 30, seconds: 45 });
-  const [contactForm, setContactForm] = useState({ name: "", email: "", mobile: "", message: "" });
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 5, seconds: 0 });
   const [paymentForm, setPaymentForm] = useState({ name: "", email: "", mobile: "", plan: "" });
+  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const [plansError, setPlansError] = useState("");
 
-  // Countdown timer for price increment
+  // Fetch subscription plans from platform admin
+  useEffect(() => {
+    const fetchPlans = async () => {
+      setPlansLoading(true);
+      setPlansError("");
+      try {
+        const response = await fetch("/api/subscription-plans/active");
+        if (response.ok) {
+          const plans = await response.json();
+          // Exclude Platinum plan and limit to 3 plans
+          const filteredPlans = plans
+            .filter((p: any) => p.name !== "Platinum")
+            .slice(0, 3);
+          
+          if (filteredPlans.length === 0) {
+            setPlansError("No active subscription plans available");
+            setSubscriptionPlans([]);
+          } else {
+            setSubscriptionPlans(filteredPlans);
+          }
+        } else {
+          setPlansError("Failed to load pricing plans");
+          setSubscriptionPlans([]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch plans:", error);
+        setPlansError("Unable to connect to server");
+        setSubscriptionPlans([]);
+      } finally {
+        setPlansLoading(false);
+      }
+    };
+    fetchPlans();
+  }, []);
+
+  // Countdown timer for price increment (5 minutes)
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft((prev: { days: number; hours: number; minutes: number; seconds: number }) => {
@@ -204,19 +167,10 @@ export default function Landing() {
     document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Message Sent!",
-      description: "We'll get back to you within 24 hours.",
-    });
-    setContactForm({ name: "", email: "", mobile: "", message: "" });
-  };
-
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!paymentForm.plan) {
+    if (!selectedPlan) {
       toast({
         title: "Please select a plan",
         variant: "destructive",
@@ -224,27 +178,17 @@ export default function Landing() {
       return;
     }
 
-    // Get selected plan details
-    const selectedPlan = pricingPlans.find(p => p.name === paymentForm.plan);
-    if (!selectedPlan) {
+    // Get amount from selected plan (price is a decimal string from database)
+    const amount = parseFloat(selectedPlan.price);
+    
+    if (isNaN(amount) || amount <= 0) {
       toast({
-        title: "Invalid plan selected",
+        title: "Invalid plan price",
+        description: "Unable to process payment. Please contact support.",
         variant: "destructive",
       });
       return;
     }
-
-    // For "Contact Us" plans
-    if (selectedPlan.price === "Contact Us") {
-      toast({
-        title: "Please Contact Sales",
-        description: "For custom pricing, please reach out to our sales team.",
-      });
-      return;
-    }
-
-    // Extract amount from price string (e.g., "₹9,999/month" -> 9999)
-    const amount = parseFloat(selectedPlan.price.replace(/[₹,]/g, ""));
 
     try {
       // Create Razorpay order
@@ -309,7 +253,10 @@ export default function Landing() {
               title: "Payment Successful!",
               description: "Thank you for subscribing. We'll contact you shortly to set up your account.",
             });
+            // Reset all form state
             setPaymentForm({ name: "", email: "", mobile: "", plan: "" });
+            setShowRegistrationForm(false);
+            setSelectedPlan(null);
           } else {
             toast({
               title: "Payment Verification Failed",
@@ -324,6 +271,10 @@ export default function Landing() {
               title: "Payment Cancelled",
               description: "You can try again anytime.",
             });
+            // Reset all form state on payment cancellation
+            setPaymentForm({ name: "", email: "", mobile: "", plan: "" });
+            setShowRegistrationForm(false);
+            setSelectedPlan(null);
           },
         },
       };
@@ -391,12 +342,8 @@ export default function Landing() {
               <a href="#benefits" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" data-testid="link-nav-benefits">Benefits</a>
               <a href="#testimonials" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" data-testid="link-nav-testimonials">Testimonials</a>
               <a href="#about" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" data-testid="link-nav-about">About</a>
-              <a href="#contact" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" data-testid="link-nav-contact">Contact</a>
             </div>
             <div className="flex items-center gap-3">
-              <Link href="/login">
-                <Button variant="outline" data-testid="link-login">Login</Button>
-              </Link>
               <Button 
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                 onClick={scrollToPricing}
@@ -449,21 +396,9 @@ export default function Landing() {
               >
                 START YOUR PAYMENT COLLECTION <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-lg px-8 border-2"
-                data-testid="button-watch-demo"
-              >
-                Watch Demo Video
-              </Button>
             </div>
 
             <div className="flex flex-wrap gap-6 justify-center text-base text-gray-700 dark:text-gray-300">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="font-medium">40% Faster Collections</span>
-              </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
                 <span className="font-medium">100% Automated</span>
@@ -477,9 +412,22 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Scroll to Pricing CTA */}
-      <div className="bg-gradient-to-r from-yellow-400 to-orange-400 py-4">
-        <div className="container mx-auto text-center">
+      {/* Animated Scroll to Pricing CTA */}
+      <motion.div 
+        className="bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 py-4 overflow-hidden relative"
+        animate={{
+          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+        style={{
+          backgroundSize: "200% 100%"
+        }}
+      >
+        <div className="container mx-auto text-center relative z-10">
           <Button 
             variant="ghost" 
             className="text-black font-bold hover:bg-white/20"
@@ -489,55 +437,37 @@ export default function Landing() {
             View Plans <ChevronDown className="ml-2 h-4 w-4 animate-bounce" />
           </Button>
         </div>
-      </div>
+        <motion.div
+          className="absolute inset-0 opacity-20"
+          animate={{
+            x: ["0%", "100%"],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        >
+          <div className="h-full w-full bg-gradient-to-r from-transparent via-white to-transparent" />
+        </motion.div>
+      </motion.div>
 
-      {/* Video Section */}
-      <section className="py-20 px-4 bg-white dark:bg-gray-950">
-        <div className="container mx-auto max-w-5xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-12"
-          >
-            <Badge className="mb-4 bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400">
-              See It In Action
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Watch How RECOV{" "}
-              <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Works
-              </span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400">
-              2-minute overview of our automated payment recovery system
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="relative aspect-video rounded-xl overflow-hidden shadow-2xl border-4 border-gray-200 dark:border-gray-800"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-white/90 rounded-full flex items-center justify-center mx-auto mb-4 cursor-pointer hover:scale-110 transition-transform">
-                  <div className="w-0 h-0 border-l-[20px] border-l-blue-600 border-t-[12px] border-t-transparent border-b-[12px] border-b-transparent ml-1"></div>
-                </div>
-                <p className="text-white text-lg font-semibold">Click to Watch Demo</p>
-                <p className="text-white/80 text-sm">(YouTube video will be embedded here)</p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Scroll to Pricing CTA */}
-      <div className="bg-gradient-to-r from-yellow-400 to-orange-400 py-4">
-        <div className="container mx-auto text-center">
+      {/* Animated Scroll to Pricing CTA */}
+      <motion.div 
+        className="bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 py-4 overflow-hidden relative"
+        animate={{
+          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+        style={{
+          backgroundSize: "200% 100%"
+        }}
+      >
+        <div className="container mx-auto text-center relative z-10">
           <Button 
             variant="ghost" 
             className="text-black font-bold hover:bg-white/20"
@@ -547,7 +477,20 @@ export default function Landing() {
             View Pricing Plans <ChevronDown className="ml-2 h-4 w-4 animate-bounce" />
           </Button>
         </div>
-      </div>
+        <motion.div
+          className="absolute inset-0 opacity-20"
+          animate={{
+            x: ["0%", "100%"],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        >
+          <div className="h-full w-full bg-gradient-to-r from-transparent via-white to-transparent" />
+        </motion.div>
+      </motion.div>
 
       {/* Pricing Section */}
       <section id="pricing" className="py-20 px-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-950">
@@ -573,133 +516,179 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-            {pricingPlans.map((plan, index) => (
+          {plansLoading && (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Loading pricing plans...</p>
+            </div>
+          )}
+
+          {plansError && (
+            <div className="text-center py-12">
+              <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-6 max-w-md mx-auto">
+                <p className="text-red-600 dark:text-red-400 font-semibold mb-2">Unable to load pricing plans</p>
+                <p className="text-red-600/80 dark:text-red-400/80 text-sm">{plansError}</p>
+                <Button 
+                  className="mt-4" 
+                  onClick={() => window.location.reload()}
+                  data-testid="button-retry-plans"
+                >
+                  Retry
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!plansLoading && !plansError && subscriptionPlans.length > 0 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {subscriptionPlans.map((plan, index) => (
               <motion.div
-                key={index}
+                key={plan.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="relative"
               >
-                {plan.badge && (
+                {index === 1 && (
                   <div className="absolute -top-4 left-0 right-0 flex justify-center z-10">
                     <Badge className="bg-gradient-to-r from-yellow-400 to-orange-400 text-black font-bold px-4 py-1">
                       <Star className="h-3 w-3 mr-1" />
-                      {plan.badge}
+                      MOST POPULAR
                     </Badge>
                   </div>
                 )}
-                <Card className={`h-full ${plan.highlighted ? 'border-4 border-yellow-400 shadow-2xl scale-105' : 'border-2'}`} data-testid={`card-plan-${index}`}>
+                <Card className={`h-full ${index === 1 ? 'border-4 border-yellow-400 shadow-2xl scale-105' : 'border-2'}`} data-testid={`card-plan-${index}`}>
                   <CardHeader className="text-center">
-                    <CardTitle className="text-2xl font-bold mb-2">{plan.name}</CardTitle>
+                    <CardTitle className="text-2xl font-bold mb-2">{plan.name.toUpperCase()}</CardTitle>
                     <div className="mb-4">
-                      <div className="text-4xl font-bold text-blue-600">{plan.price}</div>
-                      <div className="text-sm text-gray-500">{plan.period}</div>
-                    </div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                      <strong>{plan.items}</strong> Items Included
+                      <div className="text-4xl font-bold text-blue-600">₹{plan.price}</div>
+                      <div className="text-sm text-gray-500">per month</div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {plan.features.map((feature, i) => (
+                    <div className="text-center text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                      Available Modules:
+                    </div>
+                    {(plan.allowedModules ?? []).slice(0, 8).map((module: string, i: number) => (
                       <div key={i} className="flex items-start gap-2">
                         <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-sm">{feature}</span>
+                        <span className="text-sm">{module}</span>
                       </div>
                     ))}
+                    {(plan.allowedModules ?? []).length > 8 && (
+                      <div className="text-sm text-gray-500 text-center italic">
+                        +{(plan.allowedModules ?? []).length - 8} more modules
+                      </div>
+                    )}
+                    
+                    <div className="pt-4 border-t">
+                      <p className="text-xs text-center text-green-600 dark:text-green-400 font-semibold">
+                        ✓ 7 days on the spot refund guaranteed<br/>no questions asked
+                      </p>
+                    </div>
+                    
                     <Button 
-                      className={`w-full mt-6 ${plan.highlighted ? 'bg-yellow-400 text-black hover:bg-yellow-300 font-bold' : 'bg-blue-600 hover:bg-blue-700'}`}
-                      onClick={scrollToPricing}
+                      className={`w-full mt-6 ${index === 1 ? 'bg-yellow-400 text-black hover:bg-yellow-300 font-bold' : 'bg-blue-600 hover:bg-blue-700'}`}
+                      onClick={() => {
+                        setSelectedPlan(plan);
+                        setPaymentForm({ ...paymentForm, plan: plan.name });
+                        setShowRegistrationForm(true);
+                        setTimeout(() => {
+                          document.getElementById('registration-form')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                      }}
                       data-testid={`button-select-plan-${index}`}
                     >
-                      Select {plan.name}
+                      Select {plan.name.toUpperCase()}
                     </Button>
                   </CardContent>
                 </Card>
               </motion.div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {/* Razorpay Payment Form */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-            className="mt-16 max-w-2xl mx-auto"
-          >
-            <Card className="border-2 border-yellow-400 shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-yellow-400 to-orange-400 text-center">
-                <CardTitle className="text-2xl font-bold text-black">
-                  DIRECT RAZORPAY PAYMENT
-                </CardTitle>
-                <p className="text-black/80">Enter your details to proceed</p>
-              </CardHeader>
-              <CardContent className="p-6">
-                <form onSubmit={handlePaymentSubmit} className="space-y-4">
-                  <div>
-                    <Label htmlFor="payment-name">Name *</Label>
-                    <Input
-                      id="payment-name"
-                      value={paymentForm.name}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, name: e.target.value })}
-                      required
-                      data-testid="input-payment-name"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="payment-email">Email *</Label>
-                    <Input
-                      id="payment-email"
-                      type="email"
-                      value={paymentForm.email}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, email: e.target.value })}
-                      required
-                      data-testid="input-payment-email"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="payment-mobile">Mobile Number *</Label>
-                    <Input
-                      id="payment-mobile"
-                      type="tel"
-                      pattern="[0-9]{10}"
-                      value={paymentForm.mobile}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, mobile: e.target.value })}
-                      required
-                      data-testid="input-payment-mobile"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="payment-plan">Select Plan *</Label>
-                    <select
-                      id="payment-plan"
-                      value={paymentForm.plan}
-                      onChange={(e) => setPaymentForm({ ...paymentForm, plan: e.target.value })}
-                      className="w-full px-3 py-2 border rounded-md"
-                      required
-                      data-testid="select-payment-plan"
+          {/* Registration Form - Shows after plan selection */}
+          {showRegistrationForm && selectedPlan && (
+            <motion.div
+              id="registration-form"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mt-16 max-w-2xl mx-auto"
+            >
+              <Card className="border-2 border-yellow-400 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-yellow-400 to-orange-400 text-center">
+                  <CardTitle className="text-2xl font-bold text-black">
+                    REGISTER FOR {selectedPlan.name.toUpperCase()} PLAN
+                  </CardTitle>
+                  <p className="text-black/80">Enter your details to proceed to payment</p>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <form onSubmit={handlePaymentSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="payment-name">Full Name *</Label>
+                      <Input
+                        id="payment-name"
+                        value={paymentForm.name}
+                        onChange={(e) => setPaymentForm({ ...paymentForm, name: e.target.value })}
+                        placeholder="Enter your full name"
+                        required
+                        data-testid="input-payment-name"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="payment-email">Email Address *</Label>
+                      <Input
+                        id="payment-email"
+                        type="email"
+                        value={paymentForm.email}
+                        onChange={(e) => setPaymentForm({ ...paymentForm, email: e.target.value })}
+                        placeholder="your.email@company.com"
+                        required
+                        data-testid="input-payment-email"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="payment-mobile">Mobile Number *</Label>
+                      <Input
+                        id="payment-mobile"
+                        type="tel"
+                        pattern="[0-9]{10}"
+                        value={paymentForm.mobile}
+                        onChange={(e) => setPaymentForm({ ...paymentForm, mobile: e.target.value })}
+                        placeholder="10-digit mobile number"
+                        required
+                        data-testid="input-payment-mobile"
+                      />
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="font-semibold">Selected Plan:</span>
+                        <span className="text-blue-600 dark:text-blue-400 font-bold">{selectedPlan.name.toUpperCase()}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="font-semibold">Amount:</span>
+                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">₹{selectedPlan.price}/month</span>
+                      </div>
+                    </div>
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 text-black hover:from-yellow-300 hover:to-orange-300 font-bold text-lg py-6"
+                      data-testid="button-proceed-payment"
                     >
-                      <option value="">Choose a plan...</option>
-                      {pricingPlans.map((plan, i) => (
-                        <option key={i} value={plan.name}>{plan.name} - {plan.price}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-to-r from-yellow-400 to-orange-400 text-black hover:from-yellow-300 hover:to-orange-300 font-bold text-lg py-6"
-                    data-testid="button-proceed-payment"
-                  >
-                    <CreditCard className="mr-2 h-5 w-5" />
-                    Proceed to Payment
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </motion.div>
+                      <CreditCard className="mr-2 h-5 w-5" />
+                      Proceed to Payment
+                    </Button>
+                    <p className="text-xs text-center text-gray-500 mt-2">
+                      Secure payment powered by Razorpay
+                    </p>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </div>
       </section>
 
@@ -942,218 +931,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Scroll to Pricing CTA */}
-      <div className="bg-gradient-to-r from-yellow-400 to-orange-400 py-4">
-        <div className="container mx-auto text-center">
-          <Button 
-            variant="ghost" 
-            className="text-black font-bold hover:bg-white/20"
-            onClick={scrollToPricing}
-            data-testid="button-cta-explore-plans"
-          >
-            Explore Plans <ChevronDown className="ml-2 h-4 w-4 animate-bounce" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Contact Us Section */}
-      <section id="contact" className="py-20 px-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-950">
-        <div className="container mx-auto max-w-5xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-12"
-          >
-            <Badge className="mb-4 bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400">
-              Get In Touch
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Contact{" "}
-              <span className="bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-                Our Team
-              </span>
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400">
-              Have questions? We're here to help 24/7
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Contact Form */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card className="border-2">
-                <CardHeader>
-                  <CardTitle>Send Us a Message</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleContactSubmit} className="space-y-4">
-                    <div>
-                      <Label htmlFor="contact-name">Name *</Label>
-                      <Input
-                        id="contact-name"
-                        value={contactForm.name}
-                        onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                        required
-                        data-testid="input-contact-name"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="contact-email">Email *</Label>
-                      <Input
-                        id="contact-email"
-                        type="email"
-                        value={contactForm.email}
-                        onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                        required
-                        data-testid="input-contact-email"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="contact-mobile">Mobile Number *</Label>
-                      <Input
-                        id="contact-mobile"
-                        type="tel"
-                        pattern="[0-9]{10}"
-                        value={contactForm.mobile}
-                        onChange={(e) => setContactForm({ ...contactForm, mobile: e.target.value })}
-                        required
-                        data-testid="input-contact-mobile"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="contact-message">Message *</Label>
-                      <Textarea
-                        id="contact-message"
-                        rows={4}
-                        value={contactForm.message}
-                        onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                        required
-                        data-testid="textarea-contact-message"
-                      />
-                    </div>
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
-                      data-testid="button-send-message"
-                    >
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      Send Message
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Contact Information */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="space-y-6"
-            >
-              <Card className="border-2">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center flex-shrink-0">
-                      <Phone className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Phone</h3>
-                      <p className="text-gray-600 dark:text-gray-400">+91 98765 43210</p>
-                      <p className="text-gray-600 dark:text-gray-400">+91 98765 43211</p>
-                      <p className="text-sm text-gray-500 mt-1">Mon-Sat, 9AM-7PM IST</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-2">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center flex-shrink-0">
-                      <Mail className="h-6 w-6 text-green-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Email</h3>
-                      <p className="text-gray-600 dark:text-gray-400">support@recov.in</p>
-                      <p className="text-gray-600 dark:text-gray-400">sales@recov.in</p>
-                      <p className="text-sm text-gray-500 mt-1">24/7 Support</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-2">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-950 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="h-6 w-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-lg mb-2">Office</h3>
-                      <p className="text-gray-600 dark:text-gray-400">
-                        123 Business Park, MG Road<br />
-                        Bangalore, Karnataka - 560001<br />
-                        India
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 text-white">
-        <div className="container mx-auto text-center max-w-4xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="text-4xl md:text-6xl font-bold mb-6">
-              Ready to Get Your Payments On Time?
-            </h2>
-            <p className="text-xl mb-8 opacity-90">
-              Join 500+ businesses already using RECOV to boost collections by 40%
-            </p>
-            <div className="flex flex-wrap gap-4 justify-center">
-              <Button 
-                size="lg" 
-                className="bg-yellow-400 text-black hover:bg-yellow-300 text-lg px-8 font-bold shadow-xl"
-                onClick={scrollToPricing}
-                data-testid="button-final-cta"
-              >
-                START FREE TRIAL NOW <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="border-2 border-white text-white hover:bg-white/10 text-lg px-8"
-                onClick={scrollToPricing}
-                data-testid="button-final-pricing"
-              >
-                View Pricing Plans
-              </Button>
-            </div>
-            <p className="mt-6 text-sm opacity-75">
-              ⏰ Limited time offer - Lock current prices before they increase!
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="py-12 px-4 bg-gray-900 text-white">
         <div className="container mx-auto">
@@ -1183,7 +960,6 @@ export default function Landing() {
             <div>
               <h3 className="font-semibold mb-3">Support</h3>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#contact" className="hover:text-white" data-testid="link-footer-contact">Contact Us</a></li>
                 <li><Link href="/login" className="hover:text-white" data-testid="link-footer-login">Login</Link></li>
                 <li><a href="#" className="hover:text-white" data-testid="link-footer-help">Help Center</a></li>
                 <li><a href="#" className="hover:text-white" data-testid="link-footer-docs">Documentation</a></li>

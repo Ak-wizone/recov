@@ -2080,8 +2080,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get active subscription plans only
-  app.get("/api/subscription-plans/active", adminOnlyMiddleware, async (req, res) => {
+  // Get active subscription plans only (public route for landing page)
+  app.get("/api/subscription-plans/active", async (req, res) => {
     try {
       const plans = await storage.getActiveSubscriptionPlans();
       res.json(plans);
