@@ -429,6 +429,15 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
     "Email/WhatsApp/Call Integrations": [
       "Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit",
     ],
+    "Reports": [
+      "Reports - View", "Reports - Export", "Reports - Print",
+    ],
+    "Integrations": [
+      "Integrations - View", "Integrations - Edit",
+    ],
+    "Whisper Voice AI": [
+      "Whisper Voice AI - View", "Whisper Voice AI - Create",
+    ],
   };
 
   const permissions: string[] = [];
@@ -438,9 +447,6 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
       permissions.push(...modulePerms);
     }
   }
-
-  // Always add Reports permission (available to all plans)
-  permissions.push("Reports - View", "Reports - Export", "Reports - Print");
 
   return permissions;
 }
