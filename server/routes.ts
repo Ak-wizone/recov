@@ -12580,6 +12580,122 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Razorpay payment routes for landing page
+  app.post("/api/razorpay/create-order", async (req, res) => {
+    try {
+      const { name, email, mobile, plan, amount } = req.body;
+
+      // Validate inputs with Zod schema
+      const orderSchema = z.object({
+        name: z.string().min(2, "Name must be at least 2 characters"),
+        email: z.string().email("Invalid email address"),
+        mobile: z.string().regex(/^[0-9]{10}$/, "Mobile number must be 10 digits"),
+        plan: z.enum(["STANDARD", "PREMIUM", "STAR", "PLATINUM"]),
+        amount: z.number().positive("Amount must be positive"),
+      });
+
+      const validation = orderSchema.safeParse({ name, email, mobile, plan, amount: parseFloat(amount) });
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Validation failed",
+          errors: validation.error.errors.map(e => `${e.path.join('.')}: ${e.message}`)
+        });
+      }
+
+      // Server-side plan pricing validation (prevent tampering)
+      const planPricing: Record<string, number> = {
+        STANDARD: 9999,
+        PREMIUM: 19999,
+        STAR: 29999,
+        PLATINUM: 0, // Contact sales
+      };
+
+      const expectedAmount = planPricing[validation.data.plan];
+      if (expectedAmount === 0) {
+        return res.status(400).json({ message: "This plan requires contacting sales for custom pricing" });
+      }
+
+      if (Math.abs(validation.data.amount - expectedAmount) > 1) {
+        return res.status(400).json({ message: "Invalid amount for selected plan" });
+      }
+
+      // Validate amount is a positive number
+      const amountInPaise = Math.round(validation.data.amount * 100);
+      if (isNaN(amountInPaise) || amountInPaise <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+
+      // Check if Razorpay credentials are configured
+      const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
+      const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+
+      if (!razorpayKeyId || !razorpayKeySecret) {
+        console.error("Razorpay credentials not configured");
+        return res.status(500).json({ message: "Payment gateway not configured" });
+      }
+
+      // Create Razorpay order
+      const Razorpay = (await import("razorpay")).default;
+      const razorpay = new Razorpay({
+        key_id: razorpayKeyId,
+        key_secret: razorpayKeySecret,
+      });
+
+      const order = await razorpay.orders.create({
+        amount: amountInPaise,
+        currency: "INR",
+        receipt: `order_${Date.now()}`,
+        notes: {
+          name: validation.data.name,
+          email: validation.data.email,
+          mobile: validation.data.mobile,
+          plan: validation.data.plan,
+        },
+      });
+
+      res.json({
+        orderId: order.id,
+        amount: order.amount,
+        currency: order.currency,
+        keyId: razorpayKeyId,
+      });
+    } catch (error: any) {
+      console.error("Failed to create Razorpay order:", error);
+      res.status(500).json({ message: error.message || "Failed to create payment order" });
+    }
+  });
+
+  app.post("/api/razorpay/verify-payment", async (req, res) => {
+    try {
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+      if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        return res.status(400).json({ message: "Missing payment details" });
+      }
+
+      const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+      if (!razorpayKeySecret) {
+        return res.status(500).json({ message: "Payment gateway not configured" });
+      }
+
+      // Verify payment signature
+      const generatedSignature = crypto
+        .createHmac("sha256", razorpayKeySecret)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest("hex");
+
+      if (generatedSignature === razorpay_signature) {
+        // Payment verified successfully
+        res.json({ success: true, message: "Payment verified successfully" });
+      } else {
+        res.status(400).json({ success: false, message: "Invalid payment signature" });
+      }
+    } catch (error: any) {
+      console.error("Failed to verify payment:", error);
+      res.status(500).json({ message: error.message || "Failed to verify payment" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

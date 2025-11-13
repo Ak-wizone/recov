@@ -224,13 +224,120 @@ export default function Landing() {
       return;
     }
 
-    toast({
-      title: "Redirecting to Payment",
-      description: "Please wait...",
-    });
+    // Get selected plan details
+    const selectedPlan = pricingPlans.find(p => p.name === paymentForm.plan);
+    if (!selectedPlan) {
+      toast({
+        title: "Invalid plan selected",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    // Razorpay integration will be added here
-    console.log("Payment form:", paymentForm);
+    // For "Contact Us" plans
+    if (selectedPlan.price === "Contact Us") {
+      toast({
+        title: "Please Contact Sales",
+        description: "For custom pricing, please reach out to our sales team.",
+      });
+      return;
+    }
+
+    // Extract amount from price string (e.g., "₹9,999/month" -> 9999)
+    const amount = parseFloat(selectedPlan.price.replace(/[₹,]/g, ""));
+
+    try {
+      // Create Razorpay order
+      const response = await fetch("/api/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: paymentForm.name,
+          email: paymentForm.email,
+          mobile: paymentForm.mobile,
+          plan: paymentForm.plan,
+          amount: amount,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create order");
+      }
+
+      const { orderId, amount: orderAmount, currency, keyId } = await response.json();
+
+      // Load Razorpay script if not already loaded
+      if (!(window as any).Razorpay) {
+        const script = document.createElement("script");
+        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+        script.async = true;
+        document.body.appendChild(script);
+        await new Promise((resolve) => { script.onload = resolve; });
+      }
+
+      // Initialize Razorpay checkout
+      const options = {
+        key: keyId,
+        amount: orderAmount,
+        currency: currency,
+        name: "RECOV",
+        description: `${paymentForm.plan} Plan Subscription`,
+        order_id: orderId,
+        prefill: {
+          name: paymentForm.name,
+          email: paymentForm.email,
+          contact: paymentForm.mobile,
+        },
+        theme: {
+          color: "#3B82F6", // Blue color matching the brand
+        },
+        handler: async function (response: any) {
+          // Verify payment on backend
+          const verifyResponse = await fetch("/api/razorpay/verify-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            }),
+          });
+
+          if (verifyResponse.ok) {
+            toast({
+              title: "Payment Successful!",
+              description: "Thank you for subscribing. We'll contact you shortly to set up your account.",
+            });
+            setPaymentForm({ name: "", email: "", mobile: "", plan: "" });
+          } else {
+            toast({
+              title: "Payment Verification Failed",
+              description: "Please contact support with your payment details.",
+              variant: "destructive",
+            });
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            toast({
+              title: "Payment Cancelled",
+              description: "You can try again anytime.",
+            });
+          },
+        },
+      };
+
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
+    } catch (error: any) {
+      console.error("Payment error:", error);
+      toast({
+        title: "Payment Error",
+        description: error.message || "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
