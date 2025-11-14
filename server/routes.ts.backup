@@ -11171,21 +11171,12 @@ ${profile?.legalName || 'Company'}`;
         .orderBy(desc(assistantChatHistory.createdAt))
         .limit(10);
 
-      // Convert to orchestrator format - create alternating user/assistant turns
-      const history: Array<{ speaker: "user" | "assistant"; message: string; timestamp: Date }> = [];
-      conversationHistory.reverse().forEach(h => {
-        // Each record has both user message and assistant response
-        history.push({
-          speaker: "user",
-          message: h.userMessage,
-          timestamp: h.createdAt!,
-        });
-        history.push({
-          speaker: "assistant",
-          message: h.assistantResponse,
-          timestamp: h.createdAt!,
-        });
-      });
+      // Convert to orchestrator format
+      const history = conversationHistory.reverse().map(h => ({
+        speaker: h.speaker as "user" | "assistant",
+        message: h.message,
+        timestamp: h.createdAt!,
+      }));
 
       // Process with orchestrator
       const orchestratorResponse = await assistantOrchestrator.process({
@@ -11197,14 +11188,19 @@ ${profile?.legalName || 'Company'}`;
         context: context || "",
       });
 
-      // Store in chat history (one record with both user message and assistant response)
+      // Store in chat history
       await db.insert(assistantChatHistory).values({
         tenantId: req.tenantId!,
         userId,
-        userMessage: message,
-        assistantResponse: orchestratorResponse.text,
-        commandType: orchestratorResponse.type,
-        isVoiceInput: isVoice || false,
+        speaker: "user",
+        message,
+      });
+
+      await db.insert(assistantChatHistory).values({
+        tenantId: req.tenantId!,
+        userId,
+        speaker: "assistant",
+        message: orchestratorResponse.text,
       });
 
       // Track analytics
@@ -11254,6 +11250,1320 @@ ${profile?.legalName || 'Company'}`;
           });
         }
       } catch (analyticsError) {
+        console.error("Failed to track analytics (error):", analyticsError);
+      }
+      
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get assistant settings for current user
+  app.get("/api/assistant/settings", ensureAssistantAccess, async (req, res) => {
+    try {
+      const userId = (req.session as any).user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const settings = await storage.getAssistantSettings(req.tenantId!, userId);
+        const wordNumbers: Record<string, number> = {
+          // Basic digits
+          'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+          'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+          // Teens
+          'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+          'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19,
+          // Tens
+          'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50,
+          'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90,
+          // Multipliers
+          'hundred': 100, 'thousand': 1000, 'lakh': 100000, 'lac': 100000, 
+          'million': 1000000, 'crore': 10000000, 'karod': 10000000,
+          // Hindi numbers
+          'ek': 1, 'do': 2, 'teen': 3, 'char': 4, 'panch': 5,
+          'chhe': 6, 'saat': 7, 'aath': 8, 'nau': 9, 'das': 10,
+          'sau': 100, 'hazaar': 1000
+        };
+
+        // Normalize: remove hyphens, commas, extra spaces, handle plurals
+        const normalized = text.toLowerCase()
+          .replace(/-/g, ' ')
+          .replace(/,/g, '')
+          .replace(/lakhs?/g, 'lakh')
+          .replace(/crores?/g, 'crore')
+          .replace(/thousands?/g, 'thousand')
+          .replace(/millions?/g, 'million')
+          .replace(/billions?/g, 'billion')
+          .replace(/\s+/g, ' ')
+          .trim();
+
+        // Handle direct numbers with comprehensive suffix support
+        // Order matters: longer patterns first to avoid partial matches
+        const directMatch = normalized.match(/^(\d+(?:\.\d+)?)\s*(crore|karod|million|billion|thousand|hundred|lakh|lac|cr|mn|bn|[kKlL])?$/);
+        if (directMatch) {
+          let num = parseFloat(directMatch[1]);
+          const suffix = directMatch[2]?.toLowerCase();
+          
+          // Map suffixes to multipliers
+          const multipliers: Record<string, number> = {
+            'k': 1000,
+            'l': 100000,
+            'lakh': 100000,
+            'lac': 100000,
+            'cr': 10000000,
+            'crore': 10000000,
+            'karod': 10000000,
+            'mn': 1000000,
+            'million': 1000000,
+            'bn': 1000000000,
+            'billion': 1000000000,
+            'thousand': 1000,
+            'hundred': 100
+          };
+          
+          if (suffix && multipliers[suffix]) {
+            num *= multipliers[suffix];
+          }
+          return num;
+        }
+
+        // Handle word numbers
+        const words = normalized.split(/\s+/);
+        let total = 0;
+        let current = 0;
+        let foundNumber = false;
+
+        for (const word of words) {
+          const num = wordNumbers[word];
+          if (num !== undefined) {
+            foundNumber = true;
+            if (num >= 100) {
+              // Multiplier
+              current = current || 1;
+              current *= num;
+              if (num >= 1000) {
+                total += current;
+                current = 0;
+              }
+            } else {
+              // Regular number (including zero)
+              current += num;
+            }
+          }
+        }
+        total += current;
+        
+        // Return total if we found any number word (including zero)
+        // or null if no number words were found
+        return foundNumber ? total : null;
+      };
+
+      // Parse dates from text (e.g., "last week", "yesterday", "7 days ago")
+      const parseDateFromText = (text: string): { startDate: Date; endDate: Date } | null => {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        if (text.includes('today') || text.includes('aaj')) {
+          return { startDate: today, endDate: today };
+        }
+        
+        if (text.includes('yesterday') || text.includes('kal')) {
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          return { startDate: yesterday, endDate: yesterday };
+        }
+        
+        if (text.includes('last week') || text.includes('pichle hafte')) {
+          const lastWeekStart = new Date(today);
+          lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+          return { startDate: lastWeekStart, endDate: today };
+        }
+        
+        if (text.includes('last month') || text.includes('pichle mahine')) {
+          const lastMonthStart = new Date(today);
+          lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
+          return { startDate: lastMonthStart, endDate: today };
+        }
+        
+        // Handle "last X days"
+        const daysMatch = text.match(/last\s+(\d+)\s+days?|(\d+)\s+din/i);
+        if (daysMatch) {
+          const days = parseInt(daysMatch[1] || daysMatch[2]);
+          const startDate = new Date(today);
+          startDate.setDate(startDate.getDate() - days);
+          return { startDate, endDate: today };
+        }
+        
+        return null;
+      };
+
+      // Parse amount with currency symbols
+      const parseAmount = (text: string): number | null => {
+        // Remove currency symbols
+        const cleaned = text.replace(/[₹$,]/g, '');
+        return parseNumberFromText(cleaned);
+      };
+
+      // ============================================
+      // Contextual Understanding & Auto-Suggestions
+      // ============================================
+      
+      // Multi-Turn Dialogue: Check if user is responding to a previous clarifying question
+      let lastAssistantMessage = "";
+      if (recentCommands.length > 0) {
+        // Get the last assistant response from chat history
+        const recentHistory = await db
+          .select()
+          .from(assistantChatHistory)
+          .where(
+            and(
+              eq(assistantChatHistory.tenantId, req.tenantId!),
+              eq(assistantChatHistory.userId, userId)
+            )
+          )
+          .orderBy(desc(assistantChatHistory.createdAt))
+          .limit(1);
+        
+        if (recentHistory.length > 0) {
+          lastAssistantMessage = recentHistory[0].assistantResponse.toLowerCase();
+        }
+      }
+      
+      // ============================================
+      // SMART CONTEXT MAPPING
+      // Map follow-up responses to actual commands based on last clarification
+      // ============================================
+      if (lastAssistantMessage) {
+        // Dashboard Context - Map user's short responses to full commands
+        if (lastAssistantMessage.includes("dashboard ke baare me kya")) {
+          // Revenue-related responses
+          if (normalizedMessage.match(/\b(revenue|total revenue|kitna revenue|earning)\b/i)) {
+            // Will be handled by existing revenue/financial stats logic below
+          }
+          // Collection responses
+          else if (normalizedMessage.match(/\b(collection|today collection|aaj ka collection)\b/i)) {
+            // Force it to match "today's collection" pattern
+          }
+          // Due invoices responses
+          else if (normalizedMessage.match(/\b(due|pending|due invoices|pending invoices|baki)\b/i)) {
+            // Will match existing due invoices logic
+          }
+          // Outstanding balance
+          else if (normalizedMessage.match(/\b(outstanding|balance|bacha hua|total outstanding)\b/i)) {
+            // Will match existing outstanding logic
+          }
+          // Total customers
+          else if (normalizedMessage.match(/\b(total customers|kitne customer|customers)\b/i)) {
+            // Will match customer count logic
+          }
+        }
+        
+        // Customers Context - Map short responses
+        if (lastAssistantMessage.includes("customers ke baare me")) {
+          // Category responses
+          if (normalizedMessage.match(/\b(alpha|alpha category|alpha wale)\b/i)) {
+            // Will be caught by alpha category logic
+          }
+          else if (normalizedMessage.match(/\b(beta|beta category|beta wale)\b/i)) {
+            // Will be caught by beta category logic
+          }
+          else if (normalizedMessage.match(/\b(gamma|gamma category|gamma wale)\b/i)) {
+            // Will be caught by gamma category logic
+          }
+          else if (normalizedMessage.match(/\b(delta|delta category|delta wale)\b/i)) {
+            // Will be caught by delta category logic
+          }
+          // Top debtors responses
+          else if (normalizedMessage.match(/\b(top 10|top debtors|highest|sabse zyada)\b/i)) {
+            // Will be caught by top debtors logic
+          }
+          // Total customers
+          else if (normalizedMessage.match(/\b(total|kitne|count)\b/i)) {
+            // Will be caught by total customers logic
+          }
+        }
+        
+        // Invoices Context - Map short responses
+        if (lastAssistantMessage.includes("invoices ke baare me")) {
+          // Status-based responses
+          if (normalizedMessage.match(/\b(due|pending|baki)\b/i)) {
+            // Will be caught by due invoices logic
+          }
+          else if (normalizedMessage.match(/\b(paid|complete|ho gaye)\b/i)) {
+            // Will be caught by paid invoices logic
+          }
+          else if (normalizedMessage.match(/\b(overdue|late|delay)\b/i)) {
+            // Will be caught by overdue logic
+          }
+          // Time-based responses
+          else if (normalizedMessage.match(/\b(today|aaj|today's)\b/i)) {
+            // Will be caught by today's invoices logic
+          }
+          else if (normalizedMessage.match(/\b(week|is hafte)\b/i)) {
+            // Will be caught by this week logic
+          }
+        }
+        
+        // Debtors Context - Map short responses
+        if (lastAssistantMessage.includes("debtors ke baare me")) {
+          // Top debtors
+          if (normalizedMessage.match(/\b(top 10|top 20|highest|sabse zyada)\b/i)) {
+            // Will be caught by top debtors logic
+          }
+          // Category-based
+          else if (normalizedMessage.match(/\b(alpha|beta|gamma|delta)\b/i)) {
+            // Will be caught by respective category logic
+          }
+          // Follow-ups
+          else if (normalizedMessage.match(/\b(follow.?up|due today|overdue)\b/i)) {
+            // Will be caught by follow-up logic
+          }
+        }
+      }
+      
+      // Handle follow-up queries based on previous commands
+      if (recentCommands.length > 0 && 
+          (normalizedMessage.includes("show more") || 
+           normalizedMessage.includes("details") || 
+           normalizedMessage.includes("aur dikha"))) {
+        const lastCommand = recentCommands[recentCommands.length - 1].toLowerCase();
+        
+        // If last command was about customers, expand on that
+        if (lastCommand.includes("customer")) {
+          response = `💡 Previous command was about customers. You can ask:\n`;
+          response += `• "Show customer details for [name]"\n`;
+          response += `• "Total customers"\n`;
+          response += `• "Alpha category customers"`;
+          commandType = "info";
+        }
+        // If last command was about invoices
+        else if (lastCommand.includes("invoice")) {
+          response = `💡 Previous command was about invoices. You can ask:\n`;
+          response += `• "Due invoices"\n`;
+          response += `• "Today's invoices"\n`;
+          response += `• "Invoice details for [customer]"`;
+          commandType = "info";
+        }
+      }
+      
+      // Page-specific context suggestions
+      if (normalizedMessage.includes("what can i") || 
+          normalizedMessage.includes("help") || 
+          normalizedMessage.includes("kya kar sakte")) {
+        
+        if (pageContext.includes("Dashboard")) {
+          response = `📊 **Dashboard Commands:**\n\n`;
+          response += `• "Show today's collection"\n`;
+          response += `• "Due invoices"\n`;
+          response += `• "Total customers"\n`;
+          response += `• "Outstanding balance"`;
+          commandType = "info";
+        } 
+        else if (pageContext.includes("Invoices")) {
+          response = `📄 **Invoice Commands:**\n\n`;
+          response += `• "Due invoices"\n`;
+          response += `• "Paid invoices"\n`;
+          response += `• "Invoice for [customer name]"\n`;
+          response += `• "Today's invoices"`;
+          commandType = "info";
+        }
+        else if (pageContext.includes("Debtors")) {
+          response = `💰 **Debtor Commands:**\n\n`;
+          response += `• "Alpha category customers"\n`;
+          response += `• "Top 10 debtors"\n`;
+          response += `• "Customer ledger for [name]"\n`;
+          response += `• "Send email to overdue customers"`;
+          commandType = "info";
+        }
+        else if (pageContext.includes("Ledger")) {
+          response = `📖 **Ledger Commands:**\n\n`;
+          response += `• "Show ledger for [customer name]"\n`;
+          response += `• "Customer details"\n`;
+          response += `• "Outstanding balance"`;
+          commandType = "info";
+        }
+        else {
+          response = `💡 **Popular Commands:**\n\n`;
+          response += `• "Show today's collection"\n`;
+          response += `• "Due invoices"\n`;
+          response += `• "Follow ups"\n`;
+          response += `• "Alpha category customers"\n`;
+          response += `• "Send email to overdue customers"`;
+          commandType = "info";
+        }
+      }
+
+      // Command Parser - Enhanced keyword matching with smart parsing
+      
+      // Follow-ups Menu Query - Interactive options
+      if (
+        (normalizedMessage.includes("follow") && normalizedMessage.includes("up")) &&
+        !normalizedMessage.includes("today") &&
+        !normalizedMessage.includes("tomorrow") &&
+        !normalizedMessage.includes("week") &&
+        !normalizedMessage.includes("month") &&
+        !normalizedMessage.includes("overdue") &&
+        !normalizedMessage.includes("no follow")
+      ) {
+        commandType = "info";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        
+        response = `📋 Aap kaun se follow-ups dekhna chahte hain?\n\n`;
+        response += `⏰ Overdue: ${stats.overdue.count} clients - ₹${stats.overdue.totalAmount.toFixed(2)}\n`;
+        response += `📅 Today: ${stats.dueToday.count} clients - ₹${stats.dueToday.totalAmount.toFixed(2)}\n`;
+        response += `📆 Tomorrow: ${stats.dueTomorrow.count} clients - ₹${stats.dueTomorrow.totalAmount.toFixed(2)}\n`;
+        response += `📊 This Week: ${stats.dueThisWeek.count} clients - ₹${stats.dueThisWeek.totalAmount.toFixed(2)}\n`;
+        response += `📈 This Month: ${stats.dueThisMonth.count} clients - ₹${stats.dueThisMonth.totalAmount.toFixed(2)}\n`;
+        response += `❌ No Follow-up: ${stats.noFollowUp.count} clients - ₹${stats.noFollowUp.totalAmount.toFixed(2)}\n\n`;
+        response += `Bolo: "Show today's follow-ups" ya "Aaj ke follow-ups"`;
+        
+        resultData = stats;
+      }
+      
+      // Today's Follow-ups Query
+      else if (
+        (normalizedMessage.includes("today") || normalizedMessage.includes("aaj")) &&
+        (normalizedMessage.includes("follow") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const todayData = stats.dueToday;
+        
+        if (todayData.count === 0) {
+          response = "✅ Aaj koi follow-up due nahi hai!";
+        } else {
+          response = `📅 Aaj ${todayData.count} follow-ups due hain\n`;
+          response += `💰 Total Outstanding: ₹${todayData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          todayData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (todayData.count > 10) {
+            response += `\n...and ${todayData.count - 10} more`;
+          }
+        }
+        
+        resultData = todayData.customers;
+      }
+      
+      // Tomorrow's Follow-ups Query
+      else if (
+        (normalizedMessage.includes("tomorrow") || normalizedMessage.includes("kal")) &&
+        (normalizedMessage.includes("follow") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const tomorrowData = stats.dueTomorrow;
+        
+        if (tomorrowData.count === 0) {
+          response = "✅ Kal koi follow-up due nahi hai!";
+        } else {
+          response = `📆 Kal ${tomorrowData.count} follow-ups due hain\n`;
+          response += `💰 Total Outstanding: ₹${tomorrowData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          tomorrowData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (tomorrowData.count > 10) {
+            response += `\n...and ${tomorrowData.count - 10} more`;
+          }
+        }
+        
+        resultData = tomorrowData.customers;
+      }
+      
+      // This Week's Follow-ups Query
+      else if (
+        normalizedMessage.includes("week") &&
+        (normalizedMessage.includes("follow") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const weekData = stats.dueThisWeek;
+        
+        if (weekData.count === 0) {
+          response = "✅ Is hafte koi follow-up due nahi hai!";
+        } else {
+          response = `📊 Is hafte ${weekData.count} follow-ups due hain\n`;
+          response += `💰 Total Outstanding: ₹${weekData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          weekData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (weekData.count > 10) {
+            response += `\n...and ${weekData.count - 10} more`;
+          }
+        }
+        
+        resultData = weekData.customers;
+      }
+      
+      // This Month's Follow-ups Query
+      else if (
+        normalizedMessage.includes("month") &&
+        (normalizedMessage.includes("follow") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const monthData = stats.dueThisMonth;
+        
+        if (monthData.count === 0) {
+          response = "✅ Is mahine koi follow-up due nahi hai!";
+        } else {
+          response = `📈 Is mahine ${monthData.count} follow-ups due hain\n`;
+          response += `💰 Total Outstanding: ₹${monthData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          monthData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (monthData.count > 10) {
+            response += `\n...and ${monthData.count - 10} more`;
+          }
+        }
+        
+        resultData = monthData.customers;
+      }
+      
+      // Overdue Follow-ups Query
+      else if (
+        normalizedMessage.includes("overdue") &&
+        (normalizedMessage.includes("follow") || normalizedMessage.includes("late"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const overdueData = stats.overdue;
+        
+        if (overdueData.count === 0) {
+          response = "✅ Koi overdue follow-up nahi hai!";
+        } else {
+          response = `⏰ ${overdueData.count} follow-ups overdue hain\n`;
+          response += `💰 Total Outstanding: ₹${overdueData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          overdueData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (overdueData.count > 10) {
+            response += `\n...and ${overdueData.count - 10} more`;
+          }
+        }
+        
+        resultData = overdueData.customers;
+      }
+      
+      // No Follow-up Customers Query
+      else if (
+        normalizedMessage.includes("no follow") ||
+        (normalizedMessage.includes("without") && normalizedMessage.includes("follow"))
+      ) {
+        commandType = "query";
+        
+        const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
+        const noFollowUpData = stats.noFollowUp;
+        
+        if (noFollowUpData.count === 0) {
+          response = "✅ Sabhi customers ke follow-ups bane hain!";
+        } else {
+          response = `❌ ${noFollowUpData.count} customers ke follow-ups nahi bane\n`;
+          response += `💰 Total Outstanding: ₹${noFollowUpData.totalAmount.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          noFollowUpData.customers.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (noFollowUpData.count > 10) {
+            response += `\n...and ${noFollowUpData.count - 10} more`;
+          }
+        }
+        
+        resultData = noFollowUpData.customers;
+      }
+      
+      // Category-wise Outstanding Query
+      else if (
+        (normalizedMessage.includes("outstanding") && normalizedMessage.includes("kitna")) ||
+        (normalizedMessage.includes("category") && normalizedMessage.includes("wise")) ||
+        normalizedMessage.includes("balance")
+      ) {
+        commandType = "query";
+        
+        const debtorsData = await storage.getDebtorsList(req.tenantId!);
+        const categoryWise = debtorsData.categoryWise;
+        
+        response = `📊 Category-wise Outstanding:\n\n`;
+        response += `🟢 Alpha: ${categoryWise.Alpha.count} clients - ₹${categoryWise.Alpha.totalBalance.toFixed(2)}\n`;
+        response += `🔵 Beta: ${categoryWise.Beta.count} clients - ₹${categoryWise.Beta.totalBalance.toFixed(2)}\n`;
+        response += `🟡 Gamma: ${categoryWise.Gamma.count} clients - ₹${categoryWise.Gamma.totalBalance.toFixed(2)}\n`;
+        response += `🔴 Delta: ${categoryWise.Delta.count} clients - ₹${categoryWise.Delta.totalBalance.toFixed(2)}\n\n`;
+        
+        const totalClients = categoryWise.Alpha.count + categoryWise.Beta.count + categoryWise.Gamma.count + categoryWise.Delta.count;
+        const totalBalance = categoryWise.Alpha.totalBalance + categoryWise.Beta.totalBalance + categoryWise.Gamma.totalBalance + categoryWise.Delta.totalBalance;
+        response += `Total: ${totalClients} clients - ₹${totalBalance.toFixed(2)}`;
+        
+        resultData = categoryWise;
+      }
+      
+      // Alpha Category Query
+      else if (
+        normalizedMessage.includes("alpha") &&
+        (normalizedMessage.includes("outstanding") || normalizedMessage.includes("data") || normalizedMessage.includes("customers"))
+      ) {
+        commandType = "query";
+        
+        const debtorsData = await storage.getDebtorsList(req.tenantId!);
+        const alphaData = debtorsData.categoryWise.Alpha;
+        
+        if (alphaData.count === 0) {
+          response = "No Alpha category customers found.";
+        } else {
+          response = `🟢 Alpha Category:\n`;
+          response += `Total Clients: ${alphaData.count}\n`;
+          response += `💰 Total Outstanding: ₹${alphaData.totalBalance.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          alphaData.debtors.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (alphaData.count > 10) {
+            response += `\n...and ${alphaData.count - 10} more`;
+          }
+        }
+        
+        resultData = alphaData.debtors;
+      }
+      
+      // Beta Category Query
+      else if (
+        normalizedMessage.includes("beta") &&
+        (normalizedMessage.includes("outstanding") || normalizedMessage.includes("data") || normalizedMessage.includes("customers"))
+      ) {
+        commandType = "query";
+        
+        const debtorsData = await storage.getDebtorsList(req.tenantId!);
+        const betaData = debtorsData.categoryWise.Beta;
+        
+        if (betaData.count === 0) {
+          response = "No Beta category customers found.";
+        } else {
+          response = `🔵 Beta Category:\n`;
+          response += `Total Clients: ${betaData.count}\n`;
+          response += `💰 Total Outstanding: ₹${betaData.totalBalance.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          betaData.debtors.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (betaData.count > 10) {
+            response += `\n...and ${betaData.count - 10} more`;
+          }
+        }
+        
+        resultData = betaData.debtors;
+      }
+      
+      // Gamma Category Query
+      else if (
+        normalizedMessage.includes("gamma") &&
+        (normalizedMessage.includes("outstanding") || normalizedMessage.includes("data") || normalizedMessage.includes("customers"))
+      ) {
+        commandType = "query";
+        
+        const debtorsData = await storage.getDebtorsList(req.tenantId!);
+        const gammaData = debtorsData.categoryWise.Gamma;
+        
+        if (gammaData.count === 0) {
+          response = "No Gamma category customers found.";
+        } else {
+          response = `🟡 Gamma Category:\n`;
+          response += `Total Clients: ${gammaData.count}\n`;
+          response += `💰 Total Outstanding: ₹${gammaData.totalBalance.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          gammaData.debtors.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (gammaData.count > 10) {
+            response += `\n...and ${gammaData.count - 10} more`;
+          }
+        }
+        
+        resultData = gammaData.debtors;
+      }
+      
+      // Delta Category Query
+      else if (
+        normalizedMessage.includes("delta") &&
+        (normalizedMessage.includes("outstanding") || normalizedMessage.includes("data") || normalizedMessage.includes("customers"))
+      ) {
+        commandType = "query";
+        
+        const debtorsData = await storage.getDebtorsList(req.tenantId!);
+        const deltaData = debtorsData.categoryWise.Delta;
+        
+        if (deltaData.count === 0) {
+          response = "No Delta category customers found.";
+        } else {
+          response = `🔴 Delta Category:\n`;
+          response += `Total Clients: ${deltaData.count}\n`;
+          response += `💰 Total Outstanding: ₹${deltaData.totalBalance.toFixed(2)}\n\n`;
+          response += `📋 Customer List:\n`;
+          
+          deltaData.debtors.slice(0, 10).forEach((c: any, idx: number) => {
+            response += `${idx + 1}. ${c.name} - ₹${c.balance.toFixed(2)}`;
+            if (c.mobile) response += ` - ${c.mobile}`;
+            response += `\n`;
+          });
+          
+          if (deltaData.count > 10) {
+            response += `\n...and ${deltaData.count - 10} more`;
+          }
+        }
+        
+        resultData = deltaData.debtors;
+      }
+      
+      // Due Invoices Query - Enhanced with Hindi/mixed language
+      else if (
+        normalizedMessage.includes("due invoice") ||
+        normalizedMessage.includes("pending invoice") ||
+        normalizedMessage.includes("unpaid") ||
+        normalizedMessage.includes("bacha hua") ||
+        normalizedMessage.includes("baki") ||
+        normalizedMessage.match(/\b(due|pending|baki|bacha)\b/i)
+      ) {
+        commandType = "query";
+        
+        const dueInvoices = await db
+          .select({
+            id: invoices.id,
+            invoiceNumber: invoices.invoiceNumber,
+            customerName: invoices.customerName,
+            invoiceAmount: invoices.invoiceAmount,
+            invoiceDate: invoices.invoiceDate,
+            status: invoices.status,
+          })
+          .from(invoices)
+          .where(
+            and(
+              eq(invoices.tenantId, req.tenantId!),
+              sql`${invoices.status} != 'Paid'`
+            )
+          )
+          .orderBy(desc(invoices.invoiceDate))
+          .limit(10);
+
+        const count = dueInvoices.length;
+        const totalDue = dueInvoices.reduce(
+          (sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()),
+          0
+        );
+
+        response = `Found ${count} due invoices totaling ₹${totalDue.toFixed(
+          2
+        )}. Here are the details:\n\n`;
+        
+        dueInvoices.forEach((inv, idx) => {
+          const amount = parseFloat(inv.invoiceAmount.toString());
+          response += `${idx + 1}. ${inv.customerName} - ${
+            inv.invoiceNumber
+          } - ₹${amount.toFixed(2)} (${inv.status})\n`;
+        });
+
+        resultData = dueInvoices;
+      }
+      
+      // Today's Collection Query - Enhanced with Hindi/informal
+      else if (
+        normalizedMessage.includes("collection") ||
+        normalizedMessage.includes("payment received") ||
+        normalizedMessage.includes("aaj ka") ||
+        normalizedMessage.includes("aaj kitna") ||
+        normalizedMessage.includes("aaj ki collection") ||
+        normalizedMessage.includes("total collection") ||
+        (normalizedMessage.includes("today") && normalizedMessage.includes("collection"))
+      ) {
+        commandType = "query";
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const todaysReceipts = await db
+          .select({
+            amount: receipts.amount,
+            customerName: receipts.customerName,
+            voucherNumber: receipts.voucherNumber,
+          })
+          .from(receipts)
+          .where(
+            and(
+              eq(receipts.tenantId, req.tenantId!),
+              sql`${receipts.date}::date = ${today.toISOString().split("T")[0]}::date`
+            )
+          );
+
+        const totalCollection = todaysReceipts.reduce(
+          (sum, r) => sum + parseFloat(r.amount.toString()),
+          0
+        );
+
+        response = `Today's collection: ₹${totalCollection.toFixed(
+          2
+        )} from ${todaysReceipts.length} payments.\n\n`;
+        
+        todaysReceipts.forEach((r, idx) => {
+          response += `${idx + 1}. ${r.customerName} - ${
+            r.voucherNumber
+          } - ₹${parseFloat(r.amount.toString()).toFixed(2)}\n`;
+        });
+
+        resultData = todaysReceipts;
+      }
+      
+      // Alpha Category Customers - Enhanced with Hindi/informal language
+      else if (
+        normalizedMessage.includes("alpha customer") ||
+        normalizedMessage.includes("alpha category") ||
+        normalizedMessage.includes("alpha wale") ||
+        normalizedMessage.includes("alpha ke customer") ||
+        normalizedMessage === "alpha"
+      ) {
+        commandType = "query";
+        
+        const alphaCustomers = await db
+          .select({
+            id: customers.id,
+            name: customers.name,
+            category: customers.category,
+            amountOwed: customers.amountOwed,
+            mobile: customers.mobile,
+          })
+          .from(customers)
+          .where(
+            and(
+              eq(customers.tenantId, req.tenantId!),
+              eq(customers.category, "Alpha")
+            )
+          )
+          .limit(20);
+
+        response = `Found ${alphaCustomers.length} Alpha category customers:\n\n`;
+        
+        alphaCustomers.forEach((c, idx) => {
+          response += `${idx + 1}. ${c.name} - Amount Owed: ₹${parseFloat(
+            c.amountOwed?.toString() || "0"
+          ).toFixed(2)} - Mobile: ${c.mobile}\n`;
+        });
+
+        resultData = alphaCustomers;
+      }
+      
+      // Customer Ledger
+      else if (normalizedMessage.includes("ledger")) {
+        commandType = "query";
+        
+        // Try to extract customer name from message
+        const customerNameMatch = normalizedMessage.match(
+          /ledger.*?([a-z]+\s*[a-z]*)/i
+        );
+        
+        if (customerNameMatch && customerNameMatch[1]) {
+          const searchName = customerNameMatch[1].trim();
+          
+          const customer = await db
+            .select()
+            .from(customers)
+            .where(
+              and(
+                eq(customers.tenantId, req.tenantId!),
+                sql`LOWER(${customers.name}) LIKE ${`%${searchName}%`}`
+              )
+            )
+            .limit(1);
+
+          if (customer.length > 0) {
+            response = `Customer ledger for ${customer[0].name}. Please check the Ledger page for detailed transaction history.`;
+            resultData = customer[0];
+          } else {
+            response = `Customer "${searchName}" not found. Please check the spelling and try again.`;
+          }
+        } else {
+          response = "Please specify the customer name. For example: 'Show ledger for ABC Company'";
+        }
+      }
+      
+      // Send Email Action - Reminder to overdue customers
+      else if (
+        (normalizedMessage.includes("send email") || normalizedMessage.includes("email bhejo")) &&
+        (normalizedMessage.includes("reminder") || normalizedMessage.includes("overdue") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "action";
+        actionPerformed = "email_reminder_sent";
+        
+        const overdueInvoices = await db
+          .select({
+            id: invoices.id,
+            customerName: invoices.customerName,
+            invoiceNumber: invoices.invoiceNumber,
+            invoiceAmount: invoices.invoiceAmount,
+            status: invoices.status,
+            customerEmail: customers.email,
+          })
+          .from(invoices)
+          .leftJoin(customers, and(
+            eq(customers.tenantId, invoices.tenantId),
+            eq(customers.name, invoices.customerName)
+          ))
+          .where(
+            and(
+              eq(invoices.tenantId, req.tenantId!),
+              sql`${invoices.status} != 'Paid'`,
+              sql`${customers.email} IS NOT NULL AND ${customers.email} != ''`
+            )
+          )
+          .limit(10);
+        
+        if (overdueInvoices.length === 0) {
+          response = "No overdue invoices found with valid email addresses.";
+        } else {
+          response = `I would send payment reminders to ${overdueInvoices.length} customers with overdue invoices. However, email sending requires template selection. Please use the Email page or specify a template ID to proceed.`;
+          resultData = overdueInvoices;
+        }
+      }
+      
+      // Send WhatsApp Action - Reminder to overdue customers
+      else if (
+        (normalizedMessage.includes("send whatsapp") || normalizedMessage.includes("whatsapp bhejo")) &&
+        (normalizedMessage.includes("reminder") || normalizedMessage.includes("overdue") || normalizedMessage.includes("due"))
+      ) {
+        commandType = "action";
+        actionPerformed = "whatsapp_reminder_sent";
+        
+        const overdueInvoices = await db
+          .select({
+            id: invoices.id,
+            customerName: invoices.customerName,
+            invoiceNumber: invoices.invoiceNumber,
+            invoiceAmount: invoices.invoiceAmount,
+            primaryMobile: customers.mobile,
+            status: invoices.status,
+          })
+          .from(invoices)
+          .leftJoin(customers, and(
+            eq(customers.tenantId, invoices.tenantId),
+            eq(customers.name, invoices.customerName)
+          ))
+          .where(
+            and(
+              eq(invoices.tenantId, req.tenantId!),
+              sql`${invoices.status} != 'Paid'`,
+              sql`${customers.mobile} IS NOT NULL AND ${customers.mobile} != ''`
+            )
+          )
+          .limit(10);
+        
+        if (overdueInvoices.length === 0) {
+          response = "No overdue invoices found with valid mobile numbers.";
+        } else {
+          response = `I would send WhatsApp payment reminders to ${overdueInvoices.length} customers with overdue invoices. However, WhatsApp sending requires template selection. Please use the WhatsApp page or specify a template ID to proceed.`;
+          resultData = overdueInvoices;
+        }
+      }
+      
+      // Call Customer Action
+      else if (
+        normalizedMessage.includes("call") ||
+        normalizedMessage.includes("phone kar")
+      ) {
+        commandType = "action";
+        actionPerformed = "call_trigger";
+        
+        // Extract customer name
+        const nameMatch = normalizedMessage.match(/call\s+([a-z\s]+)/i);
+        
+        if (nameMatch && nameMatch[1]) {
+          const searchName = nameMatch[1].trim();
+          
+          const customer = await db
+            .select()
+            .from(customers)
+            .where(
+              and(
+                eq(customers.tenantId, req.tenantId!),
+                sql`LOWER(${customers.name}) LIKE ${`%${searchName}%`}`
+              )
+            )
+            .limit(1);
+
+          if (customer.length > 0 && customer[0].mobile) {
+            response = `I can trigger an AI call to ${customer[0].name} at ${customer[0].mobile}. However, this requires script selection. Please use the Calls page or specify a script ID to proceed.`;
+            resultData = customer[0];
+          } else {
+            response = searchName 
+              ? `Customer "${searchName}" not found or has no mobile number.`
+              : "Please specify the customer name. For example: 'Call ABC Company'";
+          }
+        } else {
+          response = "Please specify the customer name. For example: 'Call ABC Company'";
+        }
+      }
+      
+      // General Email Action
+      else if (
+        normalizedMessage.includes("send email") ||
+        normalizedMessage.includes("email bhejo")
+      ) {
+        commandType = "action";
+        actionPerformed = "email_trigger";
+        response = "Email sending feature is available. Please specify the customer and template, or use the Email page to send emails.";
+      }
+      
+      // General WhatsApp Action
+      else if (
+        normalizedMessage.includes("send whatsapp") ||
+        normalizedMessage.includes("whatsapp bhejo")
+      ) {
+        commandType = "action";
+        actionPerformed = "whatsapp_trigger";
+        response = "WhatsApp messaging feature is available. Please specify the customer and template, or use the WhatsApp page to send messages.";
+      }
+      
+      // ============================================
+      // CONVERSATIONAL NAVIGATION
+      // When user says just module name, ask clarifying questions
+      // ============================================
+      
+      // Dashboard Module - Conversational
+      else if (
+        (normalizedMessage === "dashboard" || 
+         normalizedMessage === "show dashboard" ||
+         normalizedMessage.match(/^dashboard$/i) ||
+         normalizedMessage.match(/^(open|go to|navigate to)\s+dashboard$/i))
+      ) {
+        commandType = "info";
+        response = `📊 **Dashboard ke baare me kya jaanna chahte hain?**\n\n`;
+        response += `💡 Aap yeh puch sakte hain:\n\n`;
+        response += `📈 **Revenue & Collections:**\n`;
+        response += `  • "Show today's collection"\n`;
+        response += `  • "Total revenue"\n`;
+        response += `  • "Outstanding balance"\n\n`;
+        response += `📄 **Invoices:**\n`;
+        response += `  • "Due invoices"\n`;
+        response += `  • "Paid invoices"\n`;
+        response += `  • "Upcoming invoices"\n\n`;
+        response += `👥 **Customers:**\n`;
+        response += `  • "Total customers"\n`;
+        response += `  • "Alpha category customers"\n`;
+        response += `  • "Top 10 debtors"\n\n`;
+        response += `🔔 **Recent Activity:**\n`;
+        response += `  • "Recent payments"\n`;
+        response += `  • "Today's follow-ups"`;
+      }
+      
+      // Customers Module - Conversational
+      else if (
+        (normalizedMessage === "customers" || 
+         normalizedMessage === "customer" ||
+         normalizedMessage.match(/^(show|list)\s+customers?$/i) ||
+         normalizedMessage.match(/^(open|go to)\s+customers?$/i))
+      ) {
+        commandType = "info";
+        response = `👥 **Customers ke baare me kya dekhna hai?**\n\n`;
+        response += `💡 Main aapko yeh bata sakta hoon:\n\n`;
+        response += `📊 **Summary:**\n`;
+        response += `  • "Total customers"\n`;
+        response += `  • "Active customers"\n\n`;
+        response += `🏷️ **Categories:**\n`;
+        response += `  • "Alpha category customers"\n`;
+        response += `  • "Beta category customers"\n`;
+        response += `  • "Gamma category customers"\n`;
+        response += `  • "Delta category customers"\n\n`;
+        response += `💰 **Debtors:**\n`;
+        response += `  • "Top 10 debtors"\n`;
+        response += `  • "Customers with highest balance"\n\n`;
+        response += `📖 **Details:**\n`;
+        response += `  • "Show ledger for [customer name]"\n`;
+        response += `  • "Customer details for [name]"`;
+      }
+      
+      // Invoices Module - Conversational
+      else if (
+        (normalizedMessage === "invoices" || 
+         normalizedMessage === "invoice" ||
+         normalizedMessage.match(/^(show|list)\s+invoices?$/i) ||
+         normalizedMessage.match(/^(open|go to)\s+invoices?$/i))
+      ) {
+        commandType = "info";
+        response = `📄 **Invoices ke baare me kya jaanna hai?**\n\n`;
+        response += `💡 Kripya specify karein:\n\n`;
+        response += `📅 **Status:**\n`;
+        response += `  • "Due invoices"\n`;
+        response += `  • "Paid invoices"\n`;
+        response += `  • "Pending invoices"\n`;
+        response += `  • "Overdue invoices"\n\n`;
+        response += `🗓️ **Time Period:**\n`;
+        response += `  • "Today's invoices"\n`;
+        response += `  • "This week's invoices"\n`;
+        response += `  • "This month's invoices"\n\n`;
+        response += `👤 **Customer:**\n`;
+        response += `  • "Invoices for [customer name]"\n\n`;
+        response += `💵 **Amount:**\n`;
+        response += `  • "Invoices above 1 lakh"\n`;
+        response += `  • "Invoices above [amount]"`;
+      }
+      
+      // Receipts Module - Conversational
+      else if (
+        (normalizedMessage === "receipts" || 
+         normalizedMessage === "receipt" ||
+         normalizedMessage === "payments" ||
+         normalizedMessage === "payment" ||
+         normalizedMessage.match(/^(show|list)\s+(receipts?|payments?)$/i))
+      ) {
+        commandType = "info";
+        response = `💵 **Receipts/Payments ke baare me kya puchna hai?**\n\n`;
+        response += `💡 Aap yeh dekh sakte hain:\n\n`;
+        response += `📊 **Collections:**\n`;
+        response += `  • "Today's collection"\n`;
+        response += `  • "This week's collection"\n`;
+        response += `  • "This month's collection"\n\n`;
+        response += `👤 **Customer:**\n`;
+        response += `  • "Payments from [customer name]"\n`;
+        response += `  • "Recent payments"\n\n`;
+        response += `💰 **Amount:**\n`;
+        response += `  • "Payments above 50000"\n`;
+        response += `  • "Large payments"`;
+      }
+      
+      // Debtors/Payment Tracking - Conversational
+      else if (
+        (normalizedMessage === "debtors" || 
+         normalizedMessage === "debtor" ||
+         normalizedMessage === "outstanding" ||
+         normalizedMessage.match(/^(show|list)\s+debtors?$/i) ||
+         normalizedMessage.match(/^payment tracking$/i))
+      ) {
+        commandType = "info";
+        response = `💰 **Debtors ke baare me kya information chahiye?**\n\n`;
+        response += `💡 Main yeh bata sakta hoon:\n\n`;
+        response += `📊 **Top Debtors:**\n`;
+        response += `  • "Top 10 debtors"\n`;
+        response += `  • "Top 20 debtors"\n`;
+        response += `  • "Highest outstanding customers"\n\n`;
+        response += `🏷️ **By Category:**\n`;
+        response += `  • "Alpha category customers"\n`;
+        response += `  • "Beta category customers"\n`;
+        response += `  • "Gamma category customers"\n`;
+        response += `  • "Delta category customers"\n\n`;
+        response += `📖 **Ledger:**\n`;
+        response += `  • "Show ledger for [customer name]"\n`;
+        response += `  • "Customer outstanding balance"\n\n`;
+        response += `📞 **Follow-ups:**\n`;
+        response += `  • "Today's follow-ups"\n`;
+        response += `  • "Overdue follow-ups"`;
+      }
+      
+      // Ledger - Conversational
+      else if (
+        (normalizedMessage === "ledger" || 
+         normalizedMessage.match(/^(show|open)\s+ledger$/i))
+      ) {
+        commandType = "info";
+        response = `📖 **Ledger ke baare me kya dekhna chahte hain?**\n\n`;
+        response += `💡 Kripya customer specify karein:\n\n`;
+        response += `📋 **Commands:**\n`;
+        response += `  • "Show ledger for [customer name]"\n`;
+        response += `  • "Ledger of [customer name]"\n`;
+        response += `  • "[Customer name] ka ledger"\n\n`;
+        response += `💰 **Additional Info:**\n`;
+        response += `  • "Outstanding balance for [customer]"\n`;
+        response += `  • "Payment history of [customer]"`;
+      }
+      
+      // Leads Module - Conversational
+      else if (
+        (normalizedMessage === "leads" || 
+         normalizedMessage === "lead" ||
+         normalizedMessage.match(/^(show|list)\s+leads?$/i))
+      ) {
+        commandType = "info";
+        response = `🎯 **Leads ke baare me kya jaanna hai?**\n\n`;
+        response += `💡 Aap yeh puch sakte hain:\n\n`;
+        response += `📊 **Summary:**\n`;
+        response += `  • "Total leads"\n`;
+        response += `  • "Hot leads"\n`;
+        response += `  • "Warm leads"\n`;
+        response += `  • "Cold leads"\n\n`;
+        response += `📅 **Status:**\n`;
+        response += `  • "New leads"\n`;
+        response += `  • "Contacted leads"\n`;
+        response += `  • "Qualified leads"\n`;
+        response += `  • "Converted leads"\n\n`;
+        response += `🗓️ **Time:**\n`;
+        response += `  • "Today's leads"\n`;
+        response += `  • "This week's leads"`;
+      }
+      
+      // Quotations Module - Conversational
+      else if (
+        (normalizedMessage === "quotations" || 
+         normalizedMessage === "quotation" ||
+         normalizedMessage === "quotes" ||
+         normalizedMessage.match(/^(show|list)\s+quotations?$/i))
+      ) {
+        commandType = "info";
+        response = `📝 **Quotations ke baare me kya dekhna hai?**\n\n`;
+        response += `💡 Main yeh bata sakta hoon:\n\n`;
+        response += `📊 **Summary:**\n`;
+        response += `  • "Total quotations"\n`;
+        response += `  • "Pending quotations"\n`;
+        response += `  • "Approved quotations"\n\n`;
+        response += `🗓️ **Time:**\n`;
+        response += `  • "Today's quotations"\n`;
+        response += `  • "This week's quotations"\n`;
+        response += `  • "This month's quotations"\n\n`;
+        response += `👤 **Customer:**\n`;
+        response += `  • "Quotations for [customer name]"`;
+      }
+      
+      // Action Center - Conversational
+      else if (
+        (normalizedMessage === "action center" || 
+         normalizedMessage === "actions" ||
+         normalizedMessage === "tasks" ||
+         normalizedMessage.match(/^(show|open)\s+action center$/i))
+      ) {
+        commandType = "info";
+        response = `🎯 **Action Center me kya dekhna chahte hain?**\n\n`;
+        response += `💡 Available options:\n\n`;
+        response += `✅ **Tasks:**\n`;
+        response += `  • "My tasks"\n`;
+        response += `  • "Pending tasks"\n`;
+        response += `  • "Completed tasks"\n\n`;
+        response += `📞 **Calls:**\n`;
+        response += `  • "Call queue"\n`;
+        response += `  • "Today's calls"\n\n`;
+        response += `📋 **Follow-ups:**\n`;
+        response += `  • "Today's follow-ups"\n`;
+        response += `  • "Overdue follow-ups"\n\n`;
+        response += `🎯 **Targets:**\n`;
+        response += `  • "My daily target"\n`;
+        response += `  • "Target progress"`;
+      }
+      
+      // Default response for unrecognized commands
+      else {
+        response = `Hi ${userName}! I can help you with:\n\n` +
+          "📋 Queries:\n" +
+          "  • 'Show due invoices'\n" +
+          "  • 'Today's collection'\n" +
+          "  • 'Alpha category customers'\n" +
+          "  • 'Show ledger for [customer name]'\n\n" +
+          "📧 Actions:\n" +
+          "  • 'Send email reminder to overdue customers'\n" +
+          "  • 'Send WhatsApp reminder to due customers'\n" +
+          "  • 'Call [customer name]'\n\n" +
+          "What would you like to do?";
+      }
+
+      // Save to chat history
+      await db.insert(assistantChatHistory).values({
+        tenantId: req.tenantId!,
+        userId,
+        userMessage: message,
+        assistantResponse: response,
+        commandType,
+        actionPerformed,
+        resultData: resultData ? JSON.stringify(resultData) : null,
+        isVoiceInput: isVoice || false,
+      });
+
+      // Track analytics - Success case (graceful degradation)
+      try {
+        const responseTime = Date.now() - startTime;
+        await db.insert(assistantAnalytics).values({
+          tenantId: req.tenantId!,
+          userId,
+          command: message,
+          normalizedCommand: normalizedMessage,
+          commandType,
+          isSuccess: true,
+          responseTime,
+          isVoiceInput: isVoice || false,
+          pageContext: pageContext || null,
+        });
+      } catch (analyticsError) {
+        // Fail silently - don't break command processing
+        console.error("Failed to track analytics (success):", analyticsError);
+      }
+
+      res.json({
+        response,
+        commandType,
+        action: actionPerformed,
+        data: resultData,
+      });
+    } catch (error: any) {
+      console.error("Failed to process command:", error);
+      
+      // Track analytics - Error case (graceful degradation)
+      try {
+        const responseTime = Date.now() - startTime;
+        const userId = (req.session as any).user?.id;
+        const { message: userMessage, isVoice, context } = req.body;
+        
+        if (userId && userMessage) {
+          await db.insert(assistantAnalytics).values({
+            tenantId: req.tenantId!,
+            userId,
+            command: userMessage,
+            normalizedCommand: userMessage.toLowerCase().trim(),
+            commandType: "info",
+            isSuccess: false,
+            errorMessage: error.message,
+            responseTime,
+            isVoiceInput: isVoice || false,
+            pageContext: context || null,
+          });
+        }
+      } catch (analyticsError) {
+        // Fail silently - don't break error handling
         console.error("Failed to track analytics (error):", analyticsError);
       }
       
