@@ -17,6 +17,7 @@ The application utilizes `shadcn/ui` (Radix UI) and Tailwind CSS for a responsiv
 *   **Data Storage**: Drizzle ORM configured for PostgreSQL, with Zod schemas ensuring data integrity for core entities like Customers, Payments, Roles, and Users.
 *   **Authentication**: Secure email/password login with bcrypt hashing, session-based authentication, protected routes, and email-based password reset functionality.
 *   **Production Optimizations**: Environment-aware seeding process that skips heavy tenant role updates in production to prevent startup timeouts and ensure fast deployment. PostgreSQL session store properly configured for both development and published (REPLIT_DEPLOYMENT=1) environments, ensuring WebSocket authentication persistence and preventing error 4500.
+*   **API Request Pattern**: Custom `apiRequest` utility in `client/src/lib/queryClient.ts` with signature `apiRequest(method, url, data)` for all HTTP mutations. Corrected systematic parameter order issue across 13 locations in telecmi-config, telecmi-call-button, daily-targets, call-queue, tasks, communication-schedules, and notification-center components (November 2025).
 
 ## Feature Specifications
 *   **Analytics Dashboard**: Provides real-time statistics, financial overviews, and recent activity.
