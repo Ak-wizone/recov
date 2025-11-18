@@ -42,6 +42,8 @@ import {
   Package,
   DollarSign,
   Users,
+  Shield,
+  RefreshCw,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -264,6 +266,21 @@ export default function SubscriptionPlans() {
       toast({ title: "Success", description: "Subscription plan deleted successfully" });
       setIsDeleteDialogOpen(false);
       setSelectedPlan(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const backfillMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/subscription-plans/backfill-admin-permissions");
+    },
+    onSuccess: (data: any) => {
+      toast({ 
+        title: "Backfill Complete", 
+        description: `Updated ${data.updatedCount} Admin role(s) with full permissions`
+      });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -520,10 +537,25 @@ export default function SubscriptionPlans() {
           className="max-w-sm"
           data-testid="input-search"
         />
-        <Button onClick={handleAdd} data-testid="button-add-plan">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Plan
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => backfillMutation.mutate()}
+            disabled={backfillMutation.isPending}
+            data-testid="button-backfill-admin"
+          >
+            {backfillMutation.isPending ? (
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Shield className="w-4 h-4 mr-2" />
+            )}
+            Fix Admin Permissions
+          </Button>
+          <Button onClick={handleAdd} data-testid="button-add-plan">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Plan
+          </Button>
+        </div>
       </div>
 
       {/* Table */}
