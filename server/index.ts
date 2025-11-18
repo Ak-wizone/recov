@@ -42,10 +42,10 @@ app.use(
     saveUninitialized: false,
     proxy: true, // Trust the reverse proxy for secure cookies
     cookie: {
-      secure: false, // Set to false to work in Replit's environment (proxy handles HTTPS)
+      secure: isProduction, // Secure cookies in production, allows HTTP in development
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: "lax", // Use lax for better compatibility
+      sameSite: "lax", // Use lax for better compatibility in Replit's environment
       path: "/", // Explicitly set cookie path
     },
   })
