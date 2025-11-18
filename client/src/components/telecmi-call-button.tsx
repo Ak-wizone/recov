@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -110,28 +110,42 @@ export function TelecmiCallButton({
   };
 
   // Get template suggestions based on days overdue
-  const getSuggestedTemplate = () => {
+  const getSuggestedTemplate = (lang: "hindi" | "english" | "hinglish" = language) => {
     if (!templates || templates.length === 0) return null;
     
-    if (!daysOverdue || daysOverdue === 0) {
-      return templates.find(t => t.name === "Payment Due Reminder" && t.language === language);
-    } else if (daysOverdue <= 7) {
-      return templates.find(t => t.name === "7 Days Overdue Notice" && t.language === language);
-    } else if (daysOverdue <= 15) {
-      return templates.find(t => t.name === "15 Days Overdue - Urgent" && t.language === language);
+    // Clamp daysOverdue to prevent negative values (not-yet-due invoices) from triggering overdue scripts
+    const clampedDays = Math.max(0, daysOverdue || 0);
+    
+    if (clampedDays === 0) {
+      return templates.find(t => t.name === "Payment Due Reminder" && t.language === lang);
+    } else if (clampedDays <= 7) {
+      return templates.find(t => t.name === "7 Days Overdue Notice" && t.language === lang);
+    } else if (clampedDays <= 15) {
+      return templates.find(t => t.name === "15 Days Overdue - Urgent" && t.language === lang);
     } else {
-      return templates.find(t => t.name === "30 Days Overdue - Final Notice" && t.language === language);
+      return templates.find(t => t.name === "30 Days Overdue - Final Notice" && t.language === lang);
     }
   };
 
   // Auto-select suggested template when language changes
   const handleLanguageChange = (newLanguage: "hindi" | "english" | "hinglish") => {
     setLanguage(newLanguage);
-    const suggested = getSuggestedTemplate();
+    // Recompute suggested template with NEW language to ensure auto-selection matches user intent
+    const suggested = getSuggestedTemplate(newLanguage);
     if (suggested) {
       setSelectedTemplate(suggested.id);
     }
   };
+
+  // Auto-select suggested template when dialog opens or templates/daysOverdue change
+  useEffect(() => {
+    if (dialogOpen && templates && templates.length > 0 && !selectedTemplate) {
+      const suggested = getSuggestedTemplate();
+      if (suggested) {
+        setSelectedTemplate(suggested.id);
+      }
+    }
+  }, [dialogOpen, templates, daysOverdue, language, selectedTemplate]);
 
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

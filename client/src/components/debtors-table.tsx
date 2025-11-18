@@ -39,13 +39,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { TelecmiCallButton } from "@/components/telecmi-call-button";
 
 interface DebtorData {
   customerId: string;
@@ -509,15 +510,34 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           )}
           {/* @ts-ignore - Type issue with optional actionPermissions */}
           {canPerformAction("canCall") && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenCall(row.original)}
-              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950"
-              data-testid={`button-call-${row.original.customerId}`}
-            >
-              <Phone className="h-4 w-4" />
-            </Button>
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onOpenCall(row.original)}
+                className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950"
+                data-testid={`button-call-${row.original.customerId}`}
+                title="Call via Ringg.ai"
+              >
+                <Phone className="h-4 w-4" />
+              </Button>
+              {row.original.mobile && (
+                <TelecmiCallButton
+                  customerPhone={row.original.mobile}
+                  customerName={row.original.name}
+                  module="debtors"
+                  amount={row.original.balance}
+                  daysOverdue={
+                    row.original.lastInvoiceDate
+                      ? differenceInDays(new Date(), new Date(row.original.lastInvoiceDate))
+                      : 0
+                  }
+                  buttonText=""
+                  buttonVariant="outline"
+                  icon={<Phone className="h-4 w-4" />}
+                />
+              )}
+            </>
           )}
           <Button
             variant="outline"

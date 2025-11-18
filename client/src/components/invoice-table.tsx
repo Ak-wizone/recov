@@ -5,8 +5,9 @@ import { type ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, MessageSquare, Mail, Phone, Calculator } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { useAuth } from "@/lib/auth";
+import { TelecmiCallButton } from "@/components/telecmi-call-button";
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -360,14 +361,40 @@ export function InvoiceTable({
               </Button>
             )}
             {canPerformAction("canCall") && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onCall?.(row.original)}
-                data-testid={`button-call-${row.original.id}`}
-              >
-                <Phone className="h-4 w-4 text-purple-500" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onCall?.(row.original)}
+                  data-testid={`button-call-${row.original.id}`}
+                  title="Call via Ringg.ai"
+                >
+                  <Phone className="h-4 w-4 text-purple-500" />
+                </Button>
+                {row.original.primaryMobile && (
+                  <TelecmiCallButton
+                    customerPhone={row.original.primaryMobile}
+                    customerName={row.original.customerName}
+                    module="invoices"
+                    invoiceNumber={row.original.invoiceNumber}
+                    amount={parseFloat(row.original.invoiceAmount)}
+                    daysOverdue={
+                      row.original.paymentStatus !== "Paid"
+                        ? differenceInDays(
+                            new Date(),
+                            new Date(
+                              new Date(row.original.invoiceDate).getTime() +
+                                (row.original.paymentTerms || 0) * 24 * 60 * 60 * 1000
+                            )
+                          )
+                        : 0
+                    }
+                    buttonText=""
+                    buttonVariant="ghost"
+                    icon={<Phone className="h-4 w-4 text-blue-600" />}
+                  />
+                )}
+              </>
             )}
             <Button
               variant="ghost"
