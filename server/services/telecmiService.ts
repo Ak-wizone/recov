@@ -1,11 +1,14 @@
 import { Piopiy, PiopiyAction } from "piopiy";
 import type { IStorage } from "../storage";
+import { decryptApiKey, encryptApiKey } from "../encryption";
+import crypto from "crypto";
 
 interface TelecmiConfig {
   appId: string;
   appSecret: string;
   fromNumber: string;
   answerUrl?: string;
+  webhookSecret?: string;
 }
 
 interface MakeCallOptions {
@@ -32,7 +35,7 @@ export class TelecmiService {
   }
 
   /**
-   * Get Telecmi configuration for a tenant
+   * Get Telecmi configuration for a tenant (with decrypted credentials)
    */
   private async getConfig(tenantId: string): Promise<TelecmiConfig | null> {
     const config = await this.storage.getTelecmiConfig(tenantId);
@@ -40,12 +43,22 @@ export class TelecmiService {
       return null;
     }
 
-    return {
-      appId: config.appId,
-      appSecret: config.appSecret,
-      fromNumber: config.fromNumber,
-      answerUrl: config.answerUrl || undefined,
-    };
+    try {
+      // Decrypt both app secret and webhook secret
+      const decryptedAppSecret = decryptApiKey(config.appSecret);
+      const decryptedWebhookSecret = config.webhookSecret ? decryptApiKey(config.webhookSecret) : undefined;
+
+      return {
+        appId: config.appId,
+        appSecret: decryptedAppSecret,
+        fromNumber: config.fromNumber,
+        answerUrl: config.answerUrl || undefined,
+        webhookSecret: decryptedWebhookSecret,
+      };
+    } catch (error) {
+      console.error("[TelecmiService] Failed to decrypt credentials:", error);
+      return null;
+    }
   }
 
   /**
@@ -210,14 +223,80 @@ export class TelecmiService {
   }
 
   /**
+   * Validate webhook request signature
+   */
+  private validateWebhookSignature(
+    payload: string,
+    signature: string,
+    secret: string
+  ): boolean {
+    try {
+      const expectedSignature = crypto
+        .createHmac("sha256", secret)
+        .update(payload)
+        .digest("hex");
+
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature)
+      );
+    } catch (error) {
+      console.error("[TelecmiService] Signature validation error:", error);
+      return false;
+    }
+  }
+
+  /**
    * Handle Telecmi webhook for call events
    */
   async handleWebhook(
+    tenantId: string,
     eventType: "answered" | "missed" | "cdr",
-    payload: any
-  ): Promise<void> {
+    payload: any,
+    signature?: string
+  ): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log(`[TelecmiService] Webhook ${eventType}:`, payload);
+      // Get tenant config for webhook validation
+      const config = await this.getConfig(tenantId);
+      if (!config) {
+        return {
+          success: false,
+          error: "Telecmi not configured for this tenant",
+        };
+      }
+
+      // Validate webhook signature (MANDATORY for security)
+      if (!signature) {
+        console.warn(`[TelecmiService] Missing webhook signature for tenant ${tenantId}`);
+        return {
+          success: false,
+          error: "Missing webhook signature",
+        };
+      }
+
+      if (!config.webhookSecret) {
+        console.warn(`[TelecmiService] Missing webhook secret for tenant ${tenantId}`);
+        return {
+          success: false,
+          error: "Webhook secret not configured",
+        };
+      }
+
+      const isValid = this.validateWebhookSignature(
+        JSON.stringify(payload),
+        signature,
+        config.webhookSecret
+      );
+
+      if (!isValid) {
+        console.warn(`[TelecmiService] Invalid webhook signature for tenant ${tenantId}`);
+        return {
+          success: false,
+          error: "Invalid webhook signature",
+        };
+      }
+
+      console.log(`[TelecmiService] Webhook ${eventType} for tenant ${tenantId}:`, payload);
 
       // Extract call details from payload
       const {
@@ -230,12 +309,31 @@ export class TelecmiService {
         recording_url,
       } = payload;
 
-      // Find the call log by request_id
+      if (!request_id) {
+        return {
+          success: false,
+          error: "Missing request_id in webhook payload",
+        };
+      }
+
+      // Find the call log by request_id (must belong to this tenant)
       const callLog = await this.storage.getCallLogByTelecmiRequestId(request_id);
       
       if (!callLog) {
         console.warn(`[TelecmiService] Call log not found for request_id: ${request_id}`);
-        return;
+        return {
+          success: false,
+          error: "Call log not found",
+        };
+      }
+
+      // Verify tenant ownership
+      if (callLog.tenantId !== tenantId) {
+        console.warn(`[TelecmiService] Tenant mismatch for call log ${callLog.id}`);
+        return {
+          success: false,
+          error: "Unauthorized: Tenant mismatch",
+        };
       }
 
       // Update call log based on event type
@@ -259,8 +357,14 @@ export class TelecmiService {
       }
 
       await this.storage.updateCallLog(callLog.tenantId, callLog.id, updates);
-    } catch (error) {
+
+      return { success: true };
+    } catch (error: any) {
       console.error(`[TelecmiService] Webhook ${eventType} error:`, error);
+      return {
+        success: false,
+        error: error.message || "Webhook processing failed",
+      };
     }
   }
 }

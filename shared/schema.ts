@@ -1383,6 +1383,7 @@ export const telecmiConfigs = pgTable("telecmi_configs", {
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   appId: text("app_id").notNull(),
   appSecret: text("app_secret").notNull(),
+  webhookSecret: text("webhook_secret").notNull(),
   fromNumber: text("from_number").notNull(),
   answerUrl: text("answer_url"),
   isActive: text("is_active").notNull().default("Active"),
@@ -1393,12 +1394,14 @@ export const telecmiConfigs = pgTable("telecmi_configs", {
 export const insertTelecmiConfigSchema = createInsertSchema(telecmiConfigs).pick({
   appId: true,
   appSecret: true,
+  webhookSecret: true,
   fromNumber: true,
   answerUrl: true,
   isActive: true,
 }).extend({
   appId: z.string().min(1, "App ID is required"),
   appSecret: z.string().min(1, "App Secret is required"),
+  webhookSecret: z.string().optional(),
   fromNumber: z.string().min(1, "From Number is required").regex(/^\+?\d{1,15}$/, "Must be a valid phone number"),
   answerUrl: z.string().url("Must be a valid URL").optional(),
   isActive: z.enum(["Active", "Inactive"]).default("Active"),

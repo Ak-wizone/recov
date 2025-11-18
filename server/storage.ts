@@ -2,6 +2,7 @@ import { type Customer, type InsertCustomer, type Payment, type InsertPayment, t
 import { db } from "./db";
 import { eq, desc, and, isNull, lt, gte, lte } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { encryptApiKey, decryptApiKey } from "./encryption";
 
 export interface IStorage {
@@ -1833,14 +1834,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTelecmiConfig(tenantId: string, config: InsertTelecmiConfig): Promise<TelecmiConfig> {
-    const [newConfig] = await db.insert(telecmiConfigs).values({ ...config, tenantId }).returning();
+    const webhookSecret = config.webhookSecret || crypto.randomBytes(32).toString('hex');
+    const encryptedAppSecret = encryptApiKey(config.appSecret);
+    const encryptedWebhookSecret = encryptApiKey(webhookSecret);
+    const [newConfig] = await db.insert(telecmiConfigs).values({ 
+      ...config, 
+      appSecret: encryptedAppSecret,
+      webhookSecret: encryptedWebhookSecret,
+      tenantId 
+    }).returning();
     return newConfig;
   }
 
   async updateTelecmiConfig(tenantId: string, id: string, config: Partial<InsertTelecmiConfig>): Promise<TelecmiConfig | undefined> {
+    const updates = { ...config };
+    if (updates.appSecret) {
+      updates.appSecret = encryptApiKey(updates.appSecret);
+    }
+    if (updates.webhookSecret) {
+      updates.webhookSecret = encryptApiKey(updates.webhookSecret);
+    }
     const [updated] = await db
       .update(telecmiConfigs)
-      .set({ ...config, updatedAt: new Date() })
+      .set({ ...updates, updatedAt: new Date() })
       .where(and(eq(telecmiConfigs.tenantId, tenantId), eq(telecmiConfigs.id, id)))
       .returning();
     return updated;
