@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { format } from "date-fns";
 
 const DEFAULT_VOUCHER_TYPES = ["Receipt", "CN", "TDS"];
+const DEFAULT_ENTRY_TYPES = ["Cash", "Bank", "Online", "Cheque", "Other"];
 
 interface ReceiptFormDialogProps {
   open: boolean;
@@ -28,10 +29,17 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
     const saved = localStorage.getItem('customVoucherTypes');
     return saved ? JSON.parse(saved) : [];
   });
+  const [customEntryTypes, setCustomEntryTypes] = useState<string[]>(() => {
+    const saved = localStorage.getItem('customEntryTypes');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [isAddVoucherTypeOpen, setIsAddVoucherTypeOpen] = useState(false);
+  const [isAddEntryTypeOpen, setIsAddEntryTypeOpen] = useState(false);
   const [newVoucherType, setNewVoucherType] = useState("");
+  const [newEntryType, setNewEntryType] = useState("");
 
   const allVoucherTypes = [...DEFAULT_VOUCHER_TYPES, ...customVoucherTypes].sort();
+  const allEntryTypes = [...DEFAULT_ENTRY_TYPES, ...customEntryTypes].sort();
 
   // Fetch master customers
   const { data: masterCustomers = [], isLoading: isLoadingCustomers } = useQuery<MasterCustomer[]>({
@@ -43,6 +51,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
     defaultValues: {
       voucherNumber: receipt?.voucherNumber || "",
       voucherType: receipt?.voucherType || "",
+      entryType: receipt?.entryType || "",
       customerName: receipt?.customerName || "",
       date: receipt?.date ? format(new Date(receipt.date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       amount: receipt?.amount || "",
@@ -98,6 +107,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
       form.reset({
         voucherNumber: receipt.voucherNumber,
         voucherType: receipt.voucherType,
+        entryType: receipt.entryType || "",
         customerName: receipt.customerName,
         date: format(new Date(receipt.date), "yyyy-MM-dd"),
         amount: receipt.amount || "",
@@ -107,6 +117,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
       form.reset({
         voucherNumber: "",
         voucherType: "",
+        entryType: "",
         customerName: "",
         date: format(new Date(), "yyyy-MM-dd"),
         amount: "",
@@ -132,6 +143,28 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
       toast({
         title: "Error",
         description: "This voucher type already exists",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddCustomEntryType = () => {
+    if (newEntryType.trim() && !allEntryTypes.includes(newEntryType.trim())) {
+      const typeToAdd = newEntryType.trim();
+      const updatedCustomTypes = [...customEntryTypes, typeToAdd];
+      setCustomEntryTypes(updatedCustomTypes);
+      localStorage.setItem('customEntryTypes', JSON.stringify(updatedCustomTypes));
+      form.setValue('entryType', typeToAdd);
+      setNewEntryType("");
+      setIsAddEntryTypeOpen(false);
+      toast({
+        title: "Success",
+        description: `Custom entry type "${typeToAdd}" added successfully`,
+      });
+    } else if (allEntryTypes.includes(newEntryType.trim())) {
+      toast({
+        title: "Error",
+        description: "This entry type already exists",
         variant: "destructive",
       });
     }
@@ -212,6 +245,42 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="entryType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Entry Type</FormLabel>
+                      <div className="flex gap-2">
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-entry-type">
+                              <SelectValue placeholder="Select entry type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {allEntryTypes.map((type) => (
+                              <SelectItem key={type} value={type} data-testid={`option-entry-type-${type}`}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setIsAddEntryTypeOpen(true)}
+                          data-testid="button-add-entry-type"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="customerName"
@@ -355,6 +424,51 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
                 type="button"
                 onClick={handleAddCustomVoucherType}
                 data-testid="button-save-voucher-type"
+              >
+                Add
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Custom Entry Type Dialog */}
+      <Dialog open={isAddEntryTypeOpen} onOpenChange={setIsAddEntryTypeOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Custom Entry Type</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Input
+                placeholder="Enter entry type name"
+                value={newEntryType}
+                onChange={(e) => setNewEntryType(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomEntryType();
+                  }
+                }}
+                data-testid="input-new-entry-type"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsAddEntryTypeOpen(false);
+                  setNewEntryType("");
+                }}
+                data-testid="button-cancel-entry-type"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleAddCustomEntryType}
+                data-testid="button-save-entry-type"
               >
                 Add
               </Button>

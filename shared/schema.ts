@@ -579,6 +579,7 @@ export const receipts = pgTable("receipts", {
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
   voucherNumber: text("voucher_number").notNull(),
   voucherType: text("voucher_type"),
+  entryType: text("entry_type"),
   customerName: text("customer_name").notNull(),
   date: timestamp("date").notNull(),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
@@ -589,6 +590,7 @@ export const receipts = pgTable("receipts", {
 export const insertReceiptSchema = createInsertSchema(receipts).pick({
   voucherNumber: true,
   voucherType: true,
+  entryType: true,
   customerName: true,
   date: true,
   amount: true,
@@ -596,6 +598,7 @@ export const insertReceiptSchema = createInsertSchema(receipts).pick({
 }).extend({
   voucherNumber: z.string().min(1, "Voucher number is required"),
   voucherType: z.string().min(1, "Voucher type is required"),
+  entryType: z.string().optional(),
   customerName: z.string().min(1, "Customer name is required"),
   date: z.string().min(1, "Date is required"),
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {

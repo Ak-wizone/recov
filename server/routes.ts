@@ -6297,11 +6297,12 @@ ${profile?.legalName || 'Company'}`;
   // Download receipt template (MUST BE BEFORE /:id)
   app.get("/api/receipts/template", async (req, res) => {
     try {
-      const headers = ["Voucher Number", "Voucher Type", "Customer Name", "Date", "Amount", "Remarks"];
+      const headers = ["Voucher Number", "Voucher Type", "Entry Type", "Customer Name", "Date", "Amount", "Remarks"];
       const sampleData = [
         {
           "Voucher Number": "RCPT001",
-          "Voucher Type": "Cash",
+          "Voucher Type": "Receipt",
+          "Entry Type": "Cash",
           "Customer Name": "ABC Company",
           "Date": "2024-01-15",
           "Amount": "50000",
@@ -6328,6 +6329,7 @@ ${profile?.legalName || 'Company'}`;
       const data = receipts.map((receipt) => ({
         "Voucher Number": receipt.voucherNumber,
         "Voucher Type": receipt.voucherType,
+        "Entry Type": receipt.entryType || "",
         "Customer Name": receipt.customerName,
         "Date": receipt.date.toISOString().split('T')[0],
         "Amount": receipt.amount,
@@ -6382,6 +6384,7 @@ ${profile?.legalName || 'Company'}`;
         const receiptData = {
           voucherNumber: String((row as any)["Voucher Number"] || "").trim(),
           voucherType: String((row as any)["Voucher Type"] || "").trim(),
+          entryType: String((row as any)["Entry Type"] || "").trim() || undefined,
           customerName: String((row as any)["Customer Name"] || "").trim(),
           date: parsedDate,
           amount: String((row as any)["Amount"] || "0").trim(),

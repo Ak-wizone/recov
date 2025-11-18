@@ -52,6 +52,7 @@ export interface ImportInvoiceRow {
 export interface ImportReceiptRow {
   voucherNumber?: string;
   voucherType?: string;
+  entryType?: string;
   customerName?: string;
   date?: string;
   amount?: string;
@@ -273,6 +274,7 @@ export async function parseReceiptsFile(file: File): Promise<ImportReceiptRow[]>
         const rows: ImportReceiptRow[] = jsonData.map((row: any) => ({
           voucherNumber: String(row["Voucher Number"] || row.voucherNumber || row.VoucherNumber || "").trim(),
           voucherType: String(row["Voucher Type"] || row.voucherType || row.VoucherType || "").trim(),
+          entryType: String(row["Entry Type"] || row.entryType || row.EntryType || "").trim(),
           customerName: String(row["Customer Name"] || row.customerName || row.CustomerName || "").trim(),
           date: String(row["Date"] || row.date || row["Receipt Date"] || row.receiptDate || "").trim(),
           amount: String(row["Amount"] || row.amount || "").trim(),

@@ -55,6 +55,17 @@ export function ReceiptTable({
         enableColumnFilter: true,
       },
       {
+        accessorKey: "entryType",
+        header: "Entry Type",
+        cell: ({ row }) => (
+          <div data-testid={`text-entry-type-${row.original.id}`}>
+            {row.original.entryType || "—"}
+          </div>
+        ),
+        enableSorting: true,
+        enableColumnFilter: true,
+      },
+      {
         accessorKey: "customerName",
         header: "Customer Name",
         cell: ({ row }) => (
