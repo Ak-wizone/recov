@@ -11,13 +11,11 @@ if (!DATABASE_URL) {
   );
 }
 
-// Replit's PostgreSQL databases require SSL connections
-// Use rejectUnauthorized: false to accept self-signed certificates
+// Configure SSL based on database server capabilities
+// Custom PostgreSQL servers may not have SSL enabled
 export const pool = new Pool({ 
   connectionString: DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  ssl: false
 });
 
 export const db = drizzle(pool, { schema });

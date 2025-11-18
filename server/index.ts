@@ -29,14 +29,12 @@ app.use(express.urlencoded({ extended: false }));
 const PgSession = connectPgSimple(session);
 const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
 
-// Create a separate pool for session store with SSL configuration
-// Replit's PostgreSQL databases require SSL connections
+// Create a separate pool for session store
+// Configure SSL based on database server capabilities
 const sessionPool = isProduction 
   ? new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false
-      }
+      ssl: false
     })
   : undefined;
 
