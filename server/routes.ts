@@ -5,13 +5,14 @@ import { AssistantOrchestrator } from "./services/assistantOrchestrator";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { requirePermission, requireAnyPermission } from "./permissions";
 import { wsManager } from "./websocket";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertTelecmiConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema } from "@shared/schema";
 import { createTransporter, sendEmail, testEmailConnection } from "./email-service";
 import { getEnrichedEmailVariables, renderTemplate } from "./email-utils";
 import { sendWhatsAppMessage } from "./whatsapp-service";
 import { seedEmailTemplates } from "./seed-email-templates";
 import { whatsappWebService } from "./whatsapp-web-service";
 import { ringgService } from "./ringg-service";
+import { TelecmiService } from "./services/telecmiService";
 import { sendSecureExcelFile } from "./excel-utils";
 import { fromZodError } from "zod-validation-error";
 import multer from "multer";
@@ -682,6 +683,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     storage,
     process.env.OPENAI_API_KEY
   );
+
+  // Initialize Telecmi Service
+  const telecmiService = new TelecmiService(storage);
 
   // Public endpoints (BEFORE middleware)
   // Public API for pricing page - Get active subscription plans
@@ -9294,6 +9298,212 @@ ${profile?.legalName || 'Company'}`;
       res.status(500).json({ message: error.message });
     }
   });
+
+  // ============ TELECMI PIOPIY CALLING ROUTES ============
+
+  // Get Telecmi configuration
+  app.get("/api/telecmi/config", async (req, res) => {
+    try {
+      const config = await storage.getTelecmiConfig(req.tenantId!);
+      if (!config) {
+        return res.status(404).json({ message: "Telecmi configuration not found" });
+      }
+      res.json(config);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get webhook secret for Telecmi registration
+  app.get("/api/telecmi/webhook-secret", async (req, res) => {
+    try {
+      const secret = await telecmiService.getWebhookSecret(req.tenantId!);
+      if (!secret) {
+        return res.status(404).json({ 
+          message: "Telecmi not configured. Please configure Telecmi settings first." 
+        });
+      }
+      res.json({ webhookSecret: secret });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create or update Telecmi configuration
+  app.post("/api/telecmi/config", async (req, res) => {
+    try {
+      const validation = insertTelecmiConfigSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ message: fromZodError(validation.error).message });
+      }
+
+      const existingConfig = await storage.getTelecmiConfig(req.tenantId!);
+      let config;
+
+      if (existingConfig) {
+        config = await storage.updateTelecmiConfig(req.tenantId!, existingConfig.id, validation.data);
+      } else {
+        config = await storage.createTelecmiConfig(req.tenantId!, validation.data);
+      }
+
+      res.json(config);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Make a call via Telecmi
+  app.post("/api/telecmi/make-call", async (req, res) => {
+    try {
+      const { 
+        phoneNumber, 
+        customerName, 
+        module, 
+        callMode, 
+        language, 
+        templateId,
+        callContext 
+      } = req.body;
+
+      if (!phoneNumber || !customerName || !module || !callMode || !language) {
+        return res.status(400).json({ 
+          message: "phoneNumber, customerName, module, callMode, and language are required" 
+        });
+      }
+
+      if (callMode !== "simple" && callMode !== "ai") {
+        return res.status(400).json({ 
+          message: "callMode must be either 'simple' or 'ai'" 
+        });
+      }
+
+      if (!["hindi", "english", "hinglish"].includes(language)) {
+        return res.status(400).json({ 
+          message: "language must be one of: hindi, english, hinglish" 
+        });
+      }
+
+      // Create call log first
+      const callLog = await storage.createCallLog(req.tenantId!, {
+        customerName,
+        phoneNumber,
+        module,
+        status: "initiated",
+        callContext: callContext || null,
+        provider: "telecmi",
+        language,
+        callMode,
+      });
+
+      let result;
+      if (callMode === "simple") {
+        // Simple text-to-speech call
+        if (!templateId) {
+          return res.status(400).json({ 
+            message: "templateId is required for simple calls" 
+          });
+        }
+
+        const template = await storage.getCallTemplate(req.tenantId!, templateId);
+        if (!template) {
+          await storage.updateCallLog(req.tenantId!, callLog.id, {
+            status: "failed",
+            outcome: "Call template not found",
+          });
+          return res.status(404).json({ message: "Call template not found" });
+        }
+
+        result = await telecmiService.makeSimpleCall(
+          req.tenantId!,
+          phoneNumber,
+          template.script,
+          callLog.id,
+          callContext || {}
+        );
+      } else {
+        // AI-powered conversation
+        result = await telecmiService.makeAICall(
+          req.tenantId!,
+          phoneNumber,
+          language,
+          callLog.id,
+          callContext || {}
+        );
+      }
+
+      if (!result.success) {
+        await storage.updateCallLog(req.tenantId!, callLog.id, {
+          status: "failed",
+          outcome: result.error || "Failed to initiate call",
+        });
+        return res.status(500).json({ 
+          message: result.error || "Failed to initiate call" 
+        });
+      }
+
+      // Update call log with request_id
+      const updatedLog = await storage.updateCallLog(req.tenantId!, callLog.id, {
+        telecmiRequestId: result.requestId,
+      });
+
+      res.status(201).json(updatedLog);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Telecmi webhooks (BEFORE tenant middleware - needs raw body)
+  // Note: These webhooks require raw body for signature validation
+  // Signature should be in X-Telecmi-Signature header
+  const telecmiWebhookHandler = async (
+    req: any,
+    res: any,
+    eventType: "answered" | "missed" | "cdr"
+  ) => {
+    try {
+      // Extract tenant ID from webhook payload or custom header
+      const tenantId = req.body.tenant_id || req.headers["x-tenant-id"];
+      if (!tenantId) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Missing tenant_id in webhook payload" 
+        });
+      }
+
+      // Get raw body string from Buffer (captured by express.json verify middleware)
+      const rawBody = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body);
+      const signature = req.headers["x-telecmi-signature"] as string | undefined;
+
+      const result = await telecmiService.handleWebhook(
+        tenantId,
+        eventType,
+        rawBody,
+        req.body,
+        signature
+      );
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.json(result);
+    } catch (error: any) {
+      console.error(`[Telecmi Webhook] ${eventType} error:`, error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  };
+
+  app.post("/api/telecmi/webhook/answered", (req, res) => 
+    telecmiWebhookHandler(req, res, "answered")
+  );
+
+  app.post("/api/telecmi/webhook/missed", (req, res) => 
+    telecmiWebhookHandler(req, res, "missed")
+  );
+
+  app.post("/api/telecmi/webhook/cdr", (req, res) => 
+    telecmiWebhookHandler(req, res, "cdr")
+  );
 
   // ============ WHATSAPP CONFIGURATION ROUTES ============
 

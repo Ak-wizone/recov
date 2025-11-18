@@ -35,6 +35,23 @@ export class TelecmiService {
   }
 
   /**
+   * Get webhook secret for tenant (for Telecmi registration)
+   */
+  async getWebhookSecret(tenantId: string): Promise<string | null> {
+    const config = await this.storage.getTelecmiConfig(tenantId);
+    if (!config) {
+      return null;
+    }
+
+    try {
+      return decryptApiKey(config.webhookSecret);
+    } catch (error) {
+      console.error("[TelecmiService] Failed to decrypt webhook secret:", error);
+      return null;
+    }
+  }
+
+  /**
    * Get Telecmi configuration for a tenant (with decrypted credentials)
    */
   private async getConfig(tenantId: string): Promise<TelecmiConfig | null> {
@@ -252,6 +269,7 @@ export class TelecmiService {
   async handleWebhook(
     tenantId: string,
     eventType: "answered" | "missed" | "cdr",
+    rawBody: string,
     payload: any,
     signature?: string
   ): Promise<{ success: boolean; error?: string }> {
@@ -283,7 +301,7 @@ export class TelecmiService {
       }
 
       const isValid = this.validateWebhookSignature(
-        JSON.stringify(payload),
+        rawBody,
         signature,
         config.webhookSecret
       );
