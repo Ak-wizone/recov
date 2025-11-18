@@ -40,11 +40,13 @@ app.use(
     secret: process.env.SESSION_SECRET || "your-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
+    proxy: true, // Trust the reverse proxy for secure cookies
     cookie: {
-      secure: isProduction,
+      secure: false, // Set to false to work in Replit's environment (proxy handles HTTPS)
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: isProduction ? "none" : "lax",
+      sameSite: "lax", // Use lax for better compatibility
+      path: "/", // Explicitly set cookie path
     },
   })
 );
