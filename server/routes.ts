@@ -5,6 +5,7 @@ import { AssistantOrchestrator } from "./services/assistantOrchestrator";
 import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { requirePermission, requireAnyPermission } from "./permissions";
 import { wsManager } from "./websocket";
+import { ALL_DASHBOARD_CARDS, ALL_ACTION_PERMISSIONS, getFullAdminPermissions } from "./constants/permissions";
 import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertTelecmiConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema } from "@shared/schema";
 import { createTransporter, sendEmail, testEmailConnection } from "./email-service";
 import { getEnrichedEmailVariables, renderTemplate } from "./email-utils";
@@ -2321,29 +2322,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .limit(1);
             
             if (adminRole) {
-              // Dashboard cards available to all plans
-              const allDashboardCards = [
-                "Total Revenue", "Total Collections", "Total Outstanding", "Total Opening Balance",
-                "Upcoming Invoices", "Due Today", "In Grace", "Overdue", "Paid On Time", "Paid Late",
-                "Outstanding by Category", "Top 5 Customers by Revenue", "Top 5 Customers by Outstanding",
-                "Overdue Invoices", "Recent Invoices", "Recent Receipts", "Customer Analytics",
-                "Alpha", "Beta", "Gamma", "Delta",
-                "High Risk", "Medium Risk", "Low Risk",
-                "Pending Tasks", "Overdue Tasks", "Priority Customers", "Collection Progress",
-              ];
-              
               await tx
                 .update(roles)
                 .set({ 
                   permissions: newPermissions,
-                  allowedDashboardCards: allDashboardCards,
-                  canViewGP: true,
-                  canSendEmail: true,
-                  canSendWhatsApp: true,
-                  canSendSMS: true,
-                  canTriggerCall: true,
-                  canSendReminder: true,
-                  canShareDocuments: true,
+                  allowedDashboardCards: [...ALL_DASHBOARD_CARDS],
+                  ...ALL_ACTION_PERMISSIONS,
                 })
                 .where(eq(roles.id, adminRole.id));
               
@@ -2389,6 +2373,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       console.error("Failed to assign plan to tenants:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Platform Admin - Backfill Admin Roles with Full Permissions
+  app.post("/api/subscription-plans/backfill-admin-permissions", adminOnlyMiddleware, async (req, res) => {
+    try {
+      console.log("🔧 Starting Admin role permissions backfill...");
+      
+      let updated = 0;
+      const affectedTenantIds: string[] = [];
+      
+      // Get all Admin roles with empty or null dashboard cards
+      const adminRoles = await db
+        .select()
+        .from(roles)
+        .where(eq(roles.name, "Admin"));
+      
+      console.log(`Found ${adminRoles.length} Admin roles total`);
+      
+      for (const adminRole of adminRoles) {
+        // Skip if already has dashboard cards
+        if (adminRole.allowedDashboardCards && adminRole.allowedDashboardCards.length > 0) {
+          console.log(`✓ Skipping tenant ${adminRole.tenantId} - Admin role already has dashboard cards`);
+          continue;
+        }
+        
+        try {
+          // Get tenant's subscription plan to generate correct module permissions
+          const [tenant] = await db
+            .select()
+            .from(tenants)
+            .where(eq(tenants.id, adminRole.tenantId))
+            .limit(1);
+          
+          if (!tenant) {
+            console.warn(`⚠ Tenant ${adminRole.tenantId} not found - skipping`);
+            continue;
+          }
+          
+          // Generate permissions for tenant's allowed modules
+          const modules = tenant.allowedModules || [];
+          const newPermissions = getPermissionsForModules(modules);
+          
+          // Update Admin role with full permissions in transaction
+          await db.transaction(async (tx) => {
+            await tx
+              .update(roles)
+              .set({
+                permissions: newPermissions,
+                allowedDashboardCards: [...ALL_DASHBOARD_CARDS],
+                ...ALL_ACTION_PERMISSIONS,
+              })
+              .where(eq(roles.id, adminRole.id));
+          });
+          
+          updated++;
+          affectedTenantIds.push(adminRole.tenantId);
+          console.log(`✓ Updated Admin role for tenant ${adminRole.tenantId}`);
+        } catch (txError: any) {
+          console.error(`❌ Failed to update Admin role for tenant ${adminRole.tenantId}:`, txError.message);
+        }
+      }
+      
+      // Broadcast WebSocket updates to affected tenants
+      if (affectedTenantIds.length > 0) {
+        try {
+          for (const tenantId of affectedTenantIds) {
+            wsManager.broadcastToTenant(tenantId, {
+              type: 'PERMISSIONS_UPDATED',
+              payload: {
+                message: 'Your Admin role permissions have been updated',
+                adminRoleUpdated: true
+              }
+            });
+          }
+          console.log(`📡 Broadcasted permission updates to ${affectedTenantIds.length} tenant(s)`);
+        } catch (wsError: any) {
+          console.error('⚠ WebSocket broadcast failed (updates still applied):', wsError.message);
+        }
+      }
+      
+      res.json({
+        success: true,
+        message: `Backfill complete: ${updated} Admin role(s) updated`,
+        updatedCount: updated,
+        totalAdminRoles: adminRoles.length,
+        affectedTenants: affectedTenantIds,
+      });
+    } catch (error: any) {
+      console.error("Failed to backfill Admin permissions:", error);
       res.status(500).json({ message: error.message });
     }
   });
