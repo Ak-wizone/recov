@@ -45,6 +45,12 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -889,18 +895,42 @@ export default function Roles() {
               {isEditDialogOpen ? "Edit Role" : "Add New Role"}
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div>
-              <Label htmlFor="name">Role Name *</Label>
-              <Input id="name" {...form.register("name")} data-testid="input-name" />
-              {form.formState.errors.name && (
-                <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
-              )}
-            </div>
+          <TooltipProvider>
+            {selectedRole?.name === "Admin" && (
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                <div className="flex items-start gap-2">
+                  <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">Protected Admin Role</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                      Admin role permissions are automatically managed based on your subscription plan and cannot be modified. This ensures platform administrators always have necessary access to all subscribed modules.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Role Name *</Label>
+                <Input 
+                  id="name" 
+                  {...form.register("name")} 
+                  disabled={selectedRole?.name === "Admin"}
+                  data-testid="input-name" 
+                />
+                {form.formState.errors.name && (
+                  <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
+                )}
+              </div>
 
             <div>
               <Label htmlFor="description">Description</Label>
-              <Textarea id="description" {...form.register("description")} data-testid="input-description" />
+              <Textarea 
+                id="description" 
+                {...form.register("description")} 
+                disabled={selectedRole?.name === "Admin"}
+                data-testid="input-description" 
+              />
             </div>
 
             <div className="border-t pt-4">
@@ -917,6 +947,7 @@ export default function Roles() {
                   </Label>
                   <Switch
                     id="grant-all"
+                    disabled={selectedRole?.name === "Admin"}
                     checked={
                       selectedPermissions.length === filteredModules.flatMap(m => m.operations.map(op => `${m.module} - ${op}`)).length &&
                       allowedDashboardCards.length === DASHBOARD_CARD_CATEGORIES.flatMap(c => c.cards).length &&
@@ -983,6 +1014,7 @@ export default function Roles() {
                                   variant={allCategorySelected ? "secondary" : "outline"}
                                   size="sm"
                                   className="h-7 text-xs mr-2"
+                                  disabled={selectedRole?.name === "Admin"}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     const current = selectedPermissions;
@@ -1015,6 +1047,7 @@ export default function Roles() {
                                           variant={allModuleSelected ? "secondary" : "ghost"}
                                           size="sm"
                                           className="h-6 text-xs"
+                                          disabled={selectedRole?.name === "Admin"}
                                           onClick={() => {
                                             const current = selectedPermissions;
                                             if (allModuleSelected) {
@@ -1033,11 +1066,12 @@ export default function Roles() {
                                       <div className="grid grid-cols-4 gap-2 ml-4">
                                         {moduleItem.operations.map((operation) => {
                                           const permissionKey = `${moduleItem.module} - ${operation}`;
-                                          return (
+                                          const checkboxElement = (
                                             <div key={operation} className="flex items-center space-x-2">
                                               <Checkbox
                                                 id={`permission-${moduleItem.module}-${operation}`}
                                                 checked={selectedPermissions.includes(permissionKey)}
+                                                disabled={selectedRole?.name === "Admin"}
                                                 onCheckedChange={(checked) => {
                                                   const current = selectedPermissions;
                                                   const updated = checked
@@ -1049,12 +1083,27 @@ export default function Roles() {
                                               />
                                               <Label 
                                                 htmlFor={`permission-${moduleItem.module}-${operation}`} 
-                                                className="cursor-pointer text-xs"
+                                                className={selectedRole?.name === "Admin" ? "text-xs text-muted-foreground" : "cursor-pointer text-xs"}
                                               >
                                                 {operation}
                                               </Label>
                                             </div>
                                           );
+                                          
+                                          if (selectedRole?.name === "Admin") {
+                                            return (
+                                              <Tooltip key={operation}>
+                                                <TooltipTrigger asChild>
+                                                  {checkboxElement}
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                  <p className="text-xs">Admin role permissions are protected and cannot be modified</p>
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            );
+                                          }
+                                          
+                                          return checkboxElement;
                                         })}
                                       </div>
                                     </div>
@@ -1081,12 +1130,13 @@ export default function Roles() {
                   <Checkbox
                     id="canViewGP"
                     checked={canViewGP}
+                    disabled={selectedRole?.name === "Admin"}
                     onCheckedChange={(checked) => {
                       form.setValue("canViewGP", !!checked);
                     }}
                     data-testid="checkbox-can-view-gp"
                   />
-                  <Label htmlFor="canViewGP" className="cursor-pointer font-normal">
+                  <Label htmlFor="canViewGP" className={selectedRole?.name === "Admin" ? "font-normal text-muted-foreground" : "cursor-pointer font-normal"}>
                     Can View Gross Profit (G.P.) in Invoices
                   </Label>
                 </div>
@@ -1111,6 +1161,7 @@ export default function Roles() {
                           variant={allCategoryCardsSelected ? "secondary" : "ghost"}
                           size="sm"
                           className="h-6 text-xs"
+                          disabled={selectedRole?.name === "Admin"}
                           onClick={() => {
                             const current = allowedDashboardCards;
                             if (allCategoryCardsSelected) {
@@ -1132,6 +1183,7 @@ export default function Roles() {
                             <Checkbox
                               id={`dashboard-${card}`}
                               checked={allowedDashboardCards.includes(card)}
+                              disabled={selectedRole?.name === "Admin"}
                               onCheckedChange={(checked) => {
                                 const current = allowedDashboardCards;
                                 const updated = checked
@@ -1141,7 +1193,7 @@ export default function Roles() {
                               }}
                               data-testid={`checkbox-dashboard-${card.toLowerCase().replace(/\s+/g, "-")}`}
                             />
-                            <Label htmlFor={`dashboard-${card}`} className="cursor-pointer text-xs font-normal">
+                            <Label htmlFor={`dashboard-${card}`} className={selectedRole?.name === "Admin" ? "text-xs font-normal text-muted-foreground" : "cursor-pointer text-xs font-normal"}>
                               {card}
                             </Label>
                           </div>
@@ -1164,6 +1216,7 @@ export default function Roles() {
                     <Checkbox
                       id={`action-${action.key}`}
                       checked={actionPermissions[action.key as keyof typeof actionPermissions]}
+                      disabled={selectedRole?.name === "Admin"}
                       onCheckedChange={(checked) => {
                         form.setValue("actionPermissions", {
                           ...actionPermissions,
@@ -1172,7 +1225,7 @@ export default function Roles() {
                       }}
                       data-testid={`checkbox-action-${action.key.toLowerCase()}`}
                     />
-                    <Label htmlFor={`action-${action.key}`} className="cursor-pointer text-sm font-normal">
+                    <Label htmlFor={`action-${action.key}`} className={selectedRole?.name === "Admin" ? "text-sm font-normal text-muted-foreground" : "cursor-pointer text-sm font-normal"}>
                       {action.label}
                     </Label>
                   </div>
@@ -1203,6 +1256,7 @@ export default function Roles() {
               </Button>
             </DialogFooter>
           </form>
+          </TooltipProvider>
         </DialogContent>
       </Dialog>
 
