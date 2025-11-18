@@ -8247,16 +8247,41 @@ ${profile?.legalName || 'Company'}`;
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      // Validate permissions against subscription plan
-      const permValidation = await validateRolePermissions(req.tenantId!, validation.data.permissions || []);
-      if (!permValidation.valid) {
-        return res.status(403).json({ 
-          message: permValidation.message,
-          invalidPermissions: permValidation.invalidPermissions
-        });
+      let roleData = validation.data;
+
+      // Auto-grant full permissions for Admin role
+      if (roleData.name === "Admin") {
+        const [tenant] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, req.tenantId!))
+          .limit(1);
+        
+        if (tenant) {
+          const modules = tenant.allowedModules || [];
+          const fullPermissions = getPermissionsForModules(modules);
+          
+          roleData = {
+            ...roleData,
+            permissions: fullPermissions,
+            allowedDashboardCards: [...ALL_DASHBOARD_CARDS],
+            ...ALL_ACTION_PERMISSIONS,
+          };
+          
+          console.log(`✓ Auto-granted full permissions to new Admin role for tenant ${req.tenantId}`);
+        }
+      } else {
+        // Validate permissions against subscription plan for non-Admin roles
+        const permValidation = await validateRolePermissions(req.tenantId!, roleData.permissions || []);
+        if (!permValidation.valid) {
+          return res.status(403).json({ 
+            message: permValidation.message,
+            invalidPermissions: permValidation.invalidPermissions
+          });
+        }
       }
 
-      const role = await storage.createRole(req.tenantId!, validation.data);
+      const role = await storage.createRole(req.tenantId!, roleData);
       res.status(201).json(role);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
