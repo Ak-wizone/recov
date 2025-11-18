@@ -1377,6 +1377,69 @@ export const insertRinggConfigSchema = createInsertSchema(ringgConfigs).pick({
 export type InsertRinggConfig = z.infer<typeof insertRinggConfigSchema>;
 export type RinggConfig = typeof ringgConfigs.$inferSelect;
 
+// Telecmi Configuration table
+export const telecmiConfigs = pgTable("telecmi_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  appId: text("app_id").notNull(),
+  appSecret: text("app_secret").notNull(),
+  fromNumber: text("from_number").notNull(),
+  answerUrl: text("answer_url"),
+  isActive: text("is_active").notNull().default("Active"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTelecmiConfigSchema = createInsertSchema(telecmiConfigs).pick({
+  appId: true,
+  appSecret: true,
+  fromNumber: true,
+  answerUrl: true,
+  isActive: true,
+}).extend({
+  appId: z.string().min(1, "App ID is required"),
+  appSecret: z.string().min(1, "App Secret is required"),
+  fromNumber: z.string().min(1, "From Number is required").regex(/^\+?\d{1,15}$/, "Must be a valid phone number"),
+  answerUrl: z.string().url("Must be a valid URL").optional(),
+  isActive: z.enum(["Active", "Inactive"]).default("Active"),
+});
+
+export type InsertTelecmiConfig = z.infer<typeof insertTelecmiConfigSchema>;
+export type TelecmiConfig = typeof telecmiConfigs.$inferSelect;
+
+// Call Templates table (for Telecmi text-to-speech scripts)
+export const callTemplates = pgTable("call_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  module: text("module").notNull(),
+  name: text("name").notNull(),
+  language: text("language").notNull(),
+  scriptText: text("script_text").notNull(),
+  variables: text("variables").array().notNull().default(sql`ARRAY[]::text[]`),
+  isDefault: text("is_default").notNull().default("No"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCallTemplateSchema = createInsertSchema(callTemplates).pick({
+  module: true,
+  name: true,
+  language: true,
+  scriptText: true,
+  variables: true,
+  isDefault: true,
+}).extend({
+  module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
+  name: z.string().min(1, "Template name is required"),
+  language: z.enum(["hindi", "english", "hinglish"]),
+  scriptText: z.string().min(1, "Script text is required"),
+  variables: z.array(z.string()).default([]),
+  isDefault: z.enum(["Yes", "No"]).default("No"),
+});
+
+export type InsertCallTemplate = z.infer<typeof insertCallTemplateSchema>;
+export type CallTemplate = typeof callTemplates.$inferSelect;
+
 // Call Script Mappings table
 export const callScriptMappings = pgTable("call_script_mappings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1411,12 +1474,18 @@ export type CallScriptMapping = typeof callScriptMappings.$inferSelect;
 export const callLogs = pgTable("call_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull().default("ringg"),
   customerId: varchar("customer_id"),
   customerName: text("customer_name").notNull(),
   phoneNumber: text("phone_number").notNull(),
   module: text("module").notNull(), // leads, quotations, proforma_invoices, invoices, receipts, debtors, credit_management
+  callMode: text("call_mode"),
+  language: text("language"),
   scriptId: varchar("script_id").references(() => callScriptMappings.id),
+  templateId: varchar("template_id").references(() => callTemplates.id),
   ringgCallId: text("ringg_call_id"),
+  telecmiRequestId: text("telecmi_request_id"),
+  telecmiConversationUuid: text("telecmi_conversation_uuid"),
   status: text("status").notNull().default("initiated"), // initiated, ringing, answered, completed, failed, busy, no_answer
   duration: integer("duration"), // in seconds
   recordingUrl: text("recording_url"),
@@ -1430,12 +1499,18 @@ export const callLogs = pgTable("call_logs", {
 });
 
 export const insertCallLogSchema = createInsertSchema(callLogs).pick({
+  provider: true,
   customerId: true,
   customerName: true,
   phoneNumber: true,
   module: true,
+  callMode: true,
+  language: true,
   scriptId: true,
+  templateId: true,
   ringgCallId: true,
+  telecmiRequestId: true,
+  telecmiConversationUuid: true,
   status: true,
   duration: true,
   recordingUrl: true,
@@ -1445,12 +1520,18 @@ export const insertCallLogSchema = createInsertSchema(callLogs).pick({
   callContext: true,
   initiatedBy: true,
 }).extend({
+  provider: z.enum(["ringg", "telecmi"]).default("ringg"),
   customerId: z.string().optional(),
   customerName: z.string().min(1, "Customer name is required"),
   phoneNumber: z.string().min(1, "Phone number is required"),
   module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
+  callMode: z.enum(["simple", "ai"]).optional(),
+  language: z.enum(["hindi", "english", "hinglish"]).optional(),
   scriptId: z.string().optional(),
+  templateId: z.string().optional(),
   ringgCallId: z.string().optional(),
+  telecmiRequestId: z.string().optional(),
+  telecmiConversationUuid: z.string().optional(),
   status: z.enum(["initiated", "ringing", "answered", "completed", "failed", "busy", "no_answer"]).default("initiated"),
   duration: z.number().optional(),
   recordingUrl: z.string().optional(),
