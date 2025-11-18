@@ -8175,6 +8175,34 @@ ${profile?.legalName || 'Company'}`;
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
+      // Check if updating Admin role - protect its permissions
+      const existingRole = await storage.getRole(req.tenantId!, req.params.id);
+      if (!existingRole) {
+        return res.status(404).json({ message: "Role not found" });
+      }
+
+      if (existingRole.name === "Admin") {
+        // Check if any permission-related fields are being modified
+        const isModifyingPermissions = 
+          validation.data.permissions !== undefined ||
+          validation.data.allowedDashboardCards !== undefined ||
+          validation.data.actionPermissions !== undefined ||
+          validation.data.canViewGP !== undefined;
+
+        if (isModifyingPermissions) {
+          return res.status(403).json({ 
+            message: "Admin role permissions are protected and cannot be modified. The Admin role automatically receives all permissions from your subscription plan."
+          });
+        }
+
+        // Allow updating only name and description for Admin role
+        if (validation.data.name && validation.data.name !== "Admin") {
+          return res.status(403).json({ 
+            message: "Admin role name cannot be changed."
+          });
+        }
+      }
+
       // Validate permissions against subscription plan (if permissions are being updated)
       if (validation.data.permissions) {
         const permValidation = await validateRolePermissions(req.tenantId!, validation.data.permissions);
