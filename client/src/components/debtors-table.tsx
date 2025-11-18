@@ -201,34 +201,52 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
   });
 
   const handleWhatsAppClick = (debtor: DebtorData) => {
-    if (!debtor.mobile) {
+    try {
+      if (!debtor || !debtor.mobile) {
+        toast({
+          title: "Mobile number not available",
+          description: "This customer doesn't have a mobile number on file.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const message = getWhatsAppMessageTemplate("debtors", {
+        customerName: debtor.name,
+        amount: debtor.balance,
+      });
+
+      openWhatsApp(debtor.mobile, message);
+    } catch (error) {
+      console.error('Error in handleWhatsAppClick:', error);
       toast({
-        title: "Mobile number not available",
-        description: "This customer doesn't have a mobile number on file.",
+        title: "Error",
+        description: "Failed to open WhatsApp",
         variant: "destructive",
       });
-      return;
     }
-
-    const message = getWhatsAppMessageTemplate("debtors", {
-      customerName: debtor.name,
-      amount: debtor.balance,
-    });
-
-    openWhatsApp(debtor.mobile, message);
   };
 
   const handleEmailClick = (debtor: DebtorData) => {
-    if (!debtor.email) {
+    try {
+      if (!debtor || !debtor.email) {
+        toast({
+          title: "Email not available",
+          description: "This customer doesn't have an email address on file.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      onOpenEmail(debtor);
+    } catch (error) {
+      console.error('Error in handleEmailClick:', error);
       toast({
-        title: "Email not available",
-        description: "This customer doesn't have an email address on file.",
+        title: "Error",
+        description: "Failed to open email dialog",
         variant: "destructive",
       });
-      return;
     }
-
-    onOpenEmail(debtor);
   };
 
   const formatCurrency = (amount: number) => {
@@ -266,8 +284,10 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
       cell: ({ row }) => (
         <button
           onClick={() => {
+            console.log('[Debtors] Customer name clicked:', row.original);
             setSelectedDebtorForActions(row.original);
             setIsActionsDialogOpen(true);
+            console.log('[Debtors] Dialog should now be open');
           }}
           className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline text-left"
           data-testid={`link-name-${row.original.customerId}`}
