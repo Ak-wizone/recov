@@ -29,7 +29,7 @@ export default function NotificationCenter() {
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/notifications/${id}/read`, "PATCH");
+      return await apiRequest("PATCH", `/api/notifications/${id}/read`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
@@ -39,7 +39,7 @@ export default function NotificationCenter() {
 
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/notifications/mark-all-read", "PATCH", { userId: user?.id });
+      return await apiRequest("PATCH", "/api/notifications/mark-all-read", { userId: user?.id });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });

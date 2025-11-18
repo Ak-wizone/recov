@@ -47,7 +47,7 @@ export function TelecmiCallButton({
 
   const makeCallMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/telecmi/make-call", "POST", data);
+      return await apiRequest("POST", "/api/telecmi/make-call", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/call-logs"] });

@@ -64,7 +64,7 @@ export default function TelecmiConfig() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: TelecmiConfigFormValues) => {
-      return await apiRequest("/api/telecmi/config", "POST", data);
+      return await apiRequest("POST", "/api/telecmi/config", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/telecmi/config"] });

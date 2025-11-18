@@ -47,7 +47,7 @@ export default function CommunicationSchedules() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: any) => apiRequest("/api/schedules", "POST", data),
+    mutationFn: async (data: any) => apiRequest("POST", "/api/schedules", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({ title: "Schedule created successfully" });
@@ -61,7 +61,7 @@ export default function CommunicationSchedules() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) =>
-      apiRequest(`/api/schedules/${id}`, "PUT", data),
+      apiRequest("PUT", `/api/schedules/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({ title: "Schedule updated successfully" });
@@ -74,7 +74,7 @@ export default function CommunicationSchedules() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => apiRequest(`/api/schedules/${id}`, "DELETE"),
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/schedules/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({ title: "Schedule deleted successfully" });

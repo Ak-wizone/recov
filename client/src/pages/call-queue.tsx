@@ -50,7 +50,7 @@ export default function CallQueue() {
 
   const logActivityMutation = useMutation({
     mutationFn: async (data: ActivityLogFormData) => {
-      return await apiRequest("/api/activity-logs", "POST", data);
+      return await apiRequest("POST", "/api/activity-logs", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/call-queue"] });

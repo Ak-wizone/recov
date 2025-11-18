@@ -53,7 +53,7 @@ export default function DailyTargets() {
 
   const createTargetMutation = useMutation({
     mutationFn: async (data: TargetFormData) => {
-      return await apiRequest("/api/daily-targets", "POST", data);
+      return await apiRequest("POST", "/api/daily-targets", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/daily-targets"] });
@@ -68,7 +68,7 @@ export default function DailyTargets() {
 
   const deleteTargetMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest(`/api/daily-targets/${id}`, "DELETE");
+      return await apiRequest("DELETE", `/api/daily-targets/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/daily-targets"] });
