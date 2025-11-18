@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
+import { Pool } from "pg";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
@@ -27,9 +28,21 @@ app.use(express.urlencoded({ extended: false }));
 // REPLIT_DEPLOYMENT is set to "1" in published apps
 const PgSession = connectPgSimple(session);
 const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
-const sessionStore = isProduction 
+
+// Create a separate pool for session store with SSL configuration
+// Replit's PostgreSQL databases require SSL connections
+const sessionPool = isProduction 
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    })
+  : undefined;
+
+const sessionStore = sessionPool 
   ? new PgSession({
-      conString: process.env.DATABASE_URL,
+      pool: sessionPool,
       createTableIfMissing: true,
     })
   : undefined;
