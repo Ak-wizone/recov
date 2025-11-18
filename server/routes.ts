@@ -2321,12 +2321,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .limit(1);
             
             if (adminRole) {
+              // Dashboard cards available to all plans
+              const allDashboardCards = [
+                "Total Revenue", "Total Collections", "Total Outstanding", "Total Opening Balance",
+                "Upcoming Invoices", "Due Today", "In Grace", "Overdue", "Paid On Time", "Paid Late",
+                "Outstanding by Category", "Top 5 Customers by Revenue", "Top 5 Customers by Outstanding",
+                "Overdue Invoices", "Recent Invoices", "Recent Receipts", "Customer Analytics",
+                "Alpha", "Beta", "Gamma", "Delta",
+                "High Risk", "Medium Risk", "Low Risk",
+                "Pending Tasks", "Overdue Tasks", "Priority Customers", "Collection Progress",
+              ];
+              
               await tx
                 .update(roles)
-                .set({ permissions: newPermissions })
+                .set({ 
+                  permissions: newPermissions,
+                  allowedDashboardCards: allDashboardCards,
+                  canViewGP: true,
+                  canSendEmail: true,
+                  canSendWhatsApp: true,
+                  canSendSMS: true,
+                  canTriggerCall: true,
+                  canSendReminder: true,
+                  canShareDocuments: true,
+                })
                 .where(eq(roles.id, adminRole.id));
               
-              console.log(`✓ Updated Admin role permissions for tenant ${tenantId} to ${plan.name} plan`);
+              console.log(`✓ Updated Admin role permissions and dashboard cards for tenant ${tenantId} to ${plan.name} plan`);
             } else {
               console.warn(`⚠ Tenant ${tenantId} has no Admin role - only tenant updated`);
             }
