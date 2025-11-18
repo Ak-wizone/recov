@@ -32,6 +32,7 @@ import WhatsAppTemplates from "@/pages/whatsapp-templates";
 import RinggConfig from "@/pages/ringg-config";
 import RinggScriptMappings from "@/pages/ringg-script-mappings";
 import RinggCallHistory from "@/pages/ringg-call-history";
+import TelecmiConfig from "@/pages/telecmi-config";
 import CommunicationSchedules from "@/pages/communication-schedules";
 import ClientRiskThermometer from "@/pages/client-risk-thermometer";
 import PaymentRiskForecaster from "@/pages/payment-risk-forecaster";
@@ -123,6 +124,7 @@ function Router() {
               <Route path="/ringg-config" component={RinggConfig} />
               <Route path="/ringg-script-mappings" component={RinggScriptMappings} />
               <Route path="/ringg-call-history" component={RinggCallHistory} />
+              <Route path="/telecmi-config" component={TelecmiConfig} />
               <Route path="/communication-schedules" component={CommunicationSchedules} />
               <Route path="/settings/roles" component={Roles} />
               <Route path="/settings/users" component={Users} />

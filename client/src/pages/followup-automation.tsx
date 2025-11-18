@@ -333,7 +333,7 @@ export default function FollowupAutomationPage() {
               </SheetHeader>
               
               <Tabs defaultValue="email" className="mt-6">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="email" className="flex items-center gap-2">
                     <Mail className="h-4 w-4" />
                     <span className="hidden sm:inline">Email</span>
@@ -345,6 +345,10 @@ export default function FollowupAutomationPage() {
                   <TabsTrigger value="ringg" className="flex items-center gap-2">
                     <Phone className="h-4 w-4" />
                     <span className="hidden sm:inline">Ringg.ai</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="telecmi" className="flex items-center gap-2">
+                    <Phone className="h-4 w-4" />
+                    <span className="hidden sm:inline">Telecmi</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -493,6 +497,52 @@ export default function FollowupAutomationPage() {
                           <ArrowRight className="h-4 w-4 ml-2" />
                         </Button>
                       </Link>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Telecmi Settings Tab */}
+                <TabsContent value="telecmi" className="space-y-4 mt-4">
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Phone className="h-5 w-5 text-blue-600" />
+                        Telecmi PIOPIY Configuration
+                      </CardTitle>
+                      <CardDescription>
+                        Configure Telecmi PIOPIY for simple & AI-powered voice calls
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link href="/telecmi-config">
+                        <Button variant="outline" className="w-full" data-testid="button-telecmi-config">
+                          Manage Telecmi Settings
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Phone className="h-5 w-5 text-cyan-600" />
+                        Call Templates
+                      </CardTitle>
+                      <CardDescription>
+                        Manage text-to-speech scripts in Hindi/English/Hinglish
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          12 default templates pre-configured for payment reminders
+                        </p>
+                        <Button variant="outline" className="w-full" disabled data-testid="button-call-templates">
+                          Manage Templates (Coming Soon)
+                          <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 </TabsContent>

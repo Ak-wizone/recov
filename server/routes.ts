@@ -11724,6 +11724,27 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Get call templates for a module
+  app.get("/api/call-templates/:module", async (req, res) => {
+    try {
+      const { module } = req.params;
+      const { language } = req.query;
+
+      const templates = await storage.getCallTemplates(req.tenantId!, module);
+      
+      // Filter by language if provided
+      let filteredTemplates = templates;
+      if (language && typeof language === 'string') {
+        filteredTemplates = templates.filter(t => t.language === language);
+      }
+
+      res.json(filteredTemplates);
+    } catch (error: any) {
+      console.error("Failed to fetch call templates:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
