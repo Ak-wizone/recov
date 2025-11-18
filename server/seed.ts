@@ -1,6 +1,7 @@
 import { storage } from "./storage";
 import bcrypt from "bcryptjs";
 import { seedEmailTemplates } from "./seed-email-templates";
+import { seedCallTemplatesForAllTenants } from "./seed-call-templates";
 
 // Module-to-Permission Mapping: Generate permissions based on allowed modules
 function getPermissionsForModules(moduleNames: string[]): string[] {
@@ -351,6 +352,9 @@ export async function seedDatabase() {
 
     // Seed email templates for all active tenants
     await seedEmailTemplates();
+
+    // Seed call templates for all active tenants (production-safe - only creates missing records)
+    await seedCallTemplatesForAllTenants();
 
     // Initialize Whisper credits for all active tenants (production-safe - only creates missing records)
     await initializeWhisperCreditsForAllTenants();
