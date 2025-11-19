@@ -24,14 +24,14 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
-// Session configuration with PostgreSQL store for production/published deployment
-// REPLIT_DEPLOYMENT is set to "1" in published apps
+// Session configuration with PostgreSQL store
+// Always use PostgreSQL session store when DATABASE_URL is available for reliable session persistence
 const PgSession = connectPgSimple(session);
 const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
 
 // Create a separate pool for session store
 // Configure SSL based on database server capabilities
-const sessionPool = isProduction 
+const sessionPool = process.env.DATABASE_URL
   ? new Pool({
       connectionString: process.env.DATABASE_URL,
       ssl: false
