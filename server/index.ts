@@ -52,18 +52,17 @@ console.log('[SESSION CONFIG] Session store type:', sessionStore ? 'PostgreSQL' 
 console.log('[SESSION CONFIG] Cookie secure flag:', isProduction);
 
 // Session cookie configuration
-// Only use secure cookies when REPLIT_DEPLOYMENT=1 (published app)
-// In dev environment, use non-secure cookies for compatibility
 app.use(
   session({
     store: sessionStore,
     secret: process.env.SESSION_SECRET || "your-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Refresh cookie on every request
     proxy: true, // Trust the reverse proxy
     cookie: {
-      secure: false, // TEMPORARILY DISABLED for debugging
-      httpOnly: true,
+      secure: false,
+      httpOnly: false, // TEMPORARILY DISABLED for debugging
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: "lax",
       path: "/",
