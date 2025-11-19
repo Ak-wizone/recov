@@ -206,6 +206,8 @@ export class TelecmiService {
         }
       );
 
+      console.log(`[TelecmiService] API Response:`, JSON.stringify(response, null, 2));
+
       if (response.code === 200) {
         return {
           success: true,
@@ -214,9 +216,15 @@ export class TelecmiService {
         };
       }
 
+      console.error(`[TelecmiService] Call failed with response:`, {
+        code: response.code,
+        message: response.data?.message,
+        fullResponse: response,
+      });
+
       return {
         success: false,
-        error: response.data?.message || "Call initiation failed",
+        error: response.data?.message || `Call initiation failed (code: ${response.code})`,
       };
     } catch (error: any) {
       console.error("[TelecmiService] Simple call error:", error);
@@ -289,6 +297,8 @@ export class TelecmiService {
         }
       );
 
+      console.log(`[TelecmiService] AI Call API Response:`, JSON.stringify(response, null, 2));
+
       if (response.code === 200) {
         return {
           success: true,
@@ -297,9 +307,15 @@ export class TelecmiService {
         };
       }
 
+      console.error(`[TelecmiService] AI Call failed with response:`, {
+        code: response.code,
+        message: response.data?.message,
+        fullResponse: response,
+      });
+
       return {
         success: false,
-        error: response.data?.message || "AI call initiation failed",
+        error: response.data?.message || `AI call initiation failed (code: ${response.code})`,
       };
     } catch (error: any) {
       console.error("[TelecmiService] AI call error:", error);
