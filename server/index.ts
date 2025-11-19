@@ -45,23 +45,22 @@ const sessionStore = sessionPool
     })
   : undefined;
 
-// In Replit, even dev environment is served over HTTPS via proxy, so we need secure cookies
-// Check if we're in Replit by looking for REPL_ID or REPLIT_DB_URL env vars
-const isReplit = !!process.env.REPL_ID || !!process.env.REPLIT_DB_URL;
-
+// Session cookie configuration
+// Only use secure cookies when REPLIT_DEPLOYMENT=1 (published app)
+// In dev environment, use non-secure cookies for compatibility
 app.use(
   session({
     store: sessionStore,
     secret: process.env.SESSION_SECRET || "your-secret-key-change-in-production",
     resave: false,
     saveUninitialized: false,
-    proxy: true, // Trust the reverse proxy for secure cookies
+    proxy: true, // Trust the reverse proxy
     cookie: {
-      secure: isReplit || isProduction, // Secure cookies in Replit (always HTTPS) or production
+      secure: isProduction, // Only secure in published deployment
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: "lax", // Use lax for better compatibility in Replit's environment
-      path: "/", // Explicitly set cookie path
+      sameSite: "lax",
+      path: "/",
     },
   })
 );
