@@ -450,46 +450,6 @@ export default function Landing() {
         </motion.div>
       </motion.div>
 
-      {/* Animated Scroll to Pricing CTA */}
-      <motion.div 
-        className="bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 py-4 overflow-hidden relative"
-        animate={{
-          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-        style={{
-          backgroundSize: "200% 100%"
-        }}
-      >
-        <div className="container mx-auto text-center relative z-10">
-          <Button 
-            variant="ghost" 
-            className="text-black font-bold hover:bg-white/20"
-            onClick={scrollToPricing}
-            data-testid="button-cta-view-pricing"
-          >
-            View Pricing Plans <ChevronDown className="ml-2 h-4 w-4 animate-bounce" />
-          </Button>
-        </div>
-        <motion.div
-          className="absolute inset-0 opacity-20"
-          animate={{
-            x: ["0%", "100%"],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        >
-          <div className="h-full w-full bg-gradient-to-r from-transparent via-white to-transparent" />
-        </motion.div>
-      </motion.div>
-
       {/* Pricing Section */}
       <section id="pricing" className="py-12 md:py-20 px-4 bg-gradient-to-br from-gray-50 to-green-50 dark:from-gray-900 dark:to-gray-950">
         <div className="container mx-auto">
@@ -777,19 +737,54 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Scroll to Pricing CTA */}
-      <div className="bg-gradient-to-r from-yellow-400 to-orange-400 py-4">
-        <div className="container mx-auto text-center">
+      {/* Animated Scroll to Pricing CTA */}
+      <motion.div 
+        className="bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 py-4 overflow-hidden relative"
+        animate={{
+          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+        style={{
+          backgroundSize: "200% 100%"
+        }}
+      >
+        <div className="container mx-auto text-center relative z-10 flex flex-wrap gap-4 justify-center items-center">
           <Button 
             variant="ghost" 
             className="text-black font-bold hover:bg-white/20"
             onClick={scrollToPricing}
-            data-testid="button-cta-back-to-plans"
+            data-testid="button-cta-view-plans"
           >
-            Go Back to Plans <ChevronDown className="ml-2 h-4 w-4" />
+            View Plans <ChevronDown className="ml-2 h-4 w-4 animate-bounce" />
+          </Button>
+          <span className="text-black font-bold hidden md:inline">|</span>
+          <Button 
+            variant="ghost" 
+            className="text-black font-bold hover:bg-white/20"
+            onClick={scrollToPricing}
+            data-testid="button-cta-view-pricing-plans"
+          >
+            View Pricing Plans <ChevronDown className="ml-2 h-4 w-4 animate-bounce" />
           </Button>
         </div>
-      </div>
+        <motion.div
+          className="absolute inset-0 opacity-20"
+          animate={{
+            x: ["0%", "100%"],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        >
+          <div className="h-full w-full bg-gradient-to-r from-transparent via-white to-transparent" />
+        </motion.div>
+      </motion.div>
 
       {/* Benefits Section */}
       <section id="benefits" className="py-12 md:py-20 px-4 bg-white dark:bg-gray-950">
@@ -837,9 +832,22 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Scroll to Pricing CTA */}
-      <div className="bg-gradient-to-r from-yellow-400 to-orange-400 py-4">
-        <div className="container mx-auto text-center">
+      {/* Start Free Trial CTA */}
+      <motion.div 
+        className="bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 py-4 overflow-hidden relative"
+        animate={{
+          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "linear"
+        }}
+        style={{
+          backgroundSize: "200% 100%"
+        }}
+      >
+        <div className="container mx-auto text-center relative z-10">
           <Button 
             variant="ghost" 
             className="text-black font-bold hover:bg-white/20"
@@ -849,7 +857,20 @@ export default function Landing() {
             Start Free Trial <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>
-      </div>
+        <motion.div
+          className="absolute inset-0 opacity-20"
+          animate={{
+            x: ["0%", "100%"],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        >
+          <div className="h-full w-full bg-gradient-to-r from-transparent via-white to-transparent" />
+        </motion.div>
+      </motion.div>
 
       {/* Testimonials Section */}
       <section id="testimonials" className="py-12 md:py-20 px-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-950">
@@ -871,7 +892,7 @@ export default function Landing() {
               </span>
             </h2>
             <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 px-2">
-              Join 500+ businesses transforming their payment recovery
+              Join our success stories
             </p>
           </motion.div>
 
@@ -915,103 +936,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Scroll to Pricing CTA */}
-      <div className="bg-gradient-to-r from-yellow-400 to-orange-400 py-4">
-        <div className="container mx-auto text-center">
-          <Button 
-            variant="ghost" 
-            className="text-black font-bold hover:bg-white/20"
-            onClick={scrollToPricing}
-            data-testid="button-cta-join-success"
-          >
-            Join Our Success Stories <ChevronDown className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* About Us Section */}
-      <section id="about" className="py-12 md:py-20 px-4 bg-white dark:bg-gray-950">
-        <div className="container mx-auto max-w-5xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-12"
-          >
-            <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400">
-              About RECOV
-            </Badge>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 px-2">
-              India's Most{" "}
-              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                Trusted Platform
-              </span>
-            </h2>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="prose prose-lg dark:prose-invert max-w-none"
-          >
-            <Card className="border-2">
-              <CardContent className="p-8">
-                <div className="space-y-6 text-gray-700 dark:text-gray-300">
-                  <p className="text-xl leading-relaxed">
-                    RECOV is India's first fully automated payment recovery software, revolutionizing how businesses 
-                    manage their receivables. Founded in 2023, we've helped over 500+ companies recover millions 
-                    in outstanding payments through intelligent automation.
-                  </p>
-                  
-                  <div className="grid md:grid-cols-3 gap-6 my-8">
-                    <div className="text-center">
-                      <div className="text-3xl md:text-4xl font-bold text-green-600 mb-2">500+</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Active Clients</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl md:text-4xl font-bold text-emerald-600 mb-2">₹100Cr+</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Recovered</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl md:text-4xl font-bold text-teal-600 mb-2">40%</div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Avg. Improvement</div>
-                    </div>
-                  </div>
-
-                  <p className="text-lg leading-relaxed">
-                    <strong>Our Mission:</strong> To eliminate payment delays and help businesses grow by ensuring 
-                    timely cash flow through cutting-edge AI technology and multi-channel communication.
-                  </p>
-
-                  <p className="text-lg leading-relaxed">
-                    <strong>Our Vision:</strong> To become the #1 payment recovery platform globally, empowering 
-                    millions of businesses to achieve financial stability and predictable cash flows.
-                  </p>
-
-                  <div className="flex flex-wrap gap-4 justify-center mt-8">
-                    <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950 px-4 py-2 rounded-full">
-                      <Award className="h-5 w-5 text-green-600" />
-                      <span className="font-semibold text-sm md:text-base">ISO Certified</span>
-                    </div>
-                    <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950 px-4 py-2 rounded-full">
-                      <Shield className="h-5 w-5 text-emerald-600" />
-                      <span className="font-semibold text-sm md:text-base">Bank-Level Security</span>
-                    </div>
-                    <div className="flex items-center gap-2 bg-teal-50 dark:bg-teal-950 px-4 py-2 rounded-full">
-                      <Target className="h-5 w-5 text-teal-600" />
-                      <span className="font-semibold text-sm md:text-base">24/7 Support</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="py-12 px-4 bg-gray-900 text-white">
         <div className="container mx-auto">
@@ -1031,7 +955,6 @@ export default function Landing() {
                 <li><a href="#pricing" className="hover:text-white" data-testid="link-footer-pricing">Pricing</a></li>
                 <li><a href="#benefits" className="hover:text-white" data-testid="link-footer-benefits">Benefits</a></li>
                 <li><a href="#testimonials" className="hover:text-white" data-testid="link-footer-testimonials">Testimonials</a></li>
-                <li><a href="#about" className="hover:text-white" data-testid="link-footer-about">About Us</a></li>
               </ul>
             </div>
             
