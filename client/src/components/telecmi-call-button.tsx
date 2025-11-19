@@ -94,13 +94,13 @@ export function TelecmiCallButton({
     }
 
     makeCallMutation.mutate({
-      toNumber: customerPhone,
-      templateId: selectedTemplate,
-      language,
-      callMode,
+      phoneNumber: customerPhone,
+      customerName,
       module,
-      variables: {
-        customerName,
+      callMode,
+      language,
+      templateId: selectedTemplate,
+      callContext: {
         invoiceNumber: invoiceNumber || "",
         amount: amount?.toString() || "0",
         daysOverdue: daysOverdue?.toString() || "0",
