@@ -9342,6 +9342,7 @@ ${profile?.legalName || 'Company'}`;
       }
 
       const callLog = await storage.createCallLog(req.tenantId!, {
+        provider: "ringg",
         customerName,
         phoneNumber,
         module,
@@ -9397,6 +9398,12 @@ ${profile?.legalName || 'Company'}`;
         return res.status(400).json({ message: "call_id or callId is required" });
       }
 
+      // First, find the call log by ringgCallId to get the tenantId
+      const existingLog = await db.select().from(callLogs).where(eq(callLogs.ringgCallId, ringgCallId)).limit(1);
+      if (!existingLog || existingLog.length === 0) {
+        return res.status(404).json({ message: "Call log not found" });
+      }
+
       const updateData: any = {};
       if (status) updateData.status = status;
       if (duration !== undefined) updateData.duration = duration;
@@ -9404,13 +9411,8 @@ ${profile?.legalName || 'Company'}`;
       if (transcript) updateData.transcript = transcript;
       if (outcome) updateData.outcome = outcome;
 
-      // Webhook doesn't have req.tenantId, so we need to handle this differently
-      // For now, update by ringgCallId only (the method will need to handle cross-tenant lookup)
-      const updatedLog = await storage.updateCallLogByRinggId(ringgCallId, updateData);
-      
-      if (!updatedLog) {
-        return res.status(404).json({ message: "Call log not found" });
-      }
+      // Update the call log with the tenantId we just retrieved
+      const updatedLog = await storage.updateCallLogByRinggId(existingLog[0].tenantId, ringgCallId, updateData);
 
       res.json({ success: true, message: "Webhook received successfully" });
     } catch (error: any) {
@@ -9556,7 +9558,7 @@ ${profile?.legalName || 'Company'}`;
           });
         }
 
-        const template = await storage.getCallTemplate(req.tenantId!, templateId);
+        const template = await storage.getCallTemplateById(templateId);
         if (!template) {
           await storage.updateCallLog(req.tenantId!, callLog.id, {
             status: "failed",
@@ -9565,22 +9567,21 @@ ${profile?.legalName || 'Company'}`;
           return res.status(404).json({ message: "Call template not found" });
         }
 
-        result = await telecmiService.makeSimpleCall(
-          req.tenantId!,
-          phoneNumber,
-          template.script,
-          callLog.id,
-          callContext || {}
-        );
+        result = await telecmiService.makeSimpleCall(req.tenantId!, {
+          to: phoneNumber,
+          scriptText: template.scriptText,
+          language: language as "hindi" | "english" | "hinglish",
+          templateId,
+          context: callContext || {},
+        });
       } else {
         // AI-powered conversation
-        result = await telecmiService.makeAICall(
-          req.tenantId!,
-          phoneNumber,
-          language,
-          callLog.id,
-          callContext || {}
-        );
+        const streamUrl = `${process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000'}/api/telecmi/ai-stream`;
+        result = await telecmiService.makeAICall(req.tenantId!, {
+          to: phoneNumber,
+          language: language as "hindi" | "english" | "hinglish",
+          context: callContext || {},
+        }, streamUrl);
       }
 
       if (!result.success) {
