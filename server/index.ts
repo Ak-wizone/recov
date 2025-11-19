@@ -66,6 +66,8 @@ console.log('[SESSION CONFIG] Session store type:', sessionStore ? 'PostgreSQL' 
 console.log('[SESSION CONFIG] Cookie secure flag:', isProduction);
 
 // Session cookie configuration
+// Development: Use sameSite: 'none' with secure: true for Replit proxy compatibility
+// Production: Use sameSite: 'lax' with secure: true for standard HTTPS
 app.use(
   session({
     store: sessionStore,
@@ -75,10 +77,10 @@ app.use(
     rolling: true, // Refresh cookie on every request
     proxy: true, // Trust the reverse proxy
     cookie: {
-      secure: false,
-      httpOnly: false, // TEMPORARILY DISABLED for debugging
+      secure: true, // Always true since both dev and prod use HTTPS
+      httpOnly: true, // Re-enabled for security
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: "lax",
+      sameSite: isProduction ? "lax" : "none", // 'none' for dev proxy, 'lax' for prod
       path: "/",
     },
   })

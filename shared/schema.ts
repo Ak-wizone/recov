@@ -1406,7 +1406,10 @@ export const insertTelecmiConfigSchema = createInsertSchema(telecmiConfigs).pick
   appSecret: z.string().min(1, "App Secret is required"),
   webhookSecret: z.string().optional(),
   fromNumber: z.string().min(1, "From Number is required").regex(/^\+?\d{1,15}$/, "Must be a valid phone number"),
-  answerUrl: z.string().url("Must be a valid URL").optional(),
+  answerUrl: z.string().optional().refine(
+    (val) => !val || val === "" || z.string().url().safeParse(val).success,
+    { message: "Must be a valid URL" }
+  ),
   isActive: z.enum(["Active", "Inactive"]).default("Active"),
 });
 
