@@ -500,18 +500,28 @@ export default function Landing() {
             transition={{ duration: 0.5 }}
             className="text-center mb-12 md:mb-16"
           >
-            <Badge className="mb-4 bg-yellow-400 text-black hover:bg-yellow-300">
-              Flexible Pricing
-            </Badge>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 px-2">
+            <motion.div
+              animate={{ 
+                scale: [1, 1.05, 1],
+                rotate: [0, 2, -2, 0]
+              }}
+              transition={{ 
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="inline-block mb-4"
+            >
+              <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 text-sm md:text-base px-4 py-2 shadow-lg">
+                ✓ 7-Day Money-Back Guarantee
+              </Badge>
+            </motion.div>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold px-2">
               Choose Your{" "}
               <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 Perfect Plan
               </span>
             </h2>
-            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 px-2">
-              START YOUR PAYMENT COLLECTION TODAY
-            </p>
           </motion.div>
 
           {plansLoading && (
