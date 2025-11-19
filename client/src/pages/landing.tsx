@@ -32,7 +32,9 @@ import {
   ChevronDown,
   AlertCircle,
   RefreshCw,
+  Play,
 } from "lucide-react";
+import recovLogo from "@assets/image_1763577879371.png";
 
 const fadeIn = {
   initial: { opacity: 0, y: 20 },
@@ -45,31 +47,31 @@ const benefits = [
     icon: Zap,
     title: "Automated Payment Recovery",
     description: "India's first fully automated system that follows up with customers via Email, WhatsApp, and AI calls",
-    color: "bg-yellow-100 text-yellow-600"
+    color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
   },
   {
     icon: Shield,
     title: "Credit Risk Management",
     description: "Advanced AI algorithms predict payment delays and categorize customers automatically",
-    color: "bg-blue-100 text-blue-600"
+    color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
   },
   {
     icon: Users,
     title: "Multi-Channel Communication",
     description: "Reach customers on their preferred channel - Email, WhatsApp, SMS, or Voice calls",
-    color: "bg-purple-100 text-purple-600"
+    color: "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
   },
   {
     icon: BarChart3,
     title: "Real-Time Analytics",
     description: "Live dashboards showing payment trends, debtor analysis, and recovery performance",
-    color: "bg-pink-100 text-pink-600"
+    color: "bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400"
   },
   {
     icon: Bell,
     title: "Smart Reminders",
     description: "Intelligent reminder system that adapts based on customer behavior and payment history",
-    color: "bg-orange-100 text-orange-600"
+    color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
   }
 ];
 
@@ -102,7 +104,7 @@ const testimonials = [
 
 export default function Landing() {
   const { toast } = useToast();
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 5, seconds: 0 });
+  const [timeLeft, setTimeLeft] = useState({ minutes: 5, seconds: 0 });
   const [paymentForm, setPaymentForm] = useState({ name: "", email: "", mobile: "", plan: "" });
   const [showRegistrationForm, setShowRegistrationForm] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
@@ -148,15 +150,11 @@ export default function Landing() {
   // Countdown timer for price increment (5 minutes)
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft((prev: { days: number; hours: number; minutes: number; seconds: number }) => {
+      setTimeLeft((prev: { minutes: number; seconds: number }) => {
         if (prev.seconds > 0) {
           return { ...prev, seconds: prev.seconds - 1 };
         } else if (prev.minutes > 0) {
-          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        } else if (prev.hours > 0) {
-          return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        } else if (prev.days > 0) {
-          return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 };
+          return { minutes: prev.minutes - 1, seconds: 59 };
         }
         return prev;
       });
@@ -236,7 +234,7 @@ export default function Landing() {
           contact: paymentForm.mobile,
         },
         theme: {
-          color: "#3B82F6", // Blue color matching the brand
+          color: "#22C55E", // Green color matching the brand
         },
         handler: async function (response: any) {
           // Verify payment on backend
@@ -296,29 +294,21 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
       {/* Price Increment Timer - Sticky Top Bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-red-600 to-orange-600 text-white py-2 px-4">
-        <div className="container mx-auto flex items-center justify-center gap-4 text-sm md:text-base flex-wrap">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4">
+        <div className="container mx-auto flex items-center justify-center gap-3 md:gap-6 text-sm md:text-base flex-wrap">
           <div className="flex items-center gap-2">
-            <Timer className="h-4 w-4 animate-pulse" />
-            <span className="font-semibold">PRICE INCREASE IN:</span>
+            <Timer className="h-4 w-4 md:h-5 md:w-5 animate-pulse" />
+            <span className="font-semibold text-xs md:text-base">PRICE INCREASE IN:</span>
           </div>
           <div className="flex gap-2">
-            <div className="bg-white/20 px-3 py-1 rounded">
-              <span className="font-bold">{timeLeft.days}d</span>
-            </div>
-            <div className="bg-white/20 px-3 py-1 rounded">
-              <span className="font-bold">{timeLeft.hours}h</span>
-            </div>
-            <div className="bg-white/20 px-3 py-1 rounded">
-              <span className="font-bold">{timeLeft.minutes}m</span>
-            </div>
-            <div className="bg-white/20 px-3 py-1 rounded">
-              <span className="font-bold">{timeLeft.seconds}s</span>
+            <div className="bg-white/20 px-4 py-2 rounded-lg">
+              <span className="font-bold text-lg md:text-2xl">{timeLeft.minutes}</span>
+              <span className="text-xs md:text-sm ml-1">MIN</span>
             </div>
           </div>
           <Button 
             size="sm" 
-            className="bg-yellow-400 text-black hover:bg-yellow-300 font-bold"
+            className="bg-yellow-400 text-black hover:bg-yellow-300 font-bold text-xs md:text-sm"
             onClick={scrollToPricing}
             data-testid="button-timer-cta"
           >
@@ -328,26 +318,21 @@ export default function Landing() {
       </div>
 
       {/* Navigation */}
-      <nav className="fixed top-12 left-0 right-0 z-40 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
+      <nav className="fixed top-14 md:top-16 left-0 right-0 z-40 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                <span className="text-white font-bold text-xl">R</span>
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                RECOV
-              </span>
+              <img src={recovLogo} alt="RECOV Logo" className="h-8 md:h-10 w-auto" data-testid="img-logo-nav" />
             </div>
             <div className="hidden md:flex items-center gap-6">
-              <a href="#pricing" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" data-testid="link-nav-pricing">Pricing</a>
-              <a href="#benefits" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" data-testid="link-nav-benefits">Benefits</a>
-              <a href="#testimonials" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" data-testid="link-nav-testimonials">Testimonials</a>
-              <a href="#about" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 font-medium" data-testid="link-nav-about">About</a>
+              <a href="#pricing" className="text-gray-700 dark:text-gray-300 hover:text-green-600 font-medium" data-testid="link-nav-pricing">Pricing</a>
+              <a href="#benefits" className="text-gray-700 dark:text-gray-300 hover:text-green-600 font-medium" data-testid="link-nav-benefits">Benefits</a>
+              <a href="#testimonials" className="text-gray-700 dark:text-gray-300 hover:text-green-600 font-medium" data-testid="link-nav-testimonials">Testimonials</a>
+              <a href="#about" className="text-gray-700 dark:text-gray-300 hover:text-green-600 font-medium" data-testid="link-nav-about">About</a>
             </div>
             <div className="flex items-center gap-3">
               <Button 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-sm md:text-base"
                 onClick={scrollToPricing}
                 data-testid="button-get-started"
               >
@@ -359,7 +344,7 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-40 pb-20 px-4 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
+      <section className="pt-32 md:pt-40 pb-12 md:pb-20 px-4 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -367,47 +352,58 @@ export default function Landing() {
             transition={{ duration: 0.6 }}
             className="text-center max-w-5xl mx-auto"
           >
-            <Badge className="mb-6 bg-yellow-400 text-black hover:bg-yellow-300 text-base px-4 py-2" data-testid="badge-hero">
-              <Sparkles className="h-4 w-4 mr-2" />
+            <Badge className="mb-4 md:mb-6 bg-yellow-400 text-black hover:bg-yellow-300 text-sm md:text-base px-3 md:px-4 py-1.5 md:py-2" data-testid="badge-hero">
+              <Sparkles className="h-3 w-3 md:h-4 md:w-4 mr-2" />
               India's #1 Payment Recovery Platform
             </Badge>
             
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 leading-tight px-2">
+              <span className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
                 GET YOUR PAYMENTS
               </span>
               <br />
               <span className="text-gray-900 dark:text-white">
-                ON TIME ALWAYS
+                ON TIME - ALWAYS
               </span>
             </h1>
             
-            <p className="text-2xl md:text-3xl text-gray-700 dark:text-gray-300 mb-4 font-semibold">
+            <p className="text-xl sm:text-2xl md:text-3xl text-gray-700 dark:text-gray-300 mb-3 md:mb-4 font-semibold px-2">
               INDIA'S FIRST FULLY AUTOMATED
             </p>
-            <p className="text-2xl md:text-3xl text-gray-700 dark:text-gray-300 mb-8 font-semibold">
+            <p className="text-xl sm:text-2xl md:text-3xl text-gray-700 dark:text-gray-300 mb-6 md:mb-8 font-semibold px-2">
               PAYMENT RECOVERY SOFTWARE
             </p>
+
+            {/* Video Placeholder */}
+            <div className="mb-6 md:mb-8 max-w-3xl mx-auto">
+              <div className="relative bg-gray-900 dark:bg-gray-800 rounded-xl overflow-hidden shadow-2xl aspect-video">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-16 h-16 md:w-20 md:h-20 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 hover:bg-green-700 transition-colors cursor-pointer">
+                      <Play className="h-8 w-8 md:h-10 md:w-10 text-white ml-1" />
+                    </div>
+                    <p className="text-white text-sm md:text-base font-medium">Watch Demo Video</p>
+                    <p className="text-gray-400 text-xs md:text-sm mt-1">See how RECOV automates your payment recovery</p>
+                  </div>
+                </div>
+              </div>
+            </div>
             
-            <div className="flex flex-wrap gap-4 justify-center mb-12">
+            <div className="flex flex-wrap gap-3 md:gap-4 justify-center mb-8 md:mb-12 px-2">
               <Button 
                 size="lg" 
-                className="bg-yellow-400 text-black hover:bg-yellow-300 text-lg px-8 font-bold shadow-lg"
+                className="bg-green-600 hover:bg-green-700 text-white text-base md:text-lg px-6 md:px-8 py-4 md:py-6 font-bold shadow-lg w-full sm:w-auto"
                 onClick={scrollToPricing}
                 data-testid="button-hero-cta"
               >
-                START YOUR PAYMENT COLLECTION <ArrowRight className="ml-2 h-5 w-5" />
+                START YOUR PAYMENT COLLECTION <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
               </Button>
             </div>
 
-            <div className="flex flex-wrap gap-6 justify-center text-base text-gray-700 dark:text-gray-300">
+            <div className="flex flex-wrap gap-4 md:gap-6 justify-center text-sm md:text-base text-gray-700 dark:text-gray-300">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
                 <span className="font-medium">100% Automated</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <span className="font-medium">Free Trial Available</span>
               </div>
             </div>
           </motion.div>
@@ -495,25 +491,25 @@ export default function Landing() {
       </motion.div>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-950">
+      <section id="pricing" className="py-12 md:py-20 px-4 bg-gradient-to-br from-gray-50 to-green-50 dark:from-gray-900 dark:to-gray-950">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-16"
+            className="text-center mb-12 md:mb-16"
           >
             <Badge className="mb-4 bg-yellow-400 text-black hover:bg-yellow-300">
               Flexible Pricing
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 px-2">
               Choose Your{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 Perfect Plan
               </span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400">
+            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 px-2">
               START YOUR PAYMENT COLLECTION TODAY
             </p>
           </motion.div>
@@ -577,9 +573,9 @@ export default function Landing() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
               {subscriptionPlans.map((plan, index) => {
                 const planColors = [
-                  { gradient: 'from-blue-500 to-blue-600', border: 'border-blue-300', bg: 'bg-blue-50 dark:bg-blue-950' },
-                  { gradient: 'from-purple-500 to-purple-600', border: 'border-purple-300', bg: 'bg-purple-50 dark:bg-purple-950' },
-                  { gradient: 'from-amber-500 to-amber-600', border: 'border-amber-300', bg: 'bg-amber-50 dark:bg-amber-950' }
+                  { gradient: 'from-green-500 to-green-600', border: 'border-green-300', bg: 'bg-green-50 dark:bg-green-950' },
+                  { gradient: 'from-emerald-500 to-emerald-600', border: 'border-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-950' },
+                  { gradient: 'from-teal-500 to-teal-600', border: 'border-teal-300', bg: 'bg-teal-50 dark:bg-teal-950' }
                 ];
                 const colors = planColors[index % 3];
                 const moduleCount = (plan.allowedModules ?? []).length;
@@ -742,14 +738,14 @@ export default function Landing() {
                         data-testid="input-payment-mobile"
                       />
                     </div>
-                    <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                    <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-semibold">Selected Plan:</span>
-                        <span className="text-blue-600 dark:text-blue-400 font-bold">{selectedPlan.name.toUpperCase()}</span>
+                        <span className="text-green-600 dark:text-green-400 font-bold">{selectedPlan.name.toUpperCase()}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">Amount:</span>
-                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">₹{selectedPlan.price}/month</span>
+                        <span className="text-2xl font-bold text-green-600 dark:text-green-400">₹{selectedPlan.price}/month</span>
                       </div>
                     </div>
                     <Button 
@@ -786,26 +782,22 @@ export default function Landing() {
       </div>
 
       {/* Benefits Section */}
-      <section id="benefits" className="py-20 px-4 bg-white dark:bg-gray-950">
+      <section id="benefits" className="py-12 md:py-20 px-4 bg-white dark:bg-gray-950">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-16"
+            className="text-center mb-12 md:mb-16"
           >
-            <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400">
-              Why Choose RECOV
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Benefits of{" "}
-              <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                This Software
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 md:mb-6 px-2">
+              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                WHY CHOOSE RECOV
               </span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400">
-              Transform your payment recovery process with cutting-edge automation
+            <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 font-semibold max-w-3xl mx-auto px-4">
+              Make your slow payments fast, and start recovering your blocked payments today.
             </p>
           </motion.div>
 
@@ -818,15 +810,15 @@ export default function Landing() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="h-full hover:shadow-xl transition-all duration-300 border-2 hover:border-yellow-400" data-testid={`card-benefit-${index}`}>
+                <Card className="h-full hover:shadow-xl transition-all duration-300 border-2 hover:border-green-400" data-testid={`card-benefit-${index}`}>
                   <CardHeader>
                     <div className={`w-16 h-16 rounded-lg ${benefit.color} flex items-center justify-center mb-4`}>
                       <benefit.icon className="h-8 w-8" />
                     </div>
-                    <CardTitle className="text-xl">{benefit.title}</CardTitle>
+                    <CardTitle className="text-lg md:text-xl">{benefit.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 dark:text-gray-400">{benefit.description}</p>
+                    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">{benefit.description}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -850,25 +842,25 @@ export default function Landing() {
       </div>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 px-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-gray-950">
+      <section id="testimonials" className="py-12 md:py-20 px-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-950">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-16"
+            className="text-center mb-12 md:mb-16"
           >
-            <Badge className="mb-4 bg-pink-100 text-pink-700 hover:bg-pink-200 dark:bg-pink-900/30 dark:text-pink-400">
+            <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400">
               Customer Success Stories
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 px-2">
               What Our{" "}
-              <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 Clients Say
               </span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-400">
+            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 px-2">
               Join 500+ businesses transforming their payment recovery
             </p>
           </motion.div>
@@ -902,7 +894,7 @@ export default function Landing() {
                       <div>
                         <div className="font-semibold">{testimonial.name}</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">{testimonial.role}</div>
-                        <div className="text-sm text-blue-600 dark:text-blue-400">{testimonial.company}</div>
+                        <div className="text-sm text-green-600 dark:text-green-400">{testimonial.company}</div>
                       </div>
                     </div>
                   </CardContent>
@@ -928,7 +920,7 @@ export default function Landing() {
       </div>
 
       {/* About Us Section */}
-      <section id="about" className="py-20 px-4 bg-white dark:bg-gray-950">
+      <section id="about" className="py-12 md:py-20 px-4 bg-white dark:bg-gray-950">
         <div className="container mx-auto max-w-5xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -937,12 +929,12 @@ export default function Landing() {
             transition={{ duration: 0.5 }}
             className="text-center mb-12"
           >
-            <Badge className="mb-4 bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400">
+            <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400">
               About RECOV
             </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 px-2">
               India's Most{" "}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 Trusted Platform
               </span>
             </h2>
@@ -966,15 +958,15 @@ export default function Landing() {
                   
                   <div className="grid md:grid-cols-3 gap-6 my-8">
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-blue-600 mb-2">500+</div>
+                      <div className="text-3xl md:text-4xl font-bold text-green-600 mb-2">500+</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Active Clients</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-green-600 mb-2">₹100Cr+</div>
+                      <div className="text-3xl md:text-4xl font-bold text-emerald-600 mb-2">₹100Cr+</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Recovered</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-4xl font-bold text-purple-600 mb-2">40%</div>
+                      <div className="text-3xl md:text-4xl font-bold text-teal-600 mb-2">40%</div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Avg. Improvement</div>
                     </div>
                   </div>
@@ -990,17 +982,17 @@ export default function Landing() {
                   </p>
 
                   <div className="flex flex-wrap gap-4 justify-center mt-8">
-                    <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-950 px-4 py-2 rounded-full">
-                      <Award className="h-5 w-5 text-blue-600" />
-                      <span className="font-semibold">ISO Certified</span>
-                    </div>
                     <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950 px-4 py-2 rounded-full">
-                      <Shield className="h-5 w-5 text-green-600" />
-                      <span className="font-semibold">Bank-Level Security</span>
+                      <Award className="h-5 w-5 text-green-600" />
+                      <span className="font-semibold text-sm md:text-base">ISO Certified</span>
                     </div>
-                    <div className="flex items-center gap-2 bg-purple-50 dark:bg-purple-950 px-4 py-2 rounded-full">
-                      <Target className="h-5 w-5 text-purple-600" />
-                      <span className="font-semibold">24/7 Support</span>
+                    <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950 px-4 py-2 rounded-full">
+                      <Shield className="h-5 w-5 text-emerald-600" />
+                      <span className="font-semibold text-sm md:text-base">Bank-Level Security</span>
+                    </div>
+                    <div className="flex items-center gap-2 bg-teal-50 dark:bg-teal-950 px-4 py-2 rounded-full">
+                      <Target className="h-5 w-5 text-teal-600" />
+                      <span className="font-semibold text-sm md:text-base">24/7 Support</span>
                     </div>
                   </div>
                 </div>
@@ -1015,11 +1007,8 @@ export default function Landing() {
         <div className="container mx-auto">
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">R</span>
-                </div>
-                <span className="text-2xl font-bold">RECOV</span>
+              <div className="mb-4">
+                <img src={recovLogo} alt="RECOV Logo" className="h-10 md:h-12 w-auto" data-testid="img-logo-footer" />
               </div>
               <p className="text-gray-400 text-sm">
                 India's #1 Automated Payment Recovery Platform
