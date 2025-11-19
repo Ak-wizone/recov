@@ -346,18 +346,18 @@ export async function seedDatabase() {
 
       // Update existing admin roles with subscription-based permissions (development only)
       await updateAdminRolesWithSubscriptionPermissions();
+
+      // Seed email templates for all active tenants (development only)
+      await seedEmailTemplates();
+
+      // Seed call templates for all active tenants (development only)
+      await seedCallTemplatesForAllTenants();
+
+      // Initialize Whisper credits for all active tenants (development only)
+      await initializeWhisperCreditsForAllTenants();
     } else {
-      console.log("⚡ Published deployment detected: Skipping heavy seed operations for fast startup");
+      console.log("⚡ Published deployment detected: Skipping ALL seed operations for fast startup");
     }
-
-    // Seed email templates for all active tenants
-    await seedEmailTemplates();
-
-    // Seed call templates for all active tenants (production-safe - only creates missing records)
-    await seedCallTemplatesForAllTenants();
-
-    // Initialize Whisper credits for all active tenants (production-safe - only creates missing records)
-    await initializeWhisperCreditsForAllTenants();
 
     console.log("Seed data check complete!");
   } catch (error) {
