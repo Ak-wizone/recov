@@ -4,7 +4,7 @@ import { decryptApiKey, encryptApiKey } from "../encryption";
 import crypto from "crypto";
 
 interface TelecmiConfig {
-  appId: string;
+  appId: number;
   appSecret: string;
   fromNumber: string;
   answerUrl?: string;
@@ -65,15 +65,23 @@ export class TelecmiService {
       const decryptedAppSecret = decryptApiKey(config.appSecret);
       const decryptedWebhookSecret = config.webhookSecret ? decryptApiKey(config.webhookSecret) : undefined;
 
-      // CRITICAL: Ensure appId and appSecret are STRINGS (PIOPIY SDK requirement)
-      const appId = String(config.appId);
+      // CRITICAL FIX: PIOPIY SDK requires appId as NUMBER and appSecret as STRING
+      const appId = Number(config.appId);
       const appSecret = String(decryptedAppSecret);
 
+      // Guard against invalid appId conversion
+      if (!Number.isFinite(appId) || appId <= 0) {
+        console.error(`[TelecmiService] Invalid appId conversion: ${config.appId} -> ${appId}`);
+        return null;
+      }
+
       console.log(`[TelecmiService] Credentials prepared for tenant ${tenantId}:`, {
+        rawAppId: config.appId,
         appIdType: typeof appId,
-        appIdLength: appId.length,
+        appIdValue: appId,
         appSecretType: typeof appSecret,
         appSecretLength: appSecret.length,
+        appSecretPreview: appSecret.substring(0, 20) + '...',
         fromNumber: config.fromNumber,
       });
 
@@ -128,7 +136,8 @@ export class TelecmiService {
         appSecretType: typeof config.appSecret,
         appSecretLength: config.appSecret?.length || 0,
       });
-      const piopiy = new Piopiy(config.appId, config.appSecret);
+      // Note: Piopiy TS definitions say string but runtime checks for number
+      const piopiy = new Piopiy(config.appId as any, config.appSecret);
       const action = new PiopiyAction();
 
       // Build the script from template
@@ -209,7 +218,8 @@ export class TelecmiService {
         appSecretType: typeof config.appSecret,
         appSecretLength: config.appSecret?.length || 0,
       });
-      const piopiy = new Piopiy(config.appId, config.appSecret);
+      // Note: Piopiy TS definitions say string but runtime checks for number
+      const piopiy = new Piopiy(config.appId as any, config.appSecret);
       const action = new PiopiyAction();
 
       // Initial greeting
