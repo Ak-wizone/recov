@@ -317,32 +317,6 @@ export default function Landing() {
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="fixed top-14 md:top-16 left-0 right-0 z-40 bg-white/95 dark:bg-gray-950/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm">
-        <div className="container mx-auto px-4 py-3 md:py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src={recovLogo} alt="RECOV Logo" className="h-8 md:h-10 w-auto" data-testid="img-logo-nav" />
-            </div>
-            <div className="hidden md:flex items-center gap-6">
-              <a href="#pricing" className="text-gray-700 dark:text-gray-300 hover:text-green-600 font-medium" data-testid="link-nav-pricing">Pricing</a>
-              <a href="#benefits" className="text-gray-700 dark:text-gray-300 hover:text-green-600 font-medium" data-testid="link-nav-benefits">Benefits</a>
-              <a href="#testimonials" className="text-gray-700 dark:text-gray-300 hover:text-green-600 font-medium" data-testid="link-nav-testimonials">Testimonials</a>
-              <a href="#about" className="text-gray-700 dark:text-gray-300 hover:text-green-600 font-medium" data-testid="link-nav-about">About</a>
-            </div>
-            <div className="flex items-center gap-3">
-              <Button 
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-sm md:text-base"
-                onClick={scrollToPricing}
-                data-testid="button-get-started"
-              >
-                Get Started <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <section className="pt-32 md:pt-40 pb-12 md:pb-20 px-4 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
         <div className="container mx-auto">
@@ -409,46 +383,6 @@ export default function Landing() {
           </motion.div>
         </div>
       </section>
-
-      {/* Animated Scroll to Pricing CTA */}
-      <motion.div 
-        className="bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 py-4 overflow-hidden relative"
-        animate={{
-          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-        style={{
-          backgroundSize: "200% 100%"
-        }}
-      >
-        <div className="container mx-auto text-center relative z-10">
-          <Button 
-            variant="ghost" 
-            className="text-black font-bold hover:bg-white/20"
-            onClick={scrollToPricing}
-            data-testid="button-cta-view-plans-1"
-          >
-            View Plans <ChevronDown className="ml-2 h-4 w-4 animate-bounce" />
-          </Button>
-        </div>
-        <motion.div
-          className="absolute inset-0 opacity-20"
-          animate={{
-            x: ["0%", "100%"],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        >
-          <div className="h-full w-full bg-gradient-to-r from-transparent via-white to-transparent" />
-        </motion.div>
-      </motion.div>
 
       {/* Pricing Section */}
       <section id="pricing" className="py-12 md:py-20 px-4 bg-gradient-to-br from-gray-50 to-green-50 dark:from-gray-900 dark:to-gray-950">
@@ -737,55 +671,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Animated Scroll to Pricing CTA */}
-      <motion.div 
-        className="bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 py-4 overflow-hidden relative"
-        animate={{
-          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-        style={{
-          backgroundSize: "200% 100%"
-        }}
-      >
-        <div className="container mx-auto text-center relative z-10 flex flex-wrap gap-4 justify-center items-center">
-          <Button 
-            variant="ghost" 
-            className="text-black font-bold hover:bg-white/20"
-            onClick={scrollToPricing}
-            data-testid="button-cta-view-plans"
-          >
-            View Plans <ChevronDown className="ml-2 h-4 w-4 animate-bounce" />
-          </Button>
-          <span className="text-black font-bold hidden md:inline">|</span>
-          <Button 
-            variant="ghost" 
-            className="text-black font-bold hover:bg-white/20"
-            onClick={scrollToPricing}
-            data-testid="button-cta-view-pricing-plans"
-          >
-            View Pricing Plans <ChevronDown className="ml-2 h-4 w-4 animate-bounce" />
-          </Button>
-        </div>
-        <motion.div
-          className="absolute inset-0 opacity-20"
-          animate={{
-            x: ["0%", "100%"],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        >
-          <div className="h-full w-full bg-gradient-to-r from-transparent via-white to-transparent" />
-        </motion.div>
-      </motion.div>
-
       {/* Benefits Section */}
       <section id="benefits" className="py-12 md:py-20 px-4 bg-white dark:bg-gray-950">
         <div className="container mx-auto">
@@ -831,46 +716,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-      {/* Start Free Trial CTA */}
-      <motion.div 
-        className="bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-400 py-4 overflow-hidden relative"
-        animate={{
-          backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-        }}
-        transition={{
-          duration: 3,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-        style={{
-          backgroundSize: "200% 100%"
-        }}
-      >
-        <div className="container mx-auto text-center relative z-10">
-          <Button 
-            variant="ghost" 
-            className="text-black font-bold hover:bg-white/20"
-            onClick={scrollToPricing}
-            data-testid="button-cta-start-trial"
-          >
-            Start Free Trial <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-        <motion.div
-          className="absolute inset-0 opacity-20"
-          animate={{
-            x: ["0%", "100%"],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        >
-          <div className="h-full w-full bg-gradient-to-r from-transparent via-white to-transparent" />
-        </motion.div>
-      </motion.div>
 
       {/* Testimonials Section */}
       <section id="testimonials" className="py-12 md:py-20 px-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-950">
