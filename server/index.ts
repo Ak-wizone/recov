@@ -27,7 +27,10 @@ app.use(express.urlencoded({ extended: false }));
 // Session configuration with PostgreSQL store
 // Always use PostgreSQL session store when DATABASE_URL is available for reliable session persistence
 const PgSession = connectPgSimple(session);
-const isProduction = process.env.NODE_ENV === "production" || process.env.REPLIT_DEPLOYMENT === "1";
+const isProduction = process.env.REPLIT_DEPLOYMENT === "1";
+
+console.log('[SESSION CONFIG] isProduction:', isProduction);
+console.log('[SESSION CONFIG] DATABASE_URL exists:', !!process.env.DATABASE_URL);
 
 // Create a separate pool for session store
 // Configure SSL based on database server capabilities
@@ -45,6 +48,9 @@ const sessionStore = sessionPool
     })
   : undefined;
 
+console.log('[SESSION CONFIG] Session store type:', sessionStore ? 'PostgreSQL' : 'Memory (MemoryStore)');
+console.log('[SESSION CONFIG] Cookie secure flag:', isProduction);
+
 // Session cookie configuration
 // Only use secure cookies when REPLIT_DEPLOYMENT=1 (published app)
 // In dev environment, use non-secure cookies for compatibility
@@ -56,7 +62,7 @@ app.use(
     saveUninitialized: false,
     proxy: true, // Trust the reverse proxy
     cookie: {
-      secure: isProduction, // Only secure in published deployment
+      secure: false, // TEMPORARILY DISABLED for debugging
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: "lax",

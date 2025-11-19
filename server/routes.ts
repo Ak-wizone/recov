@@ -3144,11 +3144,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         permissions,
       };
 
+      console.log('[LOGIN] Session ID:', req.sessionID);
+      console.log('[LOGIN] Saving session for user:', user.email);
+
       // Save session before responding
       req.session.save((err) => {
         if (err) {
+          console.error('[LOGIN] Failed to save session:', err);
           return res.status(500).json({ message: "Failed to save session" });
         }
+        
+        console.log('[LOGIN] Session saved successfully for:', user.email);
+        console.log('[LOGIN] Session cookie will be:', req.session.cookie);
         
         // Return user without password
         const { password: _, ...userWithoutPassword } = user;
