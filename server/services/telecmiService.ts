@@ -65,9 +65,21 @@ export class TelecmiService {
       const decryptedAppSecret = decryptApiKey(config.appSecret);
       const decryptedWebhookSecret = config.webhookSecret ? decryptApiKey(config.webhookSecret) : undefined;
 
+      // CRITICAL: Ensure appId and appSecret are STRINGS (PIOPIY SDK requirement)
+      const appId = String(config.appId);
+      const appSecret = String(decryptedAppSecret);
+
+      console.log(`[TelecmiService] Credentials prepared for tenant ${tenantId}:`, {
+        appIdType: typeof appId,
+        appIdLength: appId.length,
+        appSecretType: typeof appSecret,
+        appSecretLength: appSecret.length,
+        fromNumber: config.fromNumber,
+      });
+
       return {
-        appId: config.appId,
-        appSecret: decryptedAppSecret,
+        appId,
+        appSecret,
         fromNumber: config.fromNumber,
         answerUrl: config.answerUrl || undefined,
         webhookSecret: decryptedWebhookSecret,
@@ -110,6 +122,12 @@ export class TelecmiService {
       }
 
       // Initialize Piopiy client
+      console.log(`[TelecmiService] Initializing Piopiy client:`, {
+        appIdType: typeof config.appId,
+        appIdValue: config.appId,
+        appSecretType: typeof config.appSecret,
+        appSecretLength: config.appSecret?.length || 0,
+      });
       const piopiy = new Piopiy(config.appId, config.appSecret);
       const action = new PiopiyAction();
 
@@ -185,6 +203,12 @@ export class TelecmiService {
       }
 
       // Initialize Piopiy client
+      console.log(`[TelecmiService] Initializing Piopiy client:`, {
+        appIdType: typeof config.appId,
+        appIdValue: config.appId,
+        appSecretType: typeof config.appSecret,
+        appSecretLength: config.appSecret?.length || 0,
+      });
       const piopiy = new Piopiy(config.appId, config.appSecret);
       const action = new PiopiyAction();
 
