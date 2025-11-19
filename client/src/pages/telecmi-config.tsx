@@ -197,7 +197,10 @@ export default function TelecmiConfig() {
                         </Button>
                       </div>
                     </FormControl>
-                    <FormDescription>Your Telecmi PIOPIY app secret (encrypted at rest)</FormDescription>
+                    <FormDescription>
+                      Your Telecmi PIOPIY app secret (encrypted at rest). 
+                      {config && " Leave as-is to keep existing secret, or enter new secret to update."}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

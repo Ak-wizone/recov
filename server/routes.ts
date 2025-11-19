@@ -9469,7 +9469,12 @@ ${profile?.legalName || 'Company'}`;
       if (!config) {
         return res.status(404).json({ message: "Telecmi configuration not found" });
       }
-      res.json(config);
+      // Mask the appSecret for security - don't return encrypted value to prevent double encryption
+      const maskedConfig = {
+        ...config,
+        appSecret: "••••••••••••" // Masked value - actual secret is encrypted in DB
+      };
+      res.json(maskedConfig);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -9502,12 +9507,22 @@ ${profile?.legalName || 'Company'}`;
       let config;
 
       if (existingConfig) {
-        config = await storage.updateTelecmiConfig(req.tenantId!, existingConfig.id, validation.data);
+        // If appSecret is the masked value, remove it from updates (don't re-encrypt)
+        const updates = { ...validation.data };
+        if (updates.appSecret === "••••••••••••") {
+          delete updates.appSecret; // Skip updating appSecret if it's the masked placeholder
+        }
+        config = await storage.updateTelecmiConfig(req.tenantId!, existingConfig.id, updates);
       } else {
         config = await storage.createTelecmiConfig(req.tenantId!, validation.data);
       }
 
-      res.json(config);
+      // Return masked appSecret in response
+      const maskedConfig = {
+        ...config,
+        appSecret: "••••••••••••"
+      };
+      res.json(maskedConfig);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
