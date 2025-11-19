@@ -61,8 +61,25 @@ export class TelecmiService {
     }
 
     try {
+      // Debug: Log raw encrypted values
+      console.log(`[TelecmiService] Raw config from DB:`, {
+        appSecret: config.appSecret?.substring(0, 50) + '...',
+        appSecretLength: config.appSecret?.length,
+      });
+
       // Decrypt both app secret and webhook secret
-      const decryptedAppSecret = decryptApiKey(config.appSecret);
+      let decryptedAppSecret: string;
+      try {
+        decryptedAppSecret = decryptApiKey(config.appSecret);
+        console.log(`[TelecmiService] Decryption result:`, {
+          decryptedLength: decryptedAppSecret.length,
+          decryptedPreview: decryptedAppSecret.substring(0, 20) + '...',
+        });
+      } catch (decryptError) {
+        console.error(`[TelecmiService] Decryption failed:`, decryptError);
+        throw new Error(`Failed to decrypt app secret: ${decryptError instanceof Error ? decryptError.message : 'Unknown error'}`);
+      }
+
       const decryptedWebhookSecret = config.webhookSecret ? decryptApiKey(config.webhookSecret) : undefined;
 
       // CRITICAL FIX: PIOPIY SDK requires appId as NUMBER and appSecret as STRING
@@ -160,10 +177,26 @@ export class TelecmiService {
       action.speak(scriptText);
       action.record(); // Enable recording
 
-      // Make the call
+      // Convert phone numbers to NUMBER type (PIOPIY SDK requirement)
+      // Remove + and convert to number
+      const toNumber = Number(options.to.replace(/\+/g, ''));
+      const fromNumber = Number(config.fromNumber.replace(/\+/g, ''));
+
+      console.log(`[TelecmiService] Phone numbers converted:`, {
+        toOriginal: options.to,
+        toNumber,
+        toType: typeof toNumber,
+        fromOriginal: config.fromNumber,
+        fromNumber,
+        fromType: typeof fromNumber,
+        pcmoType: typeof action.PCMO(),
+        pcmoIsArray: Array.isArray(action.PCMO()),
+      });
+
+      // Make the call (use as any for type mismatch: TS defs say string, runtime needs number)
       const response = await piopiy.voice.call(
-        options.to,
-        config.fromNumber,
+        toNumber as any,
+        fromNumber as any,
         action.PCMO(),
         {
           duration: 300, // 5 minutes max
@@ -239,10 +272,14 @@ export class TelecmiService {
       });
       action.record(); // Enable recording
 
-      // Make the call with AI streaming
+      // Convert phone numbers to NUMBER type (PIOPIY SDK requirement)
+      const toNumber = Number(options.to.replace(/\+/g, ''));
+      const fromNumber = Number(config.fromNumber.replace(/\+/g, ''));
+
+      // Make the call with AI streaming (use as any for type mismatch)
       const response = await piopiy.voice.call(
-        options.to,
-        config.fromNumber,
+        toNumber as any,
+        fromNumber as any,
         action.PCMO(),
         {
           duration: 600, // 10 minutes max for AI calls
