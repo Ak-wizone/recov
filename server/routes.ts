@@ -6,7 +6,7 @@ import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { requirePermission, requireAnyPermission } from "./permissions";
 import { wsManager } from "./websocket";
 import { ALL_DASHBOARD_CARDS, ALL_ACTION_PERMISSIONS, getFullAdminPermissions } from "./constants/permissions";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertTelecmiConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertTelecmiConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema, callLogs } from "@shared/schema";
 import { createTransporter, sendEmail, testEmailConnection } from "./email-service";
 import { getEnrichedEmailVariables, renderTemplate } from "./email-utils";
 import { sendWhatsAppMessage } from "./whatsapp-service";
@@ -9569,6 +9569,7 @@ ${profile?.legalName || 'Company'}`;
 
         result = await telecmiService.makeSimpleCall(req.tenantId!, {
           to: phoneNumber,
+          callMode: "simple",
           scriptText: template.scriptText,
           language: language as "hindi" | "english" | "hinglish",
           templateId,
@@ -9579,6 +9580,7 @@ ${profile?.legalName || 'Company'}`;
         const streamUrl = `${process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000'}/api/telecmi/ai-stream`;
         result = await telecmiService.makeAICall(req.tenantId!, {
           to: phoneNumber,
+          callMode: "ai",
           language: language as "hindi" | "english" | "hinglish",
           context: callContext || {},
         }, streamUrl);
