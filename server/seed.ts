@@ -615,7 +615,6 @@ async function initializeWhisperCreditsForAllTenants() {
         await db.insert(whisperCredits).values({
           tenantId: tenant.id,
           planMinutesCurrent: planMinutes,
-          planMinutesAllocated: planMinutes,
           addonMinutesBalance: 0,
           usedPlanMinutes: 0,
           usedAddonMinutes: 0,
