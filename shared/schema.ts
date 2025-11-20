@@ -587,6 +587,7 @@ export const receipts = pgTable("receipts", {
   date: timestamp("date").notNull(),
   amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
   remarks: text("remarks"),
+  primaryEmail: text("primary_email"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -598,6 +599,7 @@ export const insertReceiptSchema = createInsertSchema(receipts).pick({
   date: true,
   amount: true,
   remarks: true,
+  primaryEmail: true,
 }).extend({
   voucherNumber: z.string().min(1, "Voucher number is required"),
   voucherType: z.string().min(1, "Voucher type is required"),
@@ -608,6 +610,7 @@ export const insertReceiptSchema = createInsertSchema(receipts).pick({
     message: "Amount must be a valid positive number",
   }),
   remarks: z.string().optional(),
+  primaryEmail: z.string().email("Invalid email address").optional().or(z.literal("")),
 });
 
 export type InsertReceipt = z.infer<typeof insertReceiptSchema>;
