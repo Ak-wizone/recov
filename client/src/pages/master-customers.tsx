@@ -311,16 +311,12 @@ export default function MasterCustomers() {
           return (
             <div 
               onClick={(e) => {
-                console.log("Category wrapper clicked!");
                 e.stopPropagation();
               }}
-              className="relative"
             >
               <Select
                 value={row.original.category}
-                onOpenChange={(open) => console.log("Select onOpenChange:", open)}
                 onValueChange={(value) => {
-                  console.log("Category onValueChange triggered:", value);
                   if (autoUpgradeEnabled) {
                     toast({
                       title: "Auto-Upgrade Enabled",
@@ -592,16 +588,12 @@ export default function MasterCustomers() {
           return (
             <div 
               onClick={(e) => {
-                console.log("Sales Person wrapper clicked!");
                 e.stopPropagation();
               }}
-              className="relative"
             >
               <Select
                 value={row.original.salesPerson || ""}
-                onOpenChange={(open) => console.log("Sales Person onOpenChange:", open)}
                 onValueChange={(value) => {
-                  console.log("Sales Person onValueChange triggered:", value);
                   updateFieldMutation.mutate({
                     id: row.original.id,
                     field: "salesPerson",
