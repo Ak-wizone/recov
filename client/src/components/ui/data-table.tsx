@@ -336,9 +336,8 @@ export function DataTable<TData, TValue>({
           )}
         </div>
       </div>
-
       {enableBulkActions && hasSelection && (
-        <div className="flex items-center gap-2 p-3 bg-pastel-blue rounded-lg border border-pastel-blue-icon/20">
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-pastel-blue-icon/20 text-[#ffffff] bg-[#1ab7ff]">
           <span className="text-sm font-medium" data-testid="text-selected-count">
             {selectedRows.length} row(s) selected
           </span>
@@ -373,7 +372,6 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
       )}
-
       <div className="rounded-md border bg-card">
         <style>{`
           .scrollbar-horizontal::-webkit-scrollbar,
@@ -509,7 +507,6 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
       </div>
-
       {enablePagination && !isLoading && data.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -580,7 +577,6 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
       )}
-
       {enableColumnVisibility && (
         <ColumnChooser
           open={columnChooserOpen}
