@@ -98,8 +98,10 @@ export default function TelecmiConfig() {
     mutationFn: async () => {
       console.log("[TELECMI TEST] Starting connection test...");
       const response = await apiRequest("POST", "/api/telecmi/test-connection", {});
-      console.log("[TELECMI TEST] Response received:", response);
-      return response;
+      console.log("[TELECMI TEST] Raw response received:", response);
+      const data = await response.json();
+      console.log("[TELECMI TEST] Parsed JSON data:", data);
+      return data;
     },
     onSuccess: (data: any) => {
       console.log("[TELECMI TEST] onSuccess called with data:", data);
