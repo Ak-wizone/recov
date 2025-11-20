@@ -485,11 +485,14 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <div className="flex gap-2">
+        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setLocation(`/ledger?customerId=${row.original.customerId}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLocation(`/ledger?customerId=${row.original.customerId}`);
+            }}
             className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950"
             data-testid={`button-ledger-${row.original.customerId}`}
           >
@@ -498,7 +501,10 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setLocation(`/payment-analytics/scorecard?customerId=${row.original.customerId}`)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLocation(`/payment-analytics/scorecard?customerId=${row.original.customerId}`);
+            }}
             className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-950"
             data-testid={`button-payment-score-${row.original.customerId}`}
           >
@@ -509,7 +515,10 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleWhatsAppClick(row.original)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleWhatsAppClick(row.original);
+              }}
               className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
               data-testid={`button-whatsapp-${row.original.customerId}`}
             >
@@ -521,7 +530,10 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handleEmailClick(row.original)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEmailClick(row.original);
+              }}
               className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
               data-testid={`button-email-${row.original.customerId}`}
             >
@@ -534,7 +546,10 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onOpenCall(row.original)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenCall(row.original);
+                }}
                 className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950"
                 data-testid={`button-call-${row.original.customerId}`}
                 title="Call via Ringg.ai"
@@ -562,7 +577,10 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onOpenFollowUp(row.original)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenFollowUp(row.original);
+            }}
             data-testid={`button-followup-${row.original.customerId}`}
           >
             <MessageSquare className="h-4 w-4 mr-1" />
