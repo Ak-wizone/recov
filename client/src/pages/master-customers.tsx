@@ -783,7 +783,8 @@ export default function MasterCustomers() {
                     setSelectedCustomer(undefined);
                     setIsFormOpen(true);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                  variant="outline"
+                  className="shadow-md hover:shadow-lg transition-all duration-200"
                   data-testid="button-add-customer"
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -802,7 +803,7 @@ export default function MasterCustomers() {
                     setIsBulkUpdateOpen(true);
                   }}
                   variant="outline"
-                  className="shadow-md hover:shadow-lg transition-all duration-200 text-white bg-[#2563eb] hover:bg-[#1e40af]"
+                  className="shadow-md hover:shadow-lg transition-all duration-200"
                   data-testid="button-bulk-update"
                 >
                   <ListChecks className="mr-2 h-4 w-4" />
