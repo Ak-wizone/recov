@@ -411,11 +411,21 @@
 /* Force pointer-events on Select triggers and content */
 button[role="combobox"],
 [data-radix-select-trigger],
-[data-radix-select-content] {
+[data-radix-select-content],
+[data-radix-popper-content-wrapper] {
   pointer-events: auto !important;
 }
 
 /* Ensure Select dropdown content appears above sticky table headers */
-[data-radix-select-content] {
-  z-index: 50 !important;
+[data-radix-select-content],
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+/* Make sure OPEN Select content is visible even when parent has aria-hidden */
+[data-radix-select-content][data-state="open"],
+[aria-hidden="true"] [data-radix-select-content][data-state="open"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
