@@ -136,6 +136,38 @@ export default function MasterCustomers() {
     },
   });
 
+  const bulkUpdateMutation = useMutation({
+    mutationFn: async ({ customerIds, updates }: { customerIds: string[]; updates: any }) => {
+      const response = await apiRequest("POST", "/api/masters/customers/bulk-update", {
+        customerIds,
+        updates,
+      });
+      return response;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/recovery/category-logs"] });
+      toast({
+        title: "Success",
+        description: data.message,
+      });
+      setIsBulkUpdateOpen(false);
+      setBulkUpdateData({
+        category: "",
+        status: "",
+        interestRate: "",
+        interestApplicableFrom: "",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Bulk Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const exportMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch("/api/masters/customers/export");
@@ -978,12 +1010,18 @@ export default function MasterCustomers() {
             </Button>
             <Button
               onClick={() => {
-                // TODO: Add mutation call
-                console.log("Bulk update:", bulkUpdateData, selectedRowIds);
+                bulkUpdateMutation.mutate({
+                  customerIds: selectedRowIds,
+                  updates: bulkUpdateData,
+                });
               }}
+              disabled={bulkUpdateMutation.isPending}
               data-testid="button-confirm-bulk-update"
             >
-              Update {selectedRowIds.length} Customer{selectedRowIds.length > 1 ? 's' : ''}
+              {bulkUpdateMutation.isPending 
+                ? "Updating..." 
+                : `Update ${selectedRowIds.length} Customer${selectedRowIds.length > 1 ? 's' : ''}`
+              }
             </Button>
           </DialogFooter>
         </DialogContent>
