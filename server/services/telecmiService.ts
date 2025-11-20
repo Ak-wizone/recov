@@ -210,23 +210,26 @@ export class TelecmiService {
 
       console.log(`[TelecmiService] API Response:`, JSON.stringify(response, null, 2));
 
-      if (response.code === 200) {
+      // Piopiy API returns cmi_code instead of code
+      const statusCode = (response as any).cmi_code || response.code;
+      
+      if (statusCode === 200) {
         return {
           success: true,
-          requestId: response.data?.request_id,
+          requestId: response.request_id || response.data?.request_id,
           message: "Call initiated successfully",
         };
       }
 
       console.error(`[TelecmiService] Call failed with response:`, {
-        code: response.code,
+        code: statusCode,
         message: response.data?.message,
         fullResponse: response,
       });
 
       return {
         success: false,
-        error: response.data?.message || `Call initiation failed (code: ${response.code})`,
+        error: response.data?.message || `Call initiation failed (code: ${statusCode})`,
       };
     } catch (error: any) {
       console.error("[TelecmiService] Simple call error:", error);
@@ -303,23 +306,26 @@ export class TelecmiService {
 
       console.log(`[TelecmiService] AI Call API Response:`, JSON.stringify(response, null, 2));
 
-      if (response.code === 200) {
+      // Piopiy API returns cmi_code instead of code
+      const statusCode = (response as any).cmi_code || response.code;
+
+      if (statusCode === 200) {
         return {
           success: true,
-          requestId: response.data?.request_id,
+          requestId: response.request_id || response.data?.request_id,
           message: "AI call initiated successfully",
         };
       }
 
       console.error(`[TelecmiService] AI Call failed with response:`, {
-        code: response.code,
+        code: statusCode,
         message: response.data?.message,
         fullResponse: response,
       });
 
       return {
         success: false,
-        error: response.data?.message || `AI call initiation failed (code: ${response.code})`,
+        error: response.data?.message || `AI call initiation failed (code: ${statusCode})`,
       };
     } catch (error: any) {
       console.error("[TelecmiService] AI call error:", error);
