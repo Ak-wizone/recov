@@ -280,7 +280,6 @@ export function DataTable<TData, TValue>({
         key={row.id}
         data-state={row.getIsSelected() && "selected"}
         data-testid={`row-${row.id}`}
-        className="hover:bg-muted/50 transition-colors duration-150 cursor-pointer"
       >
         {row.getVisibleCells().map((cell) => (
           <TableCell key={cell.id} data-testid={`cell-${row.id}-${cell.column.id}`}>
