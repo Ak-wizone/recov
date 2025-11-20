@@ -16,10 +16,10 @@ import { Link } from "wouter";
 import type { TelecmiConfig } from "@shared/schema";
 
 const telecmiConfigFormSchema = z.object({
-  appId: z.string().min(1, "App ID is required"),
-  appSecret: z.string().min(1, "App Secret is required"),
-  fromNumber: z.string().min(1, "From Number is required").regex(/^\+?\d{1,15}$/, "Must be a valid phone number"),
-  answerUrl: z.string().optional().refine(
+  appId: z.string().trim().min(1, "App ID is required"),
+  appSecret: z.string().trim().min(1, "App Secret is required"),
+  fromNumber: z.string().trim().min(1, "From Number is required").regex(/^\+?\d{1,15}$/, "Must be a valid phone number"),
+  answerUrl: z.string().optional().transform(val => val?.trim() || undefined).refine(
     (val) => !val || val === "" || z.string().url().safeParse(val).success,
     { message: "Must be a valid URL" }
   ),

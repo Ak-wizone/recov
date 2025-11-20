@@ -328,7 +328,7 @@ export class TelecmiService {
 
   /**
    * Test Telecmi connection by validating credentials
-   * Makes a lightweight API call to verify authentication
+   * Validates credentials format and initialization (note: full API verification happens during actual calls)
    */
   async testConnection(tenantId: string): Promise<{
     connected: boolean;
@@ -344,43 +344,70 @@ export class TelecmiService {
         };
       }
 
-      console.log(`[TelecmiService] Testing connection for tenant ${tenantId} with App ID: ${config.appId}`);
+      // Trim credentials to remove any whitespace
+      const appId = (config.appId || "").toString().trim();
+      const appSecret = (config.appSecret || "").trim();
+      
+      console.log(`[TelecmiService] Testing connection for tenant ${tenantId}`);
+      console.log(`[TelecmiService] App ID: ${appId} (length: ${appId.length})`);
+      console.log(`[TelecmiService] App Secret length: ${appSecret.length}, first char code: ${appSecret.charCodeAt(0)}`);
+      
+      // Check for empty or whitespace-only credentials
+      if (!appId || !appSecret) {
+        return {
+          connected: false,
+          message: "App ID and App Secret cannot be empty. Please check your configuration.",
+        };
+      }
+      
+      // Check for hidden whitespace characters
+      if (appSecret !== appSecret.trim()) {
+        return {
+          connected: false,
+          message: "Your App Secret contains hidden whitespace characters. Please re-save your configuration to fix this.",
+          details: {
+            hint: "Try copying the secret again from Telecmi portal and paste it fresh"
+          }
+        };
+      }
       
       try {
-        // Initialize Piopiy client
-        const piopiy = new Piopiy(config.appId as any, config.appSecret);
+        // Initialize Piopiy client with trimmed credentials
+        const piopiy = new Piopiy(appId as any, appSecret);
         const action = new PiopiyAction();
         
-        // Make a lightweight test API call to verify credentials
-        // We'll create a minimal PCMO action without actually making a call
-        // The Piopiy SDK validates credentials during initialization and method calls
+        // Create a minimal PCMO action to verify SDK works
         action.speak("Test");
         const pcmo = action.PCMO();
         
-        // If we get here without errors, the credentials format is valid
-        // Note: Full validation would require actual API call to Telecmi servers
-        console.log(`[TelecmiService] Connection test successful for tenant ${tenantId}`);
+        // Verify PCMO output is valid
+        if (!pcmo || typeof pcmo !== 'string') {
+          throw new Error("Failed to generate valid PCMO");
+        }
+        
+        console.log(`[TelecmiService] ✅ Connection test successful for tenant ${tenantId}`);
         
         return {
           connected: true,
-          message: "Connection successful! Your Telecmi credentials are valid and the portal is properly mapped.",
+          message: "Connection successful! Credentials are properly formatted. Full verification occurs when making actual calls.",
           details: {
-            appId: config.appId,
+            appId: appId,
             fromNumber: config.fromNumber,
-            status: "Connected"
+            status: "Connected",
+            note: "API authentication is verified during actual call operations"
           }
         };
       } catch (initError: any) {
-        console.error(`[TelecmiService] Piopiy connection test failed:`, initError);
+        console.error(`[TelecmiService] ❌ Piopiy initialization failed:`, initError);
         
-        // Determine specific error message based on error type
-        let errorMessage = "Failed to validate Telecmi credentials. ";
-        if (initError.message?.includes("appId") || initError.message?.includes("appSecret")) {
-          errorMessage += "Please check your App ID and App Secret are correct.";
-        } else if (initError.message?.includes("auth") || initError.message?.includes("unauthorized")) {
-          errorMessage += "Authentication failed. Your credentials may be invalid or expired.";
+        // Provide helpful error messages
+        let errorMessage = "Failed to initialize Telecmi client. ";
+        if (initError.message?.includes("required") || initError.message?.includes("undefined")) {
+          errorMessage += "App ID or App Secret is missing or invalid format.";
+        } else if (initError.message?.includes("auth") || initError.message?.includes("401")) {
+          errorMessage += "Authentication failed. Please verify your credentials in Telecmi portal.";
         } else {
-          errorMessage += "Please verify your configuration.";
+          errorMessage += "Please check your App ID and App Secret are correct.";
         }
         
         return {
@@ -388,7 +415,8 @@ export class TelecmiService {
           message: errorMessage,
           details: {
             error: initError.message || "Invalid credentials",
-            appId: config.appId
+            appId: appId,
+            hint: "Verify credentials match exactly in Telecmi portal: https://telecmi.com"
           }
         };
       }
