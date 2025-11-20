@@ -673,7 +673,7 @@ export default function MasterCustomers() {
                   setIsBulkUpdateOpen(true);
                 }}
                 variant="outline"
-                className="shadow-md hover:shadow-lg transition-all duration-200 bg-purple-50 hover:bg-purple-100 border-purple-200"
+                className="shadow-md hover:shadow-lg transition-all duration-200 hover:bg-purple-100 border-purple-200 text-[#ffffff] bg-[#2563eb]"
                 data-testid="button-bulk-update"
               >
                 <ListChecks className="mr-2 h-4 w-4" />
