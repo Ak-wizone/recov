@@ -7786,6 +7786,9 @@ ${profile?.legalName || 'Company'}`;
   // Get debtors list with category-wise breakdown
   app.get("/api/debtors", async (req, res) => {
     try {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       const sessionUser = (req.session as any).user;
       const data = await storage.getDebtorsList(req.tenantId!);
       
@@ -7823,6 +7826,9 @@ ${profile?.legalName || 'Company'}`;
   // Get debtors follow-up statistics
   app.get("/api/debtors/followup-stats", async (req, res) => {
     try {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       const stats = await storage.getDebtorsFollowUpStats(req.tenantId!);
       res.json(stats);
     } catch (error: any) {
