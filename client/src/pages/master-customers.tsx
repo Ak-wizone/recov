@@ -309,10 +309,17 @@ export default function MasterCustomers() {
           const autoUpgradeEnabled =
             recoverySettings?.autoUpgradeEnabled ?? false;
           return (
-            <div onClick={(e) => e.stopPropagation()}>
+            <div 
+              onClick={(e) => {
+                console.log("Category wrapper clicked!");
+                e.stopPropagation();
+              }}
+              className="relative"
+            >
               <Select
                 value={row.original.category}
                 onValueChange={(value) => {
+                  console.log("Category onValueChange triggered:", value);
                   if (autoUpgradeEnabled) {
                     toast({
                       title: "Auto-Upgrade Enabled",
@@ -333,6 +340,7 @@ export default function MasterCustomers() {
                 <SelectTrigger
                   className={`h-8 w-32 ${categoryColors[row.original.category as keyof typeof categoryColors]} ${autoUpgradeEnabled ? "opacity-60 cursor-not-allowed" : ""}`}
                   data-testid={`select-category-${row.original.id}`}
+                  onClick={() => console.log("SelectTrigger clicked!")}
                 >
                   <SelectValue>{row.original.category}</SelectValue>
                 </SelectTrigger>
@@ -582,10 +590,17 @@ export default function MasterCustomers() {
         cell: ({ row }) => {
           const salesPersons = getSalesPersons();
           return (
-            <div onClick={(e) => e.stopPropagation()}>
+            <div 
+              onClick={(e) => {
+                console.log("Sales Person wrapper clicked!");
+                e.stopPropagation();
+              }}
+              className="relative"
+            >
               <Select
                 value={row.original.salesPerson || ""}
                 onValueChange={(value) => {
+                  console.log("Sales Person onValueChange triggered:", value);
                   updateFieldMutation.mutate({
                     id: row.original.id,
                     field: "salesPerson",
@@ -596,6 +611,7 @@ export default function MasterCustomers() {
                 <SelectTrigger
                   className="h-8 w-40 bg-gray-800 dark:bg-gray-700 text-white border-gray-600"
                   data-testid={`select-salesPerson-${row.original.id}`}
+                  onClick={() => console.log("SelectTrigger (Sales Person) clicked!")}
                 >
                   <SelectValue placeholder="Select person">
                     {row.original.salesPerson || "Select person"}
