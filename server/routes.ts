@@ -4703,6 +4703,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk update selected customers
+  app.post("/api/masters/customers/bulk-update", async (req, res) => {
+    try {
+      const { customerIds, updates } = req.body;
+      
+      if (!customerIds || !Array.isArray(customerIds) || customerIds.length === 0) {
+        return res.status(400).json({ message: "Customer IDs are required" });
+      }
+
+      if (!updates || typeof updates !== 'object') {
+        return res.status(400).json({ message: "Updates object is required" });
+      }
+
+      const updateData: any = {};
+      
+      if (updates.category) {
+        updateData.category = updates.category;
+      }
+      if (updates.status) {
+        updateData.isActive = updates.status;
+      }
+      if (updates.interestRate !== undefined && updates.interestRate !== "") {
+        updateData.interestRate = updates.interestRate.toString();
+      }
+      if (updates.interestApplicableFrom) {
+        updateData.interestApplicableFrom = updates.interestApplicableFrom;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: "At least one field must be updated" });
+      }
+
+      const updateResults = await Promise.all(
+        customerIds.map(async (customerId: string) => {
+          if (updateData.category) {
+            const response = await fetch(`${req.protocol}://${req.get('host')}/api/recovery/manual-category-change`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Cookie': req.headers.cookie || ''
+              },
+              body: JSON.stringify({
+                customerId,
+                newCategory: updateData.category,
+                reason: "Bulk category update from Customer Master",
+              })
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Failed to update category for customer ${customerId}`);
+            }
+            
+            const { category, ...otherUpdates } = updateData;
+            if (Object.keys(otherUpdates).length > 0) {
+              return storage.updateMasterCustomer(req.tenantId!, customerId, otherUpdates);
+            }
+            return null;
+          } else {
+            return storage.updateMasterCustomer(req.tenantId!, customerId, updateData);
+          }
+        })
+      );
+
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'customers',
+        action: 'update',
+        data: { bulkUpdate: true, count: customerIds.length }
+      });
+
+      res.json({ 
+        updated: customerIds.length, 
+        message: `Successfully updated ${customerIds.length} customer${customerIds.length > 1 ? 's' : ''}` 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Create master customer
   app.post("/api/masters/customers", async (req, res) => {
     try {
