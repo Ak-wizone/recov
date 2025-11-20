@@ -141,13 +141,6 @@ export function DataTable<TData, TValue>({
     }
   }, [globalFilter, columnFilters, onFiltersChange]);
 
-  useEffect(() => {
-    if (onRowSelectionChange) {
-      const selectedIds = Object.keys(rowSelection).filter(key => rowSelection[key]);
-      onRowSelectionChange(selectedIds);
-    }
-  }, [rowSelection, onRowSelectionChange]);
-
   const columnsWithSelection = useMemo<ColumnDef<TData, TValue>[]>(() => {
     if (!enableRowSelection) return columns;
 
@@ -207,6 +200,13 @@ export function DataTable<TData, TValue>({
 
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const hasSelection = selectedRows.length > 0;
+
+  useEffect(() => {
+    if (onRowSelectionChange) {
+      const selectedIds = selectedRows.map(row => (row.original as any).id);
+      onRowSelectionChange(selectedIds);
+    }
+  }, [rowSelection, onRowSelectionChange, selectedRows]);
 
   const handleDeleteSelected = async () => {
     if (!onDeleteSelected || !hasSelection) return;
