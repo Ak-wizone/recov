@@ -280,7 +280,6 @@ export function DataTable<TData, TValue>({
         key={row.id}
         data-state={row.getIsSelected() && "selected"}
         data-testid={`row-${row.id}`}
-        className="relative z-20"
       >
         {row.getVisibleCells().map((cell) => (
           <TableCell key={cell.id} data-testid={`cell-${row.id}-${cell.column.id}`}>
