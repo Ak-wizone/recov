@@ -202,7 +202,7 @@ export default function MasterCustomers() {
       );
       return response;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
       queryClient.invalidateQueries({
         queryKey: ["/api/recovery/category-logs"],
