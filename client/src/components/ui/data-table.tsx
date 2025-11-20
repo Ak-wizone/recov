@@ -320,8 +320,12 @@ export function DataTable<TData, TValue>({
           )}
         </div>
 
-        <div className="flex gap-2 w-full sm:w-auto">
-          {customToolbarActions}
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          {customToolbarActions && (
+            <div className="flex flex-wrap gap-2">
+              {customToolbarActions}
+            </div>
+          )}
           {enableColumnVisibility && (
             <Button
               variant="outline"
@@ -416,14 +420,9 @@ export function DataTable<TData, TValue>({
             scrollbarColor: "rgb(156 163 175) transparent"
           }}
         >
-          {/* Inner container for vertical scrolling */}
+          {/* Inner container - no vertical scroll, table expands naturally */}
           <div 
-            className="relative overflow-y-auto scrollbar-vertical"
-            style={{ 
-              maxHeight: "calc(100vh - 420px)",
-              scrollbarWidth: "auto",
-              scrollbarColor: "rgb(156 163 175) transparent"
-            }}
+            className="relative"
           >
             <Table className="min-w-max relative">
               <TableHeader>
