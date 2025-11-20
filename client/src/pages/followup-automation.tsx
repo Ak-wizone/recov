@@ -538,10 +538,12 @@ export default function FollowupAutomationPage() {
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           12 default templates pre-configured for payment reminders
                         </p>
-                        <Button variant="outline" className="w-full" disabled data-testid="button-call-templates">
-                          Manage Templates (Coming Soon)
-                          <ArrowRight className="h-4 w-4 ml-2" />
-                        </Button>
+                        <Link href="/credit-control/call-templates">
+                          <Button variant="outline" className="w-full" data-testid="button-call-templates">
+                            Manage Templates
+                            <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        </Link>
                       </div>
                     </CardContent>
                   </Card>

@@ -33,6 +33,7 @@ import RinggConfig from "@/pages/ringg-config";
 import RinggScriptMappings from "@/pages/ringg-script-mappings";
 import RinggCallHistory from "@/pages/ringg-call-history";
 import TelecmiConfig from "@/pages/telecmi-config";
+import CallTemplates from "@/pages/call-templates";
 import CommunicationSchedules from "@/pages/communication-schedules";
 import ClientRiskThermometer from "@/pages/client-risk-thermometer";
 import PaymentRiskForecaster from "@/pages/payment-risk-forecaster";
@@ -125,6 +126,7 @@ function Router() {
               <Route path="/ringg-script-mappings" component={RinggScriptMappings} />
               <Route path="/ringg-call-history" component={RinggCallHistory} />
               <Route path="/telecmi-config" component={TelecmiConfig} />
+              <Route path="/credit-control/call-templates" component={CallTemplates} />
               <Route path="/communication-schedules" component={CommunicationSchedules} />
               <Route path="/settings/roles" component={Roles} />
               <Route path="/settings/users" component={Users} />

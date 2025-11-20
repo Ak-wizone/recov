@@ -6,7 +6,7 @@ import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { requirePermission, requireAnyPermission } from "./permissions";
 import { wsManager } from "./websocket";
 import { ALL_DASHBOARD_CARDS, ALL_ACTION_PERMISSIONS, getFullAdminPermissions } from "./constants/permissions";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertTelecmiConfigSchema, insertCallScriptMappingSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema, callLogs } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertTelecmiConfigSchema, insertCallScriptMappingSchema, insertCallTemplateSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema, callLogs } from "@shared/schema";
 import { createTransporter, sendEmail, testEmailConnection } from "./email-service";
 import { getEnrichedEmailVariables, renderTemplate } from "./email-utils";
 import { sendWhatsAppMessage } from "./whatsapp-service";
@@ -11953,6 +11953,17 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Get all call templates (for management page)
+  app.get("/api/call-templates", async (req, res) => {
+    try {
+      const templates = await storage.getCallTemplates(req.tenantId!);
+      res.json(templates);
+    } catch (error: any) {
+      console.error("Failed to fetch call templates:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get call templates for a module
   app.get("/api/call-templates/:module", async (req, res) => {
     try {
@@ -11970,6 +11981,109 @@ ${profile?.legalName || 'Company'}`;
       res.json(filteredTemplates);
     } catch (error: any) {
       console.error("Failed to fetch call templates:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Create call template
+  app.post("/api/call-templates", async (req, res) => {
+    try {
+      const validated = insertCallTemplateSchema.parse(req.body);
+      
+      // CRITICAL: Force isDefault to "No" for user-created templates
+      // Only system-seeded templates can have isDefault = "Yes"
+      const templateData = {
+        ...validated,
+        isDefault: "No" as const,
+      };
+      
+      const template = await storage.createCallTemplate(req.tenantId!, templateData);
+      res.json(template);
+    } catch (error: any) {
+      console.error("Failed to create call template:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid template data", errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Update call template
+  app.put("/api/call-templates/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if template exists and belongs to tenant
+      const existing = await storage.getCallTemplateById(id);
+      if (!existing) {
+        return res.status(404).json({ message: "Call template not found" });
+      }
+
+      if (existing.tenantId !== req.tenantId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      // CRITICAL: Prevent editing default templates
+      if (existing.isDefault === "Yes") {
+        return res.status(403).json({ message: "Cannot edit default templates. Create a custom template instead." });
+      }
+
+      const validated = insertCallTemplateSchema.partial().parse(req.body);
+      
+      // CRITICAL: Remove isDefault from updates - users cannot change this field
+      // Only system-seeded templates can have isDefault = "Yes"
+      const { isDefault, ...updateData } = validated;
+      
+      // If user tried to change isDefault, warn them
+      if (isDefault !== undefined && isDefault !== existing.isDefault) {
+        console.warn(`[SECURITY] Tenant ${req.tenantId} attempted to change isDefault for template ${id}`);
+      }
+
+      const template = await storage.updateCallTemplate(req.tenantId!, id, updateData);
+      
+      if (!template) {
+        return res.status(404).json({ message: "Call template not found" });
+      }
+
+      res.json(template);
+    } catch (error: any) {
+      console.error("Failed to update call template:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid template data", errors: error.errors });
+      }
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Delete call template
+  app.delete("/api/call-templates/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      // Check if template exists and belongs to tenant
+      const existing = await storage.getCallTemplateById(id);
+      if (!existing) {
+        return res.status(404).json({ message: "Call template not found" });
+      }
+
+      if (existing.tenantId !== req.tenantId) {
+        return res.status(403).json({ message: "Unauthorized" });
+      }
+
+      // CRITICAL: Prevent deleting default templates
+      if (existing.isDefault === "Yes") {
+        return res.status(403).json({ message: "Cannot delete default templates. They are protected system templates." });
+      }
+
+      const success = await storage.deleteCallTemplate(req.tenantId!, id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Call template not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Failed to delete call template:", error);
       res.status(500).json({ message: error.message });
     }
   });
