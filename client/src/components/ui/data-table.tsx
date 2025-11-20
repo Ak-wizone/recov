@@ -291,7 +291,7 @@ export function DataTable<TData, TValue>({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 data-table-interactive">
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex flex-1 flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {enableGlobalFilter && (

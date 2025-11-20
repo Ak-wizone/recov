@@ -398,3 +398,11 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Targeted fix for DataTable interactions when Radix Select opens */
+/* Radix Select Portal sets aria-hidden on #root/app container, blocking table clicks */
+/* This descendant selector allows table to remain clickable during Select operations */
+[aria-hidden="true"] .data-table-interactive,
+[aria-hidden="true"] .data-table-interactive * {
+  pointer-events: auto !important;
+}
