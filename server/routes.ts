@@ -4738,23 +4738,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateResults = await Promise.all(
         customerIds.map(async (customerId: string) => {
           if (updateData.category) {
-            const response = await fetch(`${req.protocol}://${req.get('host')}/api/recovery/manual-category-change`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Cookie': req.headers.cookie || ''
-              },
-              body: JSON.stringify({
-                customerId,
-                newCategory: updateData.category,
-                reason: "Bulk category update from Customer Master",
-              })
-            });
-            
-            if (!response.ok) {
-              throw new Error(`Failed to update category for customer ${customerId}`);
+            // Get customer info for logging
+            const customer = await storage.getMasterCustomer(req.tenantId!, customerId);
+            if (!customer) {
+              throw new Error(`Customer ${customerId} not found`);
             }
-            
+
+            // Update category
+            await storage.updateMasterCustomer(req.tenantId!, customerId, { category: updateData.category });
+
+            // Log the change
+            await storage.createCategoryLog(req.tenantId!, {
+              customerId,
+              customerName: customer.clientName,
+              oldCategory: customer.category,
+              newCategory: updateData.category,
+              changeType: "manual",
+              reason: "Bulk category update from Customer Master",
+              changedBy: req.user?.id || "system",
+              timestamp: new Date().toISOString(),
+            });
+
+            // Update other fields if present
             const { category, ...otherUpdates } = updateData;
             if (Object.keys(otherUpdates).length > 0) {
               return storage.updateMasterCustomer(req.tenantId!, customerId, otherUpdates);
