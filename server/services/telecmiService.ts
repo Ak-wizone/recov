@@ -154,7 +154,9 @@ export class TelecmiService {
         appSecretLength: config.appSecret?.length || 0,
       });
       // Note: Piopiy TS definitions say string but runtime checks for number
-      const piopiy = new Piopiy(config.appId as any, config.appSecret);
+      // Piopiy SDK expects appId as NUMBER, appSecret as STRING
+      const appId = parseInt((config.appId || "").toString());
+      const piopiy = new Piopiy(appId, config.appSecret);
       const action = new PiopiyAction();
 
       // Build the script from template
@@ -260,7 +262,9 @@ export class TelecmiService {
         appSecretLength: config.appSecret?.length || 0,
       });
       // Note: Piopiy TS definitions say string but runtime checks for number
-      const piopiy = new Piopiy(config.appId as any, config.appSecret);
+      // Piopiy SDK expects appId as NUMBER, appSecret as STRING
+      const appId = parseInt((config.appId || "").toString());
+      const piopiy = new Piopiy(appId, config.appSecret);
       const action = new PiopiyAction();
 
       // Initial greeting
@@ -344,23 +348,34 @@ export class TelecmiService {
         };
       }
 
-      // Trim credentials to remove any whitespace
-      const appId = (config.appId || "").toString().trim();
+      // Trim and validate credentials
+      const appIdStr = (config.appId || "").toString().trim();
       const appSecret = (config.appSecret || "").trim();
       
+      // Piopiy SDK expects appId as NUMBER, appSecret as STRING
+      const appId = parseInt(appIdStr);
+      
       console.log(`[TelecmiService] Testing connection for tenant ${tenantId}`);
-      console.log(`[TelecmiService] App ID: ${appId} (length: ${appId.length})`);
+      console.log(`[TelecmiService] App ID: ${appId} (type: ${typeof appId}, isNumber: ${!isNaN(appId)})`);
       console.log(`[TelecmiService] App Secret length: ${appSecret.length}, first char code: ${appSecret.charCodeAt(0)}`);
       
       // Check for empty or whitespace-only credentials
-      if (!appId || !appSecret) {
+      if (!appIdStr || !appSecret) {
         return {
           connected: false,
           message: "App ID and App Secret cannot be empty. Please check your configuration.",
         };
       }
       
-      // Check for hidden whitespace characters
+      // Check if appId is a valid number
+      if (isNaN(appId)) {
+        return {
+          connected: false,
+          message: "App ID must be a valid number. Please check your configuration.",
+        };
+      }
+      
+      // Check for hidden whitespace characters in secret
       if (appSecret !== appSecret.trim()) {
         return {
           connected: false,
@@ -372,8 +387,8 @@ export class TelecmiService {
       }
       
       try {
-        // Initialize Piopiy client with trimmed credentials
-        const piopiy = new Piopiy(appId as any, appSecret);
+        // Initialize Piopiy client with correct types: NUMBER for appId, STRING for secret
+        const piopiy = new Piopiy(appId, appSecret);
         const action = new PiopiyAction();
         
         // Create a minimal PCMO action to verify SDK works
