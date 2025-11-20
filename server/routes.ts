@@ -4748,15 +4748,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.updateMasterCustomer(req.tenantId!, customerId, { category: updateData.category });
 
             // Log the change
-            await storage.createCategoryLog(req.tenantId!, {
+            await storage.logCategoryChange(req.tenantId!, {
               customerId,
               customerName: customer.clientName,
-              oldCategory: customer.category,
-              newCategory: updateData.category,
+              oldCategory: customer.category as "Alpha" | "Beta" | "Gamma" | "Delta",
+              newCategory: updateData.category as "Alpha" | "Beta" | "Gamma" | "Delta",
               changeType: "manual",
               reason: "Bulk category update from Customer Master",
               changedBy: req.user?.id || "system",
-              timestamp: new Date().toISOString(),
             });
 
             // Update other fields if present
