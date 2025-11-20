@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Upload, Download, Pencil, Trash2, Users, CheckCircle2, AlertCircle, Award, CheckCircle, XCircle, Percent } from "lucide-react";
+import { Plus, Upload, Download, Pencil, Trash2, Users, CheckCircle2, AlertCircle, Award, CheckCircle, XCircle, Percent, ListChecks } from "lucide-react";
 import { MasterCustomerFormDialog } from "@/components/master-customer-form-dialog";
 import { DataTable } from "@/components/ui/data-table";
 import { ImportModal } from "@/components/import-modal";
@@ -26,6 +26,14 @@ export default function MasterCustomers() {
   const [isBulkInterestOpen, setIsBulkInterestOpen] = useState(false);
   const [bulkInterestRate, setBulkInterestRate] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<MasterCustomer | undefined>(undefined);
+  const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
+  const [bulkUpdateData, setBulkUpdateData] = useState({
+    category: "",
+    status: "",
+    interestRate: "",
+    interestApplicableFrom: "",
+  });
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
 
   const { data: customers = [], isLoading } = useQuery<MasterCustomer[]>({
     queryKey: ["/api/masters/customers"],
@@ -619,6 +627,25 @@ export default function MasterCustomers() {
               >
                 <Percent className="mr-2 h-4 w-4" />
                 Set Interest Rate
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedRowIds.length === 0) {
+                    toast({
+                      title: "No Customers Selected",
+                      description: "Please select at least one customer to update",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  setIsBulkUpdateOpen(true);
+                }}
+                variant="outline"
+                className="shadow-md hover:shadow-lg transition-all duration-200 bg-purple-50 hover:bg-purple-100 border-purple-200"
+                data-testid="button-bulk-update"
+              >
+                <ListChecks className="mr-2 h-4 w-4" />
+                Bulk Update
               </Button>
               <Button
                 onClick={() => {
