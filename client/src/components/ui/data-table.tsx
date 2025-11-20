@@ -61,6 +61,7 @@ interface DataTableProps<TData, TValue> {
   onDeleteSelected?: (rows: TData[]) => void | Promise<void>;
   onExportSelected?: (rows: TData[]) => void | Promise<void>;
   onFiltersChange?: (filters: { globalFilter: string; columnFilters: ColumnFiltersState }) => void;
+  onRowSelectionChange?: (selectedRowIds: string[]) => void;
   customBulkActions?: (selectedRows: TData[]) => React.ReactNode;
   isLoading?: boolean;
   emptyMessage?: string;
@@ -81,6 +82,7 @@ export function DataTable<TData, TValue>({
   onDeleteSelected,
   onExportSelected,
   onFiltersChange,
+  onRowSelectionChange,
   customBulkActions,
   isLoading = false,
   emptyMessage = "No data available.",
@@ -138,6 +140,13 @@ export function DataTable<TData, TValue>({
       onFiltersChange({ globalFilter, columnFilters });
     }
   }, [globalFilter, columnFilters, onFiltersChange]);
+
+  useEffect(() => {
+    if (onRowSelectionChange) {
+      const selectedIds = Object.keys(rowSelection).filter(key => rowSelection[key]);
+      onRowSelectionChange(selectedIds);
+    }
+  }, [rowSelection, onRowSelectionChange]);
 
   const columnsWithSelection = useMemo<ColumnDef<TData, TValue>[]>(() => {
     if (!enableRowSelection) return columns;

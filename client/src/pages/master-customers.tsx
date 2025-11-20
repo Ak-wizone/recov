@@ -808,6 +808,7 @@ export default function MasterCustomers() {
             isLoading={isLoading}
             onDeleteSelected={handleDeleteSelected}
             onExportSelected={handleExportSelected}
+            onRowSelectionChange={setSelectedRowIds}
             enableRowSelection={true}
             enableBulkActions={true}
             enableGlobalFilter={true}
