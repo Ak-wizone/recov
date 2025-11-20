@@ -9508,6 +9508,45 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Make a test call via Telecmi (simple verification call)
+  app.post("/api/telecmi/test-call", async (req, res) => {
+    try {
+      const { phoneNumber } = req.body;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ 
+          success: false,
+          message: "Phone number is required" 
+        });
+      }
+
+      // Make a simple test call with a generic message
+      const result = await telecmiService.makeSimpleCall(req.tenantId!, {
+        to: phoneNumber,
+        callMode: "simple",
+        language: "english",
+        scriptText: "Hello! This is a test call from RECOV payment recovery platform. Your Telecmi integration is working successfully. Thank you!",
+        context: {}
+      });
+
+      console.log(`[API] Test call result:`, result);
+
+      res.json({
+        success: result.success,
+        message: result.success 
+          ? `Test call initiated successfully to ${phoneNumber}. Request ID: ${result.requestId}` 
+          : result.error || "Failed to initiate test call",
+        requestId: result.requestId
+      });
+    } catch (error: any) {
+      console.error("[API] Test call error:", error);
+      res.status(500).json({ 
+        success: false,
+        message: error.message || "Failed to make test call"
+      });
+    }
+  });
+
   // Create or update Telecmi configuration
   app.post("/api/telecmi/config", async (req, res) => {
     try {

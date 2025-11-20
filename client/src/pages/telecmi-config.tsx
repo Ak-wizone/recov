@@ -9,9 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Phone, Info, Eye, EyeOff, ArrowLeft, Copy, CheckCircle2, Shield, Zap, AlertCircle } from "lucide-react";
+import { Loader2, Phone, Info, Eye, EyeOff, ArrowLeft, Copy, CheckCircle2, Shield, Zap, AlertCircle, PhoneCall } from "lucide-react";
 import { Link } from "wouter";
 import type { TelecmiConfig } from "@shared/schema";
 
@@ -38,6 +40,8 @@ export default function TelecmiConfig() {
     message: string;
     details?: any;
   } | null>(null);
+  const [showTestCallDialog, setShowTestCallDialog] = useState(false);
+  const [testCallNumber, setTestCallNumber] = useState("");
 
   const { data: config, isLoading } = useQuery<TelecmiConfig | null>({
     queryKey: ["/api/telecmi/config"],
@@ -133,6 +137,36 @@ export default function TelecmiConfig() {
     },
   });
 
+  const testCallMutation = useMutation({
+    mutationFn: async (phoneNumber: string) => {
+      console.log("[TEST CALL] Initiating test call to:", phoneNumber);
+      const response = await apiRequest("POST", "/api/telecmi/test-call", { phoneNumber });
+      const data = await response.json();
+      console.log("[TEST CALL] Response:", data);
+      return data;
+    },
+    onSuccess: (data: any) => {
+      console.log("[TEST CALL] Success:", data);
+      toast({
+        title: data.success ? "✅ Test Call Initiated" : "❌ Test Call Failed",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+      if (data.success) {
+        setShowTestCallDialog(false);
+        setTestCallNumber("");
+      }
+    },
+    onError: (error: Error) => {
+      console.error("[TEST CALL] Error:", error);
+      toast({
+        title: "❌ Test Call Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const copyWebhookSecret = () => {
     if (webhookSecret?.secret) {
       navigator.clipboard.writeText(webhookSecret.secret);
@@ -143,6 +177,18 @@ export default function TelecmiConfig() {
       });
       setTimeout(() => setCopiedWebhookSecret(false), 2000);
     }
+  };
+
+  const handleTestCall = () => {
+    if (!testCallNumber.trim()) {
+      toast({
+        title: "Phone number required",
+        description: "Please enter a phone number to call",
+        variant: "destructive",
+      });
+      return;
+    }
+    testCallMutation.mutate(testCallNumber);
   };
 
   const onSubmit = (data: TelecmiConfigFormValues) => {
@@ -421,33 +467,116 @@ export default function TelecmiConfig() {
             </Button>
             
             {config && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => testConnectionMutation.mutate()}
-                disabled={testConnectionMutation.isPending}
-                data-testid="button-test-connection"
-              >
-                {testConnectionMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Testing...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-4 w-4 mr-2" />
-                    Test Connection
-                  </>
-                )}
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => testConnectionMutation.mutate()}
+                  disabled={testConnectionMutation.isPending}
+                  data-testid="button-test-connection"
+                >
+                  {testConnectionMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-4 w-4 mr-2" />
+                      Test Connection
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowTestCallDialog(true)}
+                  disabled={!connectionStatus?.connected}
+                  data-testid="button-test-call"
+                  className="bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900"
+                >
+                  <PhoneCall className="h-4 w-4 mr-2" />
+                  Test Call
+                </Button>
+              </>
             )}
           </div>
         </form>
       </Form>
+
+      {/* Test Call Dialog */}
+      <Dialog open={showTestCallDialog} onOpenChange={setShowTestCallDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PhoneCall className="h-5 w-5 text-green-600" />
+              Make Test Call
+            </DialogTitle>
+            <DialogDescription>
+              Enter a phone number to receive a test call. This will verify that Telecmi integration is working correctly.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="test-phone-number">Phone Number *</Label>
+              <Input
+                id="test-phone-number"
+                type="tel"
+                placeholder="+919876543210"
+                value={testCallNumber}
+                onChange={(e) => setTestCallNumber(e.target.value)}
+                data-testid="input-test-call-number"
+              />
+              <p className="text-xs text-gray-500">
+                Include country code (e.g., +91 for India)
+              </p>
+            </div>
+
+            {connectionStatus?.connected && (
+              <Alert>
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  You will receive an automated test call with a confirmation message if the integration is working properly.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowTestCallDialog(false);
+                setTestCallNumber("");
+              }}
+              disabled={testCallMutation.isPending}
+              data-testid="button-cancel-test-call"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleTestCall}
+              disabled={testCallMutation.isPending}
+              data-testid="button-confirm-test-call"
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {testCallMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Calling...
+                </>
+              ) : (
+                <>
+                  <PhoneCall className="h-4 w-4 mr-2" />
+                  Make Call
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}
-
-function Label({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <label className={className}>{children}</label>;
 }
