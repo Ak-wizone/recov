@@ -837,7 +837,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
         }}
       >
         <div 
-          className="overflow-y-auto" 
+          className="overflow-y-auto relative" 
           style={{ 
             minHeight: "500px",
             maxHeight: "calc(100vh - 350px)",
@@ -848,13 +848,13 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
+                <TableRow key={headerGroup.id} className="sticky top-0 z-30 bg-background" style={{ height: '48px' }}>
                   {headerGroup.headers.map((header) => {
                     const isSortable = header.column.getCanSort();
                     const sortDirection = header.column.getIsSorted();
                     
                     return (
-                      <TableHead key={header.id} className="sticky top-0 z-30 py-3 h-12 bg-background border-b">
+                      <TableHead key={header.id} className="py-3 bg-background border-b" style={{ height: '48px' }}>
                         {header.isPlaceholder ? null : (
                           <div
                             className={`flex items-center gap-2 ${
@@ -886,13 +886,13 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                 </TableRow>
               ))}
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={`filter-${headerGroup.id}`}>
+                <TableRow key={`filter-${headerGroup.id}`} className="sticky z-30 bg-background" style={{ top: '48px', height: '48px' }}>
                   {headerGroup.headers.map((header) => {
                     const canFilter = header.column.getCanFilter();
                     const columnFilterValue = header.column.getFilterValue();
 
                     return (
-                      <TableHead key={`filter-${header.id}`} className="sticky top-12 z-30 py-2 h-12 bg-background border-b">
+                      <TableHead key={`filter-${header.id}`} className="py-2 bg-background border-b" style={{ height: '48px' }}>
                         {canFilter ? (
                           <Input
                             type="text"
@@ -909,10 +909,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                 </TableRow>
               ))}
             </TableHeader>
-            <TableBody className="relative">
-              <TableRow className="h-24 pointer-events-none">
-                <TableCell colSpan={columns.length} className="p-0 border-0" />
-              </TableRow>
+            <TableBody style={{ paddingTop: '0px' }}>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
