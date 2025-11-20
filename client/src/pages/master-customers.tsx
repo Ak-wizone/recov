@@ -5,11 +5,37 @@ import { MasterCustomer } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Upload, Download, Pencil, Trash2, Users, CheckCircle2, AlertCircle, Award, CheckCircle, XCircle, Percent, ListChecks } from "lucide-react";
+import {
+  Plus,
+  Upload,
+  Download,
+  Pencil,
+  Trash2,
+  Users,
+  CheckCircle2,
+  AlertCircle,
+  Award,
+  CheckCircle,
+  XCircle,
+  Percent,
+  ListChecks,
+} from "lucide-react";
 import { MasterCustomerFormDialog } from "@/components/master-customer-form-dialog";
 import { DataTable } from "@/components/ui/data-table";
 import { ImportModal } from "@/components/import-modal";
@@ -26,7 +52,9 @@ export default function MasterCustomers() {
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isBulkInterestOpen, setIsBulkInterestOpen] = useState(false);
   const [bulkInterestRate, setBulkInterestRate] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<MasterCustomer | undefined>(undefined);
+  const [selectedCustomer, setSelectedCustomer] = useState<
+    MasterCustomer | undefined
+  >(undefined);
   const [isBulkUpdateOpen, setIsBulkUpdateOpen] = useState(false);
   const [bulkUpdateData, setBulkUpdateData] = useState({
     category: "",
@@ -40,7 +68,9 @@ export default function MasterCustomers() {
     queryKey: ["/api/masters/customers"],
   });
 
-  const { data: recoverySettings } = useQuery<{ autoUpgradeEnabled: boolean } | null>({
+  const { data: recoverySettings } = useQuery<{
+    autoUpgradeEnabled: boolean;
+  } | null>({
     queryKey: ["/api/recovery/settings"],
   });
 
@@ -71,17 +101,29 @@ export default function MasterCustomers() {
   });
 
   const updateFieldMutation = useMutation({
-    mutationFn: async ({ id, field, value }: { id: string; field: string; value: string }) => {
+    mutationFn: async ({
+      id,
+      field,
+      value,
+    }: {
+      id: string;
+      field: string;
+      value: string;
+    }) => {
       // If updating category, use the manual category change endpoint
       if (field === "category") {
-        const customer = customers.find(c => c.id === id);
+        const customer = customers.find((c) => c.id === id);
         if (!customer) throw new Error("Customer not found");
 
-        const response = await apiRequest("POST", "/api/recovery/manual-category-change", {
-          customerId: id,
-          newCategory: value,
-          reason: "Manual category change from Customer Master",
-        });
+        const response = await apiRequest(
+          "POST",
+          "/api/recovery/manual-category-change",
+          {
+            customerId: id,
+            newCategory: value,
+            reason: "Manual category change from Customer Master",
+          },
+        );
         return response;
       }
 
@@ -97,7 +139,9 @@ export default function MasterCustomers() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
       if (variables.field === "category") {
-        queryClient.invalidateQueries({ queryKey: ["/api/recovery/category-logs"] });
+        queryClient.invalidateQueries({
+          queryKey: ["/api/recovery/category-logs"],
+        });
       }
     },
     onError: (error: Error) => {
@@ -111,11 +155,14 @@ export default function MasterCustomers() {
 
   const bulkUpdateInterestMutation = useMutation({
     mutationFn: async (interestRate: string) => {
-      const response = await fetch("/api/masters/customers/bulk-update-interest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ interestRate }),
-      });
+      const response = await fetch(
+        "/api/masters/customers/bulk-update-interest",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ interestRate }),
+        },
+      );
       if (!response.ok) throw new Error("Failed to update interest rate");
       return response.json();
     },
@@ -138,16 +185,28 @@ export default function MasterCustomers() {
   });
 
   const bulkUpdateMutation = useMutation({
-    mutationFn: async ({ customerIds, updates }: { customerIds: string[]; updates: any }) => {
-      const response = await apiRequest("POST", "/api/masters/customers/bulk-update", {
-        customerIds,
-        updates,
-      });
+    mutationFn: async ({
+      customerIds,
+      updates,
+    }: {
+      customerIds: string[];
+      updates: any;
+    }) => {
+      const response = await apiRequest(
+        "POST",
+        "/api/masters/customers/bulk-update",
+        {
+          customerIds,
+          updates,
+        },
+      );
       return response;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/recovery/category-logs"] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/recovery/category-logs"],
+      });
       toast({
         title: "Success",
         description: data.message,
@@ -199,15 +258,20 @@ export default function MasterCustomers() {
   });
 
   const categoryColors = {
-    Alpha: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
+    Alpha:
+      "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
     Beta: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700",
-    Gamma: "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700",
-    Delta: "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
+    Gamma:
+      "bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700",
+    Delta:
+      "bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
   };
 
   const statusColors = {
-    Active: "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
-    Inactive: "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600",
+    Active:
+      "bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
+    Inactive:
+      "bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600",
   };
 
   const formatCurrency = (amount: string | null | undefined) => {
@@ -224,10 +288,15 @@ export default function MasterCustomers() {
         header: "CLIENT NAME",
         cell: ({ row }) => (
           <div>
-            <div className="font-semibold text-gray-900 dark:text-gray-100" data-testid={`text-clientName-${row.original.id}`}>
+            <div
+              className="font-semibold text-gray-900 dark:text-gray-100"
+              data-testid={`text-clientName-${row.original.id}`}
+            >
               {row.original.clientName}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ID: #{row.original.id.slice(0, 8)}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              ID: #{row.original.id.slice(0, 8)}
+            </div>
           </div>
         ),
         enableSorting: true,
@@ -237,40 +306,44 @@ export default function MasterCustomers() {
         accessorKey: "category",
         header: "CATEGORY",
         cell: ({ row }) => {
-          const autoUpgradeEnabled = recoverySettings?.autoUpgradeEnabled ?? false;
+          const autoUpgradeEnabled =
+            recoverySettings?.autoUpgradeEnabled ?? false;
           return (
-            <Select
-              value={row.original.category}
-              onValueChange={(value) => {
-                if (autoUpgradeEnabled) {
-                  toast({
-                    title: "Auto-Upgrade Enabled",
-                    description: "Category changes are automatic. Disable auto-upgrade in Category Rules to manually change categories.",
-                    variant: "destructive",
+            <div onClick={(e) => e.stopPropagation()}>
+              <Select
+                value={row.original.category}
+                onValueChange={(value) => {
+                  if (autoUpgradeEnabled) {
+                    toast({
+                      title: "Auto-Upgrade Enabled",
+                      description:
+                        "Category changes are automatic. Disable auto-upgrade in Category Rules to manually change categories.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  updateFieldMutation.mutate({
+                    id: row.original.id,
+                    field: "category",
+                    value: value,
                   });
-                  return;
-                }
-                updateFieldMutation.mutate({
-                  id: row.original.id,
-                  field: "category",
-                  value: value,
-                });
-              }}
-              disabled={autoUpgradeEnabled}
-            >
-              <SelectTrigger
-                className={`h-8 w-32 ${categoryColors[row.original.category as keyof typeof categoryColors]} ${autoUpgradeEnabled ? 'opacity-60 cursor-not-allowed' : ''}`}
-                data-testid={`select-category-${row.original.id}`}
+                }}
+                disabled={autoUpgradeEnabled}
               >
-                <SelectValue>{row.original.category}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Alpha">Alpha</SelectItem>
-                <SelectItem value="Beta">Beta</SelectItem>
-                <SelectItem value="Gamma">Gamma</SelectItem>
-                <SelectItem value="Delta">Delta</SelectItem>
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  className={`h-8 w-32 ${categoryColors[row.original.category as keyof typeof categoryColors]} ${autoUpgradeEnabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                  data-testid={`select-category-${row.original.id}`}
+                >
+                  <SelectValue>{row.original.category}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Alpha">Alpha</SelectItem>
+                  <SelectItem value="Beta">Beta</SelectItem>
+                  <SelectItem value="Gamma">Gamma</SelectItem>
+                  <SelectItem value="Delta">Delta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           );
         },
         enableSorting: true,
@@ -280,7 +353,10 @@ export default function MasterCustomers() {
         accessorKey: "primaryContactName",
         header: "PRIMARY CONTACT",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-primaryContactName-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-primaryContactName-${row.original.id}`}
+          >
             {row.original.primaryContactName || "—"}
           </span>
         ),
@@ -290,7 +366,10 @@ export default function MasterCustomers() {
         accessorKey: "primaryMobile",
         header: "PRIMARY MOBILE",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-primaryMobile-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-primaryMobile-${row.original.id}`}
+          >
             {row.original.primaryMobile || "—"}
           </span>
         ),
@@ -300,7 +379,10 @@ export default function MasterCustomers() {
         accessorKey: "primaryEmail",
         header: "PRIMARY EMAIL",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-primaryEmail-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-primaryEmail-${row.original.id}`}
+          >
             {row.original.primaryEmail || "—"}
           </span>
         ),
@@ -310,7 +392,10 @@ export default function MasterCustomers() {
         accessorKey: "secondaryContactName",
         header: "SECONDARY CONTACT",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-secondaryContactName-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-secondaryContactName-${row.original.id}`}
+          >
             {row.original.secondaryContactName || "—"}
           </span>
         ),
@@ -320,7 +405,10 @@ export default function MasterCustomers() {
         accessorKey: "secondaryMobile",
         header: "SECONDARY MOBILE",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-secondaryMobile-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-secondaryMobile-${row.original.id}`}
+          >
             {row.original.secondaryMobile || "—"}
           </span>
         ),
@@ -330,7 +418,10 @@ export default function MasterCustomers() {
         accessorKey: "secondaryEmail",
         header: "SECONDARY EMAIL",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-secondaryEmail-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-secondaryEmail-${row.original.id}`}
+          >
             {row.original.secondaryEmail || "—"}
           </span>
         ),
@@ -340,7 +431,10 @@ export default function MasterCustomers() {
         accessorKey: "gstNumber",
         header: "GSTIN",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-gstNumber-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-gstNumber-${row.original.id}`}
+          >
             {row.original.gstNumber || "—"}
           </span>
         ),
@@ -350,7 +444,10 @@ export default function MasterCustomers() {
         accessorKey: "billingAddress",
         header: "BILLING ADDRESS",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-billingAddress-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-billingAddress-${row.original.id}`}
+          >
             {row.original.billingAddress || "—"}
           </span>
         ),
@@ -360,7 +457,10 @@ export default function MasterCustomers() {
         accessorKey: "city",
         header: "CITY",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-city-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-city-${row.original.id}`}
+          >
             {row.original.city || "—"}
           </span>
         ),
@@ -370,7 +470,10 @@ export default function MasterCustomers() {
         accessorKey: "state",
         header: "STATE",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-state-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-state-${row.original.id}`}
+          >
             {row.original.state || "—"}
           </span>
         ),
@@ -380,7 +483,10 @@ export default function MasterCustomers() {
         accessorKey: "pincode",
         header: "PINCODE",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-pincode-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-pincode-${row.original.id}`}
+          >
             {row.original.pincode || "—"}
           </span>
         ),
@@ -390,7 +496,10 @@ export default function MasterCustomers() {
         accessorKey: "paymentTermsDays",
         header: "PAYMENT TERMS (DAYS)",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-paymentTerms-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-paymentTerms-${row.original.id}`}
+          >
             {row.original.paymentTermsDays}
           </span>
         ),
@@ -400,7 +509,10 @@ export default function MasterCustomers() {
         accessorKey: "creditLimit",
         header: "CREDIT LIMIT",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-creditLimit-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300"
+            data-testid={`text-creditLimit-${row.original.id}`}
+          >
             {formatCurrency(row.original.creditLimit)}
           </span>
         ),
@@ -410,29 +522,31 @@ export default function MasterCustomers() {
         accessorKey: "interestApplicableFrom",
         header: "INTEREST APPLICABLE FROM",
         cell: ({ row }) => (
-          <Select
-            value={row.original.interestApplicableFrom || ""}
-            onValueChange={(value) => {
-              updateFieldMutation.mutate({
-                id: row.original.id,
-                field: "interestApplicableFrom",
-                value: value,
-              });
-            }}
-          >
-            <SelectTrigger
-              className="h-8 w-36"
-              data-testid={`select-interestApplicableFrom-${row.original.id}`}
+          <div onClick={(e) => e.stopPropagation()}>
+            <Select
+              value={row.original.interestApplicableFrom || ""}
+              onValueChange={(value) => {
+                updateFieldMutation.mutate({
+                  id: row.original.id,
+                  field: "interestApplicableFrom",
+                  value: value,
+                });
+              }}
             >
-              <SelectValue placeholder="Select">
-                {row.original.interestApplicableFrom || "—"}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Invoice Date">Invoice Date</SelectItem>
-              <SelectItem value="Due Date">Due Date</SelectItem>
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                className="h-8 w-36"
+                data-testid={`select-interestApplicableFrom-${row.original.id}`}
+              >
+                <SelectValue placeholder="Select">
+                  {row.original.interestApplicableFrom || "—"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Invoice Date">Invoice Date</SelectItem>
+                <SelectItem value="Due Date">Due Date</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         ),
         enableSorting: true,
       },
@@ -440,7 +554,10 @@ export default function MasterCustomers() {
         accessorKey: "interestRate",
         header: "INTEREST RATE",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300 font-medium" data-testid={`text-interestrate-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300 font-medium"
+            data-testid={`text-interestrate-${row.original.id}`}
+          >
             {row.original.interestRate ? `${row.original.interestRate}%` : "0%"}
           </span>
         ),
@@ -450,7 +567,10 @@ export default function MasterCustomers() {
         accessorKey: "openingBalance",
         header: "OPENING BALANCE",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300 font-medium" data-testid={`text-openingBalance-${row.original.id}`}>
+          <span
+            className="text-gray-700 dark:text-gray-300 font-medium"
+            data-testid={`text-openingBalance-${row.original.id}`}
+          >
             {formatCurrency(row.original.openingBalance)}
           </span>
         ),
@@ -462,32 +582,34 @@ export default function MasterCustomers() {
         cell: ({ row }) => {
           const salesPersons = getSalesPersons();
           return (
-            <Select
-              value={row.original.salesPerson || ""}
-              onValueChange={(value) => {
-                updateFieldMutation.mutate({
-                  id: row.original.id,
-                  field: "salesPerson",
-                  value: value,
-                });
-              }}
-            >
-              <SelectTrigger
-                className="h-8 w-40 bg-gray-800 dark:bg-gray-700 text-white border-gray-600"
-                data-testid={`select-salesPerson-${row.original.id}`}
+            <div onClick={(e) => e.stopPropagation()}>
+              <Select
+                value={row.original.salesPerson || ""}
+                onValueChange={(value) => {
+                  updateFieldMutation.mutate({
+                    id: row.original.id,
+                    field: "salesPerson",
+                    value: value,
+                  });
+                }}
               >
-                <SelectValue placeholder="Select person">
-                  {row.original.salesPerson || "Select person"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent className="z-50">
-                {salesPersons.map((person) => (
-                  <SelectItem key={person} value={person}>
-                    {person}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  className="h-8 w-40 bg-gray-800 dark:bg-gray-700 text-white border-gray-600"
+                  data-testid={`select-salesPerson-${row.original.id}`}
+                >
+                  <SelectValue placeholder="Select person">
+                    {row.original.salesPerson || "Select person"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="z-50">
+                  {salesPersons.map((person) => (
+                    <SelectItem key={person} value={person}>
+                      {person}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           );
         },
         enableSorting: true,
@@ -496,27 +618,29 @@ export default function MasterCustomers() {
         accessorKey: "isActive",
         header: "STATUS",
         cell: ({ row }) => (
-          <Select
-            value={row.original.isActive}
-            onValueChange={(value) => {
-              updateFieldMutation.mutate({
-                id: row.original.id,
-                field: "isActive",
-                value: value,
-              });
-            }}
-          >
-            <SelectTrigger
-              className={`h-8 w-32 ${statusColors[row.original.isActive as keyof typeof statusColors]}`}
-              data-testid={`select-status-${row.original.id}`}
+          <div onClick={(e) => e.stopPropagation()}>
+            <Select
+              value={row.original.isActive}
+              onValueChange={(value) => {
+                updateFieldMutation.mutate({
+                  id: row.original.id,
+                  field: "isActive",
+                  value: value,
+                });
+              }}
             >
-              <SelectValue>{row.original.isActive}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Active">Active</SelectItem>
-              <SelectItem value="Inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                className={`h-8 w-32 ${statusColors[row.original.isActive as keyof typeof statusColors]}`}
+                data-testid={`select-status-${row.original.id}`}
+              >
+                <SelectValue>{row.original.isActive}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         ),
         enableSorting: true,
       },
@@ -524,11 +648,12 @@ export default function MasterCustomers() {
         id: "actions",
         header: "Actions",
         cell: ({ row }) => (
-          <div className="flex gap-2">
+          <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setSelectedCustomer(row.original);
                 setIsFormOpen(true);
               }}
@@ -541,8 +666,13 @@ export default function MasterCustomers() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                if (window.confirm(`Are you sure you want to delete ${row.original.clientName}?`)) {
+              onClick={(e) => {
+                e.stopPropagation();
+                if (
+                  window.confirm(
+                    `Are you sure you want to delete ${row.original.clientName}?`,
+                  )
+                ) {
                   deleteMutation.mutate(row.original.id);
                 }
               }}
@@ -558,18 +688,29 @@ export default function MasterCustomers() {
         enableHiding: false,
       },
     ],
-    [deleteMutation, categoryColors, statusColors]
+    [
+      deleteMutation,
+      updateFieldMutation,
+      categoryColors,
+      statusColors,
+      recoverySettings,
+      toast,
+    ],
   );
 
   const handleDeleteSelected = async (rows: MasterCustomer[]) => {
-    if (window.confirm(`Are you sure you want to delete ${rows.length} customer(s)?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete ${rows.length} customer(s)?`,
+      )
+    ) {
       try {
         await Promise.all(
           rows.map((row) =>
             fetch(`/api/masters/customers/${row.id}`, {
               method: "DELETE",
-            })
-          )
+            }),
+          ),
         );
         queryClient.invalidateQueries({ queryKey: ["/api/masters/customers"] });
         toast({
@@ -605,7 +746,10 @@ export default function MasterCustomers() {
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Master Customers");
-    XLSX.writeFile(workbook, `master_customers_selected_${new Date().getTime()}.xlsx`);
+    XLSX.writeFile(
+      workbook,
+      `master_customers_selected_${new Date().getTime()}.xlsx`,
+    );
 
     toast({
       title: "Export Successful",
@@ -613,15 +757,17 @@ export default function MasterCustomers() {
     });
   };
 
-  const alphaCount = customers.filter(c => c.category === "Alpha").length;
-  const betaCount = customers.filter(c => c.category === "Beta").length;
-  const gammaCount = customers.filter(c => c.category === "Gamma").length;
-  const deltaCount = customers.filter(c => c.category === "Delta").length;
+  const alphaCount = customers.filter((c) => c.category === "Alpha").length;
+  const betaCount = customers.filter((c) => c.category === "Beta").length;
+  const gammaCount = customers.filter((c) => c.category === "Gamma").length;
+  const deltaCount = customers.filter((c) => c.category === "Delta").length;
 
-  const activeCount = customers.filter(c => c.isActive === "Active").length;
-  const inactiveCount = customers.filter(c => c.isActive === "Inactive").length;
+  const activeCount = customers.filter((c) => c.isActive === "Active").length;
+  const inactiveCount = customers.filter(
+    (c) => c.isActive === "Inactive",
+  ).length;
 
-  const filteredCustomers = customers.filter(customer => {
+  const filteredCustomers = customers.filter((customer) => {
     let matchesCategory = true;
     let matchesStatus = true;
 
@@ -643,11 +789,13 @@ export default function MasterCustomers() {
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <Card
               className={`cursor-pointer transition-all border-0 ${
-                categoryFilter === "Alpha" 
-                  ? "bg-green-100" 
+                categoryFilter === "Alpha"
+                  ? "bg-green-100"
                   : "bg-green-50 hover:bg-green-100"
               }`}
-              onClick={() => setCategoryFilter(categoryFilter === "Alpha" ? null : "Alpha")}
+              onClick={() =>
+                setCategoryFilter(categoryFilter === "Alpha" ? null : "Alpha")
+              }
               data-testid="card-category-alpha"
             >
               <CardContent className="p-5">
@@ -656,8 +804,12 @@ export default function MasterCustomers() {
                     <Users className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Alpha</p>
-                    <p className="text-3xl font-bold text-green-600">{alphaCount}</p>
+                    <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">
+                      Alpha
+                    </p>
+                    <p className="text-3xl font-bold text-green-600">
+                      {alphaCount}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -665,11 +817,13 @@ export default function MasterCustomers() {
 
             <Card
               className={`cursor-pointer transition-all border-0 ${
-                categoryFilter === "Beta" 
-                  ? "bg-blue-100" 
+                categoryFilter === "Beta"
+                  ? "bg-blue-100"
                   : "bg-blue-50 hover:bg-blue-100"
               }`}
-              onClick={() => setCategoryFilter(categoryFilter === "Beta" ? null : "Beta")}
+              onClick={() =>
+                setCategoryFilter(categoryFilter === "Beta" ? null : "Beta")
+              }
               data-testid="card-category-beta"
             >
               <CardContent className="p-5">
@@ -678,8 +832,12 @@ export default function MasterCustomers() {
                     <CheckCircle2 className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Beta</p>
-                    <p className="text-3xl font-bold text-blue-600">{betaCount}</p>
+                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">
+                      Beta
+                    </p>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {betaCount}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -687,11 +845,13 @@ export default function MasterCustomers() {
 
             <Card
               className={`cursor-pointer transition-all border-0 ${
-                categoryFilter === "Gamma" 
-                  ? "bg-yellow-100" 
+                categoryFilter === "Gamma"
+                  ? "bg-yellow-100"
                   : "bg-yellow-50 hover:bg-yellow-100"
               }`}
-              onClick={() => setCategoryFilter(categoryFilter === "Gamma" ? null : "Gamma")}
+              onClick={() =>
+                setCategoryFilter(categoryFilter === "Gamma" ? null : "Gamma")
+              }
               data-testid="card-category-gamma"
             >
               <CardContent className="p-5">
@@ -700,8 +860,12 @@ export default function MasterCustomers() {
                     <AlertCircle className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-1">Gamma</p>
-                    <p className="text-3xl font-bold text-yellow-600">{gammaCount}</p>
+                    <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-1">
+                      Gamma
+                    </p>
+                    <p className="text-3xl font-bold text-yellow-600">
+                      {gammaCount}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -709,11 +873,13 @@ export default function MasterCustomers() {
 
             <Card
               className={`cursor-pointer transition-all border-0 ${
-                categoryFilter === "Delta" 
-                  ? "bg-red-100" 
+                categoryFilter === "Delta"
+                  ? "bg-red-100"
                   : "bg-red-50 hover:bg-red-100"
               }`}
-              onClick={() => setCategoryFilter(categoryFilter === "Delta" ? null : "Delta")}
+              onClick={() =>
+                setCategoryFilter(categoryFilter === "Delta" ? null : "Delta")
+              }
               data-testid="card-category-delta"
             >
               <CardContent className="p-5">
@@ -722,8 +888,12 @@ export default function MasterCustomers() {
                     <Award className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">Delta</p>
-                    <p className="text-3xl font-bold text-red-600">{deltaCount}</p>
+                    <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">
+                      Delta
+                    </p>
+                    <p className="text-3xl font-bold text-red-600">
+                      {deltaCount}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -731,11 +901,13 @@ export default function MasterCustomers() {
 
             <Card
               className={`cursor-pointer transition-all border-0 ${
-                statusFilter === "Active" 
-                  ? "bg-purple-100" 
+                statusFilter === "Active"
+                  ? "bg-purple-100"
                   : "bg-purple-50 hover:bg-purple-100"
               }`}
-              onClick={() => setStatusFilter(statusFilter === "Active" ? null : "Active")}
+              onClick={() =>
+                setStatusFilter(statusFilter === "Active" ? null : "Active")
+              }
               data-testid="card-status-active"
             >
               <CardContent className="p-5">
@@ -744,8 +916,12 @@ export default function MasterCustomers() {
                     <CheckCircle className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-1">Active</p>
-                    <p className="text-3xl font-bold text-purple-600">{activeCount}</p>
+                    <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-1">
+                      Active
+                    </p>
+                    <p className="text-3xl font-bold text-purple-600">
+                      {activeCount}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -753,11 +929,13 @@ export default function MasterCustomers() {
 
             <Card
               className={`cursor-pointer transition-all border-0 ${
-                statusFilter === "Inactive" 
-                  ? "bg-gray-100" 
+                statusFilter === "Inactive"
+                  ? "bg-gray-100"
                   : "bg-gray-50 hover:bg-gray-100"
               }`}
-              onClick={() => setStatusFilter(statusFilter === "Inactive" ? null : "Inactive")}
+              onClick={() =>
+                setStatusFilter(statusFilter === "Inactive" ? null : "Inactive")
+              }
               data-testid="card-status-inactive"
             >
               <CardContent className="p-5">
@@ -766,8 +944,12 @@ export default function MasterCustomers() {
                     <XCircle className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Inactive</p>
-                    <p className="text-3xl font-bold text-gray-600">{inactiveCount}</p>
+                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">
+                      Inactive
+                    </p>
+                    <p className="text-3xl font-bold text-gray-600">
+                      {inactiveCount}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -775,7 +957,10 @@ export default function MasterCustomers() {
           </div>
         </div>
 
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '300ms' }}>
+        <div
+          className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+          style={{ animationDelay: "300ms" }}
+        >
           <DataTable
             columns={columns}
             data={filteredCustomers}
@@ -811,7 +996,8 @@ export default function MasterCustomers() {
                     if (selectedRowIds.length === 0) {
                       toast({
                         title: "No Customers Selected",
-                        description: "Please select at least one customer to update",
+                        description:
+                          "Please select at least one customer to update",
                         variant: "destructive",
                       });
                       return;
@@ -856,10 +1042,7 @@ export default function MasterCustomers() {
         customer={selectedCustomer}
       />
 
-      <ImportModal
-        open={isImportOpen}
-        onOpenChange={setIsImportOpen}
-      />
+      <ImportModal open={isImportOpen} onOpenChange={setIsImportOpen} />
 
       <Dialog open={isBulkInterestOpen} onOpenChange={setIsBulkInterestOpen}>
         <DialogContent data-testid="dialog-bulk-interest">
@@ -879,7 +1062,8 @@ export default function MasterCustomers() {
                 data-testid="input-bulk-interest-rate"
               />
               <p className="text-sm text-gray-500">
-                This will update the interest rate for all customers in the database.
+                This will update the interest rate for all customers in the
+                database.
               </p>
             </div>
           </div>
@@ -895,22 +1079,32 @@ export default function MasterCustomers() {
               Cancel
             </Button>
             <Button
-              onClick={() => bulkUpdateInterestMutation.mutate(bulkInterestRate)}
-              disabled={!bulkInterestRate || bulkUpdateInterestMutation.isPending}
+              onClick={() =>
+                bulkUpdateInterestMutation.mutate(bulkInterestRate)
+              }
+              disabled={
+                !bulkInterestRate || bulkUpdateInterestMutation.isPending
+              }
               data-testid="button-confirm-bulk-interest"
             >
-              {bulkUpdateInterestMutation.isPending ? "Updating..." : "Update All"}
+              {bulkUpdateInterestMutation.isPending
+                ? "Updating..."
+                : "Update All"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isBulkUpdateOpen} onOpenChange={setIsBulkUpdateOpen}>
-        <DialogContent className="sm:max-w-[500px]" data-testid="dialog-bulk-update">
+        <DialogContent
+          className="sm:max-w-[500px]"
+          data-testid="dialog-bulk-update"
+        >
           <DialogHeader>
             <DialogTitle>Bulk Update Selected Customers</DialogTitle>
             <p className="text-sm text-gray-500 mt-2">
-              Update {selectedRowIds.length} selected customer{selectedRowIds.length > 1 ? 's' : ''}
+              Update {selectedRowIds.length} selected customer
+              {selectedRowIds.length > 1 ? "s" : ""}
             </p>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -922,7 +1116,10 @@ export default function MasterCustomers() {
                   setBulkUpdateData({ ...bulkUpdateData, category: value })
                 }
               >
-                <SelectTrigger id="bulk-category" data-testid="select-bulk-category">
+                <SelectTrigger
+                  id="bulk-category"
+                  data-testid="select-bulk-category"
+                >
                   <SelectValue placeholder="Select category (optional)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -942,7 +1139,10 @@ export default function MasterCustomers() {
                   setBulkUpdateData({ ...bulkUpdateData, status: value })
                 }
               >
-                <SelectTrigger id="bulk-status" data-testid="select-bulk-status">
+                <SelectTrigger
+                  id="bulk-status"
+                  data-testid="select-bulk-status"
+                >
                   <SelectValue placeholder="Select status (optional)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -953,7 +1153,9 @@ export default function MasterCustomers() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bulk-interest-rate-field">Interest Rate (%)</Label>
+              <Label htmlFor="bulk-interest-rate-field">
+                Interest Rate (%)
+              </Label>
               <Input
                 id="bulk-interest-rate-field"
                 type="number"
@@ -961,21 +1163,32 @@ export default function MasterCustomers() {
                 placeholder="Enter interest rate (optional)"
                 value={bulkUpdateData.interestRate}
                 onChange={(e) =>
-                  setBulkUpdateData({ ...bulkUpdateData, interestRate: e.target.value })
+                  setBulkUpdateData({
+                    ...bulkUpdateData,
+                    interestRate: e.target.value,
+                  })
                 }
                 data-testid="input-bulk-interest-rate-field"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bulk-interest-applicable">Interest Applicable From</Label>
+              <Label htmlFor="bulk-interest-applicable">
+                Interest Applicable From
+              </Label>
               <Select
                 value={bulkUpdateData.interestApplicableFrom}
                 onValueChange={(value) =>
-                  setBulkUpdateData({ ...bulkUpdateData, interestApplicableFrom: value })
+                  setBulkUpdateData({
+                    ...bulkUpdateData,
+                    interestApplicableFrom: value,
+                  })
                 }
               >
-                <SelectTrigger id="bulk-interest-applicable" data-testid="select-bulk-interest-applicable">
+                <SelectTrigger
+                  id="bulk-interest-applicable"
+                  data-testid="select-bulk-interest-applicable"
+                >
                   <SelectValue placeholder="Select applicable from (optional)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -986,7 +1199,8 @@ export default function MasterCustomers() {
             </div>
 
             <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md border border-amber-200">
-              Note: Only filled fields will be updated. Empty fields will be skipped.
+              Note: Only filled fields will be updated. Empty fields will be
+              skipped.
             </p>
           </div>
           <DialogFooter>
@@ -1015,10 +1229,9 @@ export default function MasterCustomers() {
               disabled={bulkUpdateMutation.isPending}
               data-testid="button-confirm-bulk-update"
             >
-              {bulkUpdateMutation.isPending 
-                ? "Updating..." 
-                : `Update ${selectedRowIds.length} Customer${selectedRowIds.length > 1 ? 's' : ''}`
-              }
+              {bulkUpdateMutation.isPending
+                ? "Updating..."
+                : `Update ${selectedRowIds.length} Customer${selectedRowIds.length > 1 ? "s" : ""}`}
             </Button>
           </DialogFooter>
         </DialogContent>
