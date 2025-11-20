@@ -96,7 +96,7 @@ export function MasterCustomerFormDialog({
         secondaryEmail: customer.secondaryEmail || "",
         paymentTermsDays: customer.paymentTermsDays,
         creditLimit: customer.creditLimit || "",
-        openingBalance: customer.openingBalance != null ? String(customer.openingBalance) : "",
+        openingBalance: customer.openingBalance || "",
         interestApplicableFrom: customer.interestApplicableFrom || "",
         interestRate: customer.interestRate || "",
         salesPerson: customer.salesPerson || "",

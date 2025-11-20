@@ -280,7 +280,7 @@ export function DataTable<TData, TValue>({
         key={row.id}
         data-state={row.getIsSelected() && "selected"}
         data-testid={`row-${row.id}`}
-        className="relative z-20"
+        className="hover:bg-muted/50 transition-colors duration-150 cursor-pointer"
       >
         {row.getVisibleCells().map((cell) => (
           <TableCell key={cell.id} data-testid={`cell-${row.id}-${cell.column.id}`}>
@@ -484,14 +484,14 @@ export function DataTable<TData, TValue>({
                     const columnFilterValue = header.column.getFilterValue();
 
                     return (
-                      <TableHead key={`filter-${header.id}`} className="sticky top-[48px] z-10 py-2 bg-white dark:bg-gray-900 pointer-events-none">
+                      <TableHead key={`filter-${header.id}`} className="sticky top-[48px] z-20 py-2 bg-white dark:bg-gray-900">
                         {canFilter && header.column.id !== "select" ? (
                           <Input
                             type="text"
                             placeholder={`Search ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header.toLowerCase() : ''}...`}
                             value={(columnFilterValue ?? "") as string}
                             onChange={(e) => header.column.setFilterValue(e.target.value)}
-                            className="h-10 pointer-events-auto"
+                            className="h-10"
                             data-testid={`input-filter-${header.id}`}
                           />
                         ) : null}

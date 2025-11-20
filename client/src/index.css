@@ -219,10 +219,21 @@
   }
   
   /* Smooth transitions for interactive elements */
+  button,
   a,
   input,
+  select,
   textarea {
     transition: all var(--transition-base);
+  }
+  
+  /* Premium Button Effects */
+  button:not(:disabled):hover {
+    transform: translateY(-2px);
+  }
+  
+  button:not(:disabled):active {
+    transform: translateY(0);
   }
   
   /* Focus visible styles for accessibility */
