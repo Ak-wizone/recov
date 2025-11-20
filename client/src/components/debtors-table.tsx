@@ -846,7 +846,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           }}
         >
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-background">
+            <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
@@ -854,7 +854,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                     const sortDirection = header.column.getIsSorted();
                     
                     return (
-                      <TableHead key={header.id} className="py-2 bg-background">
+                      <TableHead key={header.id} className="sticky top-0 z-30 py-3 h-12 bg-background border-b">
                         {header.isPlaceholder ? null : (
                           <div
                             className={`flex items-center gap-2 ${
@@ -886,13 +886,13 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                 </TableRow>
               ))}
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={`filter-${headerGroup.id}`} className="sticky top-11 z-10 bg-background">
+                <TableRow key={`filter-${headerGroup.id}`}>
                   {headerGroup.headers.map((header) => {
                     const canFilter = header.column.getCanFilter();
                     const columnFilterValue = header.column.getFilterValue();
 
                     return (
-                      <TableHead key={`filter-${header.id}`} className="py-2 bg-background">
+                      <TableHead key={`filter-${header.id}`} className="sticky top-12 z-30 py-2 h-12 bg-background border-b">
                         {canFilter ? (
                           <Input
                             type="text"
@@ -909,7 +909,10 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                 </TableRow>
               ))}
             </TableHeader>
-            <TableBody>
+            <TableBody className="relative">
+              <TableRow className="h-24 pointer-events-none">
+                <TableCell colSpan={columns.length} className="p-0 border-0" />
+              </TableRow>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
