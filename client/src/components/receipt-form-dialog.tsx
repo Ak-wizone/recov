@@ -56,6 +56,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
       date: receipt?.date ? format(new Date(receipt.date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       amount: receipt?.amount || "",
       remarks: receipt?.remarks || "",
+      primaryEmail: receipt?.primaryEmail || "",
     },
   });
 
@@ -112,6 +113,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
         date: format(new Date(receipt.date), "yyyy-MM-dd"),
         amount: receipt.amount || "",
         remarks: receipt.remarks ?? "",
+        primaryEmail: receipt.primaryEmail || "",
       });
     } else if (open && !receipt) {
       form.reset({
@@ -122,9 +124,25 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
         date: format(new Date(), "yyyy-MM-dd"),
         amount: "",
         remarks: "",
+        primaryEmail: "",
       });
     }
   }, [open, receipt, form]);
+
+  // Auto-populate primaryEmail when customer is selected
+  useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'customerName' && value.customerName) {
+        const selectedCustomer = masterCustomers.find(
+          c => c.clientName === value.customerName
+        );
+        if (selectedCustomer) {
+          form.setValue('primaryEmail', selectedCustomer.primaryEmail || '');
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form, masterCustomers]);
 
   const handleAddCustomVoucherType = () => {
     if (newVoucherType.trim() && !allVoucherTypes.includes(newVoucherType.trim())) {
