@@ -101,6 +101,7 @@ export function TelecmiCallButton({
       language,
       templateId: selectedTemplate,
       callContext: {
+        customerName: customerName,
         invoiceNumber: invoiceNumber || "",
         amount: amount?.toString() || "0",
         daysOverdue: daysOverdue?.toString() || "0",
