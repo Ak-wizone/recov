@@ -106,13 +106,27 @@ export default function EmailConfig() {
 
   const handleTestConnection = async () => {
     const values = form.getValues();
+    
+    // Validate that fromEmail is filled (we'll use it as test recipient)
+    if (!values.fromEmail) {
+      toast({
+        title: "Validation Error",
+        description: "From Email is required to test the connection",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setTestingConnection(true);
     setTestResult(null);
 
     try {
       const response = await fetch("/api/email-config/test", {
         method: "POST",
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          testEmail: values.fromEmail, // Use fromEmail as test recipient
+        }),
         headers: { "Content-Type": "application/json" },
       });
 
