@@ -419,9 +419,20 @@ export default function MasterCustomers() {
         accessorKey: "salesPerson",
         header: "SALES PERSON",
         cell: ({ row }) => (
-          <span className="text-gray-700 dark:text-gray-300" data-testid={`text-salesPerson-${row.original.id}`}>
-            {row.original.salesPerson || "—"}
-          </span>
+          <Input
+            type="text"
+            value={row.original.salesPerson || ""}
+            onChange={(e) => {
+              updateFieldMutation.mutate({
+                id: row.original.id,
+                field: "salesPerson",
+                value: e.target.value,
+              });
+            }}
+            placeholder="Enter name"
+            className="h-8 w-36"
+            data-testid={`input-salesPerson-${row.original.id}`}
+          />
         ),
         enableSorting: true,
       },
