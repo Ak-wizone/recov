@@ -96,23 +96,35 @@ export default function TelecmiConfig() {
 
   const testConnectionMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", "/api/telecmi/test-connection", {});
+      console.log("[TELECMI TEST] Starting connection test...");
+      const response = await apiRequest("POST", "/api/telecmi/test-connection", {});
+      console.log("[TELECMI TEST] Response received:", response);
+      return response;
     },
     onSuccess: (data: any) => {
+      console.log("[TELECMI TEST] onSuccess called with data:", data);
+      console.log("[TELECMI TEST] data.connected =", data.connected);
+      console.log("[TELECMI TEST] data.message =", data.message);
+      
       setConnectionStatus(data);
+      
       toast({
-        title: data.connected ? "Connection Successful" : "Connection Failed",
+        title: data.connected ? "✅ Connection Successful" : "❌ Connection Failed",
         description: data.message,
         variant: data.connected ? "default" : "destructive",
       });
     },
     onError: (error: Error) => {
+      console.error("[TELECMI TEST] onError called with error:", error);
+      console.error("[TELECMI TEST] error.message =", error.message);
+      
       setConnectionStatus({
         connected: false,
         message: error.message || "Failed to test connection",
       });
+      
       toast({
-        title: "Connection Test Failed",
+        title: "❌ Connection Test Failed",
         description: error.message,
         variant: "destructive",
       });
