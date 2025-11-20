@@ -9644,7 +9644,6 @@ ${profile?.legalName || 'Company'}`;
         result = await telecmiService.makeSimpleCall(req.tenantId!, {
           to: phoneNumber,
           callMode: "simple",
-          scriptText: template.scriptText,
           language: language as "hindi" | "english" | "hinglish",
           templateId,
           context: callContext || {},
