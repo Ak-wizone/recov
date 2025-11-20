@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Loader2, Phone, Info, Eye, EyeOff, ArrowLeft, Copy, CheckCircle2, Shield } from "lucide-react";
+import { Loader2, Phone, Info, Eye, EyeOff, ArrowLeft, Copy, CheckCircle2, Shield, Zap, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 import type { TelecmiConfig } from "@shared/schema";
 
@@ -32,6 +33,11 @@ export default function TelecmiConfig() {
   const [showAppSecret, setShowAppSecret] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
   const [copiedWebhookSecret, setCopiedWebhookSecret] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<{
+    connected: boolean;
+    message: string;
+    details?: any;
+  } | null>(null);
 
   const { data: config, isLoading } = useQuery<TelecmiConfig | null>({
     queryKey: ["/api/telecmi/config"],
@@ -76,10 +82,37 @@ export default function TelecmiConfig() {
         title: "Success",
         description: "Telecmi configuration saved successfully",
       });
+      // Reset connection status after saving new config
+      setConnectionStatus(null);
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testConnectionMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/telecmi/test-connection", {});
+    },
+    onSuccess: (data: any) => {
+      setConnectionStatus(data);
+      toast({
+        title: data.connected ? "Connection Successful" : "Connection Failed",
+        description: data.message,
+        variant: data.connected ? "default" : "destructive",
+      });
+    },
+    onError: (error: Error) => {
+      setConnectionStatus({
+        connected: false,
+        message: error.message || "Failed to test connection",
+      });
+      toast({
+        title: "Connection Test Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -117,7 +150,27 @@ export default function TelecmiConfig() {
     <div className="flex-1 space-y-6 p-6 overflow-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Telecmi PIOPIY Configuration</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">Telecmi PIOPIY Configuration</h1>
+            {connectionStatus && (
+              <Badge 
+                variant={connectionStatus.connected ? "default" : "destructive"}
+                className={connectionStatus.connected ? "bg-green-500 hover:bg-green-600" : ""}
+              >
+                {connectionStatus.connected ? (
+                  <>
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Connected
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-3 w-3 mr-1" />
+                    Not Connected
+                  </>
+                )}
+              </Badge>
+            )}
+          </div>
           <p className="text-gray-500 dark:text-gray-400 mt-2">
             Configure Telecmi PIOPIY voice calling integration for payment reminders
           </p>
@@ -352,6 +405,28 @@ export default function TelecmiConfig() {
                 "Save Configuration"
               )}
             </Button>
+            
+            {config && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => testConnectionMutation.mutate()}
+                disabled={testConnectionMutation.isPending}
+                data-testid="button-test-connection"
+              >
+                {testConnectionMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Testing...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4 mr-2" />
+                    Test Connection
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         </form>
       </Form>

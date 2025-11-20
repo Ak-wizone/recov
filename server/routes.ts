@@ -9489,9 +9489,22 @@ ${profile?.legalName || 'Company'}`;
           message: "Telecmi not configured. Please configure Telecmi settings first." 
         });
       }
-      res.json({ webhookSecret: secret });
+      res.json({ secret });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Test Telecmi connection
+  app.post("/api/telecmi/test-connection", async (req, res) => {
+    try {
+      const result = await telecmiService.testConnection(req.tenantId!);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ 
+        connected: false,
+        error: error.message || "Failed to test connection"
+      });
     }
   });
 
