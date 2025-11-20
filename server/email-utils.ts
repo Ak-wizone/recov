@@ -252,7 +252,7 @@ async function enrichReceiptsVariables(
   variables.customerName = customer?.customerName || receipt.customerName || '';
   variables.customerEmail = customer?.email || '';
   variables.customerPhone = customer?.mobile || '';
-  variables.receiptNumber = receipt.receiptNumber || '';
+  variables.receiptNumber = receipt.voucherNumber || '';
   variables.receiptDate = formatDate(receipt.date);
   variables.paymentDate = formatDate(receipt.date);
   variables.paidAmount = formatCurrency(receipt.amount);
