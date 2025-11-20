@@ -116,6 +116,33 @@ export class TelecmiService {
   }
 
   /**
+   * Normalize phone number with country code for India
+   * Ensures all Indian numbers have +91 prefix for proper capacity routing
+   */
+  private normalizePhoneNumber(phoneNumber: string): string {
+    // Remove all whitespace and special characters except +
+    let normalized = phoneNumber.replace(/[\s\-()]/g, '');
+    
+    // If already has country code, return as is
+    if (normalized.startsWith('+')) {
+      return normalized;
+    }
+    
+    // If starts with 91 but no +, add +
+    if (normalized.startsWith('91') && normalized.length === 12) {
+      return '+' + normalized;
+    }
+    
+    // If 10-digit Indian number, add +91
+    if (normalized.length === 10 && /^[6-9]\d{9}$/.test(normalized)) {
+      return '+91' + normalized;
+    }
+    
+    // Default: assume Indian number and add +91
+    return '+91' + normalized;
+  }
+
+  /**
    * Build text-to-speech script with variable substitution
    */
   private buildScript(template: string, variables: Record<string, any>): string {
@@ -179,16 +206,22 @@ export class TelecmiService {
       action.speak(scriptText);
       action.record(); // Enable recording
 
+      // Normalize phone numbers with +91 prefix for proper Nation Capacity routing
+      const normalizedTo = this.normalizePhoneNumber(options.to);
+      const normalizedFrom = this.normalizePhoneNumber(config.fromNumber);
+
       // Convert phone numbers to NUMBER type (PIOPIY SDK requirement)
       // Remove + and convert to number
-      const toNumber = Number(options.to.replace(/\+/g, ''));
-      const fromNumber = Number(config.fromNumber.replace(/\+/g, ''));
+      const toNumber = Number(normalizedTo.replace(/\+/g, ''));
+      const fromNumber = Number(normalizedFrom.replace(/\+/g, ''));
 
-      console.log(`[TelecmiService] Phone numbers converted:`, {
+      console.log(`[TelecmiService] Phone numbers normalized and converted:`, {
         toOriginal: options.to,
+        toNormalized: normalizedTo,
         toNumber,
         toType: typeof toNumber,
         fromOriginal: config.fromNumber,
+        fromNormalized: normalizedFrom,
         fromNumber,
         fromType: typeof fromNumber,
         pcmoType: typeof action.PCMO(),
@@ -287,9 +320,20 @@ export class TelecmiService {
       });
       action.record(); // Enable recording
 
+      // Normalize phone numbers with +91 prefix for proper Nation Capacity routing
+      const normalizedTo = this.normalizePhoneNumber(options.to);
+      const normalizedFrom = this.normalizePhoneNumber(config.fromNumber);
+
       // Convert phone numbers to NUMBER type (PIOPIY SDK requirement)
-      const toNumber = Number(options.to.replace(/\+/g, ''));
-      const fromNumber = Number(config.fromNumber.replace(/\+/g, ''));
+      const toNumber = Number(normalizedTo.replace(/\+/g, ''));
+      const fromNumber = Number(normalizedFrom.replace(/\+/g, ''));
+
+      console.log(`[TelecmiService] AI Call - Phone numbers normalized:`, {
+        toOriginal: options.to,
+        toNormalized: normalizedTo,
+        fromOriginal: config.fromNumber,
+        fromNormalized: normalizedFrom,
+      });
 
       // Make the call with AI streaming (use as any for type mismatch)
       const response = await piopiy.voice.call(
