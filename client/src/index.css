@@ -406,3 +406,16 @@
 [aria-hidden="true"] .data-table-interactive * {
   pointer-events: auto !important;
 }
+
+/* Ensure all Select components are always clickable */
+/* Force pointer-events on Select triggers and content */
+button[role="combobox"],
+[data-radix-select-trigger],
+[data-radix-select-content] {
+  pointer-events: auto !important;
+}
+
+/* Ensure Select dropdown content appears above sticky table headers */
+[data-radix-select-content] {
+  z-index: 50 !important;
+}
