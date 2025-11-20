@@ -15,6 +15,8 @@ import { Loader2, Mail, CheckCircle2, XCircle, Info, ArrowLeft } from "lucide-re
 import { Link } from "wouter";
 import type { EmailConfig } from "@shared/schema";
 
+type EmailConfigWithFlag = EmailConfig & { hasSmtpPassword?: boolean };
+
 const emailConfigFormSchema = z.object({
   provider: z.enum(["gmail", "smtp"]),
   smtpHost: z.string().optional(),
@@ -23,14 +25,6 @@ const emailConfigFormSchema = z.object({
   smtpPassword: z.string().optional(),
   fromEmail: z.string().email("Invalid email address"),
   fromName: z.string().min(1, "From name is required"),
-}).refine((data) => {
-  if (data.provider === "smtp") {
-    return !!data.smtpHost && !!data.smtpPort && !!data.smtpUser && !!data.smtpPassword;
-  }
-  return true;
-}, {
-  message: "SMTP fields are required when using SMTP provider",
-  path: ["smtpHost"],
 });
 
 type EmailConfigFormValues = z.infer<typeof emailConfigFormSchema>;
@@ -39,8 +33,9 @@ export default function EmailConfig() {
   const { toast } = useToast();
   const [testingConnection, setTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [passwordChanged, setPasswordChanged] = useState(false);
 
-  const { data: config, isLoading } = useQuery<EmailConfig | null>({
+  const { data: config, isLoading } = useQuery<EmailConfigWithFlag | null>({
     queryKey: ["/api/email-config"],
   });
 
@@ -66,20 +61,28 @@ export default function EmailConfig() {
         smtpHost: config.smtpHost || "",
         smtpPort: config.smtpPort || 587,
         smtpUser: config.smtpUser || "",
-        smtpPassword: config.smtpPassword || "",
+        smtpPassword: "", // Always empty for existing config
         fromEmail: config.fromEmail,
         fromName: config.fromName,
       });
+      setPasswordChanged(false); // Reset password changed flag when loading config
     }
   }, [config, form]);
 
   const saveMutation = useMutation({
     mutationFn: async (data: EmailConfigFormValues) => {
+      // Prepare data: only include password if it's been changed or if creating new config
+      const submitData = { ...data };
+      if (config?.id && config.hasSmtpPassword && !passwordChanged) {
+        // Editing existing config with password already set and user didn't change it
+        submitData.smtpPassword = ""; // Send empty string so backend keeps existing password
+      }
+
       if (config?.id) {
-        const response = await apiRequest("PUT", `/api/email-config/${config.id}`, data);
+        const response = await apiRequest("PUT", `/api/email-config/${config.id}`, submitData);
         return await response.json();
       } else {
-        const response = await apiRequest("POST", "/api/email-config", data);
+        const response = await apiRequest("POST", "/api/email-config", submitData);
         return await response.json();
       }
     },
@@ -90,6 +93,7 @@ export default function EmailConfig() {
         description: "Email configuration saved successfully",
       });
       setTestResult(null);
+      setPasswordChanged(false); // Reset after successful save
     },
     onError: (error: Error) => {
       toast({
@@ -179,6 +183,29 @@ export default function EmailConfig() {
   };
 
   const onSubmit = (data: EmailConfigFormValues) => {
+    // Validate SMTP fields when provider is SMTP
+    if (data.provider === "smtp") {
+      const errors: string[] = [];
+      
+      if (!data.smtpHost) errors.push("SMTP Host is required");
+      if (!data.smtpPort) errors.push("SMTP Port is required");
+      if (!data.smtpUser) errors.push("SMTP User is required");
+      
+      // Password is required only if creating new config or if editing and user wants to change it
+      if (!config?.id || (config?.id && passwordChanged)) {
+        if (!data.smtpPassword) errors.push("SMTP Password is required");
+      }
+      
+      if (errors.length > 0) {
+        toast({
+          title: "Validation Error",
+          description: errors.join(", "),
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     saveMutation.mutate(data);
   };
 
@@ -328,16 +355,26 @@ export default function EmailConfig() {
                     name="smtpPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>SMTP Password *</FormLabel>
+                        <FormLabel>SMTP Password {!config?.hasSmtpPassword && "*"}</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
                             type="password"
-                            placeholder="••••••••"
+                            placeholder={config?.hasSmtpPassword ? "Leave empty to keep existing password" : "Enter SMTP password"}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              if (e.target.value) {
+                                setPasswordChanged(true);
+                              }
+                            }}
                             data-testid="input-smtp-password"
                           />
                         </FormControl>
-                        <FormDescription>Use app password for Gmail</FormDescription>
+                        <FormDescription>
+                          {config?.hasSmtpPassword 
+                            ? "Password is already set. Enter a new password only if you want to change it."
+                            : "Use app password for Gmail"}
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
