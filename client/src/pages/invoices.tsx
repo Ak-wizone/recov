@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp, Wallet, MessageSquare, Mail } from "lucide-react";
+import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp, Wallet, MessageSquare, Mail, RefreshCw } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -49,6 +49,7 @@ export default function Invoices() {
   const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const [selectedInvoiceForCall, setSelectedInvoiceForCall] = useState<Invoice | null>(null);
   const [selectedInvoiceIdForCalculator, setSelectedInvoiceIdForCalculator] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
@@ -190,6 +191,27 @@ export default function Invoices() {
       });
     },
   });
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/invoices/dashboard-stats"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
+      toast({
+        title: "Success",
+        description: "Invoice data synced successfully from database",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sync data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -575,6 +597,15 @@ export default function Invoices() {
           >
             <FileDown className="h-4 w-4 mr-2" />
             Export
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleSync}
+            disabled={isSyncing}
+            data-testid="button-sync"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
+            Sync
           </Button>
         </div>
       </div>
