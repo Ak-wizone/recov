@@ -8824,7 +8824,10 @@ ${profile?.legalName || 'Company'}`;
       }
 
       const { smtpPassword, gmailAccessToken, gmailRefreshToken, ...safeConfig } = config;
-      res.json(safeConfig);
+      res.json({
+        ...safeConfig,
+        hasSmtpPassword: !!smtpPassword,
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -8843,7 +8846,12 @@ ${profile?.legalName || 'Company'}`;
       let config;
       
       if (existingConfig) {
-        config = await storage.updateEmailConfig(tenantId, existingConfig.id, validation.data);
+        // If updating, remove empty password to keep existing one
+        const updateData = { ...validation.data };
+        if (updateData.smtpPassword === undefined || updateData.smtpPassword === "") {
+          delete updateData.smtpPassword;
+        }
+        config = await storage.updateEmailConfig(tenantId, existingConfig.id, updateData);
       } else {
         config = await storage.createEmailConfig(tenantId, validation.data);
       }
@@ -8853,7 +8861,10 @@ ${profile?.legalName || 'Company'}`;
       }
 
       const { smtpPassword, gmailAccessToken, gmailRefreshToken, ...safeConfig } = config;
-      res.json(safeConfig);
+      res.json({
+        ...safeConfig,
+        hasSmtpPassword: !!smtpPassword,
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -8867,13 +8878,22 @@ ${profile?.legalName || 'Company'}`;
         return res.status(400).json({ message: fromZodError(validation.error).message });
       }
 
-      const config = await storage.updateEmailConfig(req.tenantId ?? null, req.params.id, validation.data);
+      // If smtpPassword is empty or undefined, remove it from the update to keep existing password
+      const updateData = { ...validation.data };
+      if (updateData.smtpPassword === undefined || updateData.smtpPassword === "") {
+        delete updateData.smtpPassword;
+      }
+
+      const config = await storage.updateEmailConfig(req.tenantId ?? null, req.params.id, updateData);
       if (!config) {
         return res.status(404).json({ message: "Email configuration not found" });
       }
 
       const { smtpPassword, gmailAccessToken, gmailRefreshToken, ...safeConfig } = config;
-      res.json(safeConfig);
+      res.json({
+        ...safeConfig,
+        hasSmtpPassword: !!smtpPassword,
+      });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
