@@ -9611,13 +9611,20 @@ ${profile?.legalName || 'Company'}`;
         });
       }
 
+      // Fetch tenant's business name for call context
+      const [tenant] = await db.select().from(tenants).where(eq(tenants.id, req.tenantId!));
+      const enrichedCallContext = {
+        ...callContext,
+        companyName: tenant?.businessName || "RECOV",
+      };
+
       // Create call log first
       const callLog = await storage.createCallLog(req.tenantId!, {
         customerName,
         phoneNumber,
         module,
         status: "initiated",
-        callContext: callContext || null,
+        callContext: enrichedCallContext || null,
         provider: "telecmi",
         language,
         callMode,
@@ -9646,7 +9653,7 @@ ${profile?.legalName || 'Company'}`;
           callMode: "simple",
           language: language as "hindi" | "english" | "hinglish",
           templateId,
-          context: callContext || {},
+          context: enrichedCallContext || {},
         });
       } else {
         // AI-powered conversation
@@ -9655,7 +9662,7 @@ ${profile?.legalName || 'Company'}`;
           to: phoneNumber,
           callMode: "ai",
           language: language as "hindi" | "english" | "hinglish",
-          context: callContext || {},
+          context: enrichedCallContext || {},
         }, streamUrl);
       }
 

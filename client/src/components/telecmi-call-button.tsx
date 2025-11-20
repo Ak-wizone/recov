@@ -105,7 +105,6 @@ export function TelecmiCallButton({
         invoiceNumber: invoiceNumber || "",
         amount: amount?.toString() || "0",
         daysOverdue: daysOverdue?.toString() || "0",
-        companyName: "RECOV",
       },
     });
   };
