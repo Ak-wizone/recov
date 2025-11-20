@@ -63,6 +63,7 @@ interface DataTableProps<TData, TValue> {
   onFiltersChange?: (filters: { globalFilter: string; columnFilters: ColumnFiltersState }) => void;
   onRowSelectionChange?: (selectedRowIds: string[]) => void;
   customBulkActions?: (selectedRows: TData[]) => React.ReactNode;
+  customToolbarActions?: React.ReactNode;
   isLoading?: boolean;
   emptyMessage?: string;
   defaultPageSize?: number;
@@ -84,6 +85,7 @@ export function DataTable<TData, TValue>({
   onFiltersChange,
   onRowSelectionChange,
   customBulkActions,
+  customToolbarActions,
   isLoading = false,
   emptyMessage = "No data available.",
   defaultPageSize = 10,
@@ -319,6 +321,7 @@ export function DataTable<TData, TValue>({
         </div>
 
         <div className="flex gap-2 w-full sm:w-auto">
+          {customToolbarActions}
           {enableColumnVisibility && (
             <Button
               variant="outline"

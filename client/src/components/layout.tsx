@@ -1,6 +1,5 @@
 import Sidebar from "./sidebar";
 import Header from "./header";
-import { Breadcrumb } from "./breadcrumb";
 import { useAuth } from "@/lib/auth";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { motion } from "framer-motion";
@@ -22,7 +21,6 @@ export default function Layout({ children }: LayoutProps) {
         <Header />
         <main className="flex-1 overflow-y-auto">
           <div className="p-6 lg:p-8">
-            <Breadcrumb />
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}

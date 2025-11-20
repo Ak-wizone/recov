@@ -622,79 +622,6 @@ export default function MasterCustomers() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-10 shadow-sm animate-in slide-in-from-top duration-500">
-        <div className="w-full px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900" data-testid="text-page-title">
-                Master Customers
-              </h1>
-              <p className="text-sm text-gray-500 mt-1">Manage your customer database</p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => setIsImportOpen(true)}
-                variant="outline"
-                className="shadow-md hover:shadow-lg transition-all duration-200"
-                data-testid="button-import"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Import
-              </Button>
-              <Button
-                onClick={() => exportMutation.mutate()}
-                variant="outline"
-                className="shadow-md hover:shadow-lg transition-all duration-200"
-                disabled={exportMutation.isPending}
-                data-testid="button-export"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                {exportMutation.isPending ? "Exporting..." : "Export"}
-              </Button>
-              <Button
-                onClick={() => setIsBulkInterestOpen(true)}
-                variant="outline"
-                className="shadow-md hover:shadow-lg transition-all duration-200 bg-orange-50 hover:bg-orange-100 border-orange-200"
-                data-testid="button-bulk-interest"
-              >
-                <Percent className="mr-2 h-4 w-4" />
-                Set Interest Rate
-              </Button>
-              <Button
-                onClick={() => {
-                  if (selectedRowIds.length === 0) {
-                    toast({
-                      title: "No Customers Selected",
-                      description: "Please select at least one customer to update",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  setIsBulkUpdateOpen(true);
-                }}
-                variant="outline"
-                className="shadow-md hover:shadow-lg transition-all duration-200 hover:bg-purple-100 border-purple-200 text-[#ffffff] bg-[#2563eb]"
-                data-testid="button-bulk-update"
-              >
-                <ListChecks className="mr-2 h-4 w-4" />
-                Bulk Update
-              </Button>
-              <Button
-                onClick={() => {
-                  setSelectedCustomer(undefined);
-                  setIsFormOpen(true);
-                }}
-                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 px-6 py-5 rounded-lg"
-                data-testid="button-add-customer"
-              >
-                <Plus className="mr-2 h-5 w-5" />
-                Add Customer
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="w-full px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
@@ -849,6 +776,59 @@ export default function MasterCustomers() {
             enablePagination={true}
             defaultPageSize={10}
             emptyMessage="No customers found. Add a customer to get started."
+            customToolbarActions={
+              <>
+                <Button
+                  onClick={() => {
+                    setSelectedCustomer(undefined);
+                    setIsFormOpen(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
+                  data-testid="button-add-customer"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Customer
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (selectedRowIds.length === 0) {
+                      toast({
+                        title: "No Customers Selected",
+                        description: "Please select at least one customer to update",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                    setIsBulkUpdateOpen(true);
+                  }}
+                  variant="outline"
+                  className="shadow-md hover:shadow-lg transition-all duration-200 text-white bg-[#2563eb] hover:bg-[#1e40af]"
+                  data-testid="button-bulk-update"
+                >
+                  <ListChecks className="mr-2 h-4 w-4" />
+                  Bulk Update
+                </Button>
+                <Button
+                  onClick={() => setIsImportOpen(true)}
+                  variant="outline"
+                  className="shadow-md hover:shadow-lg transition-all duration-200"
+                  data-testid="button-import"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Import
+                </Button>
+                <Button
+                  onClick={() => exportMutation.mutate()}
+                  variant="outline"
+                  className="shadow-md hover:shadow-lg transition-all duration-200"
+                  disabled={exportMutation.isPending}
+                  data-testid="button-export"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  {exportMutation.isPending ? "Exporting..." : "Export"}
+                </Button>
+              </>
+            }
           />
         </div>
       </div>
