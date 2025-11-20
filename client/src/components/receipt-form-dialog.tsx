@@ -107,7 +107,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
     if (open && receipt) {
       form.reset({
         voucherNumber: receipt.voucherNumber,
-        voucherType: receipt.voucherType,
+        voucherType: receipt.voucherType || "",
         entryType: receipt.entryType || "",
         customerName: receipt.customerName,
         date: format(new Date(receipt.date), "yyyy-MM-dd"),
