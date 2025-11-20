@@ -53,8 +53,13 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
       voucherType: receipt?.voucherType || "",
       entryType: receipt?.entryType || "",
       customerName: receipt?.customerName || "",
+      customerId: receipt?.customerId || "",
       date: receipt?.date ? format(new Date(receipt.date), "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
       amount: receipt?.amount || "",
+      paymentMode: receipt?.paymentMode || "",
+      transactionRef: receipt?.transactionRef || "",
+      invoiceNumber: receipt?.invoiceNumber || "",
+      balanceAmount: receipt?.balanceAmount || "",
       remarks: receipt?.remarks || "",
       primaryEmail: receipt?.primaryEmail || "",
     },
@@ -110,8 +115,13 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
         voucherType: receipt.voucherType || "",
         entryType: receipt.entryType || "",
         customerName: receipt.customerName,
+        customerId: receipt.customerId || "",
         date: format(new Date(receipt.date), "yyyy-MM-dd"),
         amount: receipt.amount || "",
+        paymentMode: receipt.paymentMode || "",
+        transactionRef: receipt.transactionRef || "",
+        invoiceNumber: receipt.invoiceNumber || "",
+        balanceAmount: receipt.balanceAmount || "",
         remarks: receipt.remarks ?? "",
         primaryEmail: receipt.primaryEmail || "",
       });
@@ -121,15 +131,20 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
         voucherType: "",
         entryType: "",
         customerName: "",
+        customerId: "",
         date: format(new Date(), "yyyy-MM-dd"),
         amount: "",
+        paymentMode: "",
+        transactionRef: "",
+        invoiceNumber: "",
+        balanceAmount: "",
         remarks: "",
         primaryEmail: "",
       });
     }
   }, [open, receipt, form]);
 
-  // Auto-populate primaryEmail when customer is selected
+  // Auto-populate primaryEmail and customerId when customer is selected
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === 'customerName' && value.customerName) {
@@ -138,6 +153,7 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
         );
         if (selectedCustomer) {
           form.setValue('primaryEmail', selectedCustomer.primaryEmail || '');
+          form.setValue('customerId', selectedCustomer.id || '');
         }
       }
     });
@@ -363,6 +379,85 @@ export default function ReceiptFormDialog({ open, onOpenChange, receipt }: Recei
                           step="0.01" 
                           placeholder="0.00" 
                           data-testid="input-amount" 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="paymentMode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Mode</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-payment-mode">
+                            <SelectValue placeholder="Select payment mode" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Cash">Cash</SelectItem>
+                          <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                          <SelectItem value="Cheque">Cheque</SelectItem>
+                          <SelectItem value="UPI">UPI</SelectItem>
+                          <SelectItem value="Credit Card">Credit Card</SelectItem>
+                          <SelectItem value="Debit Card">Debit Card</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="transactionRef"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Transaction ID</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., TXN123456" data-testid="input-transaction-ref" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="invoiceNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Invoice Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., INV-2025-001" data-testid="input-invoice-number" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="balanceAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Remaining Balance (₹)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          type="number" 
+                          step="0.01" 
+                          placeholder="0.00" 
+                          data-testid="input-balance-amount" 
                         />
                       </FormControl>
                       <FormMessage />
