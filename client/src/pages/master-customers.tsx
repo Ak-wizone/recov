@@ -318,6 +318,7 @@ export default function MasterCustomers() {
             >
               <Select
                 value={row.original.category}
+                onOpenChange={(open) => console.log("Select onOpenChange:", open)}
                 onValueChange={(value) => {
                   console.log("Category onValueChange triggered:", value);
                   if (autoUpgradeEnabled) {
@@ -340,7 +341,6 @@ export default function MasterCustomers() {
                 <SelectTrigger
                   className={`h-8 w-32 ${categoryColors[row.original.category as keyof typeof categoryColors]} ${autoUpgradeEnabled ? "opacity-60 cursor-not-allowed" : ""}`}
                   data-testid={`select-category-${row.original.id}`}
-                  onClick={() => console.log("SelectTrigger clicked!")}
                 >
                   <SelectValue>{row.original.category}</SelectValue>
                 </SelectTrigger>
@@ -599,6 +599,7 @@ export default function MasterCustomers() {
             >
               <Select
                 value={row.original.salesPerson || ""}
+                onOpenChange={(open) => console.log("Sales Person onOpenChange:", open)}
                 onValueChange={(value) => {
                   console.log("Sales Person onValueChange triggered:", value);
                   updateFieldMutation.mutate({
@@ -611,7 +612,6 @@ export default function MasterCustomers() {
                 <SelectTrigger
                   className="h-8 w-40 bg-gray-800 dark:bg-gray-700 text-white border-gray-600"
                   data-testid={`select-salesPerson-${row.original.id}`}
-                  onClick={() => console.log("SelectTrigger (Sales Person) clicked!")}
                 >
                   <SelectValue placeholder="Select person">
                     {row.original.salesPerson || "Select person"}
