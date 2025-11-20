@@ -874,6 +874,119 @@ export default function MasterCustomers() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isBulkUpdateOpen} onOpenChange={setIsBulkUpdateOpen}>
+        <DialogContent className="sm:max-w-[500px]" data-testid="dialog-bulk-update">
+          <DialogHeader>
+            <DialogTitle>Bulk Update Selected Customers</DialogTitle>
+            <p className="text-sm text-gray-500 mt-2">
+              Update {selectedRowIds.length} selected customer{selectedRowIds.length > 1 ? 's' : ''}
+            </p>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-category">Client Category</Label>
+              <Select
+                value={bulkUpdateData.category}
+                onValueChange={(value) =>
+                  setBulkUpdateData({ ...bulkUpdateData, category: value })
+                }
+              >
+                <SelectTrigger id="bulk-category" data-testid="select-bulk-category">
+                  <SelectValue placeholder="Select category (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Alpha">Alpha</SelectItem>
+                  <SelectItem value="Beta">Beta</SelectItem>
+                  <SelectItem value="Gamma">Gamma</SelectItem>
+                  <SelectItem value="Delta">Delta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bulk-status">Status</Label>
+              <Select
+                value={bulkUpdateData.status}
+                onValueChange={(value) =>
+                  setBulkUpdateData({ ...bulkUpdateData, status: value })
+                }
+              >
+                <SelectTrigger id="bulk-status" data-testid="select-bulk-status">
+                  <SelectValue placeholder="Select status (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bulk-interest-rate-field">Interest Rate (%)</Label>
+              <Input
+                id="bulk-interest-rate-field"
+                type="number"
+                step="0.01"
+                placeholder="Enter interest rate (optional)"
+                value={bulkUpdateData.interestRate}
+                onChange={(e) =>
+                  setBulkUpdateData({ ...bulkUpdateData, interestRate: e.target.value })
+                }
+                data-testid="input-bulk-interest-rate-field"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bulk-interest-applicable">Interest Applicable From</Label>
+              <Select
+                value={bulkUpdateData.interestApplicableFrom}
+                onValueChange={(value) =>
+                  setBulkUpdateData({ ...bulkUpdateData, interestApplicableFrom: value })
+                }
+              >
+                <SelectTrigger id="bulk-interest-applicable" data-testid="select-bulk-interest-applicable">
+                  <SelectValue placeholder="Select applicable from (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Invoice Date">Invoice Date</SelectItem>
+                  <SelectItem value="Due Date">Due Date</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-md border border-amber-200">
+              Note: Only filled fields will be updated. Empty fields will be skipped.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsBulkUpdateOpen(false);
+                setBulkUpdateData({
+                  category: "",
+                  status: "",
+                  interestRate: "",
+                  interestApplicableFrom: "",
+                });
+              }}
+              data-testid="button-cancel-bulk-update"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                // TODO: Add mutation call
+                console.log("Bulk update:", bulkUpdateData, selectedRowIds);
+              }}
+              data-testid="button-confirm-bulk-update"
+            >
+              Update {selectedRowIds.length} Customer{selectedRowIds.length > 1 ? 's' : ''}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
