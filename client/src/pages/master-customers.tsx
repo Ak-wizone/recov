@@ -462,34 +462,32 @@ export default function MasterCustomers() {
         cell: ({ row }) => {
           const salesPersons = getSalesPersons();
           return (
-            <div className="relative z-10">
-              <Select
-                value={row.original.salesPerson || ""}
-                onValueChange={(value) => {
-                  updateFieldMutation.mutate({
-                    id: row.original.id,
-                    field: "salesPerson",
-                    value: value,
-                  });
-                }}
+            <Select
+              value={row.original.salesPerson || ""}
+              onValueChange={(value) => {
+                updateFieldMutation.mutate({
+                  id: row.original.id,
+                  field: "salesPerson",
+                  value: value,
+                });
+              }}
+            >
+              <SelectTrigger
+                className="h-8 w-40 bg-gray-800 dark:bg-gray-700 text-white border-gray-600"
+                data-testid={`select-salesPerson-${row.original.id}`}
               >
-                <SelectTrigger
-                  className="h-8 w-40 bg-gray-800 dark:bg-gray-700 text-white border-gray-600"
-                  data-testid={`select-salesPerson-${row.original.id}`}
-                >
-                  <SelectValue placeholder="Select person">
-                    {row.original.salesPerson || "Select person"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  {salesPersons.map((person) => (
-                    <SelectItem key={person} value={person}>
-                      {person}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <SelectValue placeholder="Select person">
+                  {row.original.salesPerson || "Select person"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                {salesPersons.map((person) => (
+                  <SelectItem key={person} value={person}>
+                    {person}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           );
         },
         enableSorting: true,
