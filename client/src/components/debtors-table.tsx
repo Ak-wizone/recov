@@ -113,7 +113,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
     receiptCount: false,
     lastInvoiceDate: false,
     lastPaymentDate: false,
-    actions: true,  // Action buttons visible by default (includes email, WhatsApp, call, follow-up)
+    actions: false,  // Action buttons hidden by default, can be shown via column chooser
   });
   
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(defaultColumnVisibility);
@@ -485,14 +485,11 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLocation(`/ledger?customerId=${row.original.customerId}`);
-            }}
+            onClick={() => setLocation(`/ledger?customerId=${row.original.customerId}`)}
             className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950"
             data-testid={`button-ledger-${row.original.customerId}`}
           >
@@ -501,10 +498,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           <Button
             variant="outline"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              setLocation(`/payment-analytics/scorecard?customerId=${row.original.customerId}`);
-            }}
+            onClick={() => setLocation(`/payment-analytics/scorecard?customerId=${row.original.customerId}`)}
             className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-950"
             data-testid={`button-payment-score-${row.original.customerId}`}
           >
@@ -515,10 +509,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
             <Button
               variant="outline"
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleWhatsAppClick(row.original);
-              }}
+              onClick={() => handleWhatsAppClick(row.original)}
               className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
               data-testid={`button-whatsapp-${row.original.customerId}`}
             >
@@ -530,10 +521,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
             <Button
               variant="outline"
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEmailClick(row.original);
-              }}
+              onClick={() => handleEmailClick(row.original)}
               className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
               data-testid={`button-email-${row.original.customerId}`}
             >
@@ -546,10 +534,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
               <Button
                 variant="outline"
                 size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenCall(row.original);
-                }}
+                onClick={() => onOpenCall(row.original)}
                 className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950"
                 data-testid={`button-call-${row.original.customerId}`}
                 title="Call via Ringg.ai"
@@ -577,10 +562,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           <Button
             variant="outline"
             size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenFollowUp(row.original);
-            }}
+            onClick={() => onOpenFollowUp(row.original)}
             data-testid={`button-followup-${row.original.customerId}`}
           >
             <MessageSquare className="h-4 w-4 mr-1" />
@@ -837,7 +819,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
         }}
       >
         <div 
-          className="overflow-y-auto relative" 
+          className="overflow-y-auto" 
           style={{ 
             minHeight: "500px",
             maxHeight: "calc(100vh - 350px)",
@@ -846,15 +828,15 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           }}
         >
           <Table>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-background">
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="sticky top-0 z-30 bg-background" style={{ height: '48px' }}>
+                <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     const isSortable = header.column.getCanSort();
                     const sortDirection = header.column.getIsSorted();
                     
                     return (
-                      <TableHead key={header.id} className="py-3 bg-background border-b" style={{ height: '48px' }}>
+                      <TableHead key={header.id} className="py-2 bg-background">
                         {header.isPlaceholder ? null : (
                           <div
                             className={`flex items-center gap-2 ${
@@ -886,13 +868,13 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                 </TableRow>
               ))}
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={`filter-${headerGroup.id}`} className="sticky z-30 bg-background" style={{ top: '48px', height: '48px' }}>
+                <TableRow key={`filter-${headerGroup.id}`} className="sticky top-11 z-10 bg-background">
                   {headerGroup.headers.map((header) => {
                     const canFilter = header.column.getCanFilter();
                     const columnFilterValue = header.column.getFilterValue();
 
                     return (
-                      <TableHead key={`filter-${header.id}`} className="py-2 bg-background border-b" style={{ height: '48px' }}>
+                      <TableHead key={`filter-${header.id}`} className="py-2 bg-background">
                         {canFilter ? (
                           <Input
                             type="text"
@@ -909,7 +891,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                 </TableRow>
               ))}
             </TableHeader>
-            <TableBody style={{ paddingTop: '0px' }}>
+            <TableBody>
               {table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
