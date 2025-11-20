@@ -894,7 +894,7 @@ export default function Invoices() {
           moduleType="invoices"
           recordData={{
             customerName: selectedInvoiceForEmail.customerName,
-            customerEmail: "",
+            customerEmail: selectedInvoiceForEmail.primaryEmail || "",
             invoiceNumber: selectedInvoiceForEmail.invoiceNumber,
             invoiceId: selectedInvoiceForEmail.id,
             amount: selectedInvoiceForEmail.invoiceAmount,

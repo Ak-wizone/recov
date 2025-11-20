@@ -39,6 +39,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
       remarks: invoice?.remarks || "",
       category: invoice?.category || "",
       primaryMobile: invoice?.primaryMobile || "",
+      primaryEmail: invoice?.primaryEmail || "",
       city: invoice?.city || "",
       pincode: invoice?.pincode || "",
       paymentTerms: invoice?.paymentTerms || undefined,
@@ -58,6 +59,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         // Set customer details
         form.setValue("category", customer.category || "");
         form.setValue("primaryMobile", customer.primaryMobile || "");
+        form.setValue("primaryEmail", customer.primaryEmail || "");
         form.setValue("city", customer.city || "");
         form.setValue("pincode", customer.pincode || "");
         form.setValue("paymentTerms", customer.paymentTermsDays ? parseInt(customer.paymentTermsDays) : undefined);
@@ -125,6 +127,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         remarks: invoice.remarks || "",
         category: invoice.category || "",
         primaryMobile: invoice.primaryMobile || "",
+        primaryEmail: invoice.primaryEmail || "",
         city: invoice.city || "",
         pincode: invoice.pincode || "",
         paymentTerms: invoice.paymentTerms || undefined,
@@ -143,6 +146,7 @@ export default function InvoiceFormDialog({ open, onOpenChange, invoice }: Invoi
         remarks: "",
         category: "",
         primaryMobile: "",
+        primaryEmail: "",
         city: "",
         pincode: "",
         paymentTerms: undefined,

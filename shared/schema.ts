@@ -522,6 +522,7 @@ export const invoices = pgTable("invoices", {
   // Customer-related fields (auto-populated from customer selection)
   category: text("category"),
   primaryMobile: text("primary_mobile"),
+  primaryEmail: text("primary_email"),
   city: text("city"),
   pincode: text("pincode"),
   paymentTerms: integer("payment_terms"),
@@ -541,6 +542,7 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   remarks: true,
   category: true,
   primaryMobile: true,
+  primaryEmail: true,
   city: true,
   pincode: true,
   paymentTerms: true,
@@ -561,6 +563,7 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   remarks: z.string().optional(),
   category: z.string().optional(),
   primaryMobile: z.string().optional(),
+  primaryEmail: z.string().email("Invalid email address").optional().or(z.literal("")),
   city: z.string().optional(),
   pincode: z.string().optional(),
   paymentTerms: z.number().optional(),
