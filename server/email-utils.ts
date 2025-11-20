@@ -210,25 +210,30 @@ async function enrichInvoicesVariables(
   const invoice = await storage.getInvoice(tenantId, invoiceId);
   if (!invoice) return;
 
-  const customer = invoice.customerId ? await storage.getCustomer(tenantId, invoice.customerId) : null;
-  const items = await storage.getInvoiceItems(tenantId, invoiceId);
+  // Try to get customer by name to enrich additional fields
+  const customers = await storage.getMasterCustomers(tenantId);
+  const customer = customers.find(c => c.customerName === invoice.customerName);
 
-  const daysOverdue = new Date(invoice.dueDate) < new Date() 
-    ? Math.floor((new Date().getTime() - new Date(invoice.dueDate).getTime()) / (1000 * 60 * 60 * 24))
+  // Calculate due date from invoice date + payment terms
+  const invoiceDate = new Date(invoice.invoiceDate);
+  const paymentTermsDays = invoice.paymentTerms || 30; // Default to 30 days if not set
+  const dueDate = new Date(invoiceDate);
+  dueDate.setDate(dueDate.getDate() + paymentTermsDays);
+
+  const daysOverdue = dueDate < new Date() 
+    ? Math.floor((new Date().getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24))
     : 0;
 
-  variables.customerName = customer?.customerName || '';
-  variables.customerEmail = customer?.email || '';
-  variables.customerPhone = customer?.mobile || '';
+  variables.customerName = invoice.customerName || '';
+  variables.customerEmail = customer?.email || invoice.primaryEmail || '';
+  variables.customerPhone = customer?.mobile || invoice.primaryMobile || '';
   variables.customerAddress = customer?.address || '';
   variables.customerGST = customer?.gstin || '';
   variables.invoiceNumber = invoice.invoiceNumber || '';
   variables.invoiceDate = formatDate(invoice.invoiceDate);
-  variables.dueDate = formatDate(invoice.dueDate);
-  variables.totalAmount = formatCurrency(invoice.grandTotal);
-  variables.taxAmount = formatCurrency(invoice.totalTax);
-  variables.itemsTable = formatItemsTable(items);
-  variables.amountInWords = 'INR ' + numberToWords(Math.floor(parseFloat(invoice.grandTotal))) + ' Only';
+  variables.dueDate = formatDate(dueDate);
+  variables.totalAmount = formatCurrency(invoice.invoiceAmount);
+  variables.amountInWords = 'INR ' + numberToWords(Math.floor(parseFloat(invoice.invoiceAmount))) + ' Only';
   variables.paymentLink = baseUrl ? `${baseUrl}/invoices/${invoiceId}/pay` : '#';
   variables.daysOverdue = daysOverdue.toString();
 }
