@@ -15,6 +15,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { ImportModal } from "@/components/import-modal";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { getSalesPersons } from "@/lib/salesPersonStorage";
 import * as XLSX from "xlsx";
 
 export default function MasterCustomers() {
@@ -458,22 +459,37 @@ export default function MasterCustomers() {
       {
         accessorKey: "salesPerson",
         header: "SALES PERSON",
-        cell: ({ row }) => (
-          <Input
-            type="text"
-            value={row.original.salesPerson || ""}
-            onChange={(e) => {
-              updateFieldMutation.mutate({
-                id: row.original.id,
-                field: "salesPerson",
-                value: e.target.value,
-              });
-            }}
-            placeholder="Enter name"
-            className="h-8 w-36"
-            data-testid={`input-salesPerson-${row.original.id}`}
-          />
-        ),
+        cell: ({ row }) => {
+          const salesPersons = getSalesPersons();
+          return (
+            <Select
+              value={row.original.salesPerson || ""}
+              onValueChange={(value) => {
+                updateFieldMutation.mutate({
+                  id: row.original.id,
+                  field: "salesPerson",
+                  value: value,
+                });
+              }}
+            >
+              <SelectTrigger
+                className="h-8 w-40 bg-gray-800 dark:bg-gray-700 text-white border-gray-600"
+                data-testid={`select-salesPerson-${row.original.id}`}
+              >
+                <SelectValue placeholder="Select person">
+                  {row.original.salesPerson || "Select person"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {salesPersons.map((person) => (
+                  <SelectItem key={person} value={person}>
+                    {person}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+        },
         enableSorting: true,
       },
       {
