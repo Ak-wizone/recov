@@ -774,7 +774,7 @@ export default function Receipts() {
           moduleType="receipts"
           recordData={{
             customerName: selectedReceiptForEmail.customerName,
-            customerEmail: "",
+            customerEmail: selectedReceiptForEmail.primaryEmail || "",
             voucherType: selectedReceiptForEmail.voucherType ?? undefined,
             voucherNumber: selectedReceiptForEmail.voucherNumber,
             receiptId: selectedReceiptForEmail.id,
