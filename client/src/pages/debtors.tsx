@@ -655,6 +655,7 @@ export default function Debtors() {
           onOpenChange={setIsEmailDialogOpen}
           moduleType="debtors"
           recordData={{
+            customerId: selectedEmailCustomer?.customerId,
             customerName: selectedEmailCustomer?.name,
             customerEmail: selectedEmailCustomer?.email,
             balance: selectedEmailCustomer?.balance,

@@ -113,7 +113,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
     receiptCount: false,
     lastInvoiceDate: false,
     lastPaymentDate: false,
-    actions: false,  // Action buttons hidden by default, can be shown via column chooser
+    actions: true,  // Action buttons visible by default (includes email, WhatsApp, call, follow-up)
   });
   
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(defaultColumnVisibility);
