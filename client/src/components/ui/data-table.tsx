@@ -436,14 +436,8 @@ export function DataTable<TData, TValue>({
                       <TableHead
                         key={header.id}
                         className={cn(
-                          canSort && "cursor-pointer select-none",
-                          "sticky top-0 z-20 whitespace-nowrap font-semibold py-2 bg-[#F1F5F9] dark:bg-gray-800"
+                          "sticky top-0 z-20 whitespace-nowrap font-semibold py-2 bg-[#F1F5F9] dark:bg-gray-800 pointer-events-none"
                         )}
-                        onClick={
-                          canSort
-                            ? header.column.getToggleSortingHandler()
-                            : undefined
-                        }
                         data-testid={`header-${header.id}`}
                         aria-sort={
                           sortDirection === "asc"
@@ -453,7 +447,17 @@ export function DataTable<TData, TValue>({
                             : "none"
                         }
                       >
-                        <div className="flex items-center gap-2">
+                        <div 
+                          className={cn(
+                            "flex items-center gap-2 pointer-events-auto",
+                            canSort && "cursor-pointer select-none"
+                          )}
+                          onClick={
+                            canSort
+                              ? header.column.getToggleSortingHandler()
+                              : undefined
+                          }
+                        >
                           {header.isPlaceholder
                             ? null
                             : flexRender(
