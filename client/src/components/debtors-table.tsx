@@ -806,7 +806,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           }}
         >
           <Table>
-            <TableHeader className="sticky top-0 z-10 bg-background">
+            <TableHeader className="bg-background">
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
@@ -846,7 +846,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                 </TableRow>
               ))}
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={`filter-${headerGroup.id}`} className="sticky top-11 z-10 bg-background">
+                <TableRow key={`filter-${headerGroup.id}`} className="bg-background">
                   {headerGroup.headers.map((header) => {
                     const canFilter = header.column.getCanFilter();
                     const columnFilterValue = header.column.getFilterValue();
