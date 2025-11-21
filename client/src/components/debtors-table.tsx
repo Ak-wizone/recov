@@ -227,27 +227,6 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
     }
   };
 
-  const handleEmailClick = (debtor: DebtorData) => {
-    try {
-      if (!debtor || !debtor.email) {
-        toast({
-          title: "Email not available",
-          description: "This customer doesn't have an email address on file.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      onOpenEmail(debtor);
-    } catch (error) {
-      console.error('Error in handleEmailClick:', error);
-      toast({
-        title: "Error",
-        description: "Failed to open email dialog",
-        variant: "destructive",
-      });
-    }
-  };
 
   const formatCurrency = (amount: number) => {
     return `₹${amount.toLocaleString("en-IN", {
