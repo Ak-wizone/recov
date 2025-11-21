@@ -357,9 +357,9 @@ const navItems: NavItem[] = [
         module: "Urgent Actions",
       },
       {
-        name: "Follow-up Automation",
-        path: "/credit-control/followup-automation",
-        icon: <Settings className="h-4 w-4" />,
+        name: "Communication Schedules",
+        path: "/communication-schedules",
+        icon: <Calendar className="h-4 w-4" />,
         module: "Follow-up Automation",
       },
       {
@@ -367,12 +367,6 @@ const navItems: NavItem[] = [
         path: "/credit-control/followup-rules",
         icon: <ListChecks className="h-4 w-4" />,
         module: "Follow-up Rules",
-      },
-      {
-        name: "Communication Schedules",
-        path: "/communication-schedules",
-        icon: <Calendar className="h-4 w-4" />,
-        module: "Communication Schedules",
       },
     ],
   },

@@ -51,7 +51,7 @@ export default function CommunicationSchedules() {
   });
 
   const { data: emailTemplates } = useQuery<any[]>({
-    queryKey: ["/api/email/templates"],
+    queryKey: ["/api/email-templates"],
   });
 
   const { data: whatsappTemplates } = useQuery<any[]>({
