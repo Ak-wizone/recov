@@ -356,7 +356,7 @@ export default function Landing() {
               <div className="relative bg-gray-900 dark:bg-gray-800 rounded-xl overflow-hidden shadow-2xl aspect-[9/16]">
                 <iframe
                   className="absolute inset-0 w-full h-full"
-                  src="https://www.youtube.com/embed/K6-ozfSX5hk"
+                  src="https://www.youtube.com/embed/K6-ozfSX5hk?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&loop=1&playlist=K6-ozfSX5hk"
                   title="RECOV Payment Recovery Platform Demo"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
