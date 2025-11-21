@@ -1580,8 +1580,13 @@ export type CallLog = typeof callLogs.$inferSelect;
 export const communicationSchedules = pgTable("communication_schedules", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  scheduleName: text("schedule_name").notNull(),
+  description: text("description"),
   module: text("module").notNull(),
   communicationType: text("communication_type").notNull(),
+  triggerType: text("trigger_type").notNull(),
+  scheduledDateTime: timestamp("scheduled_date_time"),
+  daysOffset: integer("days_offset"),
   frequency: text("frequency").notNull(),
   dayOfWeek: integer("day_of_week"),
   dayOfMonth: integer("day_of_month"),
@@ -1598,8 +1603,13 @@ export const communicationSchedules = pgTable("communication_schedules", {
 });
 
 export const insertCommunicationScheduleSchema = createInsertSchema(communicationSchedules).pick({
+  scheduleName: true,
+  description: true,
   module: true,
   communicationType: true,
+  triggerType: true,
+  scheduledDateTime: true,
+  daysOffset: true,
   frequency: true,
   dayOfWeek: true,
   dayOfMonth: true,
@@ -1610,8 +1620,13 @@ export const insertCommunicationScheduleSchema = createInsertSchema(communicatio
   message: true,
   isActive: true,
 }).extend({
+  scheduleName: z.string().min(1, "Schedule name is required"),
+  description: z.string().optional(),
   module: z.enum(["leads", "quotations", "proforma_invoices", "invoices", "receipts", "debtors", "credit_management"]),
   communicationType: z.enum(["call", "email", "whatsapp"]),
+  triggerType: z.enum(["specific_datetime", "days_before_due", "days_after_due"]),
+  scheduledDateTime: z.string().optional(),
+  daysOffset: z.number().min(1).max(365).optional(),
   frequency: z.enum(["once", "daily", "weekly", "monthly"]),
   dayOfWeek: z.number().min(0).max(6).optional(),
   dayOfMonth: z.number().min(1).max(31).optional(),

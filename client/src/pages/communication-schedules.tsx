@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Calendar, Clock, Mail, Phone, MessageSquare } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { CommunicationSchedule } from "@shared/schema";
 
 export default function CommunicationSchedules() {
@@ -21,13 +23,19 @@ export default function CommunicationSchedules() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<CommunicationSchedule | null>(null);
   const [formData, setFormData] = useState({
+    scheduleName: "",
+    description: "",
     module: "invoices",
-    communicationType: "call",
-    frequency: "weekly",
+    communicationType: "email",
+    triggerType: "specific_datetime",
+    scheduledDateTime: "",
+    daysOffset: 7,
+    frequency: "once",
     dayOfWeek: 1,
     dayOfMonth: 1,
     timeOfDay: "10:00",
     filterCondition: "",
+    categoryFilter: [] as string[],
     scriptId: "",
     emailTemplateId: "",
     message: "",
@@ -39,11 +47,15 @@ export default function CommunicationSchedules() {
   });
 
   const { data: callScripts } = useQuery<any[]>({
-    queryKey: ["/api/ringg-scripts"],
+    queryKey: ["/api/call-templates/invoices"],
   });
 
   const { data: emailTemplates } = useQuery<any[]>({
-    queryKey: ["/api/email-templates"],
+    queryKey: ["/api/email/templates"],
+  });
+
+  const { data: whatsappTemplates } = useQuery<any[]>({
+    queryKey: ["/api/whatsapp/templates"],
   });
 
   const createMutation = useMutation({
@@ -74,7 +86,7 @@ export default function CommunicationSchedules() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => apiRequest("DELETE", `/api/schedules/${id}`),
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/schedules/${id}`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/schedules"] });
       toast({ title: "Schedule deleted successfully" });
@@ -86,13 +98,19 @@ export default function CommunicationSchedules() {
 
   const resetForm = () => {
     setFormData({
+      scheduleName: "",
+      description: "",
       module: "invoices",
-      communicationType: "call",
-      frequency: "weekly",
+      communicationType: "email",
+      triggerType: "specific_datetime",
+      scheduledDateTime: "",
+      daysOffset: 7,
+      frequency: "once",
       dayOfWeek: 1,
       dayOfMonth: 1,
       timeOfDay: "10:00",
       filterCondition: "",
+      categoryFilter: [],
       scriptId: "",
       emailTemplateId: "",
       message: "",
@@ -103,14 +121,50 @@ export default function CommunicationSchedules() {
 
   const handleEdit = (schedule: CommunicationSchedule) => {
     setEditingSchedule(schedule);
+    
+    // Parse category filter from both formats: (Alpha|Beta) or (category='alpha' OR category='beta')
+    let categoryFilter: string[] = [];
+    if (schedule.filterCondition) {
+      // Extract content inside parentheses
+      const match = schedule.filterCondition.match(/\((.*?)\)/);
+      if (match) {
+        const content = match[1];
+        
+        // New pipe-delimited format: (Alpha|Beta)
+        if (content.includes('|')) {
+          categoryFilter = content.split('|').map(c => c.toLowerCase());
+        }
+        // Legacy SQL-style format: (category='alpha' OR category='beta')
+        else if (content.includes('category=')) {
+          const categoryMatches = content.matchAll(/category='(\w+)'/g);
+          categoryFilter = Array.from(categoryMatches).map(m => m[1].toLowerCase());
+        }
+        // Simple string checks for backward compatibility
+        else {
+          categoryFilter = [];
+          if (schedule.filterCondition.includes("Alpha")) categoryFilter.push("alpha");
+          if (schedule.filterCondition.includes("Beta")) categoryFilter.push("beta");
+          if (schedule.filterCondition.includes("Gamma")) categoryFilter.push("gamma");
+          if (schedule.filterCondition.includes("Delta")) categoryFilter.push("delta");
+        }
+      }
+    }
+    
     setFormData({
+      scheduleName: schedule.scheduleName || "",
+      description: schedule.description || "",
       module: schedule.module,
       communicationType: schedule.communicationType,
+      triggerType: schedule.triggerType || "specific_datetime",
+      scheduledDateTime: schedule.scheduledDateTime ? 
+        new Date(schedule.scheduledDateTime).toISOString().slice(0, 16) : "",
+      daysOffset: schedule.daysOffset ?? 7,
       frequency: schedule.frequency,
       dayOfWeek: schedule.dayOfWeek || 1,
       dayOfMonth: schedule.dayOfMonth || 1,
       timeOfDay: schedule.timeOfDay || "10:00",
       filterCondition: schedule.filterCondition || "",
+      categoryFilter,
       scriptId: schedule.scriptId || "",
       emailTemplateId: schedule.emailTemplateId || "",
       message: schedule.message || "",
@@ -120,29 +174,62 @@ export default function CommunicationSchedules() {
   };
 
   const handleSubmit = () => {
+    if (!formData.scheduleName.trim()) {
+      toast({ title: "Error", description: "Schedule name is required", variant: "destructive" });
+      return;
+    }
+
     const submitData: any = {
+      scheduleName: formData.scheduleName,
+      description: formData.description,
       module: formData.module,
       communicationType: formData.communicationType,
+      triggerType: formData.triggerType,
       frequency: formData.frequency,
-      timeOfDay: formData.timeOfDay,
-      filterCondition: formData.filterCondition || null,
       isActive: formData.isActive,
     };
 
-    if (formData.frequency === "weekly") {
-      submitData.dayOfWeek = Number(formData.dayOfWeek);
+    if (formData.triggerType === "specific_datetime") {
+      if (!formData.scheduledDateTime) {
+        toast({ title: "Error", description: "Please select date and time", variant: "destructive" });
+        return;
+      }
+      submitData.scheduledDateTime = new Date(formData.scheduledDateTime).toISOString();
+    } else {
+      submitData.daysOffset = Number(formData.daysOffset);
     }
-    if (formData.frequency === "monthly") {
-      submitData.dayOfMonth = Number(formData.dayOfMonth);
+
+    if (formData.categoryFilter.length > 0) {
+      // Format: (Alpha|Beta|Gamma) - pipe-delimited categories with proper capitalization
+      const categories = formData.categoryFilter.map(c => 
+        c.charAt(0).toUpperCase() + c.slice(1).toLowerCase()
+      );
+      submitData.filterCondition = `(${categories.join('|')})`;
+    } else if (formData.filterCondition) {
+      submitData.filterCondition = formData.filterCondition;
     }
 
     if (formData.communicationType === "call") {
-      submitData.scriptId = formData.scriptId || null;
+      if (!formData.scriptId) {
+        toast({ title: "Error", description: "Please select a call script", variant: "destructive" });
+        return;
+      }
+      submitData.scriptId = formData.scriptId;
     }
+    
     if (formData.communicationType === "email") {
-      submitData.emailTemplateId = formData.emailTemplateId || null;
+      if (!formData.emailTemplateId) {
+        toast({ title: "Error", description: "Please select an email template", variant: "destructive" });
+        return;
+      }
+      submitData.emailTemplateId = formData.emailTemplateId;
     }
+    
     if (formData.communicationType === "whatsapp") {
+      if (!formData.message) {
+        toast({ title: "Error", description: "Please enter WhatsApp message", variant: "destructive" });
+        return;
+      }
       submitData.message = formData.message;
     }
 
@@ -151,6 +238,15 @@ export default function CommunicationSchedules() {
     } else {
       createMutation.mutate(submitData);
     }
+  };
+
+  const toggleCategory = (category: string) => {
+    setFormData(prev => ({
+      ...prev,
+      categoryFilter: prev.categoryFilter.includes(category)
+        ? prev.categoryFilter.filter(c => c !== category)
+        : [...prev.categoryFilter, category]
+    }));
   };
 
   const getModuleName = (module: string) => {
@@ -166,17 +262,17 @@ export default function CommunicationSchedules() {
     return names[module] || module;
   };
 
-  const getFrequencyDisplay = (schedule: CommunicationSchedule) => {
-    if (schedule.frequency === "once") return "Once";
-    if (schedule.frequency === "daily") return `Daily at ${schedule.timeOfDay}`;
-    if (schedule.frequency === "weekly") {
-      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      return `Weekly on ${days[schedule.dayOfWeek || 0]} at ${schedule.timeOfDay}`;
+  const getTriggerDisplay = (schedule: CommunicationSchedule) => {
+    if (schedule.triggerType === "specific_datetime" && schedule.scheduledDateTime) {
+      return new Date(schedule.scheduledDateTime).toLocaleString();
     }
-    if (schedule.frequency === "monthly") {
-      return `Monthly on day ${schedule.dayOfMonth} at ${schedule.timeOfDay}`;
+    if (schedule.triggerType === "days_before_due") {
+      return `${schedule.daysOffset} days before due`;
     }
-    return schedule.frequency;
+    if (schedule.triggerType === "days_after_due") {
+      return `${schedule.daysOffset} days after due`;
+    }
+    return "Not configured";
   };
 
   const getCommunicationIcon = (type: string) => {
@@ -201,7 +297,7 @@ export default function CommunicationSchedules() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Communication Schedules</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Automate calls, emails, and WhatsApp messages for your modules
+            Schedule automated calls, emails, and WhatsApp messages
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -211,199 +307,255 @@ export default function CommunicationSchedules() {
               Add Schedule
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {editingSchedule ? "Edit Schedule" : "Create New Schedule"}
+                {editingSchedule ? "Edit Communication Schedule" : "Create Communication Schedule"}
               </DialogTitle>
               <DialogDescription>
-                Set up automated communication for your business modules
+                Configure when and how to send automated communications
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6 py-4">
+              <div className="space-y-4">
                 <div>
-                  <Label>Module</Label>
-                  <Select
-                    value={formData.module}
-                    onValueChange={(value) => setFormData({ ...formData, module: value })}
-                  >
-                    <SelectTrigger data-testid="select-module">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="leads">Leads</SelectItem>
-                      <SelectItem value="quotations">Quotations</SelectItem>
-                      <SelectItem value="proforma_invoices">Proforma Invoices</SelectItem>
-                      <SelectItem value="invoices">Invoices</SelectItem>
-                      <SelectItem value="receipts">Receipts</SelectItem>
-                      <SelectItem value="debtors">Debtors</SelectItem>
-                      <SelectItem value="credit_management">Credit Management</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label>Communication Type</Label>
-                  <Select
-                    value={formData.communicationType}
-                    onValueChange={(value) => setFormData({ ...formData, communicationType: value })}
-                  >
-                    <SelectTrigger data-testid="select-communication-type">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="call">Phone Call</SelectItem>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Frequency</Label>
-                  <Select
-                    value={formData.frequency}
-                    onValueChange={(value) => setFormData({ ...formData, frequency: value })}
-                  >
-                    <SelectTrigger data-testid="select-frequency">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="once">Once</SelectItem>
-                      <SelectItem value="daily">Daily</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {formData.frequency === "weekly" && (
-                  <div>
-                    <Label>Day of Week</Label>
-                    <Select
-                      value={String(formData.dayOfWeek)}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, dayOfWeek: Number(value) })
-                      }
-                    >
-                      <SelectTrigger data-testid="select-day-of-week">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">Sunday</SelectItem>
-                        <SelectItem value="1">Monday</SelectItem>
-                        <SelectItem value="2">Tuesday</SelectItem>
-                        <SelectItem value="3">Wednesday</SelectItem>
-                        <SelectItem value="4">Thursday</SelectItem>
-                        <SelectItem value="5">Friday</SelectItem>
-                        <SelectItem value="6">Saturday</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                {formData.frequency === "monthly" && (
-                  <div>
-                    <Label>Day of Month</Label>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="31"
-                      value={formData.dayOfMonth}
-                      onChange={(e) =>
-                        setFormData({ ...formData, dayOfMonth: Number(e.target.value) })
-                      }
-                      data-testid="input-day-of-month"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <Label>Time of Day</Label>
+                  <Label htmlFor="scheduleName">Schedule Name *</Label>
                   <Input
-                    type="time"
-                    value={formData.timeOfDay}
-                    onChange={(e) => setFormData({ ...formData, timeOfDay: e.target.value })}
-                    data-testid="input-time"
+                    id="scheduleName"
+                    value={formData.scheduleName}
+                    onChange={(e) => setFormData({ ...formData, scheduleName: e.target.value })}
+                    placeholder="e.g., Payment Reminder"
+                    data-testid="input-schedule-name"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Optional description"
+                    data-testid="input-description"
                   />
                 </div>
               </div>
 
-              {formData.communicationType === "call" && (
-                <div>
-                  <Label>Call Script</Label>
-                  <Select
-                    value={formData.scriptId}
-                    onValueChange={(value) => setFormData({ ...formData, scriptId: value })}
-                  >
-                    <SelectTrigger data-testid="select-script">
-                      <SelectValue placeholder="Select a script" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {callScripts
-                        ?.filter((s) => s.module === formData.module && s.isActive === "Active")
-                        .map((script) => (
-                          <SelectItem key={script.id} value={script.id}>
-                            {script.scriptName}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">Communication Settings</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Module</Label>
+                      <Select
+                        value={formData.module}
+                        onValueChange={(value) => setFormData({ ...formData, module: value })}
+                      >
+                        <SelectTrigger data-testid="select-module">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="leads">Leads</SelectItem>
+                          <SelectItem value="quotations">Quotations</SelectItem>
+                          <SelectItem value="proforma_invoices">Proforma Invoices</SelectItem>
+                          <SelectItem value="invoices">Invoices</SelectItem>
+                          <SelectItem value="receipts">Receipts</SelectItem>
+                          <SelectItem value="debtors">Debtors</SelectItem>
+                          <SelectItem value="credit_management">Credit Management</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-              {formData.communicationType === "email" && (
-                <div>
-                  <Label>Email Template</Label>
-                  <Select
-                    value={formData.emailTemplateId}
-                    onValueChange={(value) => setFormData({ ...formData, emailTemplateId: value })}
-                  >
-                    <SelectTrigger data-testid="select-template">
-                      <SelectValue placeholder="Select a template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {emailTemplates
-                        ?.filter((t) => t.module === formData.module && t.isActive === "Active")
-                        .map((template) => (
-                          <SelectItem key={template.id} value={template.id}>
-                            {template.templateName}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+                    <div>
+                      <Label>Communication Type *</Label>
+                      <Select
+                        value={formData.communicationType}
+                        onValueChange={(value) => setFormData({ ...formData, communicationType: value, scriptId: "", emailTemplateId: "", message: "" })}
+                      >
+                        <SelectTrigger data-testid="select-communication-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                          <SelectItem value="call">IVR Call</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-              {formData.communicationType === "whatsapp" && (
-                <div>
-                  <Label>WhatsApp Message</Label>
-                  <Textarea
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                    placeholder="Enter your WhatsApp message with variables like {customerName}, {amount}, etc."
-                    rows={4}
-                    data-testid="textarea-message"
-                  />
-                </div>
-              )}
+                  {formData.communicationType === "email" && (
+                    <div>
+                      <Label>Email Template *</Label>
+                      <Select
+                        value={formData.emailTemplateId}
+                        onValueChange={(value) => setFormData({ ...formData, emailTemplateId: value })}
+                      >
+                        <SelectTrigger data-testid="select-email-template">
+                          <SelectValue placeholder="Select an email template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {emailTemplates
+                            ?.filter((t) => t.module === formData.module && t.isActive === "Active")
+                            .map((template) => (
+                              <SelectItem key={template.id} value={template.id}>
+                                {template.templateName}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
-              <div>
-                <Label>Filter Condition (JSON)</Label>
-                <Textarea
-                  value={formData.filterCondition}
-                  onChange={(e) => setFormData({ ...formData, filterCondition: e.target.value })}
-                  placeholder='{"status": "pending", "daysOverdue": ">30"}'
-                  rows={3}
-                  data-testid="textarea-filter"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Optional: Define conditions to filter which records to communicate with
-                </p>
+                  {formData.communicationType === "whatsapp" && (
+                    <div>
+                      <Label>WhatsApp Template *</Label>
+                      <Select
+                        value={formData.message}
+                        onValueChange={(value) => setFormData({ ...formData, message: value })}
+                      >
+                        <SelectTrigger data-testid="select-whatsapp-template">
+                          <SelectValue placeholder="Select a WhatsApp template" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {whatsappTemplates
+                            ?.filter((t) => t.isActive)
+                            .map((template) => (
+                              <SelectItem key={template.id} value={template.templateContent}>
+                                {template.templateName}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {formData.communicationType === "call" && (
+                    <div>
+                      <Label>Call Script *</Label>
+                      <Select
+                        value={formData.scriptId}
+                        onValueChange={(value) => setFormData({ ...formData, scriptId: value })}
+                      >
+                        <SelectTrigger data-testid="select-call-script">
+                          <SelectValue placeholder="Select a call script" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {callScripts?.map((script) => (
+                            <SelectItem key={script.id} value={script.id}>
+                              {script.scriptName || script.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">When to Send</h3>
+                <RadioGroup 
+                  value={formData.triggerType} 
+                  onValueChange={(value) => setFormData({ ...formData, triggerType: value })}
+                  className="space-y-4"
+                >
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg">
+                    <RadioGroupItem value="specific_datetime" id="specific" className="mt-1" />
+                    <div className="flex-1">
+                      <Label htmlFor="specific" className="text-base font-semibold cursor-pointer">
+                        Specific Date & Time
+                      </Label>
+                      {formData.triggerType === "specific_datetime" && (
+                        <div className="mt-3">
+                          <Input
+                            type="datetime-local"
+                            value={formData.scheduledDateTime}
+                            onChange={(e) => setFormData({ ...formData, scheduledDateTime: e.target.value })}
+                            data-testid="input-datetime"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg">
+                    <RadioGroupItem value="days_before_due" id="before-due" className="mt-1" />
+                    <div className="flex-1">
+                      <Label htmlFor="before-due" className="text-base font-semibold cursor-pointer">
+                        Days Before Due Date
+                      </Label>
+                      {formData.triggerType === "days_before_due" && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="365"
+                            value={formData.daysOffset}
+                            onChange={(e) => setFormData({ ...formData, daysOffset: Number(e.target.value) })}
+                            className="w-24"
+                            data-testid="input-days-before"
+                          />
+                          <span className="text-sm text-gray-600">days before due date (0 = on due date)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-start space-x-3 p-4 border rounded-lg">
+                    <RadioGroupItem value="days_after_due" id="after-due" className="mt-1" />
+                    <div className="flex-1">
+                      <Label htmlFor="after-due" className="text-base font-semibold cursor-pointer">
+                        Days After Due Date
+                      </Label>
+                      {formData.triggerType === "days_after_due" && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            max="365"
+                            value={formData.daysOffset}
+                            onChange={(e) => setFormData({ ...formData, daysOffset: Number(e.target.value) })}
+                            className="w-24"
+                            data-testid="input-days-after"
+                          />
+                          <span className="text-sm text-gray-600">days after due date (0 = on due date)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">Category Filter</h3>
+                <div className="flex flex-wrap gap-4">
+                  {["alpha", "beta", "gamma", "delta"].map((category) => (
+                    <div key={category} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={category}
+                        checked={formData.categoryFilter.includes(category)}
+                        onCheckedChange={() => toggleCategory(category)}
+                        data-testid={`checkbox-${category}`}
+                      />
+                      <Label htmlFor={category} className="capitalize cursor-pointer">
+                        {category}
+                      </Label>
+                    </div>
+                  ))}
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="all-categories"
+                      checked={formData.categoryFilter.length === 0}
+                      onCheckedChange={() => setFormData({ ...formData, categoryFilter: [] })}
+                      data-testid="checkbox-all"
+                    />
+                    <Label htmlFor="all-categories" className="cursor-pointer font-medium">
+                      All Categories
+                    </Label>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -457,19 +609,25 @@ export default function CommunicationSchedules() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Schedule Name</TableHead>
                     <TableHead>Module</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Frequency</TableHead>
+                    <TableHead>When</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Last Run</TableHead>
-                    <TableHead>Next Run</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {schedules.map((schedule) => (
                     <TableRow key={schedule.id} data-testid={`row-schedule-${schedule.id}`}>
-                      <TableCell className="font-medium">{getModuleName(schedule.module)}</TableCell>
+                      <TableCell className="font-medium">
+                        {schedule.scheduleName}
+                        {schedule.description && (
+                          <div className="text-sm text-gray-500">{schedule.description}</div>
+                        )}
+                      </TableCell>
+                      <TableCell>{getModuleName(schedule.module)}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {getCommunicationIcon(schedule.communicationType)}
@@ -479,7 +637,7 @@ export default function CommunicationSchedules() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-gray-400" />
-                          {getFrequencyDisplay(schedule)}
+                          {getTriggerDisplay(schedule)}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -491,11 +649,6 @@ export default function CommunicationSchedules() {
                         {schedule.lastRunAt
                           ? new Date(schedule.lastRunAt).toLocaleString()
                           : "Never"}
-                      </TableCell>
-                      <TableCell className="text-gray-500 text-sm">
-                        {schedule.nextRunAt
-                          ? new Date(schedule.nextRunAt).toLocaleString()
-                          : "Not scheduled"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

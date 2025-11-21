@@ -6,6 +6,8 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seed";
 import { wsManager } from "./websocket";
+import { createScheduler } from "./scheduler";
+import { storage } from "./storage";
 
 const app = express();
 
@@ -146,6 +148,11 @@ app.use((req, res, next) => {
     console.log('[STARTUP] Running database seed...');
     await seedDatabase();
     console.log('[STARTUP] Database seed complete');
+
+    console.log('[STARTUP] Initializing communication scheduler...');
+    const scheduler = createScheduler(storage);
+    scheduler.start();
+    console.log('[STARTUP] Communication scheduler started');
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;

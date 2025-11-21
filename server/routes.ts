@@ -10187,6 +10187,28 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  app.post("/api/schedules/:id/trigger", async (req, res) => {
+    try {
+      const schedule = await storage.getCommunicationSchedule(req.tenantId!, req.params.id);
+      if (!schedule) {
+        return res.status(404).json({ message: "Schedule not found" });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: "Manual trigger will be processed by scheduler on next cycle",
+        schedule: {
+          id: schedule.id,
+          scheduleName: schedule.scheduleName,
+          communicationType: schedule.communicationType,
+          triggerType: schedule.triggerType
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // ==================== CREDIT CONTROL / RECOVERY MANAGEMENT ROUTES ====================
   
   // Get Category Rules (Payment Delay Thresholds)
