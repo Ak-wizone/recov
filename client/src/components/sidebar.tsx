@@ -79,6 +79,7 @@ const MODULE_MAPPING: Record<string, string> = {
   "Team Performance": "Team Performance",
   "Risk & Recovery": "Risk & Recovery",
   "Credit Control": "Credit Control",
+  "Communication Schedules": "Credit Control",
   "Masters": "Masters",
   "Settings": "Settings",
   "Backup & Restore": "Backup & Restore",
