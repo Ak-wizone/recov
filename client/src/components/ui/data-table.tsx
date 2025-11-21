@@ -435,7 +435,7 @@ export function DataTable<TData, TValue>({
                       <TableHead
                         key={header.id}
                         className={cn(
-                          "sticky top-0 z-20 whitespace-nowrap font-semibold py-2 bg-[#F1F5F9] dark:bg-gray-800"
+                          "sticky top-0 z-20 whitespace-nowrap font-semibold py-2 bg-[#F1F5F9] dark:bg-gray-800 pointer-events-none"
                         )}
                         data-testid={`header-${header.id}`}
                         aria-sort={
@@ -448,7 +448,7 @@ export function DataTable<TData, TValue>({
                       >
                         <div 
                           className={cn(
-                            "flex items-center gap-2",
+                            "flex items-center gap-2 pointer-events-auto",
                             canSort && "cursor-pointer select-none"
                           )}
                           onClick={
@@ -487,14 +487,14 @@ export function DataTable<TData, TValue>({
                     const columnFilterValue = header.column.getFilterValue();
 
                     return (
-                      <TableHead key={`filter-${header.id}`} className="sticky top-[48px] z-10 py-2 bg-white dark:bg-gray-900">
+                      <TableHead key={`filter-${header.id}`} className="sticky top-[48px] z-10 py-2 bg-white dark:bg-gray-900 pointer-events-none">
                         {canFilter && header.column.id !== "select" ? (
                           <Input
                             type="text"
                             placeholder={`Search ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header.toLowerCase() : ''}...`}
                             value={(columnFilterValue ?? "") as string}
                             onChange={(e) => header.column.setFilterValue(e.target.value)}
-                            className="h-10"
+                            className="h-10 pointer-events-auto"
                             data-testid={`input-filter-${header.id}`}
                           />
                         ) : null}
