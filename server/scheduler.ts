@@ -315,7 +315,7 @@ export class CommunicationScheduler {
 
     // Render subject and body using renderTemplate from email-utils
     const emailSubject = renderTemplate(template.subject, enrichedVars);
-    const emailBody = renderTemplate(template.templateContent, enrichedVars);
+    const emailBody = renderTemplate(template.body, enrichedVars);
 
     await sendEmail(
       emailConfig,
