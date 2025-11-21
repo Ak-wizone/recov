@@ -520,11 +520,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
             <Button
               variant="ghost"
               size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('[Debtors] Email button clicked for:', row.original.name, 'email:', row.original.email);
-                handleEmailClick(row.original);
-              }}
+              onClick={() => onOpenEmail(row.original)}
               data-testid={`button-email-${row.original.customerId}`}
               title={row.original.email ? "Send Email" : "No email address"}
             >
