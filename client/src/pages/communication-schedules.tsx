@@ -397,10 +397,10 @@ export default function CommunicationSchedules() {
                         </SelectTrigger>
                         <SelectContent>
                           {emailTemplates
-                            ?.filter((t) => t.module === formData.module && t.isActive === "Active")
+                            ?.filter((t) => t.module === formData.module)
                             .map((template) => (
                               <SelectItem key={template.id} value={template.id}>
-                                {template.templateName}
+                                {template.name}
                               </SelectItem>
                             ))}
                         </SelectContent>
