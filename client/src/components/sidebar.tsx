@@ -43,6 +43,7 @@ import {
   ListChecks,
   MessageSquare,
   Mic,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -143,6 +144,7 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Urgent Actions": "Credit Control",
   "Follow-up Automation": "Credit Control",
   "Follow-up Rules": "Credit Control",
+  "Communication Schedules": "Credit Control",
   
   // Masters - Parent shown if any child is accessible
   "Masters": "Masters - Customers",
@@ -364,6 +366,12 @@ const navItems: NavItem[] = [
         path: "/credit-control/followup-rules",
         icon: <ListChecks className="h-4 w-4" />,
         module: "Follow-up Rules",
+      },
+      {
+        name: "Communication Schedules",
+        path: "/communication-schedules",
+        icon: <Calendar className="h-4 w-4" />,
+        module: "Communication Schedules",
       },
     ],
   },
