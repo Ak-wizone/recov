@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { communicationSchedules, invoices } from "@shared/schema";
-import { eq, and, lte, sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { sendEmail } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
 import { getEnrichedEmailVariables } from "./email-utils";
