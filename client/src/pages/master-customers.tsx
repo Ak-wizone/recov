@@ -1030,7 +1030,12 @@ export default function MasterCustomers() {
 
       <MasterCustomerFormDialog
         open={isFormOpen}
-        onOpenChange={setIsFormOpen}
+        onOpenChange={(open) => {
+          setIsFormOpen(open);
+          if (!open) {
+            setSelectedCustomer(undefined);
+          }
+        }}
         customer={selectedCustomer}
       />
 
