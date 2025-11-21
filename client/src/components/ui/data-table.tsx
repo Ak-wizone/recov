@@ -413,17 +413,13 @@ export function DataTable<TData, TValue>({
         `}</style>
         {/* Outer container for horizontal scrolling - scrollbar stays at bottom of visible area */}
         <div 
-          className="relative overflow-x-auto scrollbar-horizontal"
+          className="overflow-x-auto scrollbar-horizontal"
           style={{
             scrollbarWidth: "auto",
             scrollbarColor: "rgb(156 163 175) transparent"
           }}
         >
-          {/* Inner container - no vertical scroll, table expands naturally */}
-          <div 
-            className="relative"
-          >
-            <Table className="min-w-max relative">
+            <Table className="min-w-max">
               <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="border-b-2 border-gray-300 dark:border-gray-600">
@@ -506,7 +502,6 @@ export function DataTable<TData, TValue>({
             </TableHeader>
             <TableBody>{renderTableBody()}</TableBody>
           </Table>
-          </div>
         </div>
       </div>
       {enablePagination && !isLoading && data.length > 0 && (
