@@ -1,36 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  VisibilityState,
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
 } from "@tanstack/react-table";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ChevronDown, Search, MessageSquare, Mail, Phone, BookOpen, Activity, Edit, Calendar, X, ArrowUpDown, ArrowUp, ArrowDown, UserPlus } from "lucide-react";
+import { MessageSquare, Mail, Phone, BookOpen, Activity, Calendar, UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ColumnChooser } from "@/components/ui/column-chooser";
 import {
   Dialog,
   DialogContent,
