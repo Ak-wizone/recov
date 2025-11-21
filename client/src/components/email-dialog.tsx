@@ -119,8 +119,19 @@ export function EmailDialog({
     setSelectedTemplateId(templateId);
     const template = templates?.find((t) => t.id === templateId);
     if (template) {
-      setSubject(replaceVariables(template.subject, recordData));
-      setBody(replaceVariables(template.body, recordData));
+      console.log('[EmailDialog] Template selected:', template.name);
+      console.log('[EmailDialog] recordData:', recordData);
+      console.log('[EmailDialog] Subject before replace:', template.subject);
+      console.log('[EmailDialog] Body before replace (first 200 chars):', template.body.substring(0, 200));
+      
+      const replacedSubject = replaceVariables(template.subject, recordData);
+      const replacedBody = replaceVariables(template.body, recordData);
+      
+      console.log('[EmailDialog] Subject after replace:', replacedSubject);
+      console.log('[EmailDialog] Body after replace (first 200 chars):', replacedBody.substring(0, 200));
+      
+      setSubject(replacedSubject);
+      setBody(replacedBody);
     }
   };
 
