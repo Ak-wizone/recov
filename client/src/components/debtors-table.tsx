@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   ColumnDef,
 } from "@tanstack/react-table";
@@ -22,6 +22,13 @@ import { useAuth } from "@/lib/auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { TelecmiCallButton } from "@/components/telecmi-call-button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DebtorData {
   customerId: string;
@@ -55,21 +62,15 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { canPerformAction } = useAuth();
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [globalFilter, setGlobalFilter] = useState("");
-  const [isColumnChooserOpen, setIsColumnChooserOpen] = useState(false);
   const [selectedDebtorForActions, setSelectedDebtorForActions] = useState<DebtorData | null>(null);
   const [isActionsDialogOpen, setIsActionsDialogOpen] = useState(false);
-  const [rowSelection, setRowSelection] = useState({});
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [selectedSalesPerson, setSelectedSalesPerson] = useState<string>("");
   const [isReassignDialogOpen, setIsReassignDialogOpen] = useState(false);
   const [reassignSalesPerson, setReassignSalesPerson] = useState<string>("");
   
-  // Define default column visibility - only show these columns by default
-  const [defaultColumnVisibility] = useState<Record<string, boolean>>({
-    // Visible by default (10 data columns as per spec)
+  // Define default column visibility
+  const defaultColumnVisibility: Record<string, boolean> = {
     name: true,
     category: true,
     salesPerson: true,
@@ -80,29 +81,14 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
     balance: true,
     lastFollowUp: true,
     nextFollowUp: true,
-    
-    // Hidden by default (optional columns available in column chooser)
     mobile: false,
     email: false,
     invoiceCount: false,
     receiptCount: false,
     lastInvoiceDate: false,
     lastPaymentDate: false,
-    actions: true,  // Action buttons always visible
-  });
-  
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(defaultColumnVisibility);
-  
-  // Page size with localStorage persistence
-  const [pageSize, setPageSize] = useState(() => {
-    const saved = localStorage.getItem('debtors-table-page-size');
-    return saved ? parseInt(saved, 10) : 10;
-  });
-  
-  // Save page size to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('debtors-table-page-size', pageSize.toString());
-  }, [pageSize]);
+    actions: true,
+  };
 
   // Fetch users for sales person assignment
   const { data: users = [] } = useQuery<any[]>({
@@ -127,11 +113,10 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
       queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
       toast({
         title: "Success",
-        description: `Assigned ${selectedDebtors.length} debtor(s) to sales person`,
+        description: `Assigned debtors to sales person`,
       });
       setIsAssignDialogOpen(false);
       setSelectedSalesPerson("");
-      table.resetRowSelection();
     },
     onError: (error: any) => {
       toast({
@@ -202,6 +187,9 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
     }
   };
 
+  const handleEmailClick = (debtor: DebtorData) => {
+    onOpenEmail(debtor);
+  };
 
   const formatCurrency = (amount: number) => {
     return `₹${amount.toLocaleString("en-IN", {
@@ -210,7 +198,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
     })}`;
   };
 
-  const columns: ColumnDef<DebtorData>[] = [
+  // Wrap columns in useMemo for DataTable
+  const columns: ColumnDef<DebtorData>[] = useMemo(() => [
     {
       id: "select",
       header: ({ table }) => (
@@ -238,10 +227,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
       cell: ({ row }) => (
         <button
           onClick={() => {
-            console.log('[Debtors] Customer name clicked:', row.original);
             setSelectedDebtorForActions(row.original);
             setIsActionsDialogOpen(true);
-            console.log('[Debtors] Dialog should now be open');
           }}
           className="font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline text-left"
           data-testid={`link-name-${row.original.customerId}`}
@@ -524,384 +511,22 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
       ),
       enableHiding: false,
     },
-  ];
-
-  const table = useReactTable({
-    data,
-    columns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onGlobalFilterChange: setGlobalFilter,
-    onRowSelectionChange: setRowSelection,
-    globalFilterFn: "includesString",
-    enableRowSelection: true,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      globalFilter,
-      rowSelection,
-      pagination: {
-        pageIndex: 0,
-        pageSize,
-      },
-    },
-    initialState: {
-      pagination: {
-        pageIndex: 0,
-        pageSize,
-      },
-    },
-    getRowId: (row) => row.customerId,
-  });
-
-  // Notify parent when filtered data changes
-  useEffect(() => {
-    if (onFilteredDataChange) {
-      const filteredRows = table.getFilteredRowModel().rows.map(r => r.original);
-      onFilteredDataChange(filteredRows);
-    }
-  }, [globalFilter, columnFilters, data, onFilteredDataChange, table]);
-
-  const selectedRows = table.getFilteredSelectedRowModel().rows;
-  const selectedDebtors = selectedRows.map(row => row.original);
-  const hasSelection = selectedRows.length > 0;
-
-  const handleBulkWhatsApp = () => {
-    const debtorsWithMobile = selectedDebtors.filter(d => d.mobile);
-    if (debtorsWithMobile.length === 0) {
-      toast({
-        title: "No mobile numbers",
-        description: "None of the selected customers have mobile numbers on file.",
-        variant: "destructive",
-      });
-      return;
-    }
-    // Open WhatsApp for each debtor
-    debtorsWithMobile.forEach(debtor => handleWhatsAppClick(debtor));
-    toast({
-      title: "WhatsApp messages initiated",
-      description: `Opened WhatsApp for ${debtorsWithMobile.length} customer(s)`,
-    });
-  };
-
-  const handleBulkEmail = () => {
-    const debtorsWithEmail = selectedDebtors.filter(d => d.email);
-    if (debtorsWithEmail.length === 0) {
-      toast({
-        title: "No email addresses",
-        description: "None of the selected customers have email addresses on file.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Open email dialog for each selected debtor
-    debtorsWithEmail.forEach((debtor, index) => {
-      setTimeout(() => {
-        onOpenEmail(debtor);
-      }, index * 500); // Stagger dialogs by 500ms to avoid overwhelming
-    });
-    
-    toast({
-      title: "Email dialogs opening",
-      description: `Opening email composer for ${debtorsWithEmail.length} customer(s)`,
-    });
-  };
-
-  const handleBulkCall = () => {
-    if (selectedDebtors.length === 0) return;
-    
-    // Open call dialog for each selected debtor
-    selectedDebtors.forEach((debtor, index) => {
-      setTimeout(() => {
-        onOpenCall(debtor);
-      }, index * 500); // Stagger dialogs by 500ms
-    });
-    
-    toast({
-      title: "Call dialogs opening",
-      description: `Opening call dialog for ${selectedDebtors.length} customer(s)`,
-    });
-  };
-
-  const handleBulkFollowUp = () => {
-    if (selectedDebtors.length === 0) return;
-    
-    // Open follow-up dialog for each selected debtor
-    selectedDebtors.forEach((debtor, index) => {
-      setTimeout(() => {
-        onOpenFollowUp(debtor);
-      }, index * 500); // Stagger dialogs by 500ms
-    });
-    
-    toast({
-      title: "Follow-up dialogs opening",
-      description: `Opening follow-up scheduler for ${selectedDebtors.length} customer(s)`,
-    });
-  };
+  ], [canPerformAction, setLocation, onOpenEmail, onOpenCall, onOpenFollowUp]);
 
   return (
-    <div className="space-y-4">
-      {/* Bulk Actions Toolbar */}
-      {hasSelection && (
-        <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-              {selectedRows.length} selected
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => table.resetRowSelection()}
-              className="h-7 px-2 text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100"
-              data-testid="button-clear-selection"
-            >
-              <X className="h-3 w-3 mr-1" />
-              Clear
-            </Button>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* @ts-ignore - Type issue with optional actionPermissions */}
-            {canPerformAction("canWhatsApp") && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkWhatsApp}
-                className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
-                data-testid="button-bulk-whatsapp"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                WhatsApp
-              </Button>
-            )}
-            {/* @ts-ignore - Type issue with optional actionPermissions */}
-            {canPerformAction("canEmail") && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkEmail}
-                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
-                data-testid="button-bulk-email"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Email
-              </Button>
-            )}
-            {/* @ts-ignore - Type issue with optional actionPermissions */}
-            {canPerformAction("canCall") && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleBulkCall}
-                className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950"
-                data-testid="button-bulk-call"
-              >
-                <Phone className="h-4 w-4 mr-2" />
-                Call
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleBulkFollowUp}
-              data-testid="button-bulk-followup"
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Follow-up
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAssignDialogOpen(true)}
-              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950"
-              data-testid="button-bulk-assign"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Assign to
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Filters and Column Chooser */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search debtors..."
-            value={globalFilter ?? ""}
-            onChange={(event) => setGlobalFilter(event.target.value)}
-            className="pl-10"
-            data-testid="input-search-debtors"
-          />
-        </div>
-        <Button 
-          variant="outline" 
-          onClick={() => setIsColumnChooserOpen(true)}
-          data-testid="button-column-chooser"
-        >
-          Columns <ChevronDown className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-      
-      <ColumnChooser
-        open={isColumnChooserOpen}
-        onOpenChange={setIsColumnChooserOpen}
-        columns={table.getAllColumns()}
-        onApply={(visibility) => {
-          table.setColumnVisibility(visibility);
-        }}
-        onReset={() => {
-          table.setColumnVisibility(defaultColumnVisibility);
-        }}
+    <>
+      <DataTable
+        columns={columns}
+        data={data}
+        isLoading={false}
+        tableKey="debtors"
+        enableRowSelection={true}
+        enableBulkActions={true}
+        enableGlobalFilter={true}
+        enableColumnVisibility={true}
+        enablePagination={true}
         defaultColumnVisibility={defaultColumnVisibility}
       />
-
-      {/* Table with Scrolling */}
-      <div 
-        className="rounded-md border overflow-x-auto"
-        style={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: 'rgb(203 213 225) transparent'
-        }}
-      >
-        <div 
-          className="overflow-y-auto" 
-          style={{ 
-            minHeight: "500px",
-            maxHeight: "calc(100vh - 350px)",
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'rgb(203 213 225) transparent'
-          }}
-        >
-          <Table>
-            <TableHeader className="bg-background">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => {
-                    const isSortable = header.column.getCanSort();
-                    const sortDirection = header.column.getIsSorted();
-                    
-                    return (
-                      <TableHead key={header.id} className="py-2 bg-background">
-                        {header.isPlaceholder ? null : (
-                          <div
-                            className={`flex items-center gap-2 ${
-                              isSortable ? "cursor-pointer select-none hover:text-primary" : ""
-                            }`}
-                            onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
-                            data-testid={`header-${header.id}`}
-                          >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                            {isSortable && (
-                              <span className="ml-1">
-                                {sortDirection === "asc" ? (
-                                  <ArrowUp className="h-4 w-4" />
-                                ) : sortDirection === "desc" ? (
-                                  <ArrowDown className="h-4 w-4" />
-                                ) : (
-                                  <ArrowUpDown className="h-4 w-4 opacity-50" />
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="hover:bg-muted/50 transition-colors"
-                    data-testid={`row-debtor-${row.original.customerId}`}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24 text-center"
-                  >
-                    No debtors found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <div className="flex-1 text-sm text-muted-foreground">
-          Showing {table.getRowModel().rows.length} of {data.length} debtor(s)
-        </div>
-        <div className="flex items-center gap-2">
-          <Select
-            value={`${pageSize}`}
-            onValueChange={(value) => {
-              const newSize = Number(value);
-              setPageSize(newSize);
-              table.setPageSize(newSize);
-            }}
-          >
-            <SelectTrigger className="h-8 w-[100px]" data-testid="select-page-size">
-              <SelectValue placeholder={pageSize} />
-            </SelectTrigger>
-            <SelectContent side="top">
-              {[10, 25, 50, 100].map((size) => (
-                <SelectItem key={size} value={`${size}`} data-testid={`option-page-size-${size}`}>
-                  {size} rows
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              data-testid="button-previous-page"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              data-testid="button-next-page"
-            >
-              Next
-            </Button>
-          </div>
-        </div>
-      </div>
 
       {/* Customer Actions Dialog */}
       <Dialog open={isActionsDialogOpen} onOpenChange={setIsActionsDialogOpen}>
@@ -1064,7 +689,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           <DialogHeader>
             <DialogTitle>Assign to Sales Person</DialogTitle>
             <DialogDescription>
-              Select a sales person to assign {selectedDebtors.length} debtor(s)
+              Select a sales person to assign selected debtors
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -1103,7 +728,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                   return;
                 }
                 assignSalesPersonMutation.mutate({
-                  customerIds: selectedDebtors.map(d => d.customerId),
+                  customerIds: data.map(d => d.customerId),
                   salesPerson: selectedSalesPerson,
                 });
               }}
@@ -1115,6 +740,6 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
