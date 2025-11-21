@@ -293,10 +293,10 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
       {/* Price Increment Timer - Sticky Top Bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4 pointer-events-none">
         <div className="container mx-auto flex items-center justify-between gap-3 md:gap-6 text-sm md:text-base flex-wrap">
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 pointer-events-auto">
             <img src={recovLogo} alt="RECOV Logo" className="h-8 md:h-10 w-auto" data-testid="img-logo-header" />
           </div>
           
@@ -318,7 +318,7 @@ export default function Landing() {
             </div>
             <Button 
               size="sm" 
-              className="bg-yellow-400 text-black hover:bg-yellow-300 font-bold text-xs md:text-sm"
+              className="bg-yellow-400 text-black hover:bg-yellow-300 font-bold text-xs md:text-sm pointer-events-auto"
               onClick={scrollToPricing}
               data-testid="button-timer-cta"
             >
