@@ -32,7 +32,6 @@ import {
   ChevronDown,
   AlertCircle,
   RefreshCw,
-  Play,
 } from "lucide-react";
 import recovLogo from "@assets/image_1763577879371.png";
 
@@ -352,18 +351,17 @@ export default function Landing() {
               PAYMENT RECOVERY SOFTWARE
             </p>
 
-            {/* Video Placeholder */}
-            <div className="mb-6 md:mb-8 max-w-3xl mx-auto">
-              <div className="relative bg-gray-900 dark:bg-gray-800 rounded-xl overflow-hidden shadow-2xl aspect-video">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 md:w-20 md:h-20 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 hover:bg-green-700 transition-colors cursor-pointer">
-                      <Play className="h-8 w-8 md:h-10 md:w-10 text-white ml-1" />
-                    </div>
-                    <p className="text-white text-sm md:text-base font-medium">Watch Demo Video</p>
-                    <p className="text-gray-400 text-xs md:text-sm mt-1">See how RECOV automates your payment recovery</p>
-                  </div>
-                </div>
+            {/* YouTube Portrait Video */}
+            <div className="mb-6 md:mb-8 max-w-md mx-auto">
+              <div className="relative bg-gray-900 dark:bg-gray-800 rounded-xl overflow-hidden shadow-2xl aspect-[9/16]">
+                <iframe
+                  className="absolute inset-0 w-full h-full"
+                  src="https://www.youtube.com/embed/K6-ozfSX5hk"
+                  title="RECOV Payment Recovery Platform Demo"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  data-testid="video-hero"
+                ></iframe>
               </div>
             </div>
             
