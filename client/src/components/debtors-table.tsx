@@ -520,12 +520,15 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleEmailClick(row.original)}
+              onClick={(e) => {
+                e.stopPropagation();
+                console.log('[Debtors] Email button clicked for:', row.original.name, 'email:', row.original.email);
+                handleEmailClick(row.original);
+              }}
               data-testid={`button-email-${row.original.customerId}`}
               title={row.original.email ? "Send Email" : "No email address"}
-              disabled={!row.original.email}
             >
-              <Mail className="h-4 w-4 text-blue-500" />
+              <Mail className={`h-4 w-4 ${row.original.email ? 'text-blue-500' : 'text-gray-300'}`} />
             </Button>
           )}
           {canPerformAction("canCall") && (
