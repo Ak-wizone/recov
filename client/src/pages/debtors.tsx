@@ -66,6 +66,10 @@ export default function Debtors() {
     queryKey: ["/api/debtors/followup-stats"],
   });
 
+  const { data: tenantData } = useQuery<any>({
+    queryKey: ["/api/tenants/current"],
+  });
+
   const exportMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch("/api/debtors/export");
@@ -657,8 +661,11 @@ export default function Debtors() {
           recordData={{
             customerName: selectedEmailCustomer?.name,
             customerEmail: selectedEmailCustomer?.email,
-            balance: selectedEmailCustomer?.balance,
-            overdueAmount: selectedEmailCustomer?.balance,
+            companyName: tenantData?.businessName || "",
+            outstandingAmount: selectedEmailCustomer?.balance ? `₹${Number(selectedEmailCustomer.balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "",
+            overdueAmount: selectedEmailCustomer?.balance ? `₹${Number(selectedEmailCustomer.balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "",
+            totalInvoices: selectedEmailCustomer?.invoiceCount || 0,
+            customerId: selectedEmailCustomer?.customerId,
           }}
         />
 
