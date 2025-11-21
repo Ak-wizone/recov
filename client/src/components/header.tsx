@@ -106,7 +106,7 @@ export default function Header() {
   const pageName = pathToName[location] || "Dashboard";
 
   return (
-    <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-3 sticky top-0 z-10" data-testid="header">
+    <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-3 sticky top-0 z-10 pointer-events-none" data-testid="header">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <div>
@@ -137,7 +137,7 @@ export default function Header() {
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pointer-events-auto">
           <Button
             variant="ghost"
             size="icon"
