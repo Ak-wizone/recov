@@ -179,16 +179,17 @@ export class CommunicationScheduler {
             invoiceDate: invoices.invoiceDate,
             paymentTerms: invoices.paymentTerms,
             grandTotal: invoices.invoiceAmount,
+            status: invoices.status,
           })
           .from(invoices)
-          .where(
-            and(
-              eq(invoices.tenantId, schedule.tenantId),
-              eq(invoices.status, "Pending")
-            )
-          );
+          .where(eq(invoices.tenantId, schedule.tenantId));
 
         for (const inv of invoiceList) {
+          // Skip fully paid invoices - only send to unpaid/partial
+          if (inv.status === "Paid") {
+            continue;
+          }
+
           // Calculate dueDate from invoiceDate + paymentTerms (in days)
           let dueDate = null;
           if (inv.invoiceDate && inv.paymentTerms) {
