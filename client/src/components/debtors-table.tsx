@@ -845,29 +845,6 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                   })}
                 </TableRow>
               ))}
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={`filter-${headerGroup.id}`} className="bg-background">
-                  {headerGroup.headers.map((header) => {
-                    const canFilter = header.column.getCanFilter();
-                    const columnFilterValue = header.column.getFilterValue();
-
-                    return (
-                      <TableHead key={`filter-${header.id}`} className="py-2 bg-background">
-                        {canFilter ? (
-                          <Input
-                            type="text"
-                            placeholder={`Search ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header.toLowerCase() : ''}...`}
-                            value={(columnFilterValue ?? "") as string}
-                            onChange={(e) => header.column.setFilterValue(e.target.value)}
-                            className="h-8"
-                            data-testid={`input-filter-${header.id}`}
-                          />
-                        ) : null}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
             </TableHeader>
             <TableBody>
               {table.getRowModel().rows?.length ? (
