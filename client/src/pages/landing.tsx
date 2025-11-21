@@ -294,29 +294,37 @@ export default function Landing() {
     <div className="min-h-screen bg-white dark:bg-gray-950">
       {/* Price Increment Timer - Sticky Top Bar */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4">
-        <div className="container mx-auto flex items-center justify-center gap-3 md:gap-6 text-sm md:text-base flex-wrap">
-          <div className="flex items-center gap-2">
-            <Timer className="h-4 w-4 md:h-5 md:w-5 animate-pulse" />
-            <span className="font-semibold text-xs md:text-base">PRICE INCREASE IN:</span>
+        <div className="container mx-auto flex items-center justify-between gap-3 md:gap-6 text-sm md:text-base flex-wrap">
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <img src={recovLogo} alt="RECOV Logo" className="h-8 md:h-10 w-auto" data-testid="img-logo-header" />
           </div>
-          <div className="flex gap-2">
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <span className="font-bold text-lg md:text-2xl">{timeLeft.minutes}</span>
-              <span className="text-xs md:text-sm ml-1">MIN</span>
+          
+          {/* Timer and CTA */}
+          <div className="flex items-center justify-center gap-3 md:gap-6 flex-wrap flex-1">
+            <div className="flex items-center gap-2">
+              <Timer className="h-4 w-4 md:h-5 md:w-5 animate-pulse" />
+              <span className="font-semibold text-xs md:text-base">PRICE INCREASE IN:</span>
             </div>
-            <div className="bg-white/20 px-4 py-2 rounded-lg">
-              <span className="font-bold text-lg md:text-2xl">{timeLeft.seconds}</span>
-              <span className="text-xs md:text-sm ml-1">SEC</span>
+            <div className="flex gap-2">
+              <div className="bg-white/20 px-4 py-2 rounded-lg">
+                <span className="font-bold text-lg md:text-2xl">{timeLeft.minutes}</span>
+                <span className="text-xs md:text-sm ml-1">MIN</span>
+              </div>
+              <div className="bg-white/20 px-4 py-2 rounded-lg">
+                <span className="font-bold text-lg md:text-2xl">{timeLeft.seconds}</span>
+                <span className="text-xs md:text-sm ml-1">SEC</span>
+              </div>
             </div>
+            <Button 
+              size="sm" 
+              className="bg-yellow-400 text-black hover:bg-yellow-300 font-bold text-xs md:text-sm"
+              onClick={scrollToPricing}
+              data-testid="button-timer-cta"
+            >
+              LOCK CURRENT PRICE
+            </Button>
           </div>
-          <Button 
-            size="sm" 
-            className="bg-yellow-400 text-black hover:bg-yellow-300 font-bold text-xs md:text-sm"
-            onClick={scrollToPricing}
-            data-testid="button-timer-cta"
-          >
-            LOCK CURRENT PRICE
-          </Button>
         </div>
       </div>
 
