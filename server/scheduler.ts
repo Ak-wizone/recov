@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { communicationSchedules, invoices, customers } from "@shared/schema";
+import { communicationSchedules, invoices } from "@shared/schema";
 import { eq, and, lte, sql } from "drizzle-orm";
 import { sendEmail } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
@@ -171,19 +171,16 @@ export class CommunicationScheduler {
         const invoiceList = await db
           .select({
             invoiceId: invoices.id,
-            customerId: customers.id,
-            customerName: customers.customerName,
-            email: customers.email,
-            phoneNumber: customers.phoneNumber,
-            category: customers.category,
+            customerName: invoices.customerName,
+            email: invoices.primaryEmail,
+            phoneNumber: invoices.primaryMobile,
+            category: invoices.category,
             invoiceNumber: invoices.invoiceNumber,
             invoiceDate: invoices.invoiceDate,
-            dueDate: invoices.dueDate,
-            grandTotal: invoices.grandTotal,
-            amountPaid: invoices.amountPaid,
+            paymentTerms: invoices.paymentTerms,
+            grandTotal: invoices.invoiceAmount,
           })
           .from(invoices)
-          .innerJoin(customers, eq(invoices.customerId, customers.id))
           .where(
             and(
               eq(invoices.tenantId, schedule.tenantId),
@@ -192,19 +189,29 @@ export class CommunicationScheduler {
           );
 
         for (const inv of invoiceList) {
+          // Calculate dueDate from invoiceDate + paymentTerms (in days)
+          let dueDate = null;
+          if (inv.invoiceDate && inv.paymentTerms) {
+            const invoiceDate = new Date(inv.invoiceDate);
+            dueDate = new Date(invoiceDate.getTime() + inv.paymentTerms * 24 * 60 * 60 * 1000);
+          }
+          
+          // Add calculated dueDate to invoice object
+          const invoiceWithDueDate = { ...inv, dueDate };
+          
           // First check filter conditions
-          if (!this.matchesFilter(inv, schedule.filterCondition)) {
+          if (!this.matchesFilter(invoiceWithDueDate, schedule.filterCondition)) {
             continue;
           }
 
           // For due-date based triggers, check if invoice matches the target date
           if (schedule.triggerType === "days_before_due" || schedule.triggerType === "days_after_due") {
-            if (!this.matchesDueDateCriteria(inv, schedule)) {
+            if (!this.matchesDueDateCriteria(invoiceWithDueDate, schedule)) {
               continue;
             }
           }
 
-          recipients.push(inv);
+          recipients.push(invoiceWithDueDate);
         }
       }
     } catch (error) {
