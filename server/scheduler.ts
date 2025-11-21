@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { communicationSchedules, invoices } from "@shared/schema";
+import { communicationSchedules, invoices, receipts } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { sendEmail } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
@@ -214,6 +214,28 @@ export class CommunicationScheduler {
 
           recipients.push(invoiceWithDueDate);
         }
+      } else if (schedule.module === "receipts") {
+        const receiptList = await db
+          .select({
+            receiptId: receipts.id,
+            customerName: receipts.customerName,
+            email: receipts.primaryEmail,
+            voucherNumber: receipts.voucherNumber,
+            date: receipts.date,
+            amount: receipts.amount,
+            customerId: receipts.customerId,
+          })
+          .from(receipts)
+          .where(eq(receipts.tenantId, schedule.tenantId));
+
+        for (const receipt of receiptList) {
+          // First check filter conditions (receipts don't have category field)
+          if (!this.matchesFilter(receipt, schedule.filterCondition)) {
+            continue;
+          }
+
+          recipients.push(receipt);
+        }
       }
     } catch (error) {
       console.error(`[Scheduler] Error getting recipients:`, error);
@@ -309,7 +331,7 @@ export class CommunicationScheduler {
       schedule.tenantId,
       template.module,
       baseUrl,
-      recipient.invoiceId || recipient.customerId,
+      recipient.invoiceId || recipient.receiptId || recipient.customerId,
       undefined // customData
     );
 
