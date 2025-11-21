@@ -510,7 +510,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
               size="sm"
               onClick={() => handleWhatsAppClick(row.original)}
               data-testid={`button-whatsapp-${row.original.customerId}`}
-              title="Send WhatsApp"
+              title={row.original.mobile ? "Send WhatsApp" : "No mobile number"}
+              disabled={!row.original.mobile}
             >
               <MessageSquare className="h-4 w-4 text-green-500" />
             </Button>
@@ -521,7 +522,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
               size="sm"
               onClick={() => handleEmailClick(row.original)}
               data-testid={`button-email-${row.original.customerId}`}
-              title="Send Email"
+              title={row.original.email ? "Send Email" : "No email address"}
+              disabled={!row.original.email}
             >
               <Mail className="h-4 w-4 text-blue-500" />
             </Button>
@@ -533,7 +535,8 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                 size="sm"
                 onClick={() => onOpenCall(row.original)}
                 data-testid={`button-call-${row.original.customerId}`}
-                title="Call via Ringg.ai"
+                title={row.original.mobile ? "Call via Ringg.ai" : "No mobile number"}
+                disabled={!row.original.mobile}
               >
                 <Phone className="h-4 w-4 text-purple-500" />
               </Button>
