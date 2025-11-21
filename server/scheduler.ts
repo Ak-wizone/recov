@@ -3,7 +3,7 @@ import { communicationSchedules, invoices } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import { sendEmail } from "./email-service";
 import { sendWhatsAppMessage } from "./whatsapp-service";
-import { getEnrichedEmailVariables } from "./email-utils";
+import { getEnrichedEmailVariables, renderTemplate } from "./email-utils";
 
 const SCHEDULER_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
@@ -298,23 +298,28 @@ export class CommunicationScheduler {
       return;
     }
 
+    // Generate baseUrl for absolute links in emails
+    const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : 'http://localhost:5000';
+
+    // Get enriched variables with correct parameter order
     const enrichedVars = await getEnrichedEmailVariables(
       schedule.tenantId,
       template.module,
+      baseUrl,
       recipient.invoiceId || recipient.customerId,
-      this.storage
+      undefined // customData
     );
 
-    let emailBody = template.templateContent;
-    for (const [key, value] of Object.entries(enrichedVars)) {
-      const regex = new RegExp(`{{${key}}}`, "g");
-      emailBody = emailBody.replace(regex, String(value));
-    }
+    // Render subject and body using renderTemplate from email-utils
+    const emailSubject = renderTemplate(template.subject, enrichedVars);
+    const emailBody = renderTemplate(template.templateContent, enrichedVars);
 
     await sendEmail(
       emailConfig,
       recipient.email,
-      template.subject,
+      emailSubject,
       emailBody
     );
 
