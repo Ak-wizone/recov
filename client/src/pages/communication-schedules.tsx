@@ -548,7 +548,7 @@ export default function CommunicationSchedules() {
                     <Checkbox
                       id="all-categories"
                       checked={formData.categoryFilter.length === 0}
-                      onCheckedChange={() => setFormData({ ...formData, categoryFilter: [] })}
+                      onCheckedChange={() => setFormData({ ...formData, categoryFilter: [], filterCondition: "" })}
                       data-testid="checkbox-all"
                     />
                     <Label htmlFor="all-categories" className="cursor-pointer font-medium">
