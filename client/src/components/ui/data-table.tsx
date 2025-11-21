@@ -475,30 +475,6 @@ export function DataTable<TData, TValue>({
                   })}
                 </TableRow>
               ))}
-              {/* Column Filter Row */}
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={`filter-${headerGroup.id}`} className="border-b">
-                  {headerGroup.headers.map((header) => {
-                    const canFilter = header.column.getCanFilter();
-                    const columnFilterValue = header.column.getFilterValue();
-
-                    return (
-                      <TableHead key={`filter-${header.id}`} className="py-2 bg-white dark:bg-gray-900">
-                        {canFilter && header.column.id !== "select" ? (
-                          <Input
-                            type="text"
-                            placeholder={`Search ${typeof header.column.columnDef.header === 'string' ? header.column.columnDef.header.toLowerCase() : ''}...`}
-                            value={(columnFilterValue ?? "") as string}
-                            onChange={(e) => header.column.setFilterValue(e.target.value)}
-                            className="h-10"
-                            data-testid={`input-filter-${header.id}`}
-                          />
-                        ) : null}
-                      </TableHead>
-                    );
-                  })}
-                </TableRow>
-              ))}
             </TableHeader>
             <TableBody>{renderTableBody()}</TableBody>
           </Table>
