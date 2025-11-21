@@ -113,7 +113,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
     receiptCount: false,
     lastInvoiceDate: false,
     lastPaymentDate: false,
-    actions: false,  // Action buttons hidden by default, can be shown via column chooser
+    actions: true,  // Action buttons always visible
   });
   
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(defaultColumnVisibility);
@@ -485,61 +485,57 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
       id: "actions",
       header: "Actions",
       cell: ({ row }) => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setLocation(`/ledger?customerId=${row.original.customerId}`)}
-            className="text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950"
             data-testid={`button-ledger-${row.original.customerId}`}
+            title="View Ledger"
           >
-            <BookOpen className="h-4 w-4" />
+            <BookOpen className="h-4 w-4 text-indigo-500" />
           </Button>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => setLocation(`/payment-analytics/scorecard?customerId=${row.original.customerId}`)}
-            className="text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-950"
             data-testid={`button-payment-score-${row.original.customerId}`}
+            title="Payment Scorecard"
           >
-            <Activity className="h-4 w-4" />
+            <Activity className="h-4 w-4 text-yellow-500" />
           </Button>
-          {/* @ts-ignore - Type issue with optional actionPermissions */}
           {canPerformAction("canWhatsApp") && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => handleWhatsAppClick(row.original)}
-              className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
               data-testid={`button-whatsapp-${row.original.customerId}`}
+              title="Send WhatsApp"
             >
-              <MessageSquare className="h-4 w-4" />
+              <MessageSquare className="h-4 w-4 text-green-500" />
             </Button>
           )}
-          {/* @ts-ignore - Type issue with optional actionPermissions */}
           {canPerformAction("canEmail") && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => handleEmailClick(row.original)}
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
               data-testid={`button-email-${row.original.customerId}`}
+              title="Send Email"
             >
-              <Mail className="h-4 w-4" />
+              <Mail className="h-4 w-4 text-blue-500" />
             </Button>
           )}
-          {/* @ts-ignore - Type issue with optional actionPermissions */}
           {canPerformAction("canCall") && (
             <>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => onOpenCall(row.original)}
-                className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-950"
                 data-testid={`button-call-${row.original.customerId}`}
                 title="Call via Ringg.ai"
               >
-                <Phone className="h-4 w-4" />
+                <Phone className="h-4 w-4 text-purple-500" />
               </Button>
               {row.original.mobile && (
                 <TelecmiCallButton
@@ -553,23 +549,24 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
                       : 0
                   }
                   buttonText=""
-                  buttonVariant="outline"
-                  icon={<Phone className="h-4 w-4" />}
+                  buttonVariant="ghost"
+                  icon={<Phone className="h-4 w-4 text-blue-600" />}
                 />
               )}
             </>
           )}
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
             onClick={() => onOpenFollowUp(row.original)}
             data-testid={`button-followup-${row.original.customerId}`}
+            title="Schedule Follow-up"
           >
-            <MessageSquare className="h-4 w-4 mr-1" />
-            Follow-up
+            <Calendar className="h-4 w-4 text-gray-500" />
           </Button>
         </div>
       ),
+      enableHiding: false,
     },
   ];
 
