@@ -162,6 +162,9 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
     "Whisper Voice AI": [
       "Whisper Voice AI - View", "Whisper Voice AI - Create",
     ],
+    "Telegram Bot": [
+      "Telegram Bot - View", "Telegram Bot - Create",
+    ],
   };
 
   const permissions: string[] = [];
@@ -230,7 +233,8 @@ export async function seedDatabase() {
           "Company Profile",
           "User Management",
           "Roles Management",
-          "Whisper Voice AI"
+          "Whisper Voice AI",
+          "Telegram Bot"
         ],
         whisperDefaultMinutes: 300,
         color: "#3b82f6",
@@ -271,7 +275,8 @@ export async function seedDatabase() {
           "User Management",
           "Roles Management",
           "Email/WhatsApp/Call Integrations",
-          "Whisper Voice AI"
+          "Whisper Voice AI",
+          "Telegram Bot"
         ],
         whisperDefaultMinutes: 1000,
         color: "#8b5cf6",
@@ -323,7 +328,8 @@ export async function seedDatabase() {
           "Roles Management",
           "Email/WhatsApp/Call Integrations",
           "RECOV Voice Assistant",
-          "Whisper Voice AI"
+          "Whisper Voice AI",
+          "Telegram Bot"
         ],
         whisperDefaultMinutes: 3000,
         color: "#f59e0b",
