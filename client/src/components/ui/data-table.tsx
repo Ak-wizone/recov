@@ -550,7 +550,7 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
       )}
-      {enableColumnVisibility && (
+      {enableColumnVisibility && columnChooserOpen && (
         <ColumnChooser
           open={columnChooserOpen}
           onOpenChange={setColumnChooserOpen}
