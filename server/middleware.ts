@@ -47,7 +47,7 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
 
   // Platform admins (no tenantId) can access admin routes but need special handling
   // Regular users must have a tenantId
-  if (!tenantId && !req.path.startsWith('/admin') && !req.path.includes('registration-request') && !req.path.startsWith('/tenants') && !req.path.startsWith('/email-config') && !req.path.startsWith('/auth/google') && !req.path.startsWith('/subscription-plans') && !req.path.startsWith('/whisper')) {
+  if (!tenantId && !req.path.startsWith('/admin') && !req.path.includes('registration-request') && !req.path.startsWith('/tenants') && !req.path.startsWith('/email-config') && !req.path.startsWith('/auth/google') && !req.path.startsWith('/subscription-plans') && !req.path.startsWith('/whisper') && !req.path.startsWith('/telegram')) {
     console.log(`[tenantMiddleware] Blocking path: ${req.path}, tenantId: ${tenantId}`);
     return res.status(403).json({ message: "No tenant associated with your account" });
   }

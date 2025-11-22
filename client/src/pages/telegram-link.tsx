@@ -27,11 +27,24 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Bot, Check, Copy, Loader2, Plus, RefreshCw, Trash2, User, MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
 
 export default function TelegramLink() {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [unlinkUserId, setUnlinkUserId] = useState<string | null>(null);
+
+  // Tenant user check - platform admins cannot access this page
+  const isTenantUser = user && user.tenantId;
+
+  // Redirect if platform admin (no tenantId)
+  if (!isTenantUser) {
+    navigate("/tenant-registrations");
+    return null;
+  }
 
   // Fetch linking codes
   const { data: linkingCodes = [], isLoading: isLoadingCodes, refetch: refetchCodes } = useQuery<TelegramLinkingCode[]>({
