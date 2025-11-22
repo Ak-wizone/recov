@@ -452,6 +452,13 @@ const navItems: NavItem[] = [
         icon: <CreditCard className="h-4 w-4" />,
         module: "Whisper Voice AI",
       },
+      {
+        name: "Settings",
+        path: "/whisper-settings",
+        icon: <Settings className="h-4 w-4" />,
+        module: "Whisper Voice AI",
+        platformAdminOnly: true,
+      },
     ],
   },
   {
