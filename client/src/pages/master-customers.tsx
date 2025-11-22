@@ -968,6 +968,14 @@ export default function MasterCustomers() {
             enableSorting={true}
             enablePagination={true}
             defaultPageSize={10}
+            defaultColumnVisibility={{
+              clientName: true,
+              category: true,
+              creditLimit: true,
+              paymentTermsDays: true,
+              openingBalance: true,
+              salesPerson: true,
+            }}
             emptyMessage="No customers found. Add a customer to get started."
             customToolbarActions={
               <>
@@ -1028,20 +1036,22 @@ export default function MasterCustomers() {
         </div>
       </div>
 
-      <MasterCustomerFormDialog
-        open={isFormOpen}
-        onOpenChange={(open) => {
-          setIsFormOpen(open);
-          if (!open) {
-            setSelectedCustomer(undefined);
-          }
-        }}
-        customer={selectedCustomer}
-      />
+      {isFormOpen && (
+        <MasterCustomerFormDialog
+          open={isFormOpen}
+          onOpenChange={(open) => {
+            setIsFormOpen(open);
+            if (!open) {
+              setSelectedCustomer(undefined);
+            }
+          }}
+          customer={selectedCustomer}
+        />
+      )}
 
-      <ImportModal open={isImportOpen} onOpenChange={setIsImportOpen} />
+      {isImportOpen && <ImportModal open={isImportOpen} onOpenChange={setIsImportOpen} />}
 
-      <Dialog open={isBulkInterestOpen} onOpenChange={setIsBulkInterestOpen}>
+      {isBulkInterestOpen && <Dialog open={isBulkInterestOpen} onOpenChange={setIsBulkInterestOpen}>
         <DialogContent data-testid="dialog-bulk-interest">
           <DialogHeader>
             <DialogTitle>Set Interest Rate for All Customers</DialogTitle>
@@ -1090,9 +1100,9 @@ export default function MasterCustomers() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
 
-      <Dialog open={isBulkUpdateOpen} onOpenChange={setIsBulkUpdateOpen}>
+      {isBulkUpdateOpen && <Dialog open={isBulkUpdateOpen} onOpenChange={setIsBulkUpdateOpen}>
         <DialogContent
           className="sm:max-w-[500px]"
           data-testid="dialog-bulk-update"
@@ -1232,7 +1242,7 @@ export default function MasterCustomers() {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
     </div>
   );
 }
