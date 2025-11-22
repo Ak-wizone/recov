@@ -2564,3 +2564,115 @@ export const insertWhisperTransactionSchema = createInsertSchema(whisperTransact
 export type InsertWhisperTransaction = z.infer<typeof insertWhisperTransactionSchema>;
 export type WhisperTransaction = typeof whisperTransactions.$inferSelect;
 
+// Telegram Bot Integration Tables
+
+// Platform-level bot configuration
+export const telegramBotConfig = pgTable("telegram_bot_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  botToken: text("bot_token").notNull(), // Encrypted bot token
+  botUsername: text("bot_username").notNull(),
+  webhookUrl: text("webhook_url"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTelegramBotConfigSchema = createInsertSchema(telegramBotConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  botToken: z.string().min(1, "Bot token is required"),
+  botUsername: z.string().min(1, "Bot username is required"),
+  webhookUrl: z.string().url("Invalid webhook URL").optional(),
+  isActive: z.boolean().default(true),
+});
+
+export type InsertTelegramBotConfig = z.infer<typeof insertTelegramBotConfigSchema>;
+export type TelegramBotConfig = typeof telegramBotConfig.$inferSelect;
+
+// Telegram user to tenant mapping
+export const telegramUserMappings = pgTable("telegram_user_mappings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  telegramUserId: text("telegram_user_id").notNull().unique(), // Telegram's unique user ID
+  telegramUsername: text("telegram_username"),
+  telegramFirstName: text("telegram_first_name"),
+  telegramLastName: text("telegram_last_name"),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id"), // Optional reference to specific user within tenant
+  isActive: boolean("is_active").notNull().default(true),
+  linkedAt: timestamp("linked_at").defaultNow().notNull(),
+  lastActivityAt: timestamp("last_activity_at"),
+});
+
+export const insertTelegramUserMappingSchema = createInsertSchema(telegramUserMappings).omit({
+  id: true,
+  linkedAt: true,
+}).extend({
+  telegramUserId: z.string().min(1, "Telegram user ID is required"),
+  telegramUsername: z.string().optional(),
+  telegramFirstName: z.string().optional(),
+  telegramLastName: z.string().optional(),
+  tenantId: z.string().min(1, "Tenant ID is required"),
+  userId: z.string().optional(),
+  isActive: z.boolean().default(true),
+  lastActivityAt: z.date().optional(),
+});
+
+export type InsertTelegramUserMapping = z.infer<typeof insertTelegramUserMappingSchema>;
+export type TelegramUserMapping = typeof telegramUserMappings.$inferSelect;
+
+// One-time linking codes for tenant users
+export const telegramLinkingCodes = pgTable("telegram_linking_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: text("code").notNull().unique(), // e.g., "LINK-ABC123"
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  generatedByUserId: varchar("generated_by_user_id"), // User who generated the code
+  isUsed: boolean("is_used").notNull().default(false),
+  usedByTelegramUserId: text("used_by_telegram_user_id"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTelegramLinkingCodeSchema = createInsertSchema(telegramLinkingCodes).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  code: z.string().min(1, "Code is required"),
+  tenantId: z.string().min(1, "Tenant ID is required"),
+  generatedByUserId: z.string().optional(),
+  isUsed: z.boolean().default(false),
+  usedByTelegramUserId: z.string().optional(),
+  expiresAt: z.date(),
+});
+
+export type InsertTelegramLinkingCode = z.infer<typeof insertTelegramLinkingCodeSchema>;
+export type TelegramLinkingCode = typeof telegramLinkingCodes.$inferSelect;
+
+// Audit log for Telegram queries
+export const telegramQueryLogs = pgTable("telegram_query_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  telegramUserId: text("telegram_user_id").notNull(),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  queryText: text("query_text").notNull(), // Transcribed text or direct text message
+  queryType: text("query_type"), // invoice_count, debtor_list, revenue, etc.
+  responseText: text("response_text").notNull(),
+  voiceFileId: text("voice_file_id"), // Telegram file reference if voice message
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTelegramQueryLogSchema = createInsertSchema(telegramQueryLogs).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  telegramUserId: z.string().min(1, "Telegram user ID is required"),
+  tenantId: z.string().min(1, "Tenant ID is required"),
+  queryText: z.string().min(1, "Query text is required"),
+  queryType: z.string().optional(),
+  responseText: z.string().min(1, "Response text is required"),
+  voiceFileId: z.string().optional(),
+});
+
+export type InsertTelegramQueryLog = z.infer<typeof insertTelegramQueryLogSchema>;
+export type TelegramQueryLog = typeof telegramQueryLogs.$inferSelect;
+
