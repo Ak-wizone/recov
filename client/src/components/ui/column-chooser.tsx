@@ -66,10 +66,13 @@ export function ColumnChooser<TData>({
   };
 
   const handleToggleColumn = (columnId: string) => {
-    setTempVisibility((prev) => ({
-      ...prev,
-      [columnId]: prev[columnId] === false ? true : false,
-    }));
+    setTempVisibility((prev) => {
+      const currentValue = prev[columnId];
+      return {
+        ...prev,
+        [columnId]: currentValue === true || currentValue === undefined ? false : true,
+      };
+    });
   };
 
   const handleApply = () => {
@@ -111,7 +114,8 @@ export function ColumnChooser<TData>({
           <ScrollArea className="h-[300px] mt-4">
             <div className="space-y-3">
               {visibleColumns.map((column) => {
-                const isVisible = tempVisibility[column.id] !== false;
+                const visibilityValue = tempVisibility[column.id];
+                const isVisible = visibilityValue === true || visibilityValue === undefined;
                 const columnHeader =
                   typeof column.columnDef.header === "string"
                     ? column.columnDef.header
