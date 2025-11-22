@@ -1051,7 +1051,7 @@ export default function MasterCustomers() {
 
       {isImportOpen && <ImportModal open={isImportOpen} onOpenChange={setIsImportOpen} />}
 
-      {isBulkInterestOpen && <Dialog open={isBulkInterestOpen} onOpenChange={setIsBulkInterestOpen}>
+      {isBulkInterestOpen && <Dialog modal={false} open={isBulkInterestOpen} onOpenChange={setIsBulkInterestOpen}>
         <DialogContent data-testid="dialog-bulk-interest">
           <DialogHeader>
             <DialogTitle>Set Interest Rate for All Customers</DialogTitle>
@@ -1102,7 +1102,7 @@ export default function MasterCustomers() {
         </DialogContent>
       </Dialog>}
 
-      {isBulkUpdateOpen && <Dialog open={isBulkUpdateOpen} onOpenChange={setIsBulkUpdateOpen}>
+      {isBulkUpdateOpen && <Dialog modal={false} open={isBulkUpdateOpen} onOpenChange={setIsBulkUpdateOpen}>
         <DialogContent
           className="sm:max-w-[500px]"
           data-testid="dialog-bulk-update"
