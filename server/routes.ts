@@ -2586,6 +2586,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Platform Admin - Test OpenAI API Connection
+  app.post("/api/whisper/test-api", adminOnlyMiddleware, async (req, res) => {
+    try {
+      // Get the API key from environment variables
+      const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(400).json({ 
+          message: "OpenAI API key is not configured. Please set it in the Whisper settings." 
+        });
+      }
+
+      // Initialize OpenAI client
+      const openai = new OpenAI({ apiKey });
+
+      // Test the connection with a simple models list request
+      // This is a lightweight API call that verifies authentication
+      await openai.models.list();
+
+      res.json({
+        success: true,
+        message: "OpenAI API connection successful! Your API key is working correctly."
+      });
+    } catch (error: any) {
+      console.error("OpenAI API test failed:", error);
+      
+      // Provide specific error messages
+      if (error.status === 401) {
+        return res.status(401).json({ 
+          message: "Invalid API key. Please check your OpenAI API key." 
+        });
+      }
+      
+      if (error.status === 429) {
+        return res.status(429).json({ 
+          message: "Rate limit exceeded. Please try again later." 
+        });
+      }
+      
+      res.status(500).json({ 
+        message: error.message || "Failed to connect to OpenAI API. Please check your API key and try again." 
+      });
+    }
+  });
+  
   // Platform Admin - Get All Tenant Usage Analytics
   app.get("/api/whisper/usage/platform", adminOnlyMiddleware, async (req, res) => {
     try {

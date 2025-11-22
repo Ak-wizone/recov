@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Key, Clock, DollarSign, ToggleLeft, Check, AlertCircle } from "lucide-react";
+import { Loader2, Key, Clock, DollarSign, ToggleLeft, Check, AlertCircle, CheckCircle } from "lucide-react";
 
 export default function WhisperSettings() {
   const { toast } = useToast();
@@ -93,6 +93,26 @@ export default function WhisperSettings() {
       toast({
         title: "Error",
         description: error.message || "Failed to save configuration",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Test API connection mutation
+  const testApiMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", "/api/whisper/test-api", {});
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Connection Successful",
+        description: data.message || "OpenAI API key is working correctly",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Connection Failed",
+        description: error.message || "Failed to connect to OpenAI API",
         variant: "destructive",
       });
     },
@@ -182,6 +202,29 @@ export default function WhisperSettings() {
                 : "Get your API key from OpenAI platform. It will be encrypted before storage."}
             </p>
           </div>
+          
+          {configData?.config?.hasApiKey && (
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                onClick={() => testApiMutation.mutate()}
+                disabled={testApiMutation.isPending}
+                data-testid="button-test-api"
+              >
+                {testApiMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Testing Connection...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Test API Connection
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
