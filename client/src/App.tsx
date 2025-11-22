@@ -66,6 +66,8 @@ import PaymentSuccess from "@/pages/payment-success";
 import PaymentFailed from "@/pages/payment-failed";
 import Landing from "@/pages/landing";
 import TenantProfile from "@/pages/tenant-profile";
+import TelegramBotSettings from "@/pages/telegram-bot-settings";
+import TelegramLink from "@/pages/telegram-link";
 
 function Router() {
   return (
@@ -135,6 +137,8 @@ function Router() {
               <Route path="/audit-logs" component={AuditLogs} />
               <Route path="/tenant-registrations" component={TenantRegistrations} />
               <Route path="/subscription-plans" component={SubscriptionPlans} />
+              <Route path="/telegram-bot-settings" component={TelegramBotSettings} />
+              <Route path="/telegram-link" component={TelegramLink} />
               <Route path="/whisper-settings" component={WhisperSettings} />
               <Route path="/whisper-credits" component={WhisperCredits} />
               <Route path="/whisper-voice" component={WhisperVoicePage} />

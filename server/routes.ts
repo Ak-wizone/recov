@@ -6,7 +6,7 @@ import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { requirePermission, requireAnyPermission } from "./permissions";
 import { wsManager } from "./websocket";
 import { ALL_DASHBOARD_CARDS, ALL_ACTION_PERMISSIONS, getFullAdminPermissions } from "./constants/permissions";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertTelecmiConfigSchema, insertCallScriptMappingSchema, insertCallTemplateSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertCommunicationScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema, callLogs } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertTelecmiConfigSchema, insertCallScriptMappingSchema, insertCallTemplateSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertCommunicationScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema, callLogs, insertTelegramBotConfigSchema } from "@shared/schema";
 import { createTransporter, sendEmail, testEmailConnection } from "./email-service";
 import { getEnrichedEmailVariables, renderTemplate } from "./email-utils";
 import { sendWhatsAppMessage } from "./whatsapp-service";
@@ -12229,6 +12229,171 @@ ${profile?.legalName || 'Company'}`;
       res.json({ success: true });
     } catch (error: any) {
       console.error("Failed to delete call template:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ==================================================
+  // TELEGRAM BOT INTEGRATION
+  // ==================================================
+
+  // Get Telegram bot configuration (Platform Admin only)
+  app.get("/api/telegram/config", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getTelegramBotConfig();
+      res.json(config);
+    } catch (error: any) {
+      console.error("Failed to get telegram bot config:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Save Telegram bot configuration (Platform Admin only)
+  app.post("/api/telegram/config", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const validation = insertTelegramBotConfigSchema.safeParse(req.body);
+      
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid configuration data", 
+          errors: validation.error.errors 
+        });
+      }
+
+      const config = await storage.saveTelegramBotConfig(validation.data);
+      res.json(config);
+    } catch (error: any) {
+      console.error("Failed to save telegram bot config:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Test Telegram bot connection (Platform Admin only)
+  app.post("/api/telegram/test", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getTelegramBotConfig();
+      
+      if (!config) {
+        return res.status(404).json({ message: "Bot configuration not found. Please configure the bot first." });
+      }
+
+      // Test connection by calling getMe API
+      const response = await fetch(`https://api.telegram.org/bot${config.botToken}/getMe`);
+      const data = await response.json();
+
+      if (!data.ok) {
+        return res.status(400).json({ 
+          message: `Telegram API error: ${data.description || 'Unknown error'}` 
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        bot: data.result,
+        message: `Connected successfully to bot: @${data.result.username}`
+      });
+    } catch (error: any) {
+      console.error("Failed to test telegram bot:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Webhook endpoint for Telegram bot
+  app.post("/api/telegram/webhook", async (req, res) => {
+    try {
+      // Handle Telegram webhook update
+      const update = req.body;
+      
+      // Acknowledge receipt immediately
+      res.status(200).json({ ok: true });
+
+      // Process update asynchronously (don't await to respond quickly)
+      const { processWebhookUpdate } = await import('./telegram-bot');
+      processWebhookUpdate(update).catch((error) => {
+        console.error("[Webhook] Error processing update:", error);
+      });
+    } catch (error: any) {
+      console.error("Failed to handle telegram webhook:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Generate linking code for tenant users
+  app.post("/api/telegram/generate-link-code", async (req, res) => {
+    try {
+      if (!req.tenantId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Generate random 8-character alphanumeric code
+      const code = `LINK-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+      
+      // Code expires in 24 hours
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+
+      const linkingCode = await storage.createTelegramLinkingCode({
+        code,
+        tenantId: req.tenantId,
+        generatedByUserId: req.userId,
+        expiresAt,
+        isUsed: false,
+      });
+
+      res.json(linkingCode);
+    } catch (error: any) {
+      console.error("Failed to generate linking code:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get all linking codes for tenant
+  app.get("/api/telegram/link-codes", async (req, res) => {
+    try {
+      if (!req.tenantId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const codes = await storage.getTelegramLinkingCodes(req.tenantId);
+      res.json(codes);
+    } catch (error: any) {
+      console.error("Failed to get linking codes:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get linked Telegram users for tenant
+  app.get("/api/telegram/linked-users", async (req, res) => {
+    try {
+      if (!req.tenantId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const users = await storage.getTelegramLinkedUsers(req.tenantId);
+      res.json(users);
+    } catch (error: any) {
+      console.error("Failed to get linked users:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Unlink Telegram user
+  app.delete("/api/telegram/linked-users/:id", async (req, res) => {
+    try {
+      if (!req.tenantId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const success = await storage.unlinkTelegramUser(req.tenantId, id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Linked user not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Failed to unlink telegram user:", error);
       res.status(500).json({ message: error.message });
     }
   });

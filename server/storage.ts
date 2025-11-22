@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type UserColumnPreference, type InsertUserColumnPreference, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type TelecmiConfig, type InsertTelecmiConfig, type CallTemplate, type InsertCallTemplate, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type PaymentPattern, type InsertPaymentPattern, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, userColumnPreferences, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, telecmiConfigs, callTemplates, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, paymentPatterns, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory, type WhisperConfig, type InsertWhisperConfig, type WhisperCredits, type InsertWhisperCredits, type WhisperUsage, type InsertWhisperUsage, type WhisperTransaction, type InsertWhisperTransaction, assistantSettings, whisperConfig, whisperCredits, whisperUsage, whisperTransactions } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type UserColumnPreference, type InsertUserColumnPreference, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type TelecmiConfig, type InsertTelecmiConfig, type CallTemplate, type InsertCallTemplate, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type PaymentPattern, type InsertPaymentPattern, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, userColumnPreferences, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, telecmiConfigs, callTemplates, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, paymentPatterns, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory, type WhisperConfig, type InsertWhisperConfig, type WhisperCredits, type InsertWhisperCredits, type WhisperUsage, type InsertWhisperUsage, type WhisperTransaction, type InsertWhisperTransaction, assistantSettings, whisperConfig, whisperCredits, whisperUsage, whisperTransactions, telegramBotConfig, telegramUserMappings, telegramLinkingCodes, telegramQueryLogs } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, lt, gte, lte } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -333,6 +333,19 @@ export interface IStorage {
   getWhisperAddonPackages(): Promise<{ minutes: number; price: number }[]>;
   addWhisperAddonCredits(tenantId: string, minutes: number, transactionDetails: any): Promise<boolean>;
   initializeWhisperCredits(tenantId: string): Promise<any | null>;
+  
+  // Telegram Bot Integration operations
+  getTelegramBotConfig(): Promise<any | undefined>;
+  saveTelegramBotConfig(config: any): Promise<any>;
+  createTelegramLinkingCode(code: any): Promise<any>;
+  getTelegramLinkingCodes(tenantId: string): Promise<any[]>;
+  getTelegramLinkedUsers(tenantId: string): Promise<any[]>;
+  unlinkTelegramUser(tenantId: string, id: string): Promise<boolean>;
+  validateTelegramLinkingCode(code: string): Promise<any | undefined>;
+  createTelegramUserMapping(mapping: any): Promise<any>;
+  getTelegramUserMapping(telegramUserId: string): Promise<any | undefined>;
+  updateTelegramUserActivity(telegramUserId: string): Promise<void>;
+  createTelegramQueryLog(log: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3266,6 +3279,125 @@ export class DatabaseStorage implements IStorage {
       console.error("[Whisper] Failed to initialize credits:", error);
       return null;
     }
+  }
+
+  // ==================================================
+  // TELEGRAM BOT INTEGRATION IMPLEMENTATIONS
+  // ==================================================
+
+  async getTelegramBotConfig(): Promise<any | undefined> {
+    const [config] = await db
+      .select()
+      .from(telegramBotConfig)
+      .limit(1);
+    return config || undefined;
+  }
+
+  async saveTelegramBotConfig(configData: any): Promise<any> {
+    const existing = await this.getTelegramBotConfig();
+    
+    if (existing) {
+      // Update existing config
+      const [updated] = await db
+        .update(telegramBotConfig)
+        .set({
+          ...configData,
+          updatedAt: new Date(),
+        })
+        .where(eq(telegramBotConfig.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Create new config
+      const [created] = await db
+        .insert(telegramBotConfig)
+        .values(configData)
+        .returning();
+      return created;
+    }
+  }
+
+  async createTelegramLinkingCode(code: any): Promise<any> {
+    const [created] = await db
+      .insert(telegramLinkingCodes)
+      .values(code)
+      .returning();
+    return created;
+  }
+
+  async getTelegramLinkingCodes(tenantId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(telegramLinkingCodes)
+      .where(eq(telegramLinkingCodes.tenantId, tenantId))
+      .orderBy(desc(telegramLinkingCodes.createdAt));
+  }
+
+  async getTelegramLinkedUsers(tenantId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(telegramUserMappings)
+      .where(eq(telegramUserMappings.tenantId, tenantId))
+      .orderBy(desc(telegramUserMappings.linkedAt));
+  }
+
+  async unlinkTelegramUser(tenantId: string, id: string): Promise<boolean> {
+    const result = await db
+      .delete(telegramUserMappings)
+      .where(
+        and(
+          eq(telegramUserMappings.tenantId, tenantId),
+          eq(telegramUserMappings.id, id)
+        )
+      )
+      .returning();
+    return result.length > 0;
+  }
+
+  async validateTelegramLinkingCode(code: string): Promise<any | undefined> {
+    const [linkingCode] = await db
+      .select()
+      .from(telegramLinkingCodes)
+      .where(
+        and(
+          eq(telegramLinkingCodes.code, code),
+          eq(telegramLinkingCodes.isUsed, false)
+        )
+      )
+      .limit(1);
+    return linkingCode || undefined;
+  }
+
+  async createTelegramUserMapping(mapping: any): Promise<any> {
+    const [created] = await db
+      .insert(telegramUserMappings)
+      .values(mapping)
+      .returning();
+    return created;
+  }
+
+  async getTelegramUserMapping(telegramUserId: string): Promise<any | undefined> {
+    const [mapping] = await db
+      .select()
+      .from(telegramUserMappings)
+      .where(eq(telegramUserMappings.telegramUserId, telegramUserId))
+      .limit(1);
+    return mapping || undefined;
+  }
+
+  async updateTelegramUserActivity(telegramUserId: string): Promise<void> {
+    await db
+      .update(telegramUserMappings)
+      .set({ lastActivityAt: new Date() })
+      .where(eq(telegramUserMappings.telegramUserId, telegramUserId));
+  }
+
+  async createTelegramQueryLog(log: any): Promise<any> {
+    const [created] = await db
+      .insert(telegramQueryLogs)
+      .values(log)
+      .returning();
+    return created;
   }
 }
 

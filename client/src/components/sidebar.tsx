@@ -44,6 +44,7 @@ import {
   MessageSquare,
   Mic,
   Calendar,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -58,6 +59,7 @@ interface NavItem {
   subItems?: NavItem[];
   badge?: number;
   module?: string;
+  platformAdminOnly?: boolean;
 }
 
 type TenantWithPlan = Tenant & {
@@ -85,6 +87,7 @@ const MODULE_MAPPING: Record<string, string> = {
   "Backup & Restore": "Backup & Restore",
   "Audit Trial Logs": "Settings",
   "Whisper Voice AI": "Whisper Voice AI",
+  "Telegram Bot": "Telegram Bot",
 };
 
 // NOTE: Parent-child module inheritance REMOVED for strict subscription enforcement
@@ -162,6 +165,9 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   
   // Voice AI
   "Whisper Voice AI": "Whisper Voice AI",
+  
+  // Telegram Bot
+  "Telegram Bot": "Telegram Bot",
 };
 
 // Platform Admin navigation items
@@ -175,6 +181,11 @@ const platformAdminNavItems: NavItem[] = [
     name: "Subscription Plans",
     path: "/subscription-plans",
     icon: <Package className="h-5 w-5" />,
+  },
+  {
+    name: "Telegram Bot",
+    path: "/telegram-bot-settings",
+    icon: <Bot className="h-5 w-5" />,
   },
 ];
 
@@ -442,6 +453,12 @@ const navItems: NavItem[] = [
         module: "Whisper Voice AI",
       },
     ],
+  },
+  {
+    name: "Telegram Bot",
+    path: "/telegram-link",
+    icon: <Bot className="h-5 w-5" />,
+    module: "Telegram Bot",
   },
   {
     name: "Audit Logs",
