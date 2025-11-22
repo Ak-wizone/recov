@@ -423,7 +423,13 @@ function setupCommandHandlers(bot: Telegraf) {
         return;
       }
 
-      const code = args[1].toUpperCase();
+      let code = args[1].toUpperCase();
+      
+      // Support both formats: "FMCZWMR4" and "LINK-FMCZWMR4"
+      // If code doesn't start with "LINK-", add the prefix
+      if (!code.startsWith('LINK-')) {
+        code = `LINK-${code}`;
+      }
 
       // Check if user is already linked
       const existingMapping = await db.query.telegramUserMappings.findFirst({

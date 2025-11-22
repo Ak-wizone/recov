@@ -6,7 +6,7 @@ import { tenantMiddleware, adminOnlyMiddleware } from "./middleware";
 import { requirePermission, requireAnyPermission } from "./permissions";
 import { wsManager } from "./websocket";
 import { ALL_DASHBOARD_CARDS, ALL_ACTION_PERMISSIONS, getFullAdminPermissions } from "./constants/permissions";
-import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertTelecmiConfigSchema, insertCallScriptMappingSchema, insertCallTemplateSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertCommunicationScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema, callLogs, insertTelegramBotConfigSchema } from "@shared/schema";
+import { insertCustomerSchema, insertPaymentSchema, insertFollowUpSchema, insertMasterCustomerSchema, insertMasterCustomerSchemaFlexible, insertMasterItemSchema, insertInvoiceSchema, insertReceiptSchema, insertLeadSchema, insertLeadFollowUpSchema, insertCompanyProfileSchema, insertQuotationSchema, insertQuotationItemSchema, insertQuotationSettingsSchema, insertProformaInvoiceSchema, insertProformaInvoiceItemSchema, insertDebtorsFollowUpSchema, insertRoleSchema, insertUserSchema, insertEmailConfigSchema, insertEmailTemplateSchema, insertWhatsappConfigSchema, insertWhatsappTemplateSchema, insertRinggConfigSchema, insertTelecmiConfigSchema, insertCallScriptMappingSchema, insertCallTemplateSchema, insertCallLogSchema, insertCategoryRulesSchema, insertFollowupRulesSchema, insertRecoverySettingsSchema, insertCategoryChangeLogSchema, insertLegalNoticeTemplateSchema, insertLegalNoticeSentSchema, insertFollowupAutomationSettingsSchema, insertFollowupScheduleSchema, insertCommunicationScheduleSchema, insertSubscriptionPlanSchema, subscriptionPlans, invoices, insertRegistrationRequestSchema, registrationRequests, tenants, users, roles, passwordResetTokens, companyProfile, customers, receipts, assistantChatHistory, assistantAnalytics, updateTenantProfileSchema, callLogs, insertTelegramBotConfigSchema, telegramLinkingCodes } from "@shared/schema";
 import { createTransporter, sendEmail, testEmailConnection } from "./email-service";
 import { getEnrichedEmailVariables, renderTemplate } from "./email-utils";
 import { sendWhatsAppMessage } from "./whatsapp-service";
@@ -12324,6 +12324,18 @@ ${profile?.legalName || 'Company'}`;
       if (!req.tenantId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
+
+      // First, mark all existing unused codes for this user as used/expired
+      // This ensures only one active code exists at a time
+      await db.update(telegramLinkingCodes)
+        .set({ isUsed: true })
+        .where(
+          and(
+            eq(telegramLinkingCodes.tenantId, req.tenantId),
+            eq(telegramLinkingCodes.generatedByUserId, req.userId!),
+            eq(telegramLinkingCodes.isUsed, false)
+          )
+        );
 
       // Generate random 8-character alphanumeric code
       const code = `LINK-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
