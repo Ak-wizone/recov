@@ -237,10 +237,6 @@ export function DataTable<TData, TValue>({
     }
   };
 
-  const handleColumnVisibilityApply = (newVisibility: Record<string, boolean>) => {
-    setColumnVisibility(newVisibility);
-  };
-
   const handleColumnVisibilityReset = () => {
     clearTablePreferences(tableKey);
     setColumnVisibility(defaultColumnVisibility);
@@ -555,9 +551,7 @@ export function DataTable<TData, TValue>({
           open={columnChooserOpen}
           onOpenChange={setColumnChooserOpen}
           columns={table.getAllColumns()}
-          onApply={handleColumnVisibilityApply}
           onReset={handleColumnVisibilityReset}
-          defaultColumnVisibility={defaultColumnVisibility}
         />
       )}
     </div>
