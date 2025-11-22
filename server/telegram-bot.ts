@@ -2,8 +2,8 @@ import { Telegraf, Context } from 'telegraf';
 import { message } from 'telegraf/filters';
 import type { Update } from 'telegraf/types';
 import { db } from './db';
-import { telegramBotConfig, telegramUserMappings, telegramLinkingCodes, telegramQueryLogs } from '@shared/schema';
-import { eq, and, gte } from 'drizzle-orm';
+import { telegramBotConfig, telegramUserMappings, telegramLinkingCodes, telegramQueryLogs, invoices, customers, receipts } from '@shared/schema';
+import { eq, and, gte, sql, sum, count } from 'drizzle-orm';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 import OpenAI from 'openai';
@@ -15,6 +15,310 @@ let openai: OpenAI | null = null;
 // Initialize OpenAI client (will be set when bot starts)
 function initializeOpenAI(apiKey: string) {
   openai = new OpenAI({ apiKey });
+}
+
+// Query intent types
+type QueryIntent = 
+  | 'invoice_count' 
+  | 'invoice_stats' 
+  | 'revenue_total' 
+  | 'customer_count' 
+  | 'debtor_list' 
+  | 'debtor_count'
+  | 'outstanding_balance' 
+  | 'payment_stats' 
+  | 'unknown';
+
+interface ParsedQuery {
+  intent: QueryIntent;
+  confidence: 'high' | 'medium' | 'low';
+}
+
+// Natural language query parser with Hindi/English/Hinglish support
+function parseQuery(text: string): ParsedQuery {
+  const lowerText = text.toLowerCase();
+  
+  // Invoice count patterns
+  if (
+    /\b(kitne|kitna|how many|total|count)\b.*\b(invoice|bill|challan)\b/i.test(lowerText) ||
+    /\b(invoice|bill)\b.*\b(kitne|kitna|how many|count)\b/i.test(lowerText)
+  ) {
+    return { intent: 'invoice_count', confidence: 'high' };
+  }
+  
+  // Invoice stats patterns
+  if (
+    /\b(invoice|bill)\b.*\b(stats|statistics|details|data)\b/i.test(lowerText) ||
+    /\b(show|dikhao|batao)\b.*\b(invoice|bill)\b/i.test(lowerText)
+  ) {
+    return { intent: 'invoice_stats', confidence: 'high' };
+  }
+  
+  // Revenue patterns
+  if (
+    /\b(total|kitna|kya hai)\b.*\b(revenue|earning|kamai|income)\b/i.test(lowerText) ||
+    /\b(revenue|earning|kamai)\b.*\b(total|kitna|kya)\b/i.test(lowerText)
+  ) {
+    return { intent: 'revenue_total', confidence: 'high' };
+  }
+  
+  // Customer count patterns
+  if (
+    /\b(kitne|kitna|how many|total)\b.*\b(customer|client|party|parties)\b/i.test(lowerText) ||
+    /\b(customer|client|party)\b.*\b(kitne|kitna|how many|count)\b/i.test(lowerText)
+  ) {
+    return { intent: 'customer_count', confidence: 'high' };
+  }
+  
+  // Debtor list patterns
+  if (
+    /\b(debtor|debtors|baaki|bakaya|outstanding)\b.*\b(list|dikhao|show)\b/i.test(lowerText) ||
+    /\b(list|dikhao|show)\b.*\b(debtor|debtors|baaki|bakaya)\b/i.test(lowerText) ||
+    /\b(top|bade|biggest)\b.*\b(debtor|debtors|baaki)\b/i.test(lowerText)
+  ) {
+    return { intent: 'debtor_list', confidence: 'high' };
+  }
+  
+  // Debtor count patterns
+  if (
+    /\b(kitne|how many)\b.*\b(debtor|debtors|outstanding|baaki)\b/i.test(lowerText)
+  ) {
+    return { intent: 'debtor_count', confidence: 'high' };
+  }
+  
+  // Outstanding balance patterns
+  if (
+    /\b(total|kitna)\b.*\b(outstanding|baaki|bakaya|pending)\b/i.test(lowerText) ||
+    /\b(outstanding|baaki|bakaya)\b.*\b(amount|paisa|kitna)\b/i.test(lowerText)
+  ) {
+    return { intent: 'outstanding_balance', confidence: 'high' };
+  }
+  
+  // Payment stats patterns
+  if (
+    /\b(payment|payments|receipt|receipts)\b.*\b(stats|data|kitna)\b/i.test(lowerText)
+  ) {
+    return { intent: 'payment_stats', confidence: 'high' };
+  }
+  
+  return { intent: 'unknown', confidence: 'low' };
+}
+
+// Business data query handlers
+async function queryInvoiceCount(tenantId: string): Promise<{ count: number }> {
+  const result = await db
+    .select({ count: count() })
+    .from(invoices)
+    .where(eq(invoices.tenantId, tenantId));
+  
+  return { count: result[0]?.count || 0 };
+}
+
+async function queryInvoiceStats(tenantId: string): Promise<{
+  count: number;
+  totalAmount: number;
+  paidAmount: number;
+  pendingAmount: number;
+}> {
+  // Fetch invoices total
+  const invoiceResult = await db
+    .select({
+      count: count(),
+      totalAmount: sum(invoices.invoiceAmount),
+    })
+    .from(invoices)
+    .where(eq(invoices.tenantId, tenantId));
+  
+  // Fetch receipts/payments total
+  const paymentResult = await db
+    .select({
+      paidAmount: sum(receipts.amount),
+    })
+    .from(receipts)
+    .where(eq(receipts.tenantId, tenantId));
+  
+  const totalAmount = Number(invoiceResult[0]?.totalAmount || 0);
+  const paidAmount = Number(paymentResult[0]?.paidAmount || 0);
+  
+  return {
+    count: invoiceResult[0]?.count || 0,
+    totalAmount,
+    paidAmount,
+    pendingAmount: totalAmount - paidAmount,
+  };
+}
+
+async function queryRevenue(tenantId: string): Promise<{ revenue: number }> {
+  const result = await db
+    .select({ revenue: sum(invoices.invoiceAmount) })
+    .from(invoices)
+    .where(eq(invoices.tenantId, tenantId));
+  
+  return { revenue: Number(result[0]?.revenue || 0) };
+}
+
+async function queryCustomerCount(tenantId: string): Promise<{ count: number }> {
+  const result = await db
+    .select({ count: count() })
+    .from(customers)
+    .where(eq(customers.tenantId, tenantId));
+  
+  return { count: result[0]?.count || 0 };
+}
+
+async function queryDebtorList(tenantId: string, limit: number = 5): Promise<Array<{
+  customerName: string;
+  outstanding: number;
+}>> {
+  // Fetch all invoices and payments for the tenant
+  const allInvoices = await db
+    .select()
+    .from(invoices)
+    .where(eq(invoices.tenantId, tenantId));
+  
+  const allReceipts = await db
+    .select()
+    .from(receipts)
+    .where(eq(receipts.tenantId, tenantId));
+  
+  // Calculate outstanding per customer
+  const debtorMap: Record<string, number> = {};
+  
+  allInvoices.forEach(invoice => {
+    const name = invoice.customerName;
+    if (!debtorMap[name]) debtorMap[name] = 0;
+    debtorMap[name] += Number(invoice.invoiceAmount);
+  });
+  
+  allReceipts.forEach(receipt => {
+    const name = receipt.customerName;
+    if (!debtorMap[name]) debtorMap[name] = 0;
+    debtorMap[name] -= Number(receipt.amount);
+  });
+  
+  // Convert to array, filter positive balances, sort, and limit
+  return Object.entries(debtorMap)
+    .filter(([_, amount]) => amount > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([customerName, outstanding]) => ({
+      customerName,
+      outstanding: Math.round(outstanding * 100) / 100,
+    }));
+}
+
+async function queryDebtorCount(tenantId: string): Promise<{ count: number }> {
+  // Use the debtor list function and count
+  const debtors = await queryDebtorList(tenantId, 1000); // Get all debtors
+  return { count: debtors.length };
+}
+
+async function queryOutstandingBalance(tenantId: string): Promise<{ balance: number }> {
+  // Fetch total invoices
+  const invoiceResult = await db
+    .select({ total: sum(invoices.invoiceAmount) })
+    .from(invoices)
+    .where(eq(invoices.tenantId, tenantId));
+  
+  // Fetch total receipts
+  const paymentResult = await db
+    .select({ total: sum(receipts.amount) })
+    .from(receipts)
+    .where(eq(receipts.tenantId, tenantId));
+  
+  const totalInvoices = Number(invoiceResult[0]?.total || 0);
+  const totalPayments = Number(paymentResult[0]?.total || 0);
+  
+  return { balance: Math.max(0, totalInvoices - totalPayments) };
+}
+
+async function queryPaymentStats(tenantId: string): Promise<{
+  count: number;
+  totalReceived: number;
+}> {
+  const result = await db
+    .select({
+      count: count(),
+      totalReceived: sum(receipts.amount),
+    })
+    .from(receipts)
+    .where(eq(receipts.tenantId, tenantId));
+  
+  return {
+    count: result[0]?.count || 0,
+    totalReceived: Number(result[0]?.totalReceived || 0),
+  };
+}
+
+// Format response with emojis and proper Hindi/English text
+function formatResponse(intent: QueryIntent, data: any): string {
+  switch (intent) {
+    case 'invoice_count':
+      return `📊 **Invoice Count**\n\n` +
+        `Total Invoices: **${data.count}**\n\n` +
+        `कुल इनवॉइस: **${data.count}**`;
+    
+    case 'invoice_stats':
+      return `📊 **Invoice Statistics**\n\n` +
+        `Total Invoices: ${data.count}\n` +
+        `Total Amount: ₹${data.totalAmount.toLocaleString('en-IN')}\n` +
+        `Paid Amount: ₹${data.paidAmount.toLocaleString('en-IN')}\n` +
+        `Pending Amount: ₹${data.pendingAmount.toLocaleString('en-IN')}\n\n` +
+        `───────────────\n` +
+        `कुल इनवॉइस: ${data.count}\n` +
+        `कुल राशि: ₹${data.totalAmount.toLocaleString('en-IN')}\n` +
+        `भुगतान: ₹${data.paidAmount.toLocaleString('en-IN')}\n` +
+        `बकाया: ₹${data.pendingAmount.toLocaleString('en-IN')}`;
+    
+    case 'revenue_total':
+      return `💰 **Total Revenue**\n\n` +
+        `₹${data.revenue.toLocaleString('en-IN')}\n\n` +
+        `कुल राजस्व: ₹${data.revenue.toLocaleString('en-IN')}`;
+    
+    case 'customer_count':
+      return `👥 **Customer Count**\n\n` +
+        `Total Customers: **${data.count}**\n\n` +
+        `कुल ग्राहक: **${data.count}**`;
+    
+    case 'debtor_list':
+      if (data.length === 0) {
+        return `✅ **No Outstanding Debtors!**\n\nAll customers have cleared their dues.\n\nसभी ग्राहकों ने अपना भुगतान कर दिया है।`;
+      }
+      
+      let response = `💸 **Top Debtors / बड़े देनदार**\n\n`;
+      data.forEach((debtor: any, index: number) => {
+        response += `${index + 1}. ${debtor.customerName}\n`;
+        response += `   Outstanding: ₹${debtor.outstanding.toLocaleString('en-IN')}\n\n`;
+      });
+      return response;
+    
+    case 'debtor_count':
+      return `📊 **Debtor Count**\n\n` +
+        `Total Debtors: **${data.count}**\n\n` +
+        `कुल देनदार: **${data.count}**`;
+    
+    case 'outstanding_balance':
+      return `💸 **Total Outstanding Balance**\n\n` +
+        `₹${data.balance.toLocaleString('en-IN')}\n\n` +
+        `कुल बकाया राशि: ₹${data.balance.toLocaleString('en-IN')}`;
+    
+    case 'payment_stats':
+      return `💳 **Payment Statistics**\n\n` +
+        `Total Payments Received: ${data.count}\n` +
+        `Total Amount Received: ₹${data.totalReceived.toLocaleString('en-IN')}\n\n` +
+        `───────────────\n` +
+        `कुल भुगतान: ${data.count}\n` +
+        `कुल राशि प्राप्त: ₹${data.totalReceived.toLocaleString('en-IN')}`;
+    
+    default:
+      return `❓ I couldn't understand your query.\n\n` +
+        `Please try asking:\n` +
+        `• "How many invoices?" / "कितने इनवॉइस?"\n` +
+        `• "Total revenue?" / "कुल revenue?"\n` +
+        `• "List top debtors" / "Top debtors की list"\n` +
+        `• "Outstanding balance?" / "कुल बकाया?"\n\n` +
+        `Or type /help for more examples.`;
+  }
 }
 
 // Get or create Telegram bot instance
@@ -283,22 +587,91 @@ function setupMessageHandlers(bot: Telegraf) {
       // Send transcription back to user
       await ctx.reply(`📝 Transcribed: "${transcribedText}"`);
 
-      // Process the query (will be implemented in next tasks)
-      await ctx.reply(
-        `🔄 Query processing coming soon!\n\n` +
-        `I understood: "${transcribedText}"\n\n` +
-        `Business data query handling will be implemented in the next update.`
-      );
+      // Parse query to detect intent
+      const parsedQuery = parseQuery(transcribedText);
+      const { intent } = parsedQuery;
 
-      // Log the query (will be properly implemented with NLP in next tasks)
-      await db.insert(telegramQueryLogs).values({
-        telegramUserId: userId!,
-        tenantId: userMapping.tenantId,
-        queryText: transcribedText,
-        queryType: 'unknown', // Will be updated when NLP is implemented
-        responseText: 'Query processing coming soon',
-        voiceFileId: fileId,
-      });
+      let responseText = '';
+      let queryData: any = null;
+
+      try {
+        // Execute query based on intent
+        switch (intent) {
+          case 'invoice_count':
+            queryData = await queryInvoiceCount(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData);
+            break;
+
+          case 'invoice_stats':
+            queryData = await queryInvoiceStats(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData);
+            break;
+
+          case 'revenue_total':
+            queryData = await queryRevenue(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData);
+            break;
+
+          case 'customer_count':
+            queryData = await queryCustomerCount(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData);
+            break;
+
+          case 'debtor_list':
+            queryData = await queryDebtorList(userMapping.tenantId, 5);
+            responseText = formatResponse(intent, queryData);
+            break;
+
+          case 'debtor_count':
+            queryData = await queryDebtorCount(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData);
+            break;
+
+          case 'outstanding_balance':
+            queryData = await queryOutstandingBalance(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData);
+            break;
+
+          case 'payment_stats':
+            queryData = await queryPaymentStats(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData);
+            break;
+
+          default:
+            responseText = formatResponse('unknown', null);
+            break;
+        }
+
+        // Send formatted response
+        await ctx.reply(responseText);
+
+        // Log the query with intent and response
+        await db.insert(telegramQueryLogs).values({
+          telegramUserId: userId!,
+          tenantId: userMapping.tenantId,
+          queryText: transcribedText,
+          queryType: intent,
+          responseText: responseText.substring(0, 500), // Truncate if too long
+          voiceFileId: fileId,
+        });
+
+      } catch (queryError) {
+        console.error('[Telegram Bot] Error executing query:', queryError);
+        await ctx.reply(
+          `❌ Sorry, I encountered an error while processing your query.\n\n` +
+          `Please try again or contact your administrator.`
+        );
+
+        // Log error
+        await db.insert(telegramQueryLogs).values({
+          telegramUserId: userId!,
+          tenantId: userMapping.tenantId,
+          queryText: transcribedText,
+          queryType: intent,
+          responseText: `Error: ${(queryError as Error).message}`,
+          voiceFileId: fileId,
+        });
+      }
 
     } catch (error) {
       console.error('[Telegram Bot] Error processing voice message:', error);
