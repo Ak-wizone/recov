@@ -154,6 +154,11 @@ app.use((req, res, next) => {
     scheduler.start();
     console.log('[STARTUP] Communication scheduler started');
 
+    console.log('[STARTUP] Initializing Telegram bot...');
+    const { initializeAndLaunchBot } = await import('./telegram-bot');
+    await initializeAndLaunchBot();
+    console.log('[STARTUP] Telegram bot initialization complete');
+
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";

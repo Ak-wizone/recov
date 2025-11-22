@@ -728,6 +728,38 @@ function setupMessageHandlers(bot: Telegraf) {
   });
 }
 
+// Initialize and launch the bot
+export async function initializeAndLaunchBot() {
+  try {
+    console.log('[Telegram Bot] Starting bot initialization...');
+    const botInstance = await getTelegramBot();
+    
+    if (!botInstance) {
+      console.log('[Telegram Bot] No bot configuration found, skipping initialization');
+      return;
+    }
+
+    console.log('[Telegram Bot] Launching bot with polling...');
+    
+    // Launch bot in background (don't await) to prevent blocking server startup
+    botInstance.launch()
+      .then(() => {
+        console.log('[Telegram Bot] ✅ Bot is now running and listening for messages');
+      })
+      .catch((error) => {
+        console.error('[Telegram Bot] Failed to launch bot:', error);
+      });
+
+    // Enable graceful stop
+    process.once('SIGINT', () => botInstance.stop('SIGINT'));
+    process.once('SIGTERM', () => botInstance.stop('SIGTERM'));
+    
+    console.log('[Telegram Bot] Bot launch initiated (running in background)');
+  } catch (error) {
+    console.error('[Telegram Bot] Failed to initialize bot:', error);
+  }
+}
+
 // Process webhook update
 export async function processWebhookUpdate(update: Update) {
   try {
