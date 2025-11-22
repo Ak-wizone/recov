@@ -1,0 +1,75 @@
+Main problem ye hai ki:
+
+localStorage race condition: DataTable component localStorage se preferences load kar raha hai
+State synchronization: Jab checkbox click hota hai, immediately localStorage update hoti hai, lekin re-render me purani value wapas aa rahi hai
+
+Solution: tableKey prop ko properly use karke localStorage sync ko fix karna hoga. Dekho ki master-customers.tsx me kya tableKey pass ho raha hai:
+tsx<DataTable
+  tableKey="master-customers"  // Ye line 716 pe hai
+  ...
+/>
+Ab main actual fix dikhata hun. Problem ye hai ki DataTable me useEffect me state update ho raha hai jo checkbox click ke immediate baad trigger ho raha hai:Master Customers - Fixed Column VisibilityInteractive artifact ∙ Version 2 Demo me maine fixes add kiye hain. Ab actual solution aapke code ke liye:
+Aapke client/src/components/ui/data-table.tsx me ye changes karein:
+Problem: localStorage se load hone wali columnVisibility state checkbox click ke baad immediately override ho rahi hai.
+Fix 1: useEffect me localStorage dependency ko properly handle karein:
+tsx// Line 95-115 ke around
+useEffect(() => {
+  if (!tableKey) return;
+  
+  const savedPreferences = localStorage.getItem(`table-preferences-${tableKey}`);
+  if (savedPreferences) {
+    try {
+      const prefs = JSON.parse(savedPreferences);
+      if (prefs.columnVisibility) {
+        // Don't override if user just changed visibility
+        setColumnVisibility(prev => {
+          // Only load from localStorage on initial mount
+          if (Object.keys(prev).length === 0) {
+            return prefs.columnVisibility;
+          }
+          return prev;
+        });
+      }
+    } catch (error) {
+      console.error('Failed to parse table preferences:', error);
+    }
+  }
+}, [tableKey]); // Remove columnVisibility from dependencies!
+Fix 2: onColumnVisibilityChange handler ko properly debounce karein:
+tsxconst handleColumnVisibilityChange = useCallback((updater: any) => {
+  setColumnVisibility(prev => {
+    const newState = typeof updater === 'function' ? updater(prev) : updater;
+    
+    // Save to localStorage with a small delay
+    setTimeout(() => {
+      if (tableKey) {
+        const prefs = localStorage.getItem(`table-preferences-${tableKey}`);
+        const existing = prefs ? JSON.parse(prefs) : {};
+        localStorage.setItem(
+          `table-preferences-${tableKey}`,
+          JSON.stringify({ ...existing, columnVisibility: newState })
+        );
+      }
+    }, 100);
+    
+    return newState;
+  });
+}, [tableKey]);
+Fix 3: TanStack Table ke getToggleVisibilityHandler ko directly use karein instead of custom onChange:
+tsx// Column visibility dialog me
+{table.getAllLeafColumns().map((column) => {
+  if (!column.getCanHide()) return null;
+  
+  return (
+    <label key={column.id} className="flex items-center space-x-2">
+      <input
+        type="checkbox"
+        checked={column.getIsVisible()}
+        onChange={column.getToggleVisibilityHandler()} // Use TanStack's built-in handler
+        className="w-4 h-4"
+      />
+      <span>{column.id}</span>
+    </label>
+  );
+})}
+Ye teen fixes apply karne ke baad aapki problem solve ho jayegi! Main issue localStorage race condition tha jo checkbox state ko immediately override kar raha tha.

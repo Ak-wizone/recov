@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Column } from "@tanstack/react-table";
 import {
   Dialog,
@@ -17,67 +16,27 @@ interface ColumnChooserProps<TData> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   columns: Column<TData, unknown>[];
-  onApply: (columnVisibility: Record<string, boolean>) => void;
   onReset: () => void;
-  defaultColumnVisibility?: Record<string, boolean>;
 }
 
 export function ColumnChooser<TData>({
   open,
   onOpenChange,
   columns,
-  onApply,
   onReset,
-  defaultColumnVisibility = {},
 }: ColumnChooserProps<TData>) {
-  const [tempVisibility, setTempVisibility] = useState<Record<string, boolean>>(
-    {}
-  );
-
-  useEffect(() => {
-    if (open) {
-      const currentVisibility: Record<string, boolean> = {};
-      columns.forEach((column) => {
-        if (column.getCanHide()) {
-          currentVisibility[column.id] = column.getIsVisible();
-        }
-      });
-      setTempVisibility(currentVisibility);
-    }
-  }, [open, columns]);
-
   const visibleColumns = columns.filter(
     (column) => column.getCanHide() && column.columnDef.header
   );
 
-  const allVisible = visibleColumns.every(
-    (column) => tempVisibility[column.id] !== false
-  );
+  const allVisible = visibleColumns.every((column) => column.getIsVisible());
   const someVisible =
-    visibleColumns.some((column) => tempVisibility[column.id] !== false) &&
-    !allVisible;
+    visibleColumns.some((column) => column.getIsVisible()) && !allVisible;
 
   const handleToggleAll = () => {
-    const newVisibility: Record<string, boolean> = {};
     visibleColumns.forEach((column) => {
-      newVisibility[column.id] = !allVisible;
+      column.toggleVisibility(!allVisible);
     });
-    setTempVisibility(newVisibility);
-  };
-
-  const handleToggleColumn = (columnId: string) => {
-    setTempVisibility((prev) => {
-      const currentValue = prev[columnId];
-      return {
-        ...prev,
-        [columnId]: currentValue === true || currentValue === undefined ? false : true,
-      };
-    });
-  };
-
-  const handleApply = () => {
-    onApply(tempVisibility);
-    onOpenChange(false);
   };
 
   const handleReset = () => {
@@ -114,8 +73,7 @@ export function ColumnChooser<TData>({
           <ScrollArea className="h-[300px] mt-4">
             <div className="space-y-3">
               {visibleColumns.map((column) => {
-                const visibilityValue = tempVisibility[column.id];
-                const isVisible = visibilityValue === true || visibilityValue === undefined;
+                const isVisible = column.getIsVisible();
                 const columnHeader =
                   typeof column.columnDef.header === "string"
                     ? column.columnDef.header
@@ -129,7 +87,7 @@ export function ColumnChooser<TData>({
                     <Checkbox
                       id={`column-${column.id}`}
                       checked={isVisible}
-                      onCheckedChange={() => handleToggleColumn(column.id)}
+                      onCheckedChange={column.getToggleVisibilityHandler()}
                       aria-label={`Toggle ${columnHeader} column`}
                       data-testid={`checkbox-column-${column.id}`}
                     />
@@ -153,8 +111,8 @@ export function ColumnChooser<TData>({
           >
             Reset to Default
           </Button>
-          <Button onClick={handleApply} data-testid="button-apply-columns">
-            Apply
+          <Button onClick={() => onOpenChange(false)} data-testid="button-apply-columns">
+            Close
           </Button>
         </DialogFooter>
       </DialogContent>
