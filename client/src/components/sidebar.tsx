@@ -187,6 +187,11 @@ const platformAdminNavItems: NavItem[] = [
     path: "/telegram-bot-settings",
     icon: <Bot className="h-5 w-5" />,
   },
+  {
+    name: "Whisper Settings",
+    path: "/whisper-settings",
+    icon: <Mic className="h-5 w-5" />,
+  },
 ];
 
 // Tenant User navigation items
@@ -451,13 +456,6 @@ const navItems: NavItem[] = [
         path: "/whisper-credits",
         icon: <CreditCard className="h-4 w-4" />,
         module: "Whisper Voice AI",
-      },
-      {
-        name: "Settings",
-        path: "/whisper-settings",
-        icon: <Settings className="h-4 w-4" />,
-        module: "Whisper Voice AI",
-        platformAdminOnly: true,
       },
     ],
   },
