@@ -309,41 +309,39 @@ export default function MasterCustomers() {
           const autoUpgradeEnabled =
             recoverySettings?.autoUpgradeEnabled ?? false;
           return (
-            <div onClick={(e) => e.stopPropagation()}>
-              <Select
-                value={row.original.category}
-                onValueChange={(value) => {
-                  if (autoUpgradeEnabled) {
-                    toast({
-                      title: "Auto-Upgrade Enabled",
-                      description:
-                        "Category changes are automatic. Disable auto-upgrade in Category Rules to manually change categories.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  updateFieldMutation.mutate({
-                    id: row.original.id,
-                    field: "category",
-                    value: value,
+            <Select
+              value={row.original.category}
+              onValueChange={(value) => {
+                if (autoUpgradeEnabled) {
+                  toast({
+                    title: "Auto-Upgrade Enabled",
+                    description:
+                      "Category changes are automatic. Disable auto-upgrade in Category Rules to manually change categories.",
+                    variant: "destructive",
                   });
-                }}
-                disabled={autoUpgradeEnabled}
+                  return;
+                }
+                updateFieldMutation.mutate({
+                  id: row.original.id,
+                  field: "category",
+                  value: value,
+                });
+              }}
+              disabled={autoUpgradeEnabled}
+            >
+              <SelectTrigger
+                className={`h-8 w-32 ${categoryColors[row.original.category as keyof typeof categoryColors]} ${autoUpgradeEnabled ? "opacity-60 cursor-not-allowed" : ""}`}
+                data-testid={`select-category-${row.original.id}`}
               >
-                <SelectTrigger
-                  className={`h-8 w-32 ${categoryColors[row.original.category as keyof typeof categoryColors]} ${autoUpgradeEnabled ? "opacity-60 cursor-not-allowed" : ""}`}
-                  data-testid={`select-category-${row.original.id}`}
-                >
-                  <SelectValue>{row.original.category}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Alpha">Alpha</SelectItem>
-                  <SelectItem value="Beta">Beta</SelectItem>
-                  <SelectItem value="Gamma">Gamma</SelectItem>
-                  <SelectItem value="Delta">Delta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <SelectValue>{row.original.category}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Alpha">Alpha</SelectItem>
+                <SelectItem value="Beta">Beta</SelectItem>
+                <SelectItem value="Gamma">Gamma</SelectItem>
+                <SelectItem value="Delta">Delta</SelectItem>
+              </SelectContent>
+            </Select>
           );
         },
         enableSorting: true,
@@ -522,31 +520,29 @@ export default function MasterCustomers() {
         accessorKey: "interestApplicableFrom",
         header: "INTEREST APPLICABLE FROM",
         cell: ({ row }) => (
-          <div onClick={(e) => e.stopPropagation()}>
-            <Select
-              value={row.original.interestApplicableFrom || ""}
-              onValueChange={(value) => {
-                updateFieldMutation.mutate({
-                  id: row.original.id,
-                  field: "interestApplicableFrom",
-                  value: value,
-                });
-              }}
+          <Select
+            value={row.original.interestApplicableFrom || ""}
+            onValueChange={(value) => {
+              updateFieldMutation.mutate({
+                id: row.original.id,
+                field: "interestApplicableFrom",
+                value: value,
+              });
+            }}
+          >
+            <SelectTrigger
+              className="h-8 w-36"
+              data-testid={`select-interestApplicableFrom-${row.original.id}`}
             >
-              <SelectTrigger
-                className="h-8 w-36"
-                data-testid={`select-interestApplicableFrom-${row.original.id}`}
-              >
-                <SelectValue placeholder="Select">
-                  {row.original.interestApplicableFrom || "—"}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Invoice Date">Invoice Date</SelectItem>
-                <SelectItem value="Due Date">Due Date</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <SelectValue placeholder="Select">
+                {row.original.interestApplicableFrom || "—"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Invoice Date">Invoice Date</SelectItem>
+              <SelectItem value="Due Date">Due Date</SelectItem>
+            </SelectContent>
+          </Select>
         ),
         enableSorting: true,
       },
@@ -582,34 +578,32 @@ export default function MasterCustomers() {
         cell: ({ row }) => {
           const salesPersons = getSalesPersons();
           return (
-            <div onClick={(e) => e.stopPropagation()}>
-              <Select
-                value={row.original.salesPerson || ""}
-                onValueChange={(value) => {
-                  updateFieldMutation.mutate({
-                    id: row.original.id,
-                    field: "salesPerson",
-                    value: value,
-                  });
-                }}
+            <Select
+              value={row.original.salesPerson || ""}
+              onValueChange={(value) => {
+                updateFieldMutation.mutate({
+                  id: row.original.id,
+                  field: "salesPerson",
+                  value: value,
+                });
+              }}
+            >
+              <SelectTrigger
+                className="h-8 w-40 bg-gray-800 dark:bg-gray-700 text-white border-gray-600"
+                data-testid={`select-salesPerson-${row.original.id}`}
               >
-                <SelectTrigger
-                  className="h-8 w-40 bg-gray-800 dark:bg-gray-700 text-white border-gray-600"
-                  data-testid={`select-salesPerson-${row.original.id}`}
-                >
-                  <SelectValue placeholder="Select person">
-                    {row.original.salesPerson || "Select person"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent className="z-50">
-                  {salesPersons.map((person) => (
-                    <SelectItem key={person} value={person}>
-                      {person}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <SelectValue placeholder="Select person">
+                  {row.original.salesPerson || "Select person"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="z-50">
+                {salesPersons.map((person) => (
+                  <SelectItem key={person} value={person}>
+                    {person}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           );
         },
         enableSorting: true,
@@ -618,29 +612,27 @@ export default function MasterCustomers() {
         accessorKey: "isActive",
         header: "STATUS",
         cell: ({ row }) => (
-          <div onClick={(e) => e.stopPropagation()}>
-            <Select
-              value={row.original.isActive}
-              onValueChange={(value) => {
-                updateFieldMutation.mutate({
-                  id: row.original.id,
-                  field: "isActive",
-                  value: value,
-                });
-              }}
+          <Select
+            value={row.original.isActive}
+            onValueChange={(value) => {
+              updateFieldMutation.mutate({
+                id: row.original.id,
+                field: "isActive",
+                value: value,
+              });
+            }}
+          >
+            <SelectTrigger
+              className={`h-8 w-32 ${statusColors[row.original.isActive as keyof typeof statusColors]}`}
+              data-testid={`select-status-${row.original.id}`}
             >
-              <SelectTrigger
-                className={`h-8 w-32 ${statusColors[row.original.isActive as keyof typeof statusColors]}`}
-                data-testid={`select-status-${row.original.id}`}
-              >
-                <SelectValue>{row.original.isActive}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              <SelectValue>{row.original.isActive}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Active">Active</SelectItem>
+              <SelectItem value="Inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
         ),
         enableSorting: true,
       },
