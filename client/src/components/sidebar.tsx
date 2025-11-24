@@ -174,7 +174,7 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Telegram Bot": "Telegram Bot",
   
   // Communication Integrations
-  "Email/WhatsApp/Call Integrations": "Email/WhatsApp/Call Integrations",
+  "Integration Controls": "Email/WhatsApp/Call Integrations",
   "Email Configuration": "Email/WhatsApp/Call Integrations",
   "Email Templates": "Email/WhatsApp/Call Integrations",
   "WhatsApp Configuration": "Email/WhatsApp/Call Integrations",
@@ -184,6 +184,16 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Ring.ai Call History": "Email/WhatsApp/Call Integrations",
   "Telecmi Configuration": "Email/WhatsApp/Call Integrations",
   "Call Templates": "Email/WhatsApp/Call Integrations",
+  
+  // Legacy mapping for renamed items
+  "Accounts Dashboard": "Business Overview",
+  "Customer Kundli": "Customer Analytics",
+  "Payment Collection Dashboard": "Invoices",
+  "Money Collection Dashboard": "Receipts",
+  "Collection Management": "Payment Tracking",
+  "Customer Collection Report": "Debtors",
+  "Credit Limit Bar": "Credit Management",
+  "On Time Payment Report": "Payment Analytics",
 };
 
 // Platform Admin navigation items
@@ -213,13 +223,13 @@ const platformAdminNavItems: NavItem[] = [
 // Tenant User navigation items
 const navItems: NavItem[] = [
   {
-    name: "Business Overview",
+    name: "Accounts Dashboard",
     path: "/dashboard",
     icon: <LayoutDashboard className="h-5 w-5" />,
     module: "Business Overview",
   },
   {
-    name: "Customer Analytics",
+    name: "Customer Kundli",
     path: "/customer-analytics",
     icon: <BarChart3 className="h-5 w-5" />,
     module: "Customer Analytics",
@@ -243,31 +253,31 @@ const navItems: NavItem[] = [
     module: "Proforma Invoices",
   },
   {
-    name: "Invoices",
+    name: "Payment Collection Dashboard",
     path: "/invoices",
     icon: <Receipt className="h-5 w-5" />,
     module: "Invoices",
   },
   {
-    name: "Receipts",
+    name: "Money Collection Dashboard",
     path: "/receipts",
     icon: <CreditCard className="h-5 w-5" />,
     module: "Receipts",
   },
   {
-    name: "Payment Tracking",
+    name: "Collection Management",
     path: "#",
     icon: <Wallet className="h-5 w-5" />,
     module: "Payment Tracking",
     subItems: [
       {
-        name: "Debtors",
+        name: "Customer Collection Report",
         path: "/debtors",
         icon: <UserX className="h-4 w-4" />,
         module: "Debtors",
       },
       {
-        name: "Credit Management",
+        name: "Credit Limit Bar",
         path: "/credit-management",
         icon: <CreditCard className="h-4 w-4" />,
         module: "Credit Management",
@@ -279,7 +289,7 @@ const navItems: NavItem[] = [
         module: "Ledger",
       },
       {
-        name: "Payment Analytics",
+        name: "On Time Payment Report",
         path: "/payment-analytics",
         icon: <Activity className="h-4 w-4" />,
         module: "Payment Analytics",
@@ -403,7 +413,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    name: "Email/WhatsApp/Call Integrations",
+    name: "Integration Controls",
     path: "#",
     icon: <MessageSquare className="h-5 w-5" />,
     module: "Email/WhatsApp/Call Integrations",
