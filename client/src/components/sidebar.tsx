@@ -45,6 +45,10 @@ import {
   Mic,
   Calendar,
   Bot,
+  Mail,
+  PhoneCall,
+  FileEdit,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -168,6 +172,18 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   
   // Telegram Bot
   "Telegram Bot": "Telegram Bot",
+  
+  // Communication Integrations
+  "Communication Integrations": "Credit Control",
+  "Email Configuration": "Credit Control",
+  "Email Templates": "Credit Control",
+  "WhatsApp Configuration": "Credit Control",
+  "WhatsApp Templates": "Credit Control",
+  "Ring.ai Configuration": "Credit Control",
+  "Ring.ai Script Mappings": "Credit Control",
+  "Ring.ai Call History": "Credit Control",
+  "Telecmi Configuration": "Credit Control",
+  "Call Templates": "Credit Control",
 };
 
 // Platform Admin navigation items
@@ -383,6 +399,68 @@ const navItems: NavItem[] = [
         path: "/credit-control/followup-rules",
         icon: <ListChecks className="h-4 w-4" />,
         module: "Follow-up Rules",
+      },
+    ],
+  },
+  {
+    name: "Communication Integrations",
+    path: "#",
+    icon: <MessageSquare className="h-5 w-5" />,
+    module: "Communication Integrations",
+    subItems: [
+      {
+        name: "Email Configuration",
+        path: "/email-config",
+        icon: <Mail className="h-4 w-4" />,
+        module: "Email Configuration",
+      },
+      {
+        name: "Email Templates",
+        path: "/email-templates",
+        icon: <FileEdit className="h-4 w-4" />,
+        module: "Email Templates",
+      },
+      {
+        name: "WhatsApp Configuration",
+        path: "/whatsapp-config",
+        icon: <MessageSquare className="h-4 w-4" />,
+        module: "WhatsApp Configuration",
+      },
+      {
+        name: "WhatsApp Templates",
+        path: "/whatsapp-templates",
+        icon: <FileEdit className="h-4 w-4" />,
+        module: "WhatsApp Templates",
+      },
+      {
+        name: "Ring.ai Configuration",
+        path: "/ringg-config",
+        icon: <PhoneCall className="h-4 w-4" />,
+        module: "Ring.ai Configuration",
+      },
+      {
+        name: "Ring.ai Script Mappings",
+        path: "/ringg-script-mappings",
+        icon: <FileEdit className="h-4 w-4" />,
+        module: "Ring.ai Script Mappings",
+      },
+      {
+        name: "Ring.ai Call History",
+        path: "/ringg-call-history",
+        icon: <History className="h-4 w-4" />,
+        module: "Ring.ai Call History",
+      },
+      {
+        name: "Telecmi Configuration",
+        path: "/telecmi-config",
+        icon: <Phone className="h-4 w-4" />,
+        module: "Telecmi Configuration",
+      },
+      {
+        name: "Call Templates",
+        path: "/credit-control/call-templates",
+        icon: <FileEdit className="h-4 w-4" />,
+        module: "Call Templates",
       },
     ],
   },
