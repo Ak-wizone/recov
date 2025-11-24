@@ -646,36 +646,22 @@ function formatEnglishResponse(intent: QueryIntent, data: any): string {
       let engOutstandingResponse = `💸 **Outstanding Report**\n\n`;
       engOutstandingResponse += `📊 **Total Outstanding:** ₹${data.balance.toLocaleString('en-IN')}\n\n`;
       
-      // Category breakdown
+      // Category breakdown - show all categories even if 0
       engOutstandingResponse += `📂 **Category Breakdown:**\n`;
       const engCategories = ['Alpha', 'Beta', 'Gamma', 'Delta'] as const;
       engCategories.forEach(cat => {
         const catData = data.categoryBreakdown[cat];
-        if (catData.count > 0) {
-          engOutstandingResponse += `${cat}: ₹${catData.amount.toLocaleString('en-IN')} (${catData.count} customers)\n`;
-        }
+        engOutstandingResponse += `${cat}: ₹${catData.amount.toLocaleString('en-IN')} (${catData.count} customers)\n`;
       });
       
-      // Aging breakdown
+      // Aging breakdown - show all buckets even if 0
       engOutstandingResponse += `\n⏰ **Due Information:**\n`;
-      if (data.agingBreakdown.dueToday.count > 0) {
-        engOutstandingResponse += `Due Today: ₹${data.agingBreakdown.dueToday.amount.toLocaleString('en-IN')} (${data.agingBreakdown.dueToday.count} customers)\n`;
-      }
-      if (data.agingBreakdown.overdue.count > 0) {
-        engOutstandingResponse += `Overdue: ₹${data.agingBreakdown.overdue.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue.count} customers)\n`;
-      }
-      if (data.agingBreakdown.overdue30to60.count > 0) {
-        engOutstandingResponse += `30-60 days: ₹${data.agingBreakdown.overdue30to60.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue30to60.count} customers)\n`;
-      }
-      if (data.agingBreakdown.overdue60to90.count > 0) {
-        engOutstandingResponse += `60-90 days: ₹${data.agingBreakdown.overdue60to90.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue60to90.count} customers)\n`;
-      }
-      if (data.agingBreakdown.overdue90to120.count > 0) {
-        engOutstandingResponse += `90-120 days: ₹${data.agingBreakdown.overdue90to120.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue90to120.count} customers)\n`;
-      }
-      if (data.agingBreakdown.overdue120plus.count > 0) {
-        engOutstandingResponse += `120+ days: ₹${data.agingBreakdown.overdue120plus.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue120plus.count} customers)\n`;
-      }
+      engOutstandingResponse += `Due Today: ₹${data.agingBreakdown.dueToday.amount.toLocaleString('en-IN')} (${data.agingBreakdown.dueToday.count} customers)\n`;
+      engOutstandingResponse += `Overdue: ₹${data.agingBreakdown.overdue.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue.count} customers)\n`;
+      engOutstandingResponse += `30-60 days: ₹${data.agingBreakdown.overdue30to60.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue30to60.count} customers)\n`;
+      engOutstandingResponse += `60-90 days: ₹${data.agingBreakdown.overdue60to90.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue60to90.count} customers)\n`;
+      engOutstandingResponse += `90-120 days: ₹${data.agingBreakdown.overdue90to120.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue90to120.count} customers)\n`;
+      engOutstandingResponse += `120+ days: ₹${data.agingBreakdown.overdue120plus.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue120plus.count} customers)\n`;
       
       return engOutstandingResponse;
     
