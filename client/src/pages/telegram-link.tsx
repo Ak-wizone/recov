@@ -282,21 +282,19 @@ export default function TelegramLink() {
                         <TableCell className="font-mono font-semibold" data-testid={`code-${code.code}`}>
                           <div className="flex items-center gap-2">
                             <span>{displayCode}</span>
-                            {!used && !expired && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => handleCopyCode(code.code)}
-                                data-testid={`button-copy-${code.code}`}
-                              >
-                                {copiedCode === code.code ? (
-                                  <Check className="h-3.5 w-3.5 text-green-500" />
-                                ) : (
-                                  <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                                )}
-                              </Button>
-                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={() => handleCopyCode(code.code)}
+                              data-testid={`button-copy-${code.code}`}
+                            >
+                              {copiedCode === code.code ? (
+                                <Check className="h-3.5 w-3.5 text-green-500" />
+                              ) : (
+                                <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                              )}
+                            </Button>
                           </div>
                         </TableCell>
                         <TableCell>
