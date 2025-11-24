@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,8 @@ export default function TelegramBotSettings() {
   const [botUsername, setBotUsername] = useState("");
   const [webhookUrl, setWebhookUrl] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [enableVoiceResponse, setEnableVoiceResponse] = useState(false);
+  const [voiceType, setVoiceType] = useState<string>("alloy");
   const [copiedToken, setCopiedToken] = useState(false);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
 
@@ -57,6 +60,8 @@ export default function TelegramBotSettings() {
       setBotUsername(config.botUsername || "");
       setWebhookUrl(config.webhookUrl || "");
       setIsActive(config.isActive ?? true);
+      setEnableVoiceResponse(config.enableVoiceResponse ?? false);
+      setVoiceType(config.voiceType || "alloy");
     }
   }, [config]);
 
@@ -72,6 +77,8 @@ export default function TelegramBotSettings() {
         botUsername: botUsername.trim(),
         webhookUrl: webhookUrl.trim() || undefined,
         isActive,
+        enableVoiceResponse,
+        voiceType,
       });
     },
     onSuccess: () => {
@@ -269,6 +276,46 @@ export default function TelegramBotSettings() {
               checked={isActive}
               onCheckedChange={setIsActive}
             />
+          </div>
+
+          {/* Voice Response Settings */}
+          <div className="space-y-4 p-4 border rounded-lg bg-muted/20">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="enable-voice">Voice Responses</Label>
+                <p className="text-sm text-muted-foreground">
+                  Enable AI voice responses using OpenAI TTS
+                </p>
+              </div>
+              <Switch
+                id="enable-voice"
+                data-testid="switch-voice-response"
+                checked={enableVoiceResponse}
+                onCheckedChange={setEnableVoiceResponse}
+              />
+            </div>
+
+            {enableVoiceResponse && (
+              <div className="space-y-2 pt-2">
+                <Label htmlFor="voice-type">Voice Type</Label>
+                <Select value={voiceType} onValueChange={setVoiceType}>
+                  <SelectTrigger id="voice-type" data-testid="select-voice-type">
+                    <SelectValue placeholder="Select voice" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="alloy">Alloy (Neutral)</SelectItem>
+                    <SelectItem value="echo">Echo (Male)</SelectItem>
+                    <SelectItem value="fable">Fable (British)</SelectItem>
+                    <SelectItem value="onyx">Onyx (Deep Male)</SelectItem>
+                    <SelectItem value="nova">Nova (Female)</SelectItem>
+                    <SelectItem value="shimmer">Shimmer (Soft Female)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Choose the voice for AI-generated audio responses. Uses OpenAI TTS API.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}

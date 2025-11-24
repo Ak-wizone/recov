@@ -332,6 +332,37 @@ function formatResponse(intent: QueryIntent, data: any): string {
   }
 }
 
+// Generate voice audio from text using OpenAI TTS
+async function generateVoiceFromText(text: string, voiceType: string = 'alloy'): Promise<Buffer | null> {
+  if (!openai) {
+    console.error('[Telegram Bot] OpenAI client not initialized');
+    return null;
+  }
+  
+  try {
+    // Remove markdown formatting for better TTS
+    const cleanText = text
+      .replace(/\*\*/g, '') // Remove bold markers
+      .replace(/\*/g, '') // Remove italic markers
+      .replace(/───────────────/g, '') // Remove separators
+      .replace(/📊|💰|👥|💸|💳|✅|❓/g, ''); // Remove emojis for cleaner audio
+    
+    const response = await openai.audio.speech.create({
+      model: 'tts-1',
+      voice: voiceType as any,
+      input: cleanText,
+      response_format: 'opus', // Telegram requires OGG/Opus format for voice messages
+    });
+    
+    // Convert response to buffer
+    const arrayBuffer = await response.arrayBuffer();
+    return Buffer.from(arrayBuffer);
+  } catch (error) {
+    console.error('[Telegram Bot] Error generating voice:', error);
+    return null;
+  }
+}
+
 // Get or create Telegram bot instance
 export async function getTelegramBot(): Promise<Telegraf | null> {
   try {
@@ -671,8 +702,27 @@ function setupMessageHandlers(bot: Telegraf) {
             break;
         }
 
-        // Send formatted response
-        await ctx.reply(responseText);
+        // Get bot configuration to check if voice responses are enabled
+        const botConfig = await db.query.telegramBotConfig.findFirst({
+          where: eq(telegramBotConfig.isActive, true),
+        });
+        
+        // Send voice or text response based on configuration
+        if (botConfig?.enableVoiceResponse && openai) {
+          // Generate voice from text
+          const voiceBuffer = await generateVoiceFromText(responseText, botConfig.voiceType);
+          
+          if (voiceBuffer) {
+            // Send as voice message
+            await ctx.replyWithVoice({ source: voiceBuffer });
+          } else {
+            // Fallback to text if voice generation fails
+            await ctx.reply(responseText);
+          }
+        } else {
+          // Send text response (default behavior)
+          await ctx.reply(responseText);
+        }
 
         // Log the query with intent and response
         await db.insert(telegramQueryLogs).values({

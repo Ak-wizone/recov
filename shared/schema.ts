@@ -2573,6 +2573,8 @@ export const telegramBotConfig = pgTable("telegram_bot_config", {
   botUsername: text("bot_username").notNull(),
   webhookUrl: text("webhook_url"),
   isActive: boolean("is_active").notNull().default(true),
+  enableVoiceResponse: boolean("enable_voice_response").notNull().default(false),
+  voiceType: text("voice_type").notNull().default("alloy"), // alloy, echo, fable, onyx, nova, shimmer
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -2586,6 +2588,8 @@ export const insertTelegramBotConfigSchema = createInsertSchema(telegramBotConfi
   botUsername: z.string().min(1, "Bot username is required"),
   webhookUrl: z.string().url("Invalid webhook URL").optional(),
   isActive: z.boolean().default(true),
+  enableVoiceResponse: z.boolean().default(false),
+  voiceType: z.enum(["alloy", "echo", "fable", "onyx", "nova", "shimmer"]).default("alloy"),
 });
 
 export type InsertTelegramBotConfig = z.infer<typeof insertTelegramBotConfigSchema>;
