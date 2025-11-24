@@ -5636,6 +5636,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get payment due summary stats (MUST BE BEFORE /:id)
+  app.get("/api/invoices/payment-due-summary", async (req, res) => {
+    try {
+      const allInvoices = await storage.getInvoices(req.tenantId!);
+      const allReceipts = await storage.getReceipts(req.tenantId!);
+      const categoryRules = await storage.getCategoryRulesByTenantId(req.tenantId!);
+      const graceDays = categoryRules[0]?.graceDays ?? 7;
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Group invoices by customer for FIFO payment allocation
+      const customerInvoices = new Map<string, typeof allInvoices>();
+      for (const invoice of allInvoices) {
+        if (!customerInvoices.has(invoice.customerName)) {
+          customerInvoices.set(invoice.customerName, []);
+        }
+        customerInvoices.get(invoice.customerName)!.push(invoice);
+      }
+
+      // Initialize counters
+      let dueToday = { count: 0, amount: 0 };
+      let gracePeriod10Days = { count: 0, amount: 0 };
+      let overdue = { count: 0, amount: 0 };
+      let overdue30To60 = { count: 0, amount: 0 };
+      let overdue60To90 = { count: 0, amount: 0 };
+      let overdue90To120 = { count: 0, amount: 0 };
+      let overdue120Plus = { count: 0, amount: 0 };
+
+      // Process each customer's invoices
+      for (const [customerName, invoices] of customerInvoices.entries()) {
+        // Get receipts for this customer
+        const customerReceipts = allReceipts.filter(r => r.customerName === customerName);
+        const totalReceiptAmount = customerReceipts.reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
+
+        // Sort invoices by date (FIFO)
+        const sortedInvoices = invoices.sort((a, b) => 
+          new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime()
+        );
+
+        let remainingReceiptAmount = totalReceiptAmount;
+
+        for (const invoice of sortedInvoices) {
+          const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+          const paymentTerms = parseInt(invoice.paymentTerms || "0");
+          
+          // Calculate due date
+          const invoiceDate = new Date(invoice.invoiceDate);
+          const dueDate = new Date(invoiceDate);
+          dueDate.setDate(dueDate.getDate() + paymentTerms);
+          dueDate.setHours(0, 0, 0, 0);
+
+          // Calculate grace period end date
+          const gracePeriodEndDate = new Date(dueDate);
+          gracePeriodEndDate.setDate(gracePeriodEndDate.getDate() + graceDays);
+
+          // Determine payment status using FIFO
+          let outstandingAmount = 0;
+          
+          if (remainingReceiptAmount >= invoiceAmount) {
+            // Fully paid
+            remainingReceiptAmount -= invoiceAmount;
+            continue; // Skip paid invoices
+          } else if (remainingReceiptAmount > 0 && remainingReceiptAmount < invoiceAmount) {
+            // Partially paid
+            outstandingAmount = invoiceAmount - remainingReceiptAmount;
+            remainingReceiptAmount = 0;
+          } else {
+            // Unpaid
+            outstandingAmount = invoiceAmount;
+          }
+
+          // Calculate days difference
+          const diffTime = today.getTime() - dueDate.getTime();
+          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+          // Categorize based on due date and grace period
+          if (diffDays === 0) {
+            // Due today
+            dueToday.count++;
+            dueToday.amount += outstandingAmount;
+          } else if (diffDays < 0) {
+            // Not yet due - count as "Due Today" category for visibility
+            dueToday.count++;
+            dueToday.amount += outstandingAmount;
+          } else if (diffDays > 0 && diffDays <= graceDays) {
+            // Within grace period
+            gracePeriod10Days.count++;
+            gracePeriod10Days.amount += outstandingAmount;
+          } else if (diffDays > graceDays && diffDays <= 30) {
+            // Overdue (grace period to 30 days)
+            overdue.count++;
+            overdue.amount += outstandingAmount;
+          } else if (diffDays > 30 && diffDays <= 60) {
+            // Overdue 30-60 days
+            overdue30To60.count++;
+            overdue30To60.amount += outstandingAmount;
+          } else if (diffDays > 60 && diffDays <= 90) {
+            // Overdue 60-90 days
+            overdue60To90.count++;
+            overdue60To90.amount += outstandingAmount;
+          } else if (diffDays > 90 && diffDays <= 120) {
+            // Overdue 90-120 days
+            overdue90To120.count++;
+            overdue90To120.amount += outstandingAmount;
+          } else {
+            // Overdue 120+ days
+            overdue120Plus.count++;
+            overdue120Plus.amount += outstandingAmount;
+          }
+        }
+      }
+
+      res.json({
+        dueToday,
+        gracePeriod10Days,
+        overdue,
+        overdue30To60,
+        overdue60To90,
+        overdue90To120,
+        overdue120Plus,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Download sample template for import (MUST BE BEFORE /:id)
   app.get("/api/invoices/template", async (_req, res) => {
     try {
