@@ -410,14 +410,6 @@ const navItems: NavItem[] = [
         icon: <ListChecks className="h-4 w-4" />,
         module: "Follow-up Rules",
       },
-    ],
-  },
-  {
-    name: "Integration Controls",
-    path: "#",
-    icon: <MessageSquare className="h-5 w-5" />,
-    module: "Email/WhatsApp/Call Integrations",
-    subItems: [
       {
         name: "Email Configuration",
         path: "/email-config",
