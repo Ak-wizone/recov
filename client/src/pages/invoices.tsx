@@ -34,6 +34,7 @@ import {
 
 export default function Invoices() {
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<"invoice-summary" | "payment-due-summary">("invoice-summary");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [assignedUserFilter, setAssignedUserFilter] = useState<string | null>(null);
@@ -134,6 +135,19 @@ export default function Invoices() {
       }
       return response.json();
     },
+  });
+
+  const { data: paymentDueStats } = useQuery<{
+    dueToday: { count: number; amount: number };
+    gracePeriod10Days: { count: number; amount: number };
+    overdue: { count: number; amount: number };
+    overdue30To60: { count: number; amount: number };
+    overdue60To90: { count: number; amount: number };
+    overdue90To120: { count: number; amount: number };
+    overdue120Plus: { count: number; amount: number };
+  }>({
+    queryKey: ["/api/invoices/payment-due-summary"],
+    enabled: activeTab === "payment-due-summary",
   });
 
   const exportMutation = useMutation({
@@ -610,8 +624,41 @@ export default function Invoices() {
         </div>
       </div>
 
-      {/* Dashboard Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => setActiveTab("invoice-summary")}
+          className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+            activeTab === "invoice-summary"
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+          }`}
+          data-testid="tab-invoice-summary"
+        >
+          Invoice Summary
+          {activeTab === "invoice-summary" && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab("payment-due-summary")}
+          className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+            activeTab === "payment-due-summary"
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+          }`}
+          data-testid="tab-payment-due-summary"
+        >
+          Payment Due Summary
+          {activeTab === "payment-due-summary" && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+          )}
+        </button>
+      </div>
+
+      {/* Invoice Summary Tab Content */}
+      {activeTab === "invoice-summary" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card
           className={`cursor-pointer transition-all border-0 ${
             activeCardFilter === null
@@ -804,7 +851,167 @@ export default function Invoices() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </div>
+      )}
+
+      {/* Payment Due Summary Tab Content */}
+      {activeTab === "payment-due-summary" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card
+            className="cursor-pointer transition-all border-0 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+            data-testid="card-due-today"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="bg-blue-500 p-3 rounded-xl flex-shrink-0">
+                  <Clock className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Due Today</p>
+                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400 break-all">
+                    ₹{(paymentDueStats?.dueToday?.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {paymentDueStats?.dueToday?.count || 0} invoice{(paymentDueStats?.dueToday?.count || 0) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all border-0 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40"
+            data-testid="card-grace-period-10-days"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="bg-yellow-500 p-3 rounded-xl flex-shrink-0">
+                  <AlertCircle className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Grace Period 10 Days</p>
+                  <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 break-all">
+                    ₹{(paymentDueStats?.gracePeriod10Days?.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {paymentDueStats?.gracePeriod10Days?.count || 0} invoice{(paymentDueStats?.gracePeriod10Days?.count || 0) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all border-0 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40"
+            data-testid="card-overdue"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="bg-orange-500 p-3 rounded-xl flex-shrink-0">
+                  <X className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Overdue</p>
+                  <p className="text-xl font-bold text-orange-600 dark:text-orange-400 break-all">
+                    ₹{(paymentDueStats?.overdue?.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {paymentDueStats?.overdue?.count || 0} invoice{(paymentDueStats?.overdue?.count || 0) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all border-0 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40"
+            data-testid="card-overdue-30-60"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="bg-red-500 p-3 rounded-xl flex-shrink-0">
+                  <AlertCircle className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Overdue 30-60 Days</p>
+                  <p className="text-xl font-bold text-red-600 dark:text-red-400 break-all">
+                    ₹{(paymentDueStats?.overdue30To60?.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {paymentDueStats?.overdue30To60?.count || 0} invoice{(paymentDueStats?.overdue30To60?.count || 0) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all border-0 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40"
+            data-testid="card-overdue-60-90"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="bg-red-600 p-3 rounded-xl flex-shrink-0">
+                  <AlertCircle className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Overdue 60-90 Days</p>
+                  <p className="text-xl font-bold text-red-700 dark:text-red-500 break-all">
+                    ₹{(paymentDueStats?.overdue60To90?.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {paymentDueStats?.overdue60To90?.count || 0} invoice{(paymentDueStats?.overdue60To90?.count || 0) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all border-0 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50"
+            data-testid="card-overdue-90-120"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="bg-red-700 p-3 rounded-xl flex-shrink-0">
+                  <AlertCircle className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Overdue 90-120 Days</p>
+                  <p className="text-xl font-bold text-red-800 dark:text-red-600 break-all">
+                    ₹{(paymentDueStats?.overdue90To120?.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {paymentDueStats?.overdue90To120?.count || 0} invoice{(paymentDueStats?.overdue90To120?.count || 0) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card
+            className="cursor-pointer transition-all border-0 bg-red-200 dark:bg-red-900/40 hover:bg-red-300 dark:hover:bg-red-900/60"
+            data-testid="card-overdue-120-plus"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="bg-red-900 p-3 rounded-xl flex-shrink-0">
+                  <AlertCircle className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Overdue 120+ Days</p>
+                  <p className="text-xl font-bold text-red-900 dark:text-red-700 break-all">
+                    ₹{(paymentDueStats?.overdue120Plus?.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {paymentDueStats?.overdue120Plus?.count || 0} invoice{(paymentDueStats?.overdue120Plus?.count || 0) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Invoice Table */}
       <div className="flex-1 overflow-auto border rounded-lg">
