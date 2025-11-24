@@ -33,14 +33,25 @@ interface ParsedQuery {
   confidence: 'high' | 'medium' | 'low';
 }
 
+// Detect language from transcribed text
+function detectLanguage(text: string): 'hindi' | 'english' {
+  const hindiKeywords = /\b(kitne|kitna|kitni|kya|hai|hain|ka|ke|ki|batao|dikhao|bataiye)\b/i;
+  const hindiChars = /[\u0900-\u097F]/; // Devanagari Unicode range
+  
+  if (hindiChars.test(text) || hindiKeywords.test(text)) {
+    return 'hindi';
+  }
+  return 'english';
+}
+
 // Natural language query parser with Hindi/English/Hinglish support
 function parseQuery(text: string): ParsedQuery {
   const lowerText = text.toLowerCase();
   
-  // Invoice count patterns - supports singular/plural
+  // Invoice count patterns - English + Hindi
   if (
-    /\b(kitne|kitna|how many|total|count)\b.*\b(invoices?|bills?|challans?)\b/i.test(lowerText) ||
-    /\b(invoices?|bills?)\b.*\b(kitne|kitna|how many|count)\b/i.test(lowerText)
+    /\b(kitne|kitna|kitni|how many|total|count)\b.*\b(invoices?|bills?|challans?)\b/i.test(lowerText) ||
+    /\b(invoices?|bills?|invoice|bill)\b.*\b(kitne|kitna|kitni|how many|count|hai|hain)\b/i.test(lowerText)
   ) {
     return { intent: 'invoice_count', confidence: 'high' };
   }
@@ -53,52 +64,52 @@ function parseQuery(text: string): ParsedQuery {
     return { intent: 'invoice_stats', confidence: 'high' };
   }
   
-  // Revenue patterns - flexible word order
+  // Revenue patterns - English + Hindi
   if (
-    /\b(total|kitna|kya hai|show)\b.*\b(revenue|earning|kamai|income)\b/i.test(lowerText) ||
-    /\b(revenue|earning|kamai)\b.*\b(total|kitna|kya)\b/i.test(lowerText) ||
-    /\b(revenue|earning|kamai)\b/i.test(lowerText)
+    /\b(total|kitna|kitni|kya hai|show)\b.*\b(revenue|earning|kamai|income)\b/i.test(lowerText) ||
+    /\b(revenue|earning|kamai)\b.*\b(total|kitna|kitni|kya|hai)\b/i.test(lowerText) ||
+    (/\b(revenue|earning|kamai)\b/i.test(lowerText) && lowerText.length < 30)
   ) {
     return { intent: 'revenue_total', confidence: 'high' };
   }
   
-  // Customer count patterns - supports singular/plural
+  // Customer count patterns - English + Hindi
   if (
-    /\b(kitne|kitna|how many|total)\b.*\b(customers?|clients?|party|parties)\b/i.test(lowerText) ||
-    /\b(customers?|clients?|party)\b.*\b(kitne|kitna|how many|count)\b/i.test(lowerText)
+    /\b(kitne|kitna|kitni|how many|total)\b.*\b(customers?|clients?|party|parties)\b/i.test(lowerText) ||
+    /\b(customers?|clients?|party|parties|customer|client)\b.*\b(kitne|kitna|kitni|how many|count|hai|hain)\b/i.test(lowerText)
   ) {
     return { intent: 'customer_count', confidence: 'high' };
   }
   
-  // Debtor list patterns - supports singular/plural
+  // Debtor list patterns - English + Hindi
   if (
-    /\b(debtors?|baaki|bakaya|outstanding)\b.*\b(list|dikhao|show)\b/i.test(lowerText) ||
-    /\b(list|dikhao|show)\b.*\b(debtors?|baaki|bakaya)\b/i.test(lowerText) ||
-    /\b(top|bade|biggest)\b.*\b(debtors?|baaki)\b/i.test(lowerText)
+    /\b(debtors?|baaki|bakaya|baki|outstanding)\b.*\b(list|dikhao|show|batao)\b/i.test(lowerText) ||
+    /\b(list|dikhao|show|batao)\b.*\b(debtors?|baaki|bakaya|baki)\b/i.test(lowerText) ||
+    /\b(top|bade|biggest)\b.*\b(debtors?|baaki|baki)\b/i.test(lowerText)
   ) {
     return { intent: 'debtor_list', confidence: 'high' };
   }
   
-  // Debtor count patterns
+  // Debtor count patterns - English + Hindi
   if (
-    /\b(kitne|how many)\b.*\b(debtors?|outstanding|baaki)\b/i.test(lowerText)
+    /\b(kitne|kitna|how many)\b.*\b(debtors?|outstanding|baaki|bakaya|baki)\b/i.test(lowerText)
   ) {
     return { intent: 'debtor_count', confidence: 'high' };
   }
   
-  // Outstanding balance patterns - added 'balance' keyword and more flexible matching
+  // Outstanding balance patterns - English + Hindi
   if (
-    /\b(outstanding|baaki|bakaya)\b.*\b(balance|amount|paisa|kitna)\b/i.test(lowerText) ||
-    /\b(total|show)\b.*\b(outstanding|baaki|bakaya)\b/i.test(lowerText) ||
-    /\b(balance)\b.*\b(outstanding|pending|baaki)\b/i.test(lowerText) ||
-    (/\b(outstanding|bakaya|baaki)\b/i.test(lowerText) && /\b(balance)\b/i.test(lowerText))
+    /\b(outstanding|baaki|bakaya|baki)\b.*\b(balance|amount|paisa|kitna|kitni|hai)\b/i.test(lowerText) ||
+    /\b(total|show|batao)\b.*\b(outstanding|baaki|bakaya|baki)\b/i.test(lowerText) ||
+    /\b(balance)\b.*\b(outstanding|pending|baaki|baki)\b/i.test(lowerText) ||
+    (/\b(outstanding|bakaya|baaki|baki)\b/i.test(lowerText) && /\b(balance|kitna|kitni)\b/i.test(lowerText))
   ) {
     return { intent: 'outstanding_balance', confidence: 'high' };
   }
   
-  // Payment stats patterns
+  // Payment stats patterns - English + Hindi
   if (
-    /\b(payments?|receipts?)\b.*\b(stats|data|kitna)\b/i.test(lowerText)
+    /\b(payments?|receipts?|payment|receipt)\b.*\b(stats|data|kitna|kitni)\b/i.test(lowerText)
   ) {
     return { intent: 'payment_stats', confidence: 'high' };
   }
@@ -261,42 +272,84 @@ async function queryPaymentStats(tenantId: string): Promise<{
   };
 }
 
-// Format response with emojis and proper Hindi/English text
-function formatResponse(intent: QueryIntent, data: any): string {
+// Format response in Hindi
+function formatHindiResponse(intent: QueryIntent, data: any): string {
   switch (intent) {
     case 'invoice_count':
-      return `📊 **Invoice Count**\n\n` +
-        `Total Invoices: **${data.count}**\n\n` +
-        `कुल इनवॉइस: **${data.count}**`;
+      return `📊 **इनवॉइस की संख्या**\n\nकुल इनवॉइस: **${data.count}**`;
     
     case 'invoice_stats':
-      return `📊 **Invoice Statistics**\n\n` +
-        `Total Invoices: ${data.count}\n` +
-        `Total Amount: ₹${data.totalAmount.toLocaleString('en-IN')}\n` +
-        `Paid Amount: ₹${data.paidAmount.toLocaleString('en-IN')}\n` +
-        `Pending Amount: ₹${data.pendingAmount.toLocaleString('en-IN')}\n\n` +
-        `───────────────\n` +
+      return `📊 **इनवॉइस आंकड़े**\n\n` +
         `कुल इनवॉइस: ${data.count}\n` +
         `कुल राशि: ₹${data.totalAmount.toLocaleString('en-IN')}\n` +
         `भुगतान: ₹${data.paidAmount.toLocaleString('en-IN')}\n` +
         `बकाया: ₹${data.pendingAmount.toLocaleString('en-IN')}`;
     
     case 'revenue_total':
-      return `💰 **Total Revenue**\n\n` +
-        `₹${data.revenue.toLocaleString('en-IN')}\n\n` +
-        `कुल राजस्व: ₹${data.revenue.toLocaleString('en-IN')}`;
+      return `💰 **कुल राजस्व**\n\n₹${data.revenue.toLocaleString('en-IN')}`;
     
     case 'customer_count':
-      return `👥 **Customer Count**\n\n` +
-        `Total Customers: **${data.count}**\n\n` +
-        `कुल ग्राहक: **${data.count}**`;
+      return `👥 **ग्राहक संख्या**\n\nकुल ग्राहक: **${data.count}**`;
     
     case 'debtor_list':
       if (data.length === 0) {
-        return `✅ **No Outstanding Debtors!**\n\nAll customers have cleared their dues.\n\nसभी ग्राहकों ने अपना भुगतान कर दिया है।`;
+        return `✅ **कोई बकायादार नहीं!**\n\nसभी ग्राहकों ने अपना भुगतान कर दिया है।`;
       }
       
-      let response = `💸 **Top Debtors / बड़े देनदार**\n\n`;
+      let response = `💸 **बड़े देनदार**\n\n`;
+      data.forEach((debtor: any, index: number) => {
+        response += `${index + 1}. ${debtor.customerName}\n`;
+        response += `   बकाया: ₹${debtor.outstanding.toLocaleString('en-IN')}\n\n`;
+      });
+      return response;
+    
+    case 'debtor_count':
+      return `📊 **देनदार संख्या**\n\nकुल देनदार: **${data.count}**`;
+    
+    case 'outstanding_balance':
+      return `💸 **कुल बकाया राशि**\n\n₹${data.balance.toLocaleString('en-IN')}`;
+    
+    case 'payment_stats':
+      return `💳 **भुगतान आंकड़े**\n\n` +
+        `कुल भुगतान: ${data.count}\n` +
+        `कुल राशि प्राप्त: ₹${data.totalReceived.toLocaleString('en-IN')}`;
+    
+    default:
+      return `❓ मैं आपका सवाल समझ नहीं पाया।\n\n` +
+        `कृपया ये पूछें:\n` +
+        `• "कितने इनवॉइस हैं?"\n` +
+        `• "कुल revenue कितनी है?"\n` +
+        `• "बड़े देनदार कौन हैं?"\n` +
+        `• "कुल बकाया कितना है?"\n\n` +
+        `या /help टाइप करें।`;
+  }
+}
+
+// Format response in English
+function formatEnglishResponse(intent: QueryIntent, data: any): string {
+  switch (intent) {
+    case 'invoice_count':
+      return `📊 **Invoice Count**\n\nTotal Invoices: **${data.count}**`;
+    
+    case 'invoice_stats':
+      return `📊 **Invoice Statistics**\n\n` +
+        `Total Invoices: ${data.count}\n` +
+        `Total Amount: ₹${data.totalAmount.toLocaleString('en-IN')}\n` +
+        `Paid Amount: ₹${data.paidAmount.toLocaleString('en-IN')}\n` +
+        `Pending Amount: ₹${data.pendingAmount.toLocaleString('en-IN')}`;
+    
+    case 'revenue_total':
+      return `💰 **Total Revenue**\n\n₹${data.revenue.toLocaleString('en-IN')}`;
+    
+    case 'customer_count':
+      return `👥 **Customer Count**\n\nTotal Customers: **${data.count}**`;
+    
+    case 'debtor_list':
+      if (data.length === 0) {
+        return `✅ **No Outstanding Debtors!**\n\nAll customers have cleared their dues.`;
+      }
+      
+      let response = `💸 **Top Debtors**\n\n`;
       data.forEach((debtor: any, index: number) => {
         response += `${index + 1}. ${debtor.customerName}\n`;
         response += `   Outstanding: ₹${debtor.outstanding.toLocaleString('en-IN')}\n\n`;
@@ -304,32 +357,33 @@ function formatResponse(intent: QueryIntent, data: any): string {
       return response;
     
     case 'debtor_count':
-      return `📊 **Debtor Count**\n\n` +
-        `Total Debtors: **${data.count}**\n\n` +
-        `कुल देनदार: **${data.count}**`;
+      return `📊 **Debtor Count**\n\nTotal Debtors: **${data.count}**`;
     
     case 'outstanding_balance':
-      return `💸 **Total Outstanding Balance**\n\n` +
-        `₹${data.balance.toLocaleString('en-IN')}\n\n` +
-        `कुल बकाया राशि: ₹${data.balance.toLocaleString('en-IN')}`;
+      return `💸 **Total Outstanding Balance**\n\n₹${data.balance.toLocaleString('en-IN')}`;
     
     case 'payment_stats':
       return `💳 **Payment Statistics**\n\n` +
         `Total Payments Received: ${data.count}\n` +
-        `Total Amount Received: ₹${data.totalReceived.toLocaleString('en-IN')}\n\n` +
-        `───────────────\n` +
-        `कुल भुगतान: ${data.count}\n` +
-        `कुल राशि प्राप्त: ₹${data.totalReceived.toLocaleString('en-IN')}`;
+        `Total Amount Received: ₹${data.totalReceived.toLocaleString('en-IN')}`;
     
     default:
       return `❓ I couldn't understand your query.\n\n` +
         `Please try asking:\n` +
-        `• "How many invoices?" / "कितने इनवॉइस?"\n` +
-        `• "Total revenue?" / "कुल revenue?"\n` +
-        `• "List top debtors" / "Top debtors की list"\n` +
-        `• "Outstanding balance?" / "कुल बकाया?"\n\n` +
+        `• "How many invoices?"\n` +
+        `• "Total revenue?"\n` +
+        `• "List top debtors"\n` +
+        `• "Outstanding balance?"\n\n` +
         `Or type /help for more examples.`;
   }
+}
+
+// Format response based on detected language
+function formatResponse(intent: QueryIntent, data: any, language: 'hindi' | 'english'): string {
+  if (language === 'hindi') {
+    return formatHindiResponse(intent, data);
+  }
+  return formatEnglishResponse(intent, data);
 }
 
 // Generate voice audio from text using OpenAI TTS
@@ -647,6 +701,9 @@ function setupMessageHandlers(bot: Telegraf) {
       // Send transcription back to user
       await ctx.reply(`📝 Transcribed: "${transcribedText}"`);
 
+      // Detect language from transcription
+      const detectedLanguage = detectLanguage(transcribedText);
+
       // Parse query to detect intent
       const parsedQuery = parseQuery(transcribedText);
       const { intent } = parsedQuery;
@@ -659,46 +716,46 @@ function setupMessageHandlers(bot: Telegraf) {
         switch (intent) {
           case 'invoice_count':
             queryData = await queryInvoiceCount(userMapping.tenantId);
-            responseText = formatResponse(intent, queryData);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
             break;
 
           case 'invoice_stats':
             queryData = await queryInvoiceStats(userMapping.tenantId);
-            responseText = formatResponse(intent, queryData);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
             break;
 
           case 'revenue_total':
             queryData = await queryRevenue(userMapping.tenantId);
-            responseText = formatResponse(intent, queryData);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
             break;
 
           case 'customer_count':
             queryData = await queryCustomerCount(userMapping.tenantId);
-            responseText = formatResponse(intent, queryData);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
             break;
 
           case 'debtor_list':
             queryData = await queryDebtorList(userMapping.tenantId, 5);
-            responseText = formatResponse(intent, queryData);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
             break;
 
           case 'debtor_count':
             queryData = await queryDebtorCount(userMapping.tenantId);
-            responseText = formatResponse(intent, queryData);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
             break;
 
           case 'outstanding_balance':
             queryData = await queryOutstandingBalance(userMapping.tenantId);
-            responseText = formatResponse(intent, queryData);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
             break;
 
           case 'payment_stats':
             queryData = await queryPaymentStats(userMapping.tenantId);
-            responseText = formatResponse(intent, queryData);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
             break;
 
           default:
-            responseText = formatResponse('unknown', null);
+            responseText = formatResponse('unknown', null, detectedLanguage);
             break;
         }
 
