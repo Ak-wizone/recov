@@ -5641,8 +5641,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const allInvoices = await storage.getInvoices(req.tenantId!);
       const allReceipts = await storage.getReceipts(req.tenantId!);
-      const categoryRules = await storage.getCategoryRulesByTenantId(req.tenantId!);
-      const graceDays = categoryRules[0]?.graceDays ?? 7;
+      const categoryRules = await storage.getCategoryRules(req.tenantId!);
+      const graceDays = categoryRules?.graceDays ?? 7;
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -5666,13 +5666,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let overdue120Plus = { count: 0, amount: 0 };
 
       // Process each customer's invoices
-      for (const [customerName, invoices] of customerInvoices.entries()) {
+      for (const [customerName, invoices] of Array.from(customerInvoices.entries())) {
         // Get receipts for this customer
         const customerReceipts = allReceipts.filter(r => r.customerName === customerName);
         const totalReceiptAmount = customerReceipts.reduce((sum, r) => sum + parseFloat(r.amount.toString()), 0);
 
         // Sort invoices by date (FIFO)
-        const sortedInvoices = invoices.sort((a, b) => 
+        const sortedInvoices = invoices.sort((a: any, b: any) => 
           new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime()
         );
 
