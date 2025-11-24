@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp, Wallet, MessageSquare, Mail, RefreshCw } from "lucide-react";
+import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp, Wallet, MessageSquare, Mail, RefreshCw, Calendar } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -138,6 +138,7 @@ export default function Invoices() {
   });
 
   const { data: paymentDueStats } = useQuery<{
+    upcomingInvoices: { count: number; amount: number };
     dueToday: { count: number; amount: number };
     gracePeriod10Days: { count: number; amount: number };
     overdue: { count: number; amount: number };
@@ -857,6 +858,28 @@ export default function Invoices() {
       {/* Payment Due Summary Tab Content */}
       {activeTab === "payment-due-summary" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card
+            className="cursor-pointer transition-all border-0 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/40"
+            data-testid="card-upcoming-invoices"
+          >
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="bg-green-500 p-3 rounded-xl flex-shrink-0">
+                  <Calendar className="h-6 w-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Upcoming Invoices</p>
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400 break-all">
+                    ₹{(paymentDueStats?.upcomingInvoices?.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {paymentDueStats?.upcomingInvoices?.count || 0} invoice{(paymentDueStats?.upcomingInvoices?.count || 0) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card
             className="cursor-pointer transition-all border-0 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40"
             data-testid="card-due-today"
