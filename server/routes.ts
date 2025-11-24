@@ -5657,6 +5657,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Initialize counters
+      let upcomingInvoices = { count: 0, amount: 0 };
       let dueToday = { count: 0, amount: 0 };
       let gracePeriod10Days = { count: 0, amount: 0 };
       let overdue = { count: 0, amount: 0 };
@@ -5713,12 +5714,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
           // Categorize based on due date and grace period
-          if (diffDays === 0) {
+          if (diffDays < 0) {
+            // Not yet due - upcoming invoices
+            upcomingInvoices.count++;
+            upcomingInvoices.amount += outstandingAmount;
+          } else if (diffDays === 0) {
             // Due today
-            dueToday.count++;
-            dueToday.amount += outstandingAmount;
-          } else if (diffDays < 0) {
-            // Not yet due - count as "Due Today" category for visibility
             dueToday.count++;
             dueToday.amount += outstandingAmount;
           } else if (diffDays > 0 && diffDays <= graceDays) {
@@ -5750,6 +5751,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({
+        upcomingInvoices,
         dueToday,
         gracePeriod10Days,
         overdue,
