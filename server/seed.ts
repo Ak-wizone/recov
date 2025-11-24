@@ -151,7 +151,13 @@ function getPermissionsForModules(moduleNames: string[]): string[] {
       "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
     ],
     "Email/WhatsApp/Call Integrations": [
-      "Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit",
+      "Email/WhatsApp/Call Integrations - View", 
+      "Email/WhatsApp/Call Integrations - Create",
+      "Email/WhatsApp/Call Integrations - Edit", 
+      "Email/WhatsApp/Call Integrations - Delete",
+      "Email/WhatsApp/Call Integrations - Export", 
+      "Email/WhatsApp/Call Integrations - Import",
+      "Email/WhatsApp/Call Integrations - Print",
     ],
     "Reports": [
       "Reports - View", "Reports - Export", "Reports - Print",
@@ -434,7 +440,13 @@ async function createAdminRolesForTenants() {
             "Backup & Restore - View", "Backup & Restore - Create", "Backup & Restore - Delete",
             "Audit Logs - View", "Audit Logs - Export", "Audit Logs - Print",
             // Integrations
-            "Email/WhatsApp/Call Integrations - View", "Email/WhatsApp/Call Integrations - Edit",
+            "Email/WhatsApp/Call Integrations - View", 
+            "Email/WhatsApp/Call Integrations - Create",
+            "Email/WhatsApp/Call Integrations - Edit", 
+            "Email/WhatsApp/Call Integrations - Delete",
+            "Email/WhatsApp/Call Integrations - Export", 
+            "Email/WhatsApp/Call Integrations - Import",
+            "Email/WhatsApp/Call Integrations - Print",
             // Reports
             "Reports - View", "Reports - Export", "Reports - Print",
           ];
