@@ -36,6 +36,7 @@ export default function TelegramLink() {
   const [, navigate] = useLocation();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [unlinkUserId, setUnlinkUserId] = useState<string | null>(null);
+  const [deleteCodeId, setDeleteCodeId] = useState<string | null>(null);
 
   // Tenant user check - platform admins cannot access this page
   const isTenantUser = user && user.tenantId;
@@ -77,6 +78,28 @@ export default function TelegramLink() {
     },
   });
 
+  // Delete linking code mutation
+  const deleteCodeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest("DELETE", `/api/telegram/link-codes/${id}`, undefined);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/telegram/link-codes"] });
+      toast({
+        title: "Code deleted",
+        description: "Linking code has been deleted successfully.",
+      });
+      setDeleteCodeId(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to delete code",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Unlink user mutation
   const unlinkMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -100,17 +123,29 @@ export default function TelegramLink() {
   });
 
   const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
+    // Copy the command format: /link CODE (without LINK- prefix)
+    const commandText = `/link ${code.replace('LINK-', '')}`;
+    navigator.clipboard.writeText(commandText);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
     toast({
       title: "Copied",
-      description: "Linking code copied to clipboard",
+      description: "Command copied to clipboard",
     });
   };
 
   const handleGenerateCode = () => {
     generateCodeMutation.mutate();
+  };
+
+  const handleDeleteCode = (id: string) => {
+    setDeleteCodeId(id);
+  };
+
+  const confirmDeleteCode = () => {
+    if (deleteCodeId) {
+      deleteCodeMutation.mutate(deleteCodeId);
+    }
   };
 
   const handleUnlink = (id: string) => {
@@ -240,11 +275,29 @@ export default function TelegramLink() {
                   {linkingCodes.map((code) => {
                     const expired = isCodeExpired(code.expiresAt);
                     const used = code.isUsed;
+                    const displayCode = `/link ${code.code.replace('LINK-', '')}`;
 
                     return (
                       <TableRow key={code.id}>
                         <TableCell className="font-mono font-semibold" data-testid={`code-${code.code}`}>
-                          {code.code}
+                          <div className="flex items-center gap-2">
+                            <span>{displayCode}</span>
+                            {!used && !expired && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => handleCopyCode(code.code)}
+                                data-testid={`button-copy-${code.code}`}
+                              >
+                                {copiedCode === code.code ? (
+                                  <Check className="h-3.5 w-3.5 text-green-500" />
+                                ) : (
+                                  <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                                )}
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {used ? (
@@ -259,20 +312,15 @@ export default function TelegramLink() {
                           {formatDistanceToNow(new Date(code.expiresAt), { addSuffix: true })}
                         </TableCell>
                         <TableCell>
-                          {!used && !expired && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleCopyCode(code.code)}
-                              data-testid={`button-copy-${code.code}`}
-                            >
-                              {copiedCode === code.code ? (
-                                <Check className="h-4 w-4" />
-                              ) : (
-                                <Copy className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleDeleteCode(code.id)}
+                            data-testid={`button-delete-${code.code}`}
+                          >
+                            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -362,6 +410,36 @@ export default function TelegramLink() {
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Code Confirmation Dialog */}
+      <AlertDialog open={!!deleteCodeId} onOpenChange={(open) => !open && setDeleteCodeId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Linking Code</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this linking code? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-code">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteCode}
+              disabled={deleteCodeMutation.isPending}
+              className="bg-destructive hover:bg-destructive/90"
+              data-testid="button-confirm-delete-code"
+            >
+              {deleteCodeMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Unlink Confirmation Dialog */}
       <AlertDialog open={!!unlinkUserId} onOpenChange={(open) => !open && setUnlinkUserId(null)}>

@@ -339,6 +339,7 @@ export interface IStorage {
   saveTelegramBotConfig(config: any): Promise<any>;
   createTelegramLinkingCode(code: any): Promise<any>;
   getTelegramLinkingCodes(tenantId: string): Promise<any[]>;
+  deleteTelegramLinkingCode(tenantId: string, id: string): Promise<boolean>;
   getTelegramLinkedUsers(tenantId: string): Promise<any[]>;
   unlinkTelegramUser(tenantId: string, id: string): Promise<boolean>;
   validateTelegramLinkingCode(code: string): Promise<any | undefined>;
@@ -3331,6 +3332,19 @@ export class DatabaseStorage implements IStorage {
       .from(telegramLinkingCodes)
       .where(eq(telegramLinkingCodes.tenantId, tenantId))
       .orderBy(desc(telegramLinkingCodes.createdAt));
+  }
+
+  async deleteTelegramLinkingCode(tenantId: string, id: string): Promise<boolean> {
+    const result = await db
+      .delete(telegramLinkingCodes)
+      .where(
+        and(
+          eq(telegramLinkingCodes.tenantId, tenantId),
+          eq(telegramLinkingCodes.id, id)
+        )
+      )
+      .returning();
+    return result.length > 0;
   }
 
   async getTelegramLinkedUsers(tenantId: string): Promise<any[]> {

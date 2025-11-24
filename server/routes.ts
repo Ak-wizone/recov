@@ -12421,6 +12421,27 @@ ${profile?.legalName || 'Company'}`;
     }
   });
 
+  // Delete linking code
+  app.delete("/api/telegram/link-codes/:id", async (req, res) => {
+    try {
+      if (!req.tenantId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { id } = req.params;
+      const success = await storage.deleteTelegramLinkingCode(req.tenantId, id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Linking code not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Failed to delete linking code:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get linked Telegram users for tenant
   app.get("/api/telegram/linked-users", async (req, res) => {
     try {
