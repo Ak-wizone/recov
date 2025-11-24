@@ -45,97 +45,101 @@ function detectLanguage(text: string): 'hindi' | 'english' {
 }
 
 // Natural language query parser with Hindi/English/Hinglish support
+// Unicode-friendly patterns that work with both Roman and Devanagari scripts
 function parseQuery(text: string): ParsedQuery {
   const lowerText = text.toLowerCase();
   
   // Invoice count patterns - English + Hindi
   if (
-    /\b(kitne|kitna|kitni|how many|total|count)\b.*\b(invoices?|bills?|challans?)\b/i.test(lowerText) ||
-    /\b(invoices?|bills?|invoice|bill)\b.*\b(kitne|kitna|kitni|how many|count|hai|hain)\b/i.test(lowerText)
+    /(kitne|kitna|kitni|how many|total|count).*(invoices?|bills?|challans?)/i.test(lowerText) ||
+    /(invoices?|bills?|invoice|bill).*(kitne|kitna|kitni|how many|count|hai|hain)/i.test(lowerText)
   ) {
     return { intent: 'invoice_count', confidence: 'high' };
   }
   
   // Invoice stats patterns
   if (
-    /\b(invoices?|bills?)\b.*\b(stats|statistics|details|data)\b/i.test(lowerText) ||
-    /\b(show|dikhao|batao)\b.*\b(invoices?|bills?)\b/i.test(lowerText)
+    /(invoices?|bills?).*(stats|statistics|details|data)/i.test(lowerText) ||
+    /(show|dikhao|batao).*(invoices?|bills?)/i.test(lowerText)
   ) {
     return { intent: 'invoice_stats', confidence: 'high' };
   }
   
   // Revenue patterns - English + Hindi
   if (
-    /\b(total|kitna|kitni|kya hai|show)\b.*\b(revenue|earning|kamai|income)\b/i.test(lowerText) ||
-    /\b(revenue|earning|kamai)\b.*\b(total|kitna|kitni|kya|hai)\b/i.test(lowerText) ||
-    (/\b(revenue|earning|kamai)\b/i.test(lowerText) && lowerText.length < 30)
+    /(total|kitna|kitni|kya hai|show).*(revenue|earning|kamai|income)/i.test(lowerText) ||
+    /(revenue|earning|kamai).*(total|kitna|kitni|kya|hai)/i.test(lowerText) ||
+    (/(revenue|earning|kamai)/i.test(lowerText) && lowerText.length < 30)
   ) {
     return { intent: 'revenue_total', confidence: 'high' };
   }
   
   // Customer count patterns - English + Hindi
   if (
-    /\b(kitne|kitna|kitni|how many|total)\b.*\b(customers?|clients?|party|parties)\b/i.test(lowerText) ||
-    /\b(customers?|clients?|party|parties|customer|client)\b.*\b(kitne|kitna|kitni|how many|count|hai|hain)\b/i.test(lowerText)
+    /(kitne|kitna|kitni|how many|total).*(customers?|clients?|party|parties)/i.test(lowerText) ||
+    /(customers?|clients?|party|parties|customer|client).*(kitne|kitna|kitni|how many|count|hai|hain)/i.test(lowerText)
   ) {
     return { intent: 'customer_count', confidence: 'high' };
   }
   
   // Debtor list patterns - English + Hindi
   if (
-    /\b(debtors?|baaki|bakaya|baki|outstanding)\b.*\b(list|dikhao|show|batao)\b/i.test(lowerText) ||
-    /\b(list|dikhao|show|batao)\b.*\b(debtors?|baaki|bakaya|baki)\b/i.test(lowerText) ||
-    /\b(top|bade|biggest)\b.*\b(debtors?|baaki|baki)\b/i.test(lowerText)
+    /(debtors?|baaki|bakaya|baki|outstanding).*(list|dikhao|show|batao)/i.test(lowerText) ||
+    /(list|dikhao|show|batao).*(debtors?|baaki|bakaya|baki)/i.test(lowerText) ||
+    /(top|bade|biggest).*(debtors?|baaki|baki)/i.test(lowerText)
   ) {
     return { intent: 'debtor_list', confidence: 'high' };
   }
   
   // Debtor count patterns - English + Hindi
   if (
-    /\b(kitne|kitna|how many)\b.*\b(debtors?|outstanding|baaki|bakaya|baki)\b/i.test(lowerText)
+    /(kitne|kitna|how many).*(debtors?|outstanding|baaki|bakaya|baki)/i.test(lowerText)
   ) {
     return { intent: 'debtor_count', confidence: 'high' };
   }
   
   // Outstanding balance patterns - English + Hindi + Hinglish (30+ variations)
+  // Devanagari-friendly: removed \b word boundaries to support Unicode characters
   if (
-    // Hindi patterns
-    /\b(meri|mera|mujhe|saari|total|kul)\b.*\b(outstanding|bakaya|baaki|baki)\b.*\b(report|bhejo|send|batao|dikhao|chahiye)\b/i.test(lowerText) ||
-    /\b(outstanding|bakaya|baaki|baki)\b.*\b(report|summary|list|soochi|vivaran)\b.*\b(bhejo|send|do|chahiye|dikhaye)\b/i.test(lowerText) ||
-    /\b(total|kul)\b.*\b(outstanding|bakaya|baaki|baki|due)\b.*\b(kitna|kitni|hai|amount|rashi)\b/i.test(lowerText) ||
-    /\b(pending|bacha|baki|bakaya)\b.*\b(payment|bhugtan|paisa)\b.*\b(batao|kitna|list|bhejo)\b/i.test(lowerText) ||
-    /\b(kitna|kitni)\b.*\b(paisa|payment|rashi|amount)\b.*\b(market|bahar|phasa|stuck|pending|baki)\b/i.test(lowerText) ||
-    /\b(payment|bhugtan)\b.*\b(pending|baki|bakaya)\b.*\b(ka|ki)\b.*\b(list|soochi|batao|report)\b/i.test(lowerText) ||
-    /\b(recovery|vasuli|collection)\b.*\b(report|send|bhejo|batao)\b/i.test(lowerText) ||
-    /\b(client|customer|party|grahak)\b.*\b(wise|ka|ki|ke)\b.*\b(outstanding|bakaya|baki)\b/i.test(lowerText) ||
-    /\b(kaun|kon|who)\b.*\b(payment|bhugtan)\b.*\b(nahi|nahin|not|diya|paid)\b/i.test(lowerText) ||
-    /\b(daily|roj|rojana)\b.*\b(outstanding|bakaya|recovery)\b.*\b(report|send|bhejo)\b/i.test(lowerText) ||
-    /\b(kitni|kitna)\b.*\b(rashi|amount|paisa)\b.*\b(abhi|tak|prapt|received|nahi|hui)\b/i.test(lowerText) ||
-    /\b(baki|bacha|pending)\b.*\b(rashi|bhugtan|payment)\b.*\b(ka|ki)\b.*\b(vivaran|report|details)\b/i.test(lowerText) ||
-    /\b(mera|meri)\b.*\b(udhar|loan|bakaya|outstanding)\b.*\b(kitna|batao|hai)\b/i.test(lowerText) ||
-    /\b(kripya|please)\b.*\b(outstanding|bakaya)\b.*\b(report|ki|bhejen|send)\b/i.test(lowerText) ||
+    // Hindi patterns with Devanagari support
+    /(meri|mera|mujhe|saari|total|kul|मेरी|मेरा|मुझे|सारी|कुल).*(outstanding|bakaya|baaki|baki|बकाया|बाकी).*(report|bhejo|send|batao|dikhao|chahiye|रिपोर्ट|भेजो|बताओ|दिखाओ|चाहिए)/i.test(lowerText) ||
+    /(outstanding|bakaya|baaki|baki|बकाया|बाकी).*(report|summary|list|soochi|vivaran|रिपोर्ट|सूची|विवरण).*(bhejo|send|do|chahiye|dikhaye|भेजो|चाहिए|दिखाएं)/i.test(lowerText) ||
+    /(total|kul|कुल).*(outstanding|bakaya|baaki|baki|due|बकाया|बाकी).*(kitna|kitni|hai|amount|rashi|कितना|कितनी|है|राशि)/i.test(lowerText) ||
+    /(pending|bacha|baki|bakaya|बकाया|बाकी|बचा).*(payment|bhugtan|paisa|भुगतान|पैसा).*(batao|kitna|list|bhejo|बताओ|कितना|भेजो)/i.test(lowerText) ||
+    /(kitna|kitni|कितना|कितनी).*(paisa|payment|rashi|amount|पैसा|राशि).*(market|bahar|phasa|stuck|pending|baki|बाहर|फंसा|बाकी)/i.test(lowerText) ||
+    /(payment|bhugtan|भुगतान).*(pending|baki|bakaya|बाकी|बकाया).*(ka|ki|की|का).*(list|soochi|batao|report|सूची|बताओ|रिपोर्ट)/i.test(lowerText) ||
+    /(recovery|vasuli|collection|वसूली).*(report|send|bhejo|batao|रिपोर्ट|भेजो|बताओ)/i.test(lowerText) ||
+    /(client|customer|party|grahak|ग्राहक).*(wise|ka|ki|ke|का|की|के).*(outstanding|bakaya|baki|बकाया|बाकी)/i.test(lowerText) ||
+    /(kaun|kon|who|कौन).*(payment|bhugtan|भुगतान).*(nahi|nahin|not|diya|paid|नहीं|दिया)/i.test(lowerText) ||
+    /(daily|roj|rojana|रोज|रोजाना).*(outstanding|bakaya|recovery|बकाया|वसूली).*(report|send|bhejo|रिपोर्ट|भेजो)/i.test(lowerText) ||
+    /(kitni|kitna|कितनी|कितना).*(rashi|amount|paisa|राशि|पैसा).*(abhi|tak|prapt|received|nahi|hui|अभी|तक|प्राप्त|नहीं)/i.test(lowerText) ||
+    /(baki|bacha|pending|बाकी|बचा).*(rashi|bhugtan|payment|राशि|भुगतान).*(ka|ki|का|की).*(vivaran|report|details|विवरण|रिपोर्ट)/i.test(lowerText) ||
+    /(mera|meri|मेरा|मेरी).*(udhar|loan|bakaya|outstanding|उधार|बकाया).*(kitna|batao|hai|कितना|बताओ|है)/i.test(lowerText) ||
+    /(kripya|please|कृपया).*(outstanding|bakaya|बकाया).*(report|ki|bhejen|send|रिपोर्ट|की|भेजें)/i.test(lowerText) ||
     
     // English patterns
-    /\b(send|share|show)\b.*\b(outstanding|pending|due)\b.*\b(report|summary|details)\b/i.test(lowerText) ||
-    /\b(what|how much)\b.*\b(total|my)\b.*\b(outstanding|pending|due)\b/i.test(lowerText) ||
-    /\b(outstanding|pending|due)\b.*\b(summary|report|details)\b.*\b(please|send|show)\b/i.test(lowerText) ||
-    /\b(payment|payments)\b.*\b(due|pending|outstanding|stuck)\b/i.test(lowerText) ||
-    /\b(client|customer)\b.*\b(wise|based)\b.*\b(outstanding|pending|due)\b/i.test(lowerText) ||
-    /\b(total|show|my)\b.*\b(due|pending|outstanding)\b.*\b(amount|balance|payment)\b/i.test(lowerText) ||
-    /\b(pending|outstanding)\b.*\b(collection|recovery|payment)\b.*\b(details|report)\b/i.test(lowerText) ||
+    /(send|share|show).*(outstanding|pending|due).*(report|summary|details)/i.test(lowerText) ||
+    /(what|how much).*(total|my).*(outstanding|pending|due)/i.test(lowerText) ||
+    /(outstanding|pending|due).*(summary|report|details).*(please|send|show)/i.test(lowerText) ||
+    /(payment|payments).*(due|pending|outstanding|stuck)/i.test(lowerText) ||
+    /(client|customer).*(wise|based).*(outstanding|pending|due)/i.test(lowerText) ||
+    /(total|show|my).*(due|pending|outstanding).*(amount|balance|payment)/i.test(lowerText) ||
+    /(pending|outstanding).*(collection|recovery|payment).*(details|report)/i.test(lowerText) ||
     
-    // Generic outstanding patterns
-    /\b(outstanding|baaki|bakaya|baki)\b.*\b(balance|amount|paisa|kitna|kitni|hai)\b/i.test(lowerText) ||
-    /\b(total|show|batao)\b.*\b(outstanding|baaki|bakaya|baki)\b/i.test(lowerText) ||
-    /\b(balance)\b.*\b(outstanding|pending|baaki|baki)\b/i.test(lowerText) ||
-    (/\b(outstanding|bakaya|baaki|baki)\b/i.test(lowerText) && /\b(balance|kitna|kitni|report)\b/i.test(lowerText))
+    // Generic outstanding patterns (most flexible for mixed scripts)
+    /(outstanding|baaki|bakaya|baki|बकाया|बाकी).*(balance|amount|paisa|kitna|kitni|hai|राशि|पैसा|कितना|कितनी|है)/i.test(lowerText) ||
+    /(total|show|batao|बताओ|दिखाओ).*(outstanding|baaki|bakaya|baki|बकाया|बाकी)/i.test(lowerText) ||
+    /(balance|बैलेंस).*(outstanding|pending|baaki|baki|बकाया|बाकी)/i.test(lowerText) ||
+    (/(outstanding|bakaya|baaki|baki|बकाया|बाकी)/i.test(lowerText) && /(balance|kitna|kitni|report|बैलेंस|कितना|कितनी|रिपोर्ट)/i.test(lowerText)) ||
+    // Catch common voice transcriptions like "राशी की report" or "rashi ki report"
+    /(rashi|राशि|राशी).*(report|ki|की|रिपोर्ट)/i.test(lowerText)
   ) {
     return { intent: 'outstanding_balance', confidence: 'high' };
   }
   
   // Payment stats patterns - English + Hindi
   if (
-    /\b(payments?|receipts?|payment|receipt)\b.*\b(stats|data|kitna|kitni)\b/i.test(lowerText)
+    /(payments?|receipts?|payment|receipt).*(stats|data|kitna|kitni)/i.test(lowerText)
   ) {
     return { intent: 'payment_stats', confidence: 'high' };
   }
