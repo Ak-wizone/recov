@@ -570,36 +570,22 @@ function formatHindiResponse(intent: QueryIntent, data: any): string {
       hindiOutstandingResponse += `📊 **कुल बकाया:** ₹${data.balance.toLocaleString('en-IN')}\n`;
       hindiOutstandingResponse += `(${balanceWords.devanagari} रुपये)\n\n`;
       
-      // Category breakdown
+      // Category breakdown - show all categories even if 0
       hindiOutstandingResponse += `📂 **श्रेणी विवरण:**\n`;
       const categories = ['Alpha', 'Beta', 'Gamma', 'Delta'] as const;
       categories.forEach(cat => {
         const catData = data.categoryBreakdown[cat];
-        if (catData.count > 0) {
-          hindiOutstandingResponse += `${cat}: ₹${catData.amount.toLocaleString('en-IN')} (${catData.count} ग्राहक)\n`;
-        }
+        hindiOutstandingResponse += `${cat}: ₹${catData.amount.toLocaleString('en-IN')} (${catData.count} ग्राहक)\n`;
       });
       
-      // Aging breakdown
+      // Aging breakdown - show all buckets even if 0
       hindiOutstandingResponse += `\n⏰ **देय जानकारी:**\n`;
-      if (data.agingBreakdown.dueToday.count > 0) {
-        hindiOutstandingResponse += `आज देय: ₹${data.agingBreakdown.dueToday.amount.toLocaleString('en-IN')} (${data.agingBreakdown.dueToday.count} ग्राहक)\n`;
-      }
-      if (data.agingBreakdown.overdue.count > 0) {
-        hindiOutstandingResponse += `अतिदेय: ₹${data.agingBreakdown.overdue.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue.count} ग्राहक)\n`;
-      }
-      if (data.agingBreakdown.overdue30to60.count > 0) {
-        hindiOutstandingResponse += `30-60 दिन: ₹${data.agingBreakdown.overdue30to60.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue30to60.count} ग्राहक)\n`;
-      }
-      if (data.agingBreakdown.overdue60to90.count > 0) {
-        hindiOutstandingResponse += `60-90 दिन: ₹${data.agingBreakdown.overdue60to90.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue60to90.count} ग्राहक)\n`;
-      }
-      if (data.agingBreakdown.overdue90to120.count > 0) {
-        hindiOutstandingResponse += `90-120 दिन: ₹${data.agingBreakdown.overdue90to120.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue90to120.count} ग्राहक)\n`;
-      }
-      if (data.agingBreakdown.overdue120plus.count > 0) {
-        hindiOutstandingResponse += `120+ दिन: ₹${data.agingBreakdown.overdue120plus.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue120plus.count} ग्राहक)\n`;
-      }
+      hindiOutstandingResponse += `आज देय: ₹${data.agingBreakdown.dueToday.amount.toLocaleString('en-IN')} (${data.agingBreakdown.dueToday.count} ग्राहक)\n`;
+      hindiOutstandingResponse += `अतिदेय: ₹${data.agingBreakdown.overdue.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue.count} ग्राहक)\n`;
+      hindiOutstandingResponse += `30-60 दिन: ₹${data.agingBreakdown.overdue30to60.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue30to60.count} ग्राहक)\n`;
+      hindiOutstandingResponse += `60-90 दिन: ₹${data.agingBreakdown.overdue60to90.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue60to90.count} ग्राहक)\n`;
+      hindiOutstandingResponse += `90-120 दिन: ₹${data.agingBreakdown.overdue90to120.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue90to120.count} ग्राहक)\n`;
+      hindiOutstandingResponse += `120+ दिन: ₹${data.agingBreakdown.overdue120plus.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue120plus.count} ग्राहक)\n`;
       
       return hindiOutstandingResponse;
     
