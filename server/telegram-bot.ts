@@ -252,7 +252,23 @@ async function queryDebtorCount(tenantId: string): Promise<{ count: number }> {
   return { count: debtors.length };
 }
 
-async function queryOutstandingBalance(tenantId: string): Promise<{ balance: number }> {
+async function queryOutstandingBalance(tenantId: string): Promise<{
+  balance: number;
+  categoryBreakdown: {
+    Alpha: { amount: number; count: number };
+    Beta: { amount: number; count: number };
+    Gamma: { amount: number; count: number };
+    Delta: { amount: number; count: number };
+  };
+  agingBreakdown: {
+    dueToday: { amount: number; count: number };
+    overdue: { amount: number; count: number };
+    overdue30to60: { amount: number; count: number };
+    overdue60to90: { amount: number; count: number };
+    overdue90to120: { amount: number; count: number };
+    overdue120plus: { amount: number; count: number };
+  };
+}> {
   // Match Portal's calculation logic from getDebtorsList()
   // Calculate per-customer balance and sum only positive balances
   
@@ -261,6 +277,27 @@ async function queryOutstandingBalance(tenantId: string): Promise<{ balance: num
   const allReceipts = await db.select().from(receipts).where(eq(receipts.tenantId, tenantId));
   
   let totalOutstanding = 0;
+  
+  // Category-wise tracking
+  const categoryData = {
+    Alpha: { amount: 0, count: 0 },
+    Beta: { amount: 0, count: 0 },
+    Gamma: { amount: 0, count: 0 },
+    Delta: { amount: 0, count: 0 },
+  };
+  
+  // Aging tracking (based on invoice-level aging)
+  const agingData = {
+    dueToday: { amount: 0, count: 0 },
+    overdue: { amount: 0, count: 0 },
+    overdue30to60: { amount: 0, count: 0 },
+    overdue60to90: { amount: 0, count: 0 },
+    overdue90to120: { amount: 0, count: 0 },
+    overdue120plus: { amount: 0, count: 0 },
+  };
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   
   for (const customer of customers) {
     const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
@@ -274,10 +311,60 @@ async function queryOutstandingBalance(tenantId: string): Promise<{ balance: num
     // Only include customers with positive balance (matching Portal's logic)
     if (balance > 0) {
       totalOutstanding += balance;
+      
+      // Track category-wise
+      const category = customer.category as 'Alpha' | 'Beta' | 'Gamma' | 'Delta';
+      if (category && categoryData[category]) {
+        categoryData[category].amount += balance;
+        categoryData[category].count += 1;
+      }
+      
+      // Track aging for each unpaid invoice
+      for (const invoice of customerInvoices) {
+        if (invoice.status !== 'Paid') {
+          const invoiceDate = new Date(invoice.invoiceDate);
+          const paymentTerms = invoice.paymentTerms || 0;
+          const dueDate = new Date(invoiceDate);
+          dueDate.setDate(dueDate.getDate() + paymentTerms);
+          dueDate.setHours(0, 0, 0, 0);
+          
+          const daysDiff = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+          const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+          
+          if (daysDiff === 0) {
+            // Due today
+            agingData.dueToday.amount += invoiceAmount;
+            agingData.dueToday.count += 1;
+          } else if (daysDiff > 0) {
+            // Overdue
+            agingData.overdue.amount += invoiceAmount;
+            agingData.overdue.count += 1;
+            
+            // Specific aging buckets
+            if (daysDiff >= 30 && daysDiff < 60) {
+              agingData.overdue30to60.amount += invoiceAmount;
+              agingData.overdue30to60.count += 1;
+            } else if (daysDiff >= 60 && daysDiff < 90) {
+              agingData.overdue60to90.amount += invoiceAmount;
+              agingData.overdue60to90.count += 1;
+            } else if (daysDiff >= 90 && daysDiff < 120) {
+              agingData.overdue90to120.amount += invoiceAmount;
+              agingData.overdue90to120.count += 1;
+            } else if (daysDiff >= 120) {
+              agingData.overdue120plus.amount += invoiceAmount;
+              agingData.overdue120plus.count += 1;
+            }
+          }
+        }
+      }
     }
   }
   
-  return { balance: totalOutstanding };
+  return {
+    balance: totalOutstanding,
+    categoryBreakdown: categoryData,
+    agingBreakdown: agingData,
+  };
 }
 
 async function queryPaymentStats(tenantId: string): Promise<{
