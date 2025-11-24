@@ -594,9 +594,9 @@ function setupMessageHandlers(bot: Telegraf) {
       const transcription = await openai.audio.transcriptions.create({
         file: audioFile,
         model: 'whisper-1',
+        language: 'en', // English mode works better for Indian accent and Hinglish
         prompt: businessPrompt, // Rich business context for better accuracy
         temperature: 0, // Reduce hallucinations, more deterministic output
-        // Auto-detect language instead of forcing Hindi - better for Hinglish
       });
 
       const transcribedText = transcription.text;
