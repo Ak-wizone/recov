@@ -97,12 +97,38 @@ function parseQuery(text: string): ParsedQuery {
     return { intent: 'debtor_count', confidence: 'high' };
   }
   
-  // Outstanding balance patterns - English + Hindi
+  // Outstanding balance patterns - English + Hindi + Hinglish (30+ variations)
   if (
+    // Hindi patterns
+    /\b(meri|mera|mujhe|saari|total|kul)\b.*\b(outstanding|bakaya|baaki|baki)\b.*\b(report|bhejo|send|batao|dikhao|chahiye)\b/i.test(lowerText) ||
+    /\b(outstanding|bakaya|baaki|baki)\b.*\b(report|summary|list|soochi|vivaran)\b.*\b(bhejo|send|do|chahiye|dikhaye)\b/i.test(lowerText) ||
+    /\b(total|kul)\b.*\b(outstanding|bakaya|baaki|baki|due)\b.*\b(kitna|kitni|hai|amount|rashi)\b/i.test(lowerText) ||
+    /\b(pending|bacha|baki|bakaya)\b.*\b(payment|bhugtan|paisa)\b.*\b(batao|kitna|list|bhejo)\b/i.test(lowerText) ||
+    /\b(kitna|kitni)\b.*\b(paisa|payment|rashi|amount)\b.*\b(market|bahar|phasa|stuck|pending|baki)\b/i.test(lowerText) ||
+    /\b(payment|bhugtan)\b.*\b(pending|baki|bakaya)\b.*\b(ka|ki)\b.*\b(list|soochi|batao|report)\b/i.test(lowerText) ||
+    /\b(recovery|vasuli|collection)\b.*\b(report|send|bhejo|batao)\b/i.test(lowerText) ||
+    /\b(client|customer|party|grahak)\b.*\b(wise|ka|ki|ke)\b.*\b(outstanding|bakaya|baki)\b/i.test(lowerText) ||
+    /\b(kaun|kon|who)\b.*\b(payment|bhugtan)\b.*\b(nahi|nahin|not|diya|paid)\b/i.test(lowerText) ||
+    /\b(daily|roj|rojana)\b.*\b(outstanding|bakaya|recovery)\b.*\b(report|send|bhejo)\b/i.test(lowerText) ||
+    /\b(kitni|kitna)\b.*\b(rashi|amount|paisa)\b.*\b(abhi|tak|prapt|received|nahi|hui)\b/i.test(lowerText) ||
+    /\b(baki|bacha|pending)\b.*\b(rashi|bhugtan|payment)\b.*\b(ka|ki)\b.*\b(vivaran|report|details)\b/i.test(lowerText) ||
+    /\b(mera|meri)\b.*\b(udhar|loan|bakaya|outstanding)\b.*\b(kitna|batao|hai)\b/i.test(lowerText) ||
+    /\b(kripya|please)\b.*\b(outstanding|bakaya)\b.*\b(report|ki|bhejen|send)\b/i.test(lowerText) ||
+    
+    // English patterns
+    /\b(send|share|show)\b.*\b(outstanding|pending|due)\b.*\b(report|summary|details)\b/i.test(lowerText) ||
+    /\b(what|how much)\b.*\b(total|my)\b.*\b(outstanding|pending|due)\b/i.test(lowerText) ||
+    /\b(outstanding|pending|due)\b.*\b(summary|report|details)\b.*\b(please|send|show)\b/i.test(lowerText) ||
+    /\b(payment|payments)\b.*\b(due|pending|outstanding|stuck)\b/i.test(lowerText) ||
+    /\b(client|customer)\b.*\b(wise|based)\b.*\b(outstanding|pending|due)\b/i.test(lowerText) ||
+    /\b(total|show|my)\b.*\b(due|pending|outstanding)\b.*\b(amount|balance|payment)\b/i.test(lowerText) ||
+    /\b(pending|outstanding)\b.*\b(collection|recovery|payment)\b.*\b(details|report)\b/i.test(lowerText) ||
+    
+    // Generic outstanding patterns
     /\b(outstanding|baaki|bakaya|baki)\b.*\b(balance|amount|paisa|kitna|kitni|hai)\b/i.test(lowerText) ||
     /\b(total|show|batao)\b.*\b(outstanding|baaki|bakaya|baki)\b/i.test(lowerText) ||
     /\b(balance)\b.*\b(outstanding|pending|baaki|baki)\b/i.test(lowerText) ||
-    (/\b(outstanding|bakaya|baaki|baki)\b/i.test(lowerText) && /\b(balance|kitna|kitni)\b/i.test(lowerText))
+    (/\b(outstanding|bakaya|baaki|baki)\b/i.test(lowerText) && /\b(balance|kitna|kitni|report)\b/i.test(lowerText))
   ) {
     return { intent: 'outstanding_balance', confidence: 'high' };
   }
