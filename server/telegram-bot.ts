@@ -319,9 +319,29 @@ async function queryOutstandingBalance(tenantId: string): Promise<{
         categoryData[category].count += 1;
       }
       
-      // Track aging for each unpaid invoice
-      for (const invoice of customerInvoices) {
-        if (invoice.status !== 'Paid') {
+      // Calculate per-invoice outstanding using FIFO receipt allocation
+      // Sort invoices by date for FIFO
+      const sortedInvoices = [...customerInvoices].sort((a, b) => 
+        new Date(a.invoiceDate).getTime() - new Date(b.invoiceDate).getTime()
+      );
+      
+      // Calculate total receipts to allocate
+      let remainingReceipts = totalReceiptsAmount;
+      
+      // Allocate receipts to invoices using FIFO
+      for (const invoice of sortedInvoices) {
+        const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
+        
+        // Calculate outstanding for this invoice
+        let invoiceOutstanding = invoiceAmount;
+        if (remainingReceipts > 0) {
+          const allocatedToThisInvoice = Math.min(remainingReceipts, invoiceAmount);
+          invoiceOutstanding = invoiceAmount - allocatedToThisInvoice;
+          remainingReceipts -= allocatedToThisInvoice;
+        }
+        
+        // Only track aging for invoices with outstanding balance
+        if (invoiceOutstanding > 0) {
           const invoiceDate = new Date(invoice.invoiceDate);
           const paymentTerms = invoice.paymentTerms || 0;
           const dueDate = new Date(invoiceDate);
@@ -329,29 +349,28 @@ async function queryOutstandingBalance(tenantId: string): Promise<{
           dueDate.setHours(0, 0, 0, 0);
           
           const daysDiff = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-          const invoiceAmount = parseFloat(invoice.invoiceAmount.toString());
           
           if (daysDiff === 0) {
             // Due today
-            agingData.dueToday.amount += invoiceAmount;
+            agingData.dueToday.amount += invoiceOutstanding;
             agingData.dueToday.count += 1;
           } else if (daysDiff > 0) {
             // Overdue
-            agingData.overdue.amount += invoiceAmount;
+            agingData.overdue.amount += invoiceOutstanding;
             agingData.overdue.count += 1;
             
             // Specific aging buckets
             if (daysDiff >= 30 && daysDiff < 60) {
-              agingData.overdue30to60.amount += invoiceAmount;
+              agingData.overdue30to60.amount += invoiceOutstanding;
               agingData.overdue30to60.count += 1;
             } else if (daysDiff >= 60 && daysDiff < 90) {
-              agingData.overdue60to90.amount += invoiceAmount;
+              agingData.overdue60to90.amount += invoiceOutstanding;
               agingData.overdue60to90.count += 1;
             } else if (daysDiff >= 90 && daysDiff < 120) {
-              agingData.overdue90to120.amount += invoiceAmount;
+              agingData.overdue90to120.amount += invoiceOutstanding;
               agingData.overdue90to120.count += 1;
             } else if (daysDiff >= 120) {
-              agingData.overdue120plus.amount += invoiceAmount;
+              agingData.overdue120plus.amount += invoiceOutstanding;
               agingData.overdue120plus.count += 1;
             }
           }
