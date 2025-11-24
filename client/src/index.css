@@ -104,9 +104,9 @@
   --spacing-3xl: 4rem;
   
   /* Status Colors */
-  --success: hsl(142, 71%, 45%);
+  --success: hsl(21, 100%, 56%);
   --success-foreground: hsl(0, 0%, 100%);
-  --success-light: hsl(142, 51%, 90%);
+  --success-light: hsl(21, 100%, 90%);
   --warning: hsl(25, 91%, 55%);
   --warning-foreground: hsl(0, 0%, 100%);
   --warning-light: hsl(25, 71%, 90%);
@@ -174,8 +174,8 @@
   --glow-error: 0 0 30px rgba(239, 68, 68, 0.5);
   
   /* Status Colors Dark */
-  --success: hsl(142, 71%, 50%);
-  --success-light: hsl(142, 51%, 15%);
+  --success: hsl(21, 100%, 60%);
+  --success-light: hsl(21, 100%, 15%);
   --warning: hsl(25, 91%, 60%);
   --warning-light: hsl(25, 71%, 15%);
   --info: hsl(217, 91%, 65%);
