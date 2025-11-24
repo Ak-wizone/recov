@@ -2484,14 +2484,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Never return the decrypted API key to the client
-      const { encryptedApiKey, ...safeConfig } = config;
+      // Never return the encrypted API key to the client
+      const { apiKey, ...safeConfig } = config;
       
       res.json({
         exists: true,
         config: {
           ...safeConfig,
-          hasApiKey: !!encryptedApiKey
+          hasApiKey: !!apiKey
         }
       });
     } catch (error: any) {
