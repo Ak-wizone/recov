@@ -216,29 +216,31 @@ async function queryDebtorCount(tenantId: string): Promise<{ count: number }> {
 }
 
 async function queryOutstandingBalance(tenantId: string): Promise<{ balance: number }> {
-  // Fetch total opening balances from master customers
-  const openingBalanceResult = await db
-    .select({ total: sum(masterCustomers.openingBalance) })
-    .from(masterCustomers)
-    .where(eq(masterCustomers.tenantId, tenantId));
+  // Match Portal's calculation logic from getDebtorsList()
+  // Calculate per-customer balance and sum only positive balances
   
-  // Fetch total invoices
-  const invoiceResult = await db
-    .select({ total: sum(invoices.invoiceAmount) })
-    .from(invoices)
-    .where(eq(invoices.tenantId, tenantId));
+  const customers = await db.select().from(masterCustomers).where(eq(masterCustomers.tenantId, tenantId));
+  const allInvoices = await db.select().from(invoices).where(eq(invoices.tenantId, tenantId));
+  const allReceipts = await db.select().from(receipts).where(eq(receipts.tenantId, tenantId));
   
-  // Fetch total receipts
-  const paymentResult = await db
-    .select({ total: sum(receipts.amount) })
-    .from(receipts)
-    .where(eq(receipts.tenantId, tenantId));
+  let totalOutstanding = 0;
   
-  const totalOpeningBalance = Number(openingBalanceResult[0]?.total || 0);
-  const totalInvoices = Number(invoiceResult[0]?.total || 0);
-  const totalPayments = Number(paymentResult[0]?.total || 0);
+  for (const customer of customers) {
+    const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+    const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+    
+    const openingBalance = customer.openingBalance ? parseFloat(customer.openingBalance.toString()) : 0;
+    const totalInvoices = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount.toString()), 0);
+    const totalReceiptsAmount = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount.toString()), 0);
+    const balance = openingBalance + totalInvoices - totalReceiptsAmount;
+    
+    // Only include customers with positive balance (matching Portal's logic)
+    if (balance > 0) {
+      totalOutstanding += balance;
+    }
+  }
   
-  return { balance: Math.max(0, totalOpeningBalance + totalInvoices - totalPayments) };
+  return { balance: totalOutstanding };
 }
 
 async function queryPaymentStats(tenantId: string): Promise<{
