@@ -58,79 +58,79 @@ const benefits = [
     icon: DollarSign,
     title: "Recovery From Defaulters",
     description: "Automated system to recover payments from customers with outstanding dues efficiently",
-    color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: UserPlus,
     title: "Auto-Connect Defaulters",
     description: "Automatically identify and connect with defaulters through multiple channels",
-    color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: FileText,
     title: "Online Click Payment Collection Reports",
     description: "Generate comprehensive payment collection reports with a single click",
-    color: "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: UserCheck,
     title: "One Click Client Cibil Check",
     description: "Instantly verify client credit scores and payment history",
-    color: "bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: Calculator,
     title: "Profit Per Invoice Calculator",
     description: "Calculate exact profit margins for each invoice automatically",
-    color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: Bot,
     title: "Smart AI Collection Follow Ups",
     description: "AI-powered intelligent follow-ups based on customer behavior patterns",
-    color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: Mic,
     title: "Recorded Collection Calls",
     description: "All collection calls are recorded and stored for quality and compliance",
-    color: "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: PhoneCall,
     title: "Strict AI Collection Calls",
     description: "Automated professional AI calls for strict payment recovery",
-    color: "bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: Target,
     title: "Recovery-X Collections",
     description: "Advanced recovery system designed for maximum collection efficiency",
-    color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: TrendingDown,
     title: "Bad Payers",
     description: "Identify and manage customers with poor payment track records",
-    color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: AlertTriangle,
     title: "Cheque Bounce Control",
     description: "Track and manage cheque bounce incidents with automated alerts",
-    color: "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: LineChart,
     title: "Cash Flow Forecaster",
     description: "Predict future cash flow based on payment patterns and trends",
-    color: "bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: Mic,
     title: "Use Your Own AI Voice For Collection",
     description: "Customize AI voice calls with your own voice for personalized collections",
-    color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   }
 ];
 
@@ -293,7 +293,7 @@ export default function Landing() {
           contact: paymentForm.mobile,
         },
         theme: {
-          color: "#22C55E", // Green color matching the brand
+          color: "#FF6D1F", // Orange color matching the brand
         },
         handler: async function (response: any) {
           // Verify payment on backend
@@ -353,7 +353,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
       {/* Price Increment Timer - Sticky Top Bar */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 px-4 pointer-events-none">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#FF6D1F] to-[#FF8C42] text-white py-3 px-4 pointer-events-none">
         <div className="container mx-auto flex items-center justify-between gap-3 md:gap-6 text-sm md:text-base flex-wrap">
           {/* Logo */}
           <div className="flex-shrink-0 pointer-events-auto">
@@ -389,7 +389,7 @@ export default function Landing() {
       </div>
 
       {/* Hero Section */}
-      <section className="pt-32 md:pt-40 pb-12 md:pb-20 px-4 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
+      <section className="pt-32 md:pt-40 pb-12 md:pb-20 px-4 bg-gradient-to-br from-orange-50 via-orange-100 to-orange-50 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -403,7 +403,7 @@ export default function Landing() {
             </Badge>
             
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 leading-tight px-2">
-              <span className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#FF6D1F] via-[#FF8C42] to-[#FF6D1F] bg-clip-text text-transparent">
                 GET YOUR PAYMENTS
               </span>
               <br />
@@ -436,7 +436,7 @@ export default function Landing() {
             <div className="flex flex-wrap gap-3 md:gap-4 justify-center mb-8 md:mb-12 px-2">
               <Button 
                 size="lg" 
-                className="bg-green-600 hover:bg-green-700 text-white text-base md:text-lg px-6 md:px-8 py-4 md:py-6 font-bold shadow-lg w-full sm:w-auto"
+                className="bg-[#FF6D1F] hover:bg-[#E65D1A] text-white text-base md:text-lg px-6 md:px-8 py-4 md:py-6 font-bold shadow-lg w-full sm:w-auto"
                 onClick={scrollToPricing}
                 data-testid="button-hero-cta"
               >
@@ -446,7 +446,7 @@ export default function Landing() {
 
             <div className="flex flex-wrap gap-4 md:gap-6 justify-center text-sm md:text-base text-gray-700 dark:text-gray-300">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                <CheckCircle2 className="h-5 w-5 text-[#FF6D1F]" />
                 <span className="font-medium">100% Automated</span>
               </div>
             </div>
@@ -455,7 +455,7 @@ export default function Landing() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-12 md:py-20 px-4 bg-gradient-to-br from-gray-50 to-green-50 dark:from-gray-900 dark:to-gray-950">
+      <section id="pricing" className="py-12 md:py-20 px-4 bg-gradient-to-br from-gray-50 to-orange-50 dark:from-gray-900 dark:to-gray-950">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -476,13 +476,13 @@ export default function Landing() {
               }}
               className="inline-block mb-4"
             >
-              <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 text-sm md:text-base px-4 py-2 shadow-lg">
+              <Badge className="bg-gradient-to-r from-[#FF6D1F] to-[#FF8C42] text-white hover:from-[#E65D1A] hover:to-[#FF7D32] text-sm md:text-base px-4 py-2 shadow-lg">
                 ✓ 7-Day Money-Back Guarantee
               </Badge>
             </motion.div>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold px-2">
               Choose Your{" "}
-              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#FF6D1F] to-[#FF8C42] bg-clip-text text-transparent">
                 Perfect Plan
               </span>
             </h2>
@@ -547,9 +547,9 @@ export default function Landing() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
               {subscriptionPlans.map((plan, index) => {
                 const planColors = [
-                  { gradient: 'from-green-500 to-green-600', border: 'border-green-300', bg: 'bg-green-50 dark:bg-green-950' },
-                  { gradient: 'from-emerald-500 to-emerald-600', border: 'border-emerald-300', bg: 'bg-emerald-50 dark:bg-emerald-950' },
-                  { gradient: 'from-teal-500 to-teal-600', border: 'border-teal-300', bg: 'bg-teal-50 dark:bg-teal-950' }
+                  { gradient: 'from-[#FF6D1F] to-[#E65D1A]', border: 'border-orange-300', bg: 'bg-orange-50 dark:bg-orange-950' },
+                  { gradient: 'from-[#FF8C42] to-[#FF6D1F]', border: 'border-orange-300', bg: 'bg-orange-50 dark:bg-orange-950' },
+                  { gradient: 'from-[#FFA55E] to-[#FF8C42]', border: 'border-orange-300', bg: 'bg-orange-50 dark:bg-orange-950' }
                 ];
                 const colors = planColors[index % 3];
                 const moduleCount = (plan.allowedModules ?? []).length;
@@ -712,14 +712,14 @@ export default function Landing() {
                         data-testid="input-payment-mobile"
                       />
                     </div>
-                    <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+                    <div className="bg-orange-50 dark:bg-orange-950 p-4 rounded-lg">
                       <div className="flex justify-between items-center mb-2">
                         <span className="font-semibold">Selected Plan:</span>
-                        <span className="text-green-600 dark:text-green-400 font-bold">{selectedPlan.name.toUpperCase()}</span>
+                        <span className="text-[#FF6D1F] dark:text-orange-400 font-bold">{selectedPlan.name.toUpperCase()}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="font-semibold">Amount:</span>
-                        <span className="text-2xl font-bold text-green-600 dark:text-green-400">₹{selectedPlan.price}/month</span>
+                        <span className="text-2xl font-bold text-[#FF6D1F] dark:text-orange-400">₹{selectedPlan.price}/month</span>
                       </div>
                     </div>
                     <Button 
@@ -752,7 +752,7 @@ export default function Landing() {
             className="text-center mb-12 md:mb-16"
           >
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 md:mb-6 px-2">
-              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#FF6D1F] to-[#FF8C42] bg-clip-text text-transparent">
                 WHY CHOOSE RECOV
               </span>
             </h2>
@@ -770,8 +770,8 @@ export default function Landing() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
-                <Card className="h-full hover:shadow-xl transition-all duration-300 border-2 hover:border-green-400" data-testid={`card-benefit-${index}`}>
-                  <CardHeader>
+                <Card className="h-full hover:shadow-xl transition-all duration-300 border-2 hover:border-[#FF6D1F]" data-testid={`card-benefit-${index}`}>
+                  <CardHeader className="text-center flex flex-col items-center">
                     <div className={`w-16 h-16 rounded-lg ${benefit.color} flex items-center justify-center mb-4`}>
                       <benefit.icon className="h-8 w-8" />
                     </div>
@@ -785,7 +785,7 @@ export default function Landing() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-12 md:py-20 px-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-gray-900 dark:to-gray-950">
+      <section id="testimonials" className="py-12 md:py-20 px-4 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-gray-900 dark:to-gray-950">
         <div className="container mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -794,12 +794,12 @@ export default function Landing() {
             transition={{ duration: 0.5 }}
             className="text-center mb-12 md:mb-16"
           >
-            <Badge className="mb-4 bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400">
+            <Badge className="mb-4 bg-orange-100 text-[#FF6D1F] hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400">
               Customer Success Stories
             </Badge>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 px-2">
               What Our{" "}
-              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[#FF6D1F] to-[#FF8C42] bg-clip-text text-transparent">
                 Clients Say
               </span>
             </h2>
@@ -837,7 +837,7 @@ export default function Landing() {
                       <div>
                         <div className="font-semibold">{testimonial.name}</div>
                         <div className="text-sm text-gray-600 dark:text-gray-400">{testimonial.role}</div>
-                        <div className="text-sm text-green-600 dark:text-green-400">{testimonial.company}</div>
+                        <div className="text-sm text-[#FF6D1F] dark:text-orange-400">{testimonial.company}</div>
                       </div>
                     </div>
                   </CardContent>
