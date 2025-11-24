@@ -2569,15 +2569,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Return safe config without decrypted key
-      const { encryptedApiKey, ...safeConfig } = result;
+      // Return safe config without encrypted key
+      const { apiKey: encryptedKey, ...safeConfig } = result;
       
       res.json({
         success: true,
         message: existingConfig ? "Configuration updated successfully" : "Configuration created successfully",
         config: {
           ...safeConfig,
-          hasApiKey: !!encryptedApiKey
+          hasApiKey: !!encryptedKey
         }
       });
     } catch (error: any) {
@@ -2589,17 +2589,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Platform Admin - Test OpenAI API Connection
   app.post("/api/whisper/test-api", adminOnlyMiddleware, async (req, res) => {
     try {
-      // Get the API key from environment variables
-      const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+      // Get the stored configuration with decrypted API key
+      const configData = await storage.getWhisperConfigSecure();
       
-      if (!apiKey) {
+      if (!configData) {
         return res.status(400).json({ 
           message: "OpenAI API key is not configured. Please set it in the Whisper settings." 
         });
       }
 
-      // Initialize OpenAI client
-      const openai = new OpenAI({ apiKey });
+      const { decryptedApiKey } = configData;
+
+      // Initialize OpenAI client with the decrypted API key
+      const openai = new OpenAI({ apiKey: decryptedApiKey });
 
       // Test the connection with a simple models list request
       // This is a lightweight API call that verifies authentication
