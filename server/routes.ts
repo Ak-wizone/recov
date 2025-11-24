@@ -3248,7 +3248,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Fetch tenant data with subscription plan (needed for sidebar filtering)
       let tenant = null;
       if (user.tenantId) {
-        tenant = await storage.getTenant(user.tenantId);
+        const [fetchedTenant] = await db
+          .select()
+          .from(tenants)
+          .where(eq(tenants.id, user.tenantId))
+          .limit(1);
+        tenant = fetchedTenant || null;
       }
 
       // Initialize permissions
