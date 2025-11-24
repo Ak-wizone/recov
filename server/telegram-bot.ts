@@ -272,24 +272,148 @@ async function queryPaymentStats(tenantId: string): Promise<{
   };
 }
 
-// Format response in Hindi
+// Hindi number to words converter for Indian numbering system (lakh/crore)
+function numberToHindiWords(num: number): { devanagari: string; phonetic: string } {
+  if (num === 0) {
+    return { devanagari: 'शून्य', phonetic: 'shunya' };
+  }
+
+  const ones = [
+    '', 'एक', 'दो', 'तीन', 'चार', 'पांच', 'छह', 'सात', 'आठ', 'नौ'
+  ];
+  const onesPhonetic = [
+    '', 'ek', 'do', 'teen', 'char', 'paanch', 'chhah', 'saat', 'aath', 'no'
+  ];
+
+  const teens = [
+    'दस', 'ग्यारह', 'बारह', 'तेरह', 'चौदह', 'पंद्रह', 'सोलह', 'सत्रह', 'अठारह', 'उन्नीस'
+  ];
+  const teensPhonetic = [
+    'das', 'gyarah', 'barah', 'terah', 'chaudah', 'pandrah', 'solah', 'satrah', 'atharah', 'unnis'
+  ];
+
+  const tens = [
+    '', '', 'बीस', 'तीस', 'चालीस', 'पचास', 'साठ', 'सत्तर', 'अस्सी', 'नब्बे'
+  ];
+  const tensPhonetic = [
+    '', '', 'bees', 'tees', 'chalis', 'pachas', 'saath', 'sattar', 'assi', 'nabbe'
+  ];
+
+  const compound = [
+    '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '',
+    'बीस', 'इक्कीस', 'बाईस', 'तेईस', 'चौबीस', 'पच्चीस', 'छब्बीस', 'सत्ताईस', 'अट्ठाईस', 'उनतीस',
+    'तीस', 'इकतीस', 'बत्तीस', 'तैंतीस', 'चौंतीस', 'पैंतीस', 'छत्तीस', 'सैंतीस', 'अड़तीस', 'उनतालीस',
+    'चालीस', 'इकतालीस', 'बयालीस', 'तैंतालीस', 'चवालीस', 'पैंतालीस', 'छियालीस', 'सैंतालीस', 'अड़तालीस', 'उनचास',
+    'पचास', 'इक्यावन', 'बावन', 'तिरपन', 'चौवन', 'पचपन', 'छप्पन', 'सत्तावन', 'अट्ठावन', 'उनसठ',
+    'साठ', 'इकसठ', 'बासठ', 'तिरसठ', 'चौंसठ', 'पैंसठ', 'छियासठ', 'सड़सठ', 'अड़सठ', 'उनहत्तर',
+    'सत्तर', 'इकहत्तर', 'बहत्तर', 'तिहत्तर', 'चौहत्तर', 'पचहत्तर', 'छिहत्तर', 'सतहत्तर', 'अठहत्तर', 'उन्यासी',
+    'अस्सी', 'इक्यासी', 'बयासी', 'तिरासी', 'चौरासी', 'पचासी', 'छियासी', 'सत्तासी', 'अट्ठासी', 'नवासी',
+    'नब्बे', 'इक्यानबे', 'बानवे', 'तिरानवे', 'चौरानवे', 'पचानवे', 'छियानवे', 'सत्तानवे', 'अट्ठानवे', 'निन्यानवे'
+  ];
+
+  const compoundPhonetic = [
+    '', '', '', '', '', '', '', '', '', '',
+    '', '', '', '', '', '', '', '', '', '',
+    'bees', 'ikkis', 'bais', 'teis', 'chaubis', 'pachchis', 'chhabbis', 'sattais', 'aththais', 'untis',
+    'tees', 'iktis', 'battis', 'taintis', 'chauntis', 'paintis', 'chhattis', 'saintis', 'adtis', 'untaliss',
+    'chalis', 'iktaliss', 'bayaliss', 'taintaliss', 'chavaliss', 'paintaliss', 'chhiyaliss', 'saintaliss', 'adtaliss', 'unchas',
+    'pachas', 'ikyavan', 'bavan', 'tirpan', 'chauvan', 'pachpan', 'chhappan', 'sattavan', 'aththavan', 'unsath',
+    'saath', 'iksath', 'basath', 'tirsath', 'chaunsath', 'painsath', 'chhiyasath', 'sadsath', 'adsath', 'unhatter',
+    'sattar', 'ikhatter', 'bahatter', 'tihatter', 'chauhatter', 'pachhatter', 'chhihatter', 'satahatter', 'athhatter', 'unyassi',
+    'assi', 'ikyassi', 'bayassi', 'tirassi', 'chaurassi', 'pachassi', 'chhiyassi', 'sattassi', 'aththassi', 'navassi',
+    'nabbe', 'ikyanabe', 'banabe', 'tiranabe', 'chauranabe', 'pachanabe', 'chhiyanabe', 'sattanabe', 'aththanabe', 'ninyanabe'
+  ];
+
+  function convertTwoDigit(n: number): { devanagari: string; phonetic: string } {
+    if (n < 10) {
+      return { devanagari: ones[n], phonetic: onesPhonetic[n] };
+    } else if (n < 20) {
+      return { devanagari: teens[n - 10], phonetic: teensPhonetic[n - 10] };
+    } else if (n < 100) {
+      return { devanagari: compound[n], phonetic: compoundPhonetic[n] };
+    }
+    return { devanagari: '', phonetic: '' };
+  }
+
+  let devanagari = '';
+  let phonetic = '';
+  let remaining = Math.floor(num);
+
+  // Crores (10,000,000)
+  if (remaining >= 10000000) {
+    const crores = Math.floor(remaining / 10000000);
+    const croreWords = convertTwoDigit(crores);
+    devanagari += croreWords.devanagari + ' करोड़ ';
+    phonetic += croreWords.phonetic + ' crore ';
+    remaining = remaining % 10000000;
+  }
+
+  // Lakhs (100,000)
+  if (remaining >= 100000) {
+    const lakhs = Math.floor(remaining / 100000);
+    const lakhWords = convertTwoDigit(lakhs);
+    devanagari += lakhWords.devanagari + ' लाख ';
+    phonetic += lakhWords.phonetic + ' lakh ';
+    remaining = remaining % 100000;
+  }
+
+  // Thousands (1,000)
+  if (remaining >= 1000) {
+    const thousands = Math.floor(remaining / 1000);
+    const thousandWords = convertTwoDigit(thousands);
+    devanagari += thousandWords.devanagari + ' हजार ';
+    phonetic += thousandWords.phonetic + ' hazaar ';
+    remaining = remaining % 1000;
+  }
+
+  // Hundreds (100)
+  if (remaining >= 100) {
+    const hundreds = Math.floor(remaining / 100);
+    devanagari += ones[hundreds] + ' सौ ';
+    phonetic += onesPhonetic[hundreds] + ' sau ';
+    remaining = remaining % 100;
+  }
+
+  // Remaining two digits
+  if (remaining > 0) {
+    const lastTwo = convertTwoDigit(remaining);
+    devanagari += lastTwo.devanagari;
+    phonetic += lastTwo.phonetic;
+  }
+
+  return {
+    devanagari: devanagari.trim(),
+    phonetic: phonetic.trim()
+  };
+}
+
+// Format response in Hindi with number words
 function formatHindiResponse(intent: QueryIntent, data: any): string {
   switch (intent) {
     case 'invoice_count':
-      return `📊 **इनवॉइस की संख्या**\n\nकुल इनवॉइस: **${data.count}**`;
+      const countWords = numberToHindiWords(data.count);
+      return `📊 **इनवॉइस की संख्या**\n\nकुल इनवॉइस: **${data.count}** (${countWords.devanagari})`;
     
     case 'invoice_stats':
+      const totalAmountWords = numberToHindiWords(data.totalAmount);
+      const paidAmountWords = numberToHindiWords(data.paidAmount);
+      const pendingAmountWords = numberToHindiWords(data.pendingAmount);
+      const statsCountWords = numberToHindiWords(data.count);
+      
       return `📊 **इनवॉइस आंकड़े**\n\n` +
-        `कुल इनवॉइस: ${data.count}\n` +
-        `कुल राशि: ₹${data.totalAmount.toLocaleString('en-IN')}\n` +
-        `भुगतान: ₹${data.paidAmount.toLocaleString('en-IN')}\n` +
-        `बकाया: ₹${data.pendingAmount.toLocaleString('en-IN')}`;
+        `कुल इनवॉइस: ${data.count} (${statsCountWords.devanagari})\n` +
+        `कुल राशि: ₹${data.totalAmount.toLocaleString('en-IN')} (${totalAmountWords.devanagari} रुपये)\n` +
+        `भुगतान: ₹${data.paidAmount.toLocaleString('en-IN')} (${paidAmountWords.devanagari} रुपये)\n` +
+        `बकाया: ₹${data.pendingAmount.toLocaleString('en-IN')} (${pendingAmountWords.devanagari} रुपये)`;
     
     case 'revenue_total':
-      return `💰 **कुल राजस्व**\n\n₹${data.revenue.toLocaleString('en-IN')}`;
+      const revenueWords = numberToHindiWords(data.revenue);
+      return `💰 **कुल राजस्व**\n\n₹${data.revenue.toLocaleString('en-IN')}\n(${revenueWords.devanagari} रुपये)`;
     
     case 'customer_count':
-      return `👥 **ग्राहक संख्या**\n\nकुल ग्राहक: **${data.count}**`;
+      const customerWords = numberToHindiWords(data.count);
+      return `👥 **ग्राहक संख्या**\n\nकुल ग्राहक: **${data.count}** (${customerWords.devanagari})`;
     
     case 'debtor_list':
       if (data.length === 0) {
@@ -298,21 +422,27 @@ function formatHindiResponse(intent: QueryIntent, data: any): string {
       
       let response = `💸 **बड़े देनदार**\n\n`;
       data.forEach((debtor: any, index: number) => {
+        const debtorWords = numberToHindiWords(debtor.outstanding);
         response += `${index + 1}. ${debtor.customerName}\n`;
-        response += `   बकाया: ₹${debtor.outstanding.toLocaleString('en-IN')}\n\n`;
+        response += `   बकाया: ₹${debtor.outstanding.toLocaleString('en-IN')} (${debtorWords.devanagari} रुपये)\n\n`;
       });
       return response;
     
     case 'debtor_count':
-      return `📊 **देनदार संख्या**\n\nकुल देनदार: **${data.count}**`;
+      const debtorCountWords = numberToHindiWords(data.count);
+      return `📊 **देनदार संख्या**\n\nकुल देनदार: **${data.count}** (${debtorCountWords.devanagari})`;
     
     case 'outstanding_balance':
-      return `💸 **कुल बकाया राशि**\n\n₹${data.balance.toLocaleString('en-IN')}`;
+      const balanceWords = numberToHindiWords(data.balance);
+      return `💸 **कुल बकाया राशि**\n\n₹${data.balance.toLocaleString('en-IN')}\n(${balanceWords.devanagari} रुपये)`;
     
     case 'payment_stats':
+      const paymentCountWords = numberToHindiWords(data.count);
+      const receivedWords = numberToHindiWords(data.totalReceived);
+      
       return `💳 **भुगतान आंकड़े**\n\n` +
-        `कुल भुगतान: ${data.count}\n` +
-        `कुल राशि प्राप्त: ₹${data.totalReceived.toLocaleString('en-IN')}`;
+        `कुल भुगतान: ${data.count} (${paymentCountWords.devanagari})\n` +
+        `कुल राशि प्राप्त: ₹${data.totalReceived.toLocaleString('en-IN')} (${receivedWords.devanagari} रुपये)`;
     
     default:
       return `❓ मैं आपका सवाल समझ नहीं पाया।\n\n` +
@@ -387,7 +517,7 @@ function formatResponse(intent: QueryIntent, data: any, language: 'hindi' | 'eng
 }
 
 // Generate voice audio from text using OpenAI TTS
-async function generateVoiceFromText(text: string, voiceType: string = 'alloy'): Promise<Buffer | null> {
+async function generateVoiceFromText(text: string, voiceType: string = 'alloy', language: 'hindi' | 'english' = 'english'): Promise<Buffer | null> {
   if (!openai) {
     console.error('[Telegram Bot] OpenAI client not initialized');
     return null;
@@ -395,11 +525,51 @@ async function generateVoiceFromText(text: string, voiceType: string = 'alloy'):
   
   try {
     // Remove markdown formatting for better TTS
-    const cleanText = text
+    let cleanText = text
       .replace(/\*\*/g, '') // Remove bold markers
       .replace(/\*/g, '') // Remove italic markers
       .replace(/───────────────/g, '') // Remove separators
       .replace(/📊|💰|👥|💸|💳|✅|❓/g, ''); // Remove emojis for cleaner audio
+    
+    // For Hindi responses, replace number patterns with phonetic words
+    if (language === 'hindi') {
+      // Replace patterns like "₹9,77,764 (नौ लाख सत्तर हजार सात सौ चौंसठ रुपये)"
+      // Extract the Devanagari words and replace the entire pattern
+      cleanText = cleanText.replace(/₹[\d,]+\s*\(([^)]+)\)/g, (match, devanagariWords) => {
+        // Convert Devanagari to phonetic for TTS
+        const words = devanagariWords.trim();
+        // Extract just the number words, removing "रुपये" for processing
+        const numberPart = words.replace(/\s*रुपये\s*$/, '');
+        
+        // Convert Devanagari number words to phonetic
+        // This is a simple mapping - expand as needed
+        const phoneticMapping: Record<string, string> = {
+          'शून्य': 'shunya',
+          'एक': 'ek', 'दो': 'do', 'तीन': 'teen', 'चार': 'char', 'पांच': 'paanch',
+          'छह': 'chhah', 'सात': 'saat', 'आठ': 'aath', 'नौ': 'no',
+          'दस': 'das', 'ग्यारह': 'gyarah', 'बारह': 'barah', 'तेरह': 'terah',
+          'चौदह': 'chaudah', 'पंद्रह': 'pandrah', 'सोलह': 'solah', 'सत्रह': 'satrah',
+          'अठारह': 'atharah', 'उन्नीस': 'unnis', 'बीस': 'bees',
+          'सौ': 'sau', 'हजार': 'hazaar', 'लाख': 'lakh', 'करोड़': 'crore',
+          'रुपये': 'rupaye'
+        };
+        
+        // For now, parse the number from the digit pattern and convert
+        const digitMatch = match.match(/₹([\d,]+)/);
+        if (digitMatch) {
+          const numericValue = parseInt(digitMatch[1].replace(/,/g, ''));
+          const phoneticWords = numberToHindiWords(numericValue).phonetic;
+          return phoneticWords + ' rupaye';
+        }
+        return match;
+      });
+      
+      // Also replace standalone number patterns like "42 (बयालीस)"
+      cleanText = cleanText.replace(/(\d+)\s*\(([^)]+)\)/g, (match, digits, devanagariWords) => {
+        const numericValue = parseInt(digits);
+        return numberToHindiWords(numericValue).phonetic;
+      });
+    }
     
     const response = await openai.audio.speech.create({
       model: 'tts-1',
@@ -766,8 +936,8 @@ function setupMessageHandlers(bot: Telegraf) {
         
         // Send voice or text response based on configuration
         if (botConfig?.enableVoiceResponse && openai) {
-          // Generate voice from text
-          const voiceBuffer = await generateVoiceFromText(responseText, botConfig.voiceType);
+          // Generate voice from text with detected language for proper pronunciation
+          const voiceBuffer = await generateVoiceFromText(responseText, botConfig.voiceType, detectedLanguage);
           
           if (voiceBuffer) {
             // Send as voice message
