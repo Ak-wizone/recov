@@ -174,16 +174,16 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Telegram Bot": "Telegram Bot",
   
   // Communication Integrations
-  "Communication Integrations": "Credit Control",
-  "Email Configuration": "Credit Control",
-  "Email Templates": "Credit Control",
-  "WhatsApp Configuration": "Credit Control",
-  "WhatsApp Templates": "Credit Control",
-  "Ring.ai Configuration": "Credit Control",
-  "Ring.ai Script Mappings": "Credit Control",
-  "Ring.ai Call History": "Credit Control",
-  "Telecmi Configuration": "Credit Control",
-  "Call Templates": "Credit Control",
+  "Email/WhatsApp/Call Integrations": "Email/WhatsApp/Call Integrations",
+  "Email Configuration": "Email/WhatsApp/Call Integrations",
+  "Email Templates": "Email/WhatsApp/Call Integrations",
+  "WhatsApp Configuration": "Email/WhatsApp/Call Integrations",
+  "WhatsApp Templates": "Email/WhatsApp/Call Integrations",
+  "Ring.ai Configuration": "Email/WhatsApp/Call Integrations",
+  "Ring.ai Script Mappings": "Email/WhatsApp/Call Integrations",
+  "Ring.ai Call History": "Email/WhatsApp/Call Integrations",
+  "Telecmi Configuration": "Email/WhatsApp/Call Integrations",
+  "Call Templates": "Email/WhatsApp/Call Integrations",
 };
 
 // Platform Admin navigation items
@@ -403,10 +403,10 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    name: "Communication Integrations",
+    name: "Email/WhatsApp/Call Integrations",
     path: "#",
     icon: <MessageSquare className="h-5 w-5" />,
-    module: "Communication Integrations",
+    module: "Email/WhatsApp/Call Integrations",
     subItems: [
       {
         name: "Email Configuration",
