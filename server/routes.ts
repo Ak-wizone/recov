@@ -3245,6 +3245,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Account is inactive" });
       }
 
+      // Fetch tenant data with subscription plan (needed for sidebar filtering)
+      let tenant = null;
+      if (user.tenantId) {
+        tenant = await storage.getTenant(user.tenantId);
+      }
+
       // Initialize permissions
       let permissions: string[] = [];
       let canViewGP = true;
@@ -3290,10 +3296,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Return user without password, including all role data
+      // Return user without password, including all role data and tenant info
       const { password: _, ...userWithoutPassword } = user;
       res.json({
         ...userWithoutPassword,
+        tenant, // Include tenant data with allowedModules for sidebar filtering
         permissions,
         canViewGP,
         allowedDashboardCards,
