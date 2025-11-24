@@ -32,6 +32,18 @@ import {
   ChevronDown,
   AlertCircle,
   RefreshCw,
+  DollarSign,
+  UserPlus,
+  FileText,
+  UserCheck,
+  Calculator,
+  Bot,
+  Mic,
+  PhoneCall,
+  TrendingDown,
+  Users2,
+  AlertTriangle,
+  LineChart,
 } from "lucide-react";
 import recovLogo from "@assets/image_1763577879371.png";
 
@@ -43,33 +55,81 @@ const fadeIn = {
 
 const benefits = [
   {
-    icon: Zap,
-    title: "Automated Payment Recovery",
-    description: "India's first fully automated system that follows up with customers via Email, WhatsApp, and AI calls",
+    icon: DollarSign,
+    title: "Recovery From Defaulters",
+    description: "Automated system to recover payments from customers with outstanding dues efficiently",
     color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
   },
   {
-    icon: Shield,
-    title: "Credit Risk Management",
-    description: "Advanced AI algorithms predict payment delays and categorize customers automatically",
+    icon: UserPlus,
+    title: "Auto-Connect Defaulters",
+    description: "Automatically identify and connect with defaulters through multiple channels",
     color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
   },
   {
-    icon: Users,
-    title: "Multi-Channel Communication",
-    description: "Reach customers on their preferred channel - Email, WhatsApp, SMS, or Voice calls",
+    icon: FileText,
+    title: "Online Click Payment Collection Reports",
+    description: "Generate comprehensive payment collection reports with a single click",
     color: "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
   },
   {
-    icon: BarChart3,
-    title: "Real-Time Analytics",
-    description: "Live dashboards showing payment trends, debtor analysis, and recovery performance",
+    icon: UserCheck,
+    title: "One Click Client Cibil Check",
+    description: "Instantly verify client credit scores and payment history",
     color: "bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400"
   },
   {
-    icon: Bell,
-    title: "Smart Reminders",
-    description: "Intelligent reminder system that adapts based on customer behavior and payment history",
+    icon: Calculator,
+    title: "Profit Per Invoice Calculator",
+    description: "Calculate exact profit margins for each invoice automatically",
+    color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+  },
+  {
+    icon: Bot,
+    title: "Smart AI Collection Follow Ups",
+    description: "AI-powered intelligent follow-ups based on customer behavior patterns",
+    color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+  },
+  {
+    icon: Mic,
+    title: "Recorded Collection Calls",
+    description: "All collection calls are recorded and stored for quality and compliance",
+    color: "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
+  },
+  {
+    icon: PhoneCall,
+    title: "Strict AI Collection Calls",
+    description: "Automated professional AI calls for strict payment recovery",
+    color: "bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400"
+  },
+  {
+    icon: Target,
+    title: "Recovery-X Collections",
+    description: "Advanced recovery system designed for maximum collection efficiency",
+    color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+  },
+  {
+    icon: TrendingDown,
+    title: "Bad Payers",
+    description: "Identify and manage customers with poor payment track records",
+    color: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+  },
+  {
+    icon: AlertTriangle,
+    title: "Cheque Bounce Control",
+    description: "Track and manage cheque bounce incidents with automated alerts",
+    color: "bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400"
+  },
+  {
+    icon: LineChart,
+    title: "Cash Flow Forecaster",
+    description: "Predict future cash flow based on payment patterns and trends",
+    color: "bg-lime-100 text-lime-600 dark:bg-lime-900/30 dark:text-lime-400"
+  },
+  {
+    icon: Mic,
+    title: "Use Your Own AI Voice For Collection",
+    description: "Customize AI voice calls with your own voice for personalized collections",
     color: "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
   }
 ];
