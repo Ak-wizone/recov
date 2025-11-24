@@ -340,10 +340,19 @@ export async function getTelegramBot(): Promise<Telegraf | null> {
       bot = new Telegraf(config.botToken);
       currentBotToken = config.botToken;
       
-      // Initialize OpenAI with API key from environment
-      const openaiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-      if (openaiKey) {
-        initializeOpenAI(openaiKey);
+      // Initialize OpenAI with API key from database (Whisper settings)
+      try {
+        const { storage } = await import('./storage');
+        const whisperConfig = await storage.getWhisperConfigSecure();
+        
+        if (whisperConfig && whisperConfig.decryptedApiKey) {
+          console.log('[Telegram Bot] OpenAI API key loaded from database');
+          initializeOpenAI(whisperConfig.decryptedApiKey);
+        } else {
+          console.log('[Telegram Bot] No OpenAI API key configured in Whisper settings');
+        }
+      } catch (error) {
+        console.error('[Telegram Bot] Failed to load OpenAI API key from database:', error);
       }
 
       // Register command handlers
