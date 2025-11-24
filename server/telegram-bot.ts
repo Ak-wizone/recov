@@ -2,7 +2,7 @@ import { Telegraf, Context } from 'telegraf';
 import { message } from 'telegraf/filters';
 import type { Update } from 'telegraf/types';
 import { db } from './db';
-import { telegramBotConfig, telegramUserMappings, telegramLinkingCodes, telegramQueryLogs, invoices, customers, receipts } from '@shared/schema';
+import { telegramBotConfig, telegramUserMappings, telegramLinkingCodes, telegramQueryLogs, invoices, customers, receipts, masterCustomers } from '@shared/schema';
 import { eq, and, gte, sql, sum, count } from 'drizzle-orm';
 import fetch from 'node-fetch';
 import OpenAI from 'openai';
@@ -216,6 +216,12 @@ async function queryDebtorCount(tenantId: string): Promise<{ count: number }> {
 }
 
 async function queryOutstandingBalance(tenantId: string): Promise<{ balance: number }> {
+  // Fetch total opening balances from master customers
+  const openingBalanceResult = await db
+    .select({ total: sum(masterCustomers.openingBalance) })
+    .from(masterCustomers)
+    .where(eq(masterCustomers.tenantId, tenantId));
+  
   // Fetch total invoices
   const invoiceResult = await db
     .select({ total: sum(invoices.invoiceAmount) })
@@ -228,10 +234,11 @@ async function queryOutstandingBalance(tenantId: string): Promise<{ balance: num
     .from(receipts)
     .where(eq(receipts.tenantId, tenantId));
   
+  const totalOpeningBalance = Number(openingBalanceResult[0]?.total || 0);
   const totalInvoices = Number(invoiceResult[0]?.total || 0);
   const totalPayments = Number(paymentResult[0]?.total || 0);
   
-  return { balance: Math.max(0, totalInvoices - totalPayments) };
+  return { balance: Math.max(0, totalOpeningBalance + totalInvoices - totalPayments) };
 }
 
 async function queryPaymentStats(tenantId: string): Promise<{
