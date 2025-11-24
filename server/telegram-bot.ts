@@ -580,10 +580,23 @@ function setupMessageHandlers(bot: Telegraf) {
       const { toFile } = await import('openai/uploads');
       const audioFile = await toFile(buffer, 'voice.oga', { type: 'audio/ogg' });
       
+      // Rich business context prompt for better Hindi/Hinglish/English recognition
+      // Whisper uses prompts as textual biasing - provide natural sentences with domain vocabulary
+      const businessPrompt = `You are transcribing Indian business finance conversations in Hindi, English, or Hinglish. ` +
+        `Common terms include: invoice (इनवॉइस, इन्वॉइस), revenue (रेवेन्यू), customer (ग्राहक, कस्टमर), ` +
+        `debtor (देनदार, डेबटर), outstanding (आउटस्टैंडिंग, बकाया), payment (पेमेंट, भुगतान), ` +
+        `total (टोटल, कुल), collection (कलेक्शन, वसूली), dues (देय, ड्यूज), ` +
+        `follow-up (फॉलो-अप), sales (सेल्स, बिक्री), ledger (लेजर, खाता), ` +
+        `recovery (रिकवरी, वसूली), reminder (रिमाइंडर, अनुस्मारक), receipt (रसीद), ` +
+        `balance (बैलेंस, शेष), amount (अमाउंट, राशि), date (डेट, तारीख), ` +
+        `kitne (कितने), kitna (कितना), how many, how much, list (लिस्ट, सूची).`;
+      
       const transcription = await openai.audio.transcriptions.create({
         file: audioFile,
         model: 'whisper-1',
-        language: 'hi', // Hindi/English/Hinglish detection
+        prompt: businessPrompt, // Rich business context for better accuracy
+        temperature: 0, // Reduce hallucinations, more deterministic output
+        // Auto-detect language instead of forcing Hindi - better for Hinglish
       });
 
       const transcribedText = transcription.text;
