@@ -1020,12 +1020,116 @@ function setupMessageHandlers(bot: Telegraf) {
         .set({ lastActivityAt: new Date() })
         .where(eq(telegramUserMappings.id, userMapping.id));
 
-      // For now, just acknowledge text messages
-      await ctx.reply(
-        `📝 Text query received: "${text}"\n\n` +
-        `🎤 For better results, please send a voice message with your query.\n\n` +
-        `Text-based query processing will be available in a future update.`
-      );
+      // Notify user that we're processing
+      await ctx.reply('⏳ Processing your query...');
+
+      // Detect language from text
+      const detectedLanguage = detectLanguage(text);
+
+      // Parse query to detect intent
+      const parsedQuery = parseQuery(text);
+      const { intent } = parsedQuery;
+
+      let responseText = '';
+      let queryData: any = null;
+
+      try {
+        // Execute query based on intent
+        switch (intent) {
+          case 'invoice_count':
+            queryData = await queryInvoiceCount(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
+            break;
+
+          case 'invoice_stats':
+            queryData = await queryInvoiceStats(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
+            break;
+
+          case 'revenue_total':
+            queryData = await queryRevenue(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
+            break;
+
+          case 'customer_count':
+            queryData = await queryCustomerCount(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
+            break;
+
+          case 'debtor_list':
+            queryData = await queryDebtorList(userMapping.tenantId, 5);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
+            break;
+
+          case 'debtor_count':
+            queryData = await queryDebtorCount(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
+            break;
+
+          case 'outstanding_balance':
+            queryData = await queryOutstandingBalance(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
+            break;
+
+          case 'payment_stats':
+            queryData = await queryPaymentStats(userMapping.tenantId);
+            responseText = formatResponse(intent, queryData, detectedLanguage);
+            break;
+
+          default:
+            responseText = formatResponse('unknown', null, detectedLanguage);
+            break;
+        }
+
+        // Get bot configuration to check if voice responses are enabled
+        const botConfig = await db.query.telegramBotConfig.findFirst({
+          where: eq(telegramBotConfig.isActive, true),
+        });
+        
+        // Send voice or text response based on configuration
+        if (botConfig?.enableVoiceResponse && openai) {
+          // Generate voice from text with detected language for proper pronunciation
+          const voiceBuffer = await generateVoiceFromText(responseText, botConfig.voiceType, detectedLanguage);
+          
+          if (voiceBuffer) {
+            // Send as voice message
+            await ctx.replyWithVoice({ source: voiceBuffer });
+          } else {
+            // Fallback to text if voice generation fails
+            await ctx.reply(responseText);
+          }
+        } else {
+          // Send text response (default behavior)
+          await ctx.reply(responseText);
+        }
+
+        // Log the query with intent and response
+        await db.insert(telegramQueryLogs).values({
+          telegramUserId: userId!,
+          tenantId: userMapping.tenantId,
+          queryText: text,
+          queryType: intent,
+          responseText: responseText.substring(0, 500), // Truncate if too long
+          voiceFileId: null, // No voice file for text queries
+        });
+
+      } catch (queryError) {
+        console.error('[Telegram Bot] Error executing text query:', queryError);
+        await ctx.reply(
+          `❌ Sorry, I encountered an error while processing your query.\n\n` +
+          `Please try again or contact your administrator.`
+        );
+
+        // Log error
+        await db.insert(telegramQueryLogs).values({
+          telegramUserId: userId!,
+          tenantId: userMapping.tenantId,
+          queryText: text,
+          queryType: intent,
+          responseText: `Error: ${(queryError as Error).message}`,
+          voiceFileId: null,
+        });
+      }
 
     } catch (error) {
       console.error('[Telegram Bot] Error processing text message:', error);
