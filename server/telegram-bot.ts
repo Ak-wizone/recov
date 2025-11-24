@@ -37,65 +37,68 @@ interface ParsedQuery {
 function parseQuery(text: string): ParsedQuery {
   const lowerText = text.toLowerCase();
   
-  // Invoice count patterns
+  // Invoice count patterns - supports singular/plural
   if (
-    /\b(kitne|kitna|how many|total|count)\b.*\b(invoice|bill|challan)\b/i.test(lowerText) ||
-    /\b(invoice|bill)\b.*\b(kitne|kitna|how many|count)\b/i.test(lowerText)
+    /\b(kitne|kitna|how many|total|count)\b.*\b(invoices?|bills?|challans?)\b/i.test(lowerText) ||
+    /\b(invoices?|bills?)\b.*\b(kitne|kitna|how many|count)\b/i.test(lowerText)
   ) {
     return { intent: 'invoice_count', confidence: 'high' };
   }
   
   // Invoice stats patterns
   if (
-    /\b(invoice|bill)\b.*\b(stats|statistics|details|data)\b/i.test(lowerText) ||
-    /\b(show|dikhao|batao)\b.*\b(invoice|bill)\b/i.test(lowerText)
+    /\b(invoices?|bills?)\b.*\b(stats|statistics|details|data)\b/i.test(lowerText) ||
+    /\b(show|dikhao|batao)\b.*\b(invoices?|bills?)\b/i.test(lowerText)
   ) {
     return { intent: 'invoice_stats', confidence: 'high' };
   }
   
-  // Revenue patterns
+  // Revenue patterns - flexible word order
   if (
-    /\b(total|kitna|kya hai)\b.*\b(revenue|earning|kamai|income)\b/i.test(lowerText) ||
-    /\b(revenue|earning|kamai)\b.*\b(total|kitna|kya)\b/i.test(lowerText)
+    /\b(total|kitna|kya hai|show)\b.*\b(revenue|earning|kamai|income)\b/i.test(lowerText) ||
+    /\b(revenue|earning|kamai)\b.*\b(total|kitna|kya)\b/i.test(lowerText) ||
+    /\b(revenue|earning|kamai)\b/i.test(lowerText)
   ) {
     return { intent: 'revenue_total', confidence: 'high' };
   }
   
-  // Customer count patterns
+  // Customer count patterns - supports singular/plural
   if (
-    /\b(kitne|kitna|how many|total)\b.*\b(customer|client|party|parties)\b/i.test(lowerText) ||
-    /\b(customer|client|party)\b.*\b(kitne|kitna|how many|count)\b/i.test(lowerText)
+    /\b(kitne|kitna|how many|total)\b.*\b(customers?|clients?|party|parties)\b/i.test(lowerText) ||
+    /\b(customers?|clients?|party)\b.*\b(kitne|kitna|how many|count)\b/i.test(lowerText)
   ) {
     return { intent: 'customer_count', confidence: 'high' };
   }
   
-  // Debtor list patterns
+  // Debtor list patterns - supports singular/plural
   if (
-    /\b(debtor|debtors|baaki|bakaya|outstanding)\b.*\b(list|dikhao|show)\b/i.test(lowerText) ||
-    /\b(list|dikhao|show)\b.*\b(debtor|debtors|baaki|bakaya)\b/i.test(lowerText) ||
-    /\b(top|bade|biggest)\b.*\b(debtor|debtors|baaki)\b/i.test(lowerText)
+    /\b(debtors?|baaki|bakaya|outstanding)\b.*\b(list|dikhao|show)\b/i.test(lowerText) ||
+    /\b(list|dikhao|show)\b.*\b(debtors?|baaki|bakaya)\b/i.test(lowerText) ||
+    /\b(top|bade|biggest)\b.*\b(debtors?|baaki)\b/i.test(lowerText)
   ) {
     return { intent: 'debtor_list', confidence: 'high' };
   }
   
   // Debtor count patterns
   if (
-    /\b(kitne|how many)\b.*\b(debtor|debtors|outstanding|baaki)\b/i.test(lowerText)
+    /\b(kitne|how many)\b.*\b(debtors?|outstanding|baaki)\b/i.test(lowerText)
   ) {
     return { intent: 'debtor_count', confidence: 'high' };
   }
   
-  // Outstanding balance patterns
+  // Outstanding balance patterns - added 'balance' keyword and more flexible matching
   if (
-    /\b(total|kitna)\b.*\b(outstanding|baaki|bakaya|pending)\b/i.test(lowerText) ||
-    /\b(outstanding|baaki|bakaya)\b.*\b(amount|paisa|kitna)\b/i.test(lowerText)
+    /\b(outstanding|baaki|bakaya)\b.*\b(balance|amount|paisa|kitna)\b/i.test(lowerText) ||
+    /\b(total|show)\b.*\b(outstanding|baaki|bakaya)\b/i.test(lowerText) ||
+    /\b(balance)\b.*\b(outstanding|pending|baaki)\b/i.test(lowerText) ||
+    (/\b(outstanding|bakaya|baaki)\b/i.test(lowerText) && /\b(balance)\b/i.test(lowerText))
   ) {
     return { intent: 'outstanding_balance', confidence: 'high' };
   }
   
   // Payment stats patterns
   if (
-    /\b(payment|payments|receipt|receipts)\b.*\b(stats|data|kitna)\b/i.test(lowerText)
+    /\b(payments?|receipts?)\b.*\b(stats|data|kitna)\b/i.test(lowerText)
   ) {
     return { intent: 'payment_stats', confidence: 'high' };
   }
