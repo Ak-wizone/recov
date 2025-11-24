@@ -5,7 +5,6 @@ import { db } from './db';
 import { telegramBotConfig, telegramUserMappings, telegramLinkingCodes, telegramQueryLogs, invoices, customers, receipts } from '@shared/schema';
 import { eq, and, gte, sql, sum, count } from 'drizzle-orm';
 import fetch from 'node-fetch';
-import FormData from 'form-data';
 import OpenAI from 'openai';
 
 let bot: Telegraf | null = null;
@@ -576,23 +575,13 @@ function setupMessageHandlers(bot: Telegraf) {
         return;
       }
 
-      // Create a temporary file-like object for OpenAI
-      const formData = new FormData();
-      formData.append('file', buffer, {
-        filename: 'voice.ogg',
-        contentType: 'audio/ogg',
-      });
-
       // Transcribe using OpenAI Whisper
+      // Use OpenAI's toFile helper to create a proper file object from buffer
+      const { toFile } = await import('openai/uploads');
+      const audioFile = await toFile(buffer, 'voice.oga', { type: 'audio/ogg' });
+      
       const transcription = await openai.audio.transcriptions.create({
-        file: await (async () => {
-          // Create a stream from buffer
-          const { Readable } = await import('stream');
-          const stream = new Readable();
-          stream.push(buffer);
-          stream.push(null);
-          return stream as any;
-        })(),
+        file: audioFile,
         model: 'whisper-1',
         language: 'hi', // Hindi/English/Hinglish detection
       });
