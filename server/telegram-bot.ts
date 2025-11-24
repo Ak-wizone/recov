@@ -547,7 +547,42 @@ function formatHindiResponse(intent: QueryIntent, data: any): string {
     
     case 'outstanding_balance':
       const balanceWords = numberToHindiWords(data.balance);
-      return `💸 **कुल बकाया राशि**\n\n₹${data.balance.toLocaleString('en-IN')}\n(${balanceWords.devanagari} रुपये)`;
+      let hindiOutstandingResponse = `💸 **बकाया रिपोर्ट**\n\n`;
+      hindiOutstandingResponse += `📊 **कुल बकाया:** ₹${data.balance.toLocaleString('en-IN')}\n`;
+      hindiOutstandingResponse += `(${balanceWords.devanagari} रुपये)\n\n`;
+      
+      // Category breakdown
+      hindiOutstandingResponse += `📂 **श्रेणी विवरण:**\n`;
+      const categories = ['Alpha', 'Beta', 'Gamma', 'Delta'] as const;
+      categories.forEach(cat => {
+        const catData = data.categoryBreakdown[cat];
+        if (catData.count > 0) {
+          hindiOutstandingResponse += `${cat}: ₹${catData.amount.toLocaleString('en-IN')} (${catData.count} ग्राहक)\n`;
+        }
+      });
+      
+      // Aging breakdown
+      hindiOutstandingResponse += `\n⏰ **देय जानकारी:**\n`;
+      if (data.agingBreakdown.dueToday.count > 0) {
+        hindiOutstandingResponse += `आज देय: ₹${data.agingBreakdown.dueToday.amount.toLocaleString('en-IN')} (${data.agingBreakdown.dueToday.count} ग्राहक)\n`;
+      }
+      if (data.agingBreakdown.overdue.count > 0) {
+        hindiOutstandingResponse += `अतिदेय: ₹${data.agingBreakdown.overdue.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue.count} ग्राहक)\n`;
+      }
+      if (data.agingBreakdown.overdue30to60.count > 0) {
+        hindiOutstandingResponse += `30-60 दिन: ₹${data.agingBreakdown.overdue30to60.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue30to60.count} ग्राहक)\n`;
+      }
+      if (data.agingBreakdown.overdue60to90.count > 0) {
+        hindiOutstandingResponse += `60-90 दिन: ₹${data.agingBreakdown.overdue60to90.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue60to90.count} ग्राहक)\n`;
+      }
+      if (data.agingBreakdown.overdue90to120.count > 0) {
+        hindiOutstandingResponse += `90-120 दिन: ₹${data.agingBreakdown.overdue90to120.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue90to120.count} ग्राहक)\n`;
+      }
+      if (data.agingBreakdown.overdue120plus.count > 0) {
+        hindiOutstandingResponse += `120+ दिन: ₹${data.agingBreakdown.overdue120plus.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue120plus.count} ग्राहक)\n`;
+      }
+      
+      return hindiOutstandingResponse;
     
     case 'payment_stats':
       const paymentCountWords = numberToHindiWords(data.count);
@@ -603,7 +638,41 @@ function formatEnglishResponse(intent: QueryIntent, data: any): string {
       return `📊 **Debtor Count**\n\nTotal Debtors: **${data.count}**`;
     
     case 'outstanding_balance':
-      return `💸 **Total Outstanding Balance**\n\n₹${data.balance.toLocaleString('en-IN')}`;
+      let engOutstandingResponse = `💸 **Outstanding Report**\n\n`;
+      engOutstandingResponse += `📊 **Total Outstanding:** ₹${data.balance.toLocaleString('en-IN')}\n\n`;
+      
+      // Category breakdown
+      engOutstandingResponse += `📂 **Category Breakdown:**\n`;
+      const engCategories = ['Alpha', 'Beta', 'Gamma', 'Delta'] as const;
+      engCategories.forEach(cat => {
+        const catData = data.categoryBreakdown[cat];
+        if (catData.count > 0) {
+          engOutstandingResponse += `${cat}: ₹${catData.amount.toLocaleString('en-IN')} (${catData.count} customers)\n`;
+        }
+      });
+      
+      // Aging breakdown
+      engOutstandingResponse += `\n⏰ **Due Information:**\n`;
+      if (data.agingBreakdown.dueToday.count > 0) {
+        engOutstandingResponse += `Due Today: ₹${data.agingBreakdown.dueToday.amount.toLocaleString('en-IN')} (${data.agingBreakdown.dueToday.count} customers)\n`;
+      }
+      if (data.agingBreakdown.overdue.count > 0) {
+        engOutstandingResponse += `Overdue: ₹${data.agingBreakdown.overdue.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue.count} customers)\n`;
+      }
+      if (data.agingBreakdown.overdue30to60.count > 0) {
+        engOutstandingResponse += `30-60 days: ₹${data.agingBreakdown.overdue30to60.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue30to60.count} customers)\n`;
+      }
+      if (data.agingBreakdown.overdue60to90.count > 0) {
+        engOutstandingResponse += `60-90 days: ₹${data.agingBreakdown.overdue60to90.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue60to90.count} customers)\n`;
+      }
+      if (data.agingBreakdown.overdue90to120.count > 0) {
+        engOutstandingResponse += `90-120 days: ₹${data.agingBreakdown.overdue90to120.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue90to120.count} customers)\n`;
+      }
+      if (data.agingBreakdown.overdue120plus.count > 0) {
+        engOutstandingResponse += `120+ days: ₹${data.agingBreakdown.overdue120plus.amount.toLocaleString('en-IN')} (${data.agingBreakdown.overdue120plus.count} customers)\n`;
+      }
+      
+      return engOutstandingResponse;
     
     case 'payment_stats':
       return `💳 **Payment Statistics**\n\n` +
