@@ -6022,6 +6022,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fix payment terms for existing invoices (utility route)
+  app.post("/api/invoices/fix-payment-terms", async (req, res) => {
+    try {
+      const allInvoices = await storage.getInvoices(req.tenantId!);
+      const allCustomers = await storage.getCustomers(req.tenantId!);
+      
+      let fixed = 0;
+      let skipped = 0;
+      
+      for (const invoice of allInvoices) {
+        // Skip if already has payment terms
+        if (invoice.paymentTerms !== null && invoice.paymentTerms !== undefined) {
+          skipped++;
+          continue;
+        }
+        
+        // Find customer and update payment terms
+        const customer = allCustomers.find(c => c.clientName === invoice.customerName);
+        if (customer && customer.paymentTermsDays) {
+          const paymentTerms = parseInt(customer.paymentTermsDays);
+          await storage.updateInvoice(req.tenantId!, invoice.id, { paymentTerms });
+          fixed++;
+        }
+      }
+      
+      res.json({ 
+        message: `Fixed ${fixed} invoices, skipped ${skipped} invoices`,
+        fixed,
+        skipped,
+        total: allInvoices.length
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Delete invoice
   app.delete("/api/invoices/:id", async (req, res) => {
     try {
