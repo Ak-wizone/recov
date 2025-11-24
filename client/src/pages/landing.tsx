@@ -777,9 +777,6 @@ export default function Landing() {
                     </div>
                     <CardTitle className="text-lg md:text-xl">{benefit.title}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <p className="text-sm md:text-base text-gray-600 dark:text-gray-400">{benefit.description}</p>
-                  </CardContent>
                 </Card>
               </motion.div>
             ))}
