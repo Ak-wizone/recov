@@ -349,18 +349,25 @@ export class TelecmiService {
         }
       }
 
-      // Use ElevenLabs audio if available, otherwise use Telecmi TTS
+      // Build PCMO actions - use direct array format for ElevenLabs audio
+      // PiopiyAction doesn't have play() method, so we build PCMO array manually
+      let pcmoActions: any;
+      
       if (audioUrl) {
-        // Use PCMO action format for playing audio files
-        // PiopiyAction type definition doesn't include play(), but PCMO accepts direct action objects
-        (action as any).play(audioUrl);
+        // Manual PCMO format for playing audio file URL
+        // Telecmi PCMO play action format: { action: "play", file_url: "..." }
+        pcmoActions = [
+          { action: "play", file_url: audioUrl },
+          { action: "record" }
+        ];
         console.log(`[TelecmiService] Using ElevenLabs cloned voice audio: ${audioUrl}`);
       } else {
+        // Use PiopiyAction for TTS
         action.speak(scriptText);
+        action.record();
+        pcmoActions = action.PCMO();
         console.log(`[TelecmiService] Using Telecmi speak() TTS for script: "${scriptText.substring(0, 50)}..."`);
       }
-      
-      action.record(); // Enable recording
 
       // Normalize phone numbers with +91 prefix for proper Nation Capacity routing
       const normalizedTo = this.normalizePhoneNumber(options.to);
@@ -380,15 +387,14 @@ export class TelecmiService {
         fromNormalized: normalizedFrom,
         fromNumber,
         fromType: typeof fromNumber,
-        pcmoType: typeof action.PCMO(),
-        pcmoIsArray: Array.isArray(action.PCMO()),
+        pcmoActions: JSON.stringify(pcmoActions),
       });
 
       // Make the call (use as any for type mismatch: TS defs say string, runtime needs number)
       const response = await piopiy.voice.call(
         toNumber as any,
         fromNumber as any,
-        action.PCMO(),
+        pcmoActions,
         {
           duration: 300, // 5 minutes max
           timeout: 40,
