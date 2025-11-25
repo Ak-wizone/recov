@@ -92,7 +92,7 @@ export class TelecmiService {
   ): Promise<{ success: boolean; audioUrl?: string; error?: string }> {
     try {
       const voiceClone = await this.storage.getVoiceCloneByUserId(tenantId, userId);
-      if (!voiceClone || voiceClone.status !== "ready" || !voiceClone.elevenLabsVoiceId) {
+      if (!voiceClone || voiceClone.status !== "active" || !voiceClone.elevenLabsVoiceId) {
         return { success: false, error: "No active voice clone found for user" };
       }
 
