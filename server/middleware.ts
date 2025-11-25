@@ -1,10 +1,11 @@
 import type { Request, Response, NextFunction } from "express";
 
-// Extend Express Request type to include tenantId
+// Extend Express Request type to include tenantId and userId
 declare global {
   namespace Express {
     interface Request {
       tenantId?: string;
+      userId?: string;
     }
   }
 }
@@ -52,8 +53,9 @@ export function tenantMiddleware(req: Request, res: Response, next: NextFunction
     return res.status(403).json({ message: "No tenant associated with your account" });
   }
 
-  // Attach tenantId to request for use in route handlers (may be undefined for platform admins)
+  // Attach tenantId and userId to request for use in route handlers
   req.tenantId = tenantId;
+  req.userId = sessionUser.id;
 
   next();
 }
