@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type UserColumnPreference, type InsertUserColumnPreference, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type TelecmiConfig, type InsertTelecmiConfig, type CallTemplate, type InsertCallTemplate, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type PaymentPattern, type InsertPaymentPattern, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, userColumnPreferences, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, telecmiConfigs, callTemplates, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, paymentPatterns, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory, type WhisperConfig, type InsertWhisperConfig, type WhisperCredits, type InsertWhisperCredits, type WhisperUsage, type InsertWhisperUsage, type WhisperTransaction, type InsertWhisperTransaction, assistantSettings, whisperConfig, whisperCredits, whisperUsage, whisperTransactions, telegramBotConfig, telegramUserMappings, telegramLinkingCodes, telegramQueryLogs } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type UserColumnPreference, type InsertUserColumnPreference, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type TelecmiConfig, type InsertTelecmiConfig, type CallTemplate, type InsertCallTemplate, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type PaymentPattern, type InsertPaymentPattern, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, userColumnPreferences, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, telecmiConfigs, callTemplates, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, paymentPatterns, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory, type WhisperConfig, type InsertWhisperConfig, type WhisperCredits, type InsertWhisperCredits, type WhisperUsage, type InsertWhisperUsage, type WhisperTransaction, type InsertWhisperTransaction, assistantSettings, whisperConfig, whisperCredits, whisperUsage, whisperTransactions, telegramBotConfig, telegramUserMappings, telegramLinkingCodes, telegramQueryLogs, type ElevenLabsConfig, type InsertElevenLabsConfig, type VoiceClone, type InsertVoiceClone, type VoiceCloneUsage, type InsertVoiceCloneUsage, elevenLabsConfig, voiceClones, voiceCloneUsage } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, lt, gte, lte } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -347,6 +347,26 @@ export interface IStorage {
   getTelegramUserMapping(telegramUserId: string): Promise<any | undefined>;
   updateTelegramUserActivity(telegramUserId: string): Promise<void>;
   createTelegramQueryLog(log: any): Promise<any>;
+  
+  // ElevenLabs Voice Cloning operations
+  getElevenLabsConfig(): Promise<any | undefined>;
+  getElevenLabsConfigSecure(): Promise<{ config: any; decryptedApiKey: string } | undefined>;
+  createElevenLabsConfig(config: any): Promise<any>;
+  updateElevenLabsConfig(id: string, updates: any): Promise<any | undefined>;
+  
+  // Voice Clone operations
+  getVoiceClones(tenantId: string): Promise<any[]>;
+  getVoiceClone(tenantId: string, id: string): Promise<any | undefined>;
+  getVoiceCloneByUserId(tenantId: string, userId: string): Promise<any | undefined>;
+  getUserDefaultVoiceClone(tenantId: string, userId: string): Promise<any | undefined>;
+  createVoiceClone(voiceClone: any): Promise<any>;
+  updateVoiceClone(tenantId: string, id: string, updates: any): Promise<any | undefined>;
+  deleteVoiceClone(tenantId: string, id: string): Promise<boolean>;
+  setDefaultVoiceClone(tenantId: string, userId: string, voiceCloneId: string): Promise<boolean>;
+  
+  // Voice Clone Usage operations
+  createVoiceCloneUsage(usage: any): Promise<any>;
+  getVoiceCloneUsage(tenantId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3412,6 +3432,152 @@ export class DatabaseStorage implements IStorage {
       .values(log)
       .returning();
     return created;
+  }
+
+  // ========== ELEVENLABS VOICE CLONING ==========
+
+  async getElevenLabsConfig(): Promise<any | undefined> {
+    const [config] = await db.select().from(elevenLabsConfig).limit(1);
+    return config || undefined;
+  }
+
+  async getElevenLabsConfigSecure(): Promise<{ config: any; decryptedApiKey: string } | undefined> {
+    const config = await this.getElevenLabsConfig();
+    if (!config) return undefined;
+
+    try {
+      const decryptedApiKey = decryptApiKey(config.apiKey);
+      return { config, decryptedApiKey };
+    } catch (error) {
+      console.error("[ElevenLabs] Failed to decrypt API key:", error);
+      return undefined;
+    }
+  }
+
+  async createElevenLabsConfig(config: any): Promise<any> {
+    const encryptedApiKey = encryptApiKey(config.apiKey);
+    const [created] = await db
+      .insert(elevenLabsConfig)
+      .values({
+        ...config,
+        apiKey: encryptedApiKey,
+      })
+      .returning();
+    return created;
+  }
+
+  async updateElevenLabsConfig(id: string, updates: any): Promise<any | undefined> {
+    const updateData: any = { ...updates, updatedAt: new Date() };
+    if (updates.apiKey) {
+      updateData.apiKey = encryptApiKey(updates.apiKey);
+    }
+    const [updated] = await db
+      .update(elevenLabsConfig)
+      .set(updateData)
+      .where(eq(elevenLabsConfig.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // Voice Clone operations
+  async getVoiceClones(tenantId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(voiceClones)
+      .where(eq(voiceClones.tenantId, tenantId))
+      .orderBy(desc(voiceClones.createdAt));
+  }
+
+  async getVoiceClone(tenantId: string, id: string): Promise<any | undefined> {
+    const [clone] = await db
+      .select()
+      .from(voiceClones)
+      .where(and(eq(voiceClones.tenantId, tenantId), eq(voiceClones.id, id)))
+      .limit(1);
+    return clone || undefined;
+  }
+
+  async getVoiceCloneByUserId(tenantId: string, userId: string): Promise<any | undefined> {
+    const [clone] = await db
+      .select()
+      .from(voiceClones)
+      .where(and(eq(voiceClones.tenantId, tenantId), eq(voiceClones.userId, userId)))
+      .limit(1);
+    return clone || undefined;
+  }
+
+  async getUserDefaultVoiceClone(tenantId: string, userId: string): Promise<any | undefined> {
+    const [clone] = await db
+      .select()
+      .from(voiceClones)
+      .where(
+        and(
+          eq(voiceClones.tenantId, tenantId),
+          eq(voiceClones.userId, userId),
+          eq(voiceClones.isDefault, true),
+          eq(voiceClones.status, "active")
+        )
+      )
+      .limit(1);
+    return clone || undefined;
+  }
+
+  async createVoiceClone(voiceClone: any): Promise<any> {
+    const [created] = await db
+      .insert(voiceClones)
+      .values(voiceClone)
+      .returning();
+    return created;
+  }
+
+  async updateVoiceClone(tenantId: string, id: string, updates: any): Promise<any | undefined> {
+    const [updated] = await db
+      .update(voiceClones)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(voiceClones.tenantId, tenantId), eq(voiceClones.id, id)))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteVoiceClone(tenantId: string, id: string): Promise<boolean> {
+    const result = await db
+      .delete(voiceClones)
+      .where(and(eq(voiceClones.tenantId, tenantId), eq(voiceClones.id, id)))
+      .returning();
+    return result.length > 0;
+  }
+
+  async setDefaultVoiceClone(tenantId: string, userId: string, voiceCloneId: string): Promise<boolean> {
+    // First, unset any existing default for this user
+    await db
+      .update(voiceClones)
+      .set({ isDefault: false, updatedAt: new Date() })
+      .where(and(eq(voiceClones.tenantId, tenantId), eq(voiceClones.userId, userId)));
+
+    // Set the new default
+    const [updated] = await db
+      .update(voiceClones)
+      .set({ isDefault: true, updatedAt: new Date() })
+      .where(and(eq(voiceClones.tenantId, tenantId), eq(voiceClones.id, voiceCloneId)))
+      .returning();
+    return !!updated;
+  }
+
+  // Voice Clone Usage operations
+  async createVoiceCloneUsage(usage: any): Promise<any> {
+    const [created] = await db
+      .insert(voiceCloneUsage)
+      .values(usage)
+      .returning();
+    return created;
+  }
+
+  async getVoiceCloneUsage(tenantId: string): Promise<any[]> {
+    return await db
+      .select()
+      .from(voiceCloneUsage)
+      .where(eq(voiceCloneUsage.tenantId, tenantId))
+      .orderBy(desc(voiceCloneUsage.createdAt));
   }
 }
 

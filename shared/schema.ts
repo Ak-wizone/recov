@@ -2680,3 +2680,94 @@ export const insertTelegramQueryLogSchema = createInsertSchema(telegramQueryLogs
 export type InsertTelegramQueryLog = z.infer<typeof insertTelegramQueryLogSchema>;
 export type TelegramQueryLog = typeof telegramQueryLogs.$inferSelect;
 
+// ========== ELEVENLABS VOICE CLONING ==========
+
+// Platform-level ElevenLabs configuration (admin managed)
+export const elevenLabsConfig = pgTable("elevenlabs_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  apiKey: text("api_key").notNull(), // Encrypted
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  defaultModel: text("default_model").notNull().default("eleven_multilingual_v2"), // eleven_monolingual_v1, eleven_multilingual_v2
+  defaultStability: decimal("default_stability", { precision: 3, scale: 2 }).notNull().default("0.50"),
+  defaultSimilarityBoost: decimal("default_similarity_boost", { precision: 3, scale: 2 }).notNull().default("0.75"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertElevenLabsConfigSchema = createInsertSchema(elevenLabsConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  apiKey: z.string().min(1, "API key is required"),
+  isEnabled: z.boolean().default(true),
+  defaultModel: z.enum(["eleven_monolingual_v1", "eleven_multilingual_v2"]).default("eleven_multilingual_v2"),
+  defaultStability: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.50"),
+  defaultSimilarityBoost: z.string().regex(/^\d+(\.\d{1,2})?$/).default("0.75"),
+});
+
+export type InsertElevenLabsConfig = z.infer<typeof insertElevenLabsConfigSchema>;
+export type ElevenLabsConfig = typeof elevenLabsConfig.$inferSelect;
+
+// User voice clones (per tenant user)
+export const voiceClones = pgTable("voice_clones", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  elevenLabsVoiceId: text("elevenlabs_voice_id").notNull(), // Voice ID from ElevenLabs
+  voiceName: text("voice_name").notNull(),
+  description: text("description"),
+  sampleFileName: text("sample_file_name"), // Original uploaded sample file name
+  status: text("status").notNull().default("active"), // active, processing, failed
+  isDefault: boolean("is_default").notNull().default(false), // User's default voice for calls
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertVoiceCloneSchema = createInsertSchema(voiceClones).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  tenantId: z.string().min(1, "Tenant ID is required"),
+  userId: z.string().min(1, "User ID is required"),
+  elevenLabsVoiceId: z.string().min(1, "ElevenLabs voice ID is required"),
+  voiceName: z.string().min(1, "Voice name is required"),
+  description: z.string().optional(),
+  sampleFileName: z.string().optional(),
+  status: z.enum(["active", "processing", "failed"]).default("active"),
+  isDefault: z.boolean().default(false),
+});
+
+export type InsertVoiceClone = z.infer<typeof insertVoiceCloneSchema>;
+export type VoiceClone = typeof voiceClones.$inferSelect;
+
+// Voice clone usage logs (for tracking/billing)
+export const voiceCloneUsage = pgTable("voice_clone_usage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull(),
+  voiceCloneId: varchar("voice_clone_id").references(() => voiceClones.id, { onDelete: "set null" }),
+  operation: text("operation").notNull(), // create_clone, generate_audio
+  charactersUsed: integer("characters_used").notNull().default(0),
+  audioSeconds: decimal("audio_seconds", { precision: 10, scale: 2 }),
+  cost: decimal("cost", { precision: 10, scale: 4 }), // Cost in INR
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertVoiceCloneUsageSchema = createInsertSchema(voiceCloneUsage).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  tenantId: z.string().min(1),
+  userId: z.string().min(1),
+  voiceCloneId: z.string().optional(),
+  operation: z.enum(["create_clone", "generate_audio"]),
+  charactersUsed: z.number().int().min(0).default(0),
+  audioSeconds: z.string().optional(),
+  cost: z.string().optional(),
+});
+
+export type InsertVoiceCloneUsage = z.infer<typeof insertVoiceCloneUsageSchema>;
+export type VoiceCloneUsage = typeof voiceCloneUsage.$inferSelect;
+
