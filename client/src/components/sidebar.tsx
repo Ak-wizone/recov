@@ -177,6 +177,7 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   // Communication Integrations
   "Email/WhatsApp/Call Integrations": "Email/WhatsApp/Call Integrations",
   "Integration Controls": "Email/WhatsApp/Call Integrations",
+  "My Voice Profile": "Email/WhatsApp/Call Integrations",
   "Email Configuration": "Email/WhatsApp/Call Integrations",
   "Email Templates": "Email/WhatsApp/Call Integrations",
   "WhatsApp Configuration": "Email/WhatsApp/Call Integrations",
@@ -218,6 +219,11 @@ const platformAdminNavItems: NavItem[] = [
   {
     name: "Whisper Settings",
     path: "/whisper-settings",
+    icon: <Mic className="h-5 w-5" />,
+  },
+  {
+    name: "ElevenLabs Voice Cloning",
+    path: "/elevenlabs-settings",
     icon: <Mic className="h-5 w-5" />,
   },
 ];
@@ -554,6 +560,12 @@ const navItems: NavItem[] = [
     path: "/telegram-link",
     icon: <Bot className="h-5 w-5" />,
     module: "Telegram Bot",
+  },
+  {
+    name: "My Voice Profile",
+    path: "/voice-profile",
+    icon: <Mic className="h-5 w-5" />,
+    module: "Email/WhatsApp/Call Integrations",
   },
   {
     name: "Audit Logs",

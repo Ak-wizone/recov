@@ -68,6 +68,8 @@ import Landing from "@/pages/landing";
 import TenantProfile from "@/pages/tenant-profile";
 import TelegramBotSettings from "@/pages/telegram-bot-settings";
 import TelegramLink from "@/pages/telegram-link";
+import ElevenLabsSettings from "@/pages/elevenlabs-settings";
+import VoiceProfile from "@/pages/voice-profile";
 
 function Router() {
   return (
@@ -142,6 +144,8 @@ function Router() {
               <Route path="/whisper-settings" component={WhisperSettings} />
               <Route path="/whisper-credits" component={WhisperCredits} />
               <Route path="/whisper-voice" component={WhisperVoicePage} />
+              <Route path="/elevenlabs-settings" component={ElevenLabsSettings} />
+              <Route path="/voice-profile" component={VoiceProfile} />
               <Route component={NotFound} />
             </Switch>
           </Layout>

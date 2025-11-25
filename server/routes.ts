@@ -2960,6 +2960,343 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ========== END WHISPER VOICE AI API ==========
 
+  // ========== ELEVENLABS VOICE CLONING API ==========
+
+  const { ElevenLabsService } = await import("./services/elevenLabsService");
+  const elevenLabsService = new ElevenLabsService(storage);
+
+  // Platform Admin - Get ElevenLabs Configuration
+  app.get("/api/elevenlabs/config", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getElevenLabsConfig();
+      
+      if (!config) {
+        return res.json({
+          exists: false,
+          message: "ElevenLabs configuration not set up yet"
+        });
+      }
+      
+      const { apiKey, ...safeConfig } = config;
+      
+      res.json({
+        exists: true,
+        config: {
+          ...safeConfig,
+          hasApiKey: !!apiKey
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch ElevenLabs config:", error);
+      res.status(500).json({ code: "FETCH_ERROR", message: error.message });
+    }
+  });
+
+  // Platform Admin - Create/Update ElevenLabs Configuration
+  app.post("/api/elevenlabs/config", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { apiKey, isEnabled, defaultModel, defaultStability, defaultSimilarityBoost } = req.body;
+      
+      const existingConfig = await storage.getElevenLabsConfig();
+      
+      if (existingConfig) {
+        const updates: any = {
+          isEnabled: isEnabled ?? existingConfig.isEnabled,
+          defaultModel: defaultModel || existingConfig.defaultModel,
+          defaultStability: defaultStability || existingConfig.defaultStability,
+          defaultSimilarityBoost: defaultSimilarityBoost || existingConfig.defaultSimilarityBoost,
+        };
+        
+        if (apiKey) {
+          updates.apiKey = apiKey;
+        }
+        
+        const updated = await storage.updateElevenLabsConfig(existingConfig.id, updates);
+        res.json({ success: true, config: updated });
+      } else {
+        if (!apiKey) {
+          return res.status(400).json({ message: "API key is required for initial setup" });
+        }
+        
+        const created = await storage.createElevenLabsConfig({
+          apiKey,
+          isEnabled: isEnabled ?? true,
+          defaultModel: defaultModel || "eleven_multilingual_v2",
+          defaultStability: defaultStability || "0.50",
+          defaultSimilarityBoost: defaultSimilarityBoost || "0.75",
+        });
+        res.json({ success: true, config: created });
+      }
+    } catch (error: any) {
+      console.error("Failed to save ElevenLabs config:", error);
+      res.status(500).json({ code: "SAVE_ERROR", message: error.message });
+    }
+  });
+
+  // Platform Admin - Test ElevenLabs API Connection
+  app.post("/api/elevenlabs/test-api", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const result = await elevenLabsService.testConnection();
+      if (result.success) {
+        res.json({
+          success: true,
+          message: result.message,
+          subscription: result.subscription,
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: result.message,
+        });
+      }
+    } catch (error: any) {
+      console.error("ElevenLabs API test failed:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Platform Admin - List all ElevenLabs voices
+  app.get("/api/elevenlabs/voices", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const result = await elevenLabsService.listVoices();
+      if (result.success) {
+        res.json({ success: true, voices: result.voices });
+      } else {
+        res.status(400).json({ success: false, message: result.error });
+      }
+    } catch (error: any) {
+      console.error("Failed to list ElevenLabs voices:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Tenant User - Get my voice clones
+  app.get("/api/voice-clones", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const tenantId = sessionUser.tenantId;
+      if (!tenantId) {
+        return res.status(403).json({ message: "Platform admins cannot access voice clones" });
+      }
+      
+      const clones = await storage.getVoiceClones(tenantId);
+      const userClones = clones.filter(c => c.userId === sessionUser.id);
+      
+      res.json({ voiceClones: userClones });
+    } catch (error: any) {
+      console.error("Failed to fetch voice clones:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tenant User - Get default voice clone
+  app.get("/api/voice-clones/default", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const tenantId = sessionUser.tenantId;
+      if (!tenantId) {
+        return res.status(403).json({ message: "Platform admins cannot access voice clones" });
+      }
+      
+      const defaultClone = await storage.getUserDefaultVoiceClone(tenantId, sessionUser.id);
+      
+      res.json({ voiceClone: defaultClone || null });
+    } catch (error: any) {
+      console.error("Failed to fetch default voice clone:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tenant User - Create voice clone (upload sample)
+  app.post("/api/voice-clones", upload.single("audioSample"), async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const tenantId = sessionUser.tenantId;
+      if (!tenantId) {
+        return res.status(403).json({ message: "Platform admins cannot create voice clones" });
+      }
+
+      const config = await storage.getElevenLabsConfig();
+      if (!config || !config.isEnabled) {
+        return res.status(403).json({ message: "Voice cloning is not enabled" });
+      }
+      
+      const { voiceName, description } = req.body;
+      const file = req.file;
+      
+      if (!file) {
+        return res.status(400).json({ message: "Audio sample file is required" });
+      }
+      
+      if (!voiceName) {
+        return res.status(400).json({ message: "Voice name is required" });
+      }
+
+      const result = await elevenLabsService.createVoiceClone(
+        voiceName,
+        description || `Voice clone for ${sessionUser.name || sessionUser.email}`,
+        file.buffer,
+        file.originalname
+      );
+
+      if (!result.success) {
+        return res.status(400).json({ message: result.error });
+      }
+
+      const voiceClone = await storage.createVoiceClone({
+        tenantId,
+        userId: sessionUser.id,
+        elevenLabsVoiceId: result.voiceId,
+        voiceName: result.voiceName,
+        description: description || null,
+        sampleFileName: file.originalname,
+        status: "active",
+        isDefault: true,
+      });
+
+      await storage.setDefaultVoiceClone(tenantId, sessionUser.id, voiceClone.id);
+
+      await storage.createVoiceCloneUsage({
+        tenantId,
+        userId: sessionUser.id,
+        voiceCloneId: voiceClone.id,
+        operation: "create_clone",
+        charactersUsed: 0,
+      });
+
+      res.json({ success: true, voiceClone });
+    } catch (error: any) {
+      console.error("Failed to create voice clone:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tenant User - Set default voice clone
+  app.post("/api/voice-clones/:id/set-default", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const tenantId = sessionUser.tenantId;
+      if (!tenantId) {
+        return res.status(403).json({ message: "Platform admins cannot manage voice clones" });
+      }
+
+      const { id } = req.params;
+      const clone = await storage.getVoiceClone(tenantId, id);
+      
+      if (!clone || clone.userId !== sessionUser.id) {
+        return res.status(404).json({ message: "Voice clone not found" });
+      }
+
+      await storage.setDefaultVoiceClone(tenantId, sessionUser.id, id);
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Failed to set default voice clone:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tenant User - Delete voice clone
+  app.delete("/api/voice-clones/:id", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const tenantId = sessionUser.tenantId;
+      if (!tenantId) {
+        return res.status(403).json({ message: "Platform admins cannot delete voice clones" });
+      }
+
+      const { id } = req.params;
+      const clone = await storage.getVoiceClone(tenantId, id);
+      
+      if (!clone || clone.userId !== sessionUser.id) {
+        return res.status(404).json({ message: "Voice clone not found" });
+      }
+
+      const deleteResult = await elevenLabsService.deleteVoice(clone.elevenLabsVoiceId);
+      if (!deleteResult.success) {
+        console.warn("Failed to delete voice from ElevenLabs:", deleteResult.error);
+      }
+
+      await storage.deleteVoiceClone(tenantId, id);
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Failed to delete voice clone:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tenant User - Preview voice (generate sample audio)
+  app.post("/api/voice-clones/:id/preview", async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const tenantId = sessionUser.tenantId;
+      if (!tenantId) {
+        return res.status(403).json({ message: "Platform admins cannot preview voice clones" });
+      }
+
+      const { id } = req.params;
+      const { text } = req.body;
+      
+      const clone = await storage.getVoiceClone(tenantId, id);
+      
+      if (!clone || clone.userId !== sessionUser.id) {
+        return res.status(404).json({ message: "Voice clone not found" });
+      }
+
+      const previewText = text || "Namaste, yeh meri awaaz ka preview hai. Aap is awaaz ko apne calls mein use kar sakte hain.";
+
+      const result = await elevenLabsService.textToSpeech(previewText, clone.elevenLabsVoiceId);
+
+      if (!result.success) {
+        return res.status(400).json({ message: result.error });
+      }
+
+      await storage.createVoiceCloneUsage({
+        tenantId,
+        userId: sessionUser.id,
+        voiceCloneId: clone.id,
+        operation: "generate_audio",
+        charactersUsed: result.charactersUsed || 0,
+      });
+
+      res.set({
+        "Content-Type": "audio/mpeg",
+        "Content-Disposition": `inline; filename="preview-${clone.voiceName}.mp3"`,
+      });
+      res.send(result.audioBuffer);
+    } catch (error: any) {
+      console.error("Failed to preview voice clone:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ========== END ELEVENLABS VOICE CLONING API ==========
+
   // Cleanup orphaned users (admin only) - Deletes users whose tenant no longer exists
   app.post("/api/cleanup-orphaned-users", adminOnlyMiddleware, async (req, res) => {
     try {
