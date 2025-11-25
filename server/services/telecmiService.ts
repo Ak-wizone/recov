@@ -38,6 +38,7 @@ export class TelecmiService {
   private elevenLabsService: ElevenLabsService;
   private audioStorageService: AudioStorageService | null = null;
   private audioDir = path.join(process.cwd(), "generated_audio");
+  private publicAudioDir = path.join(process.cwd(), "public", "telecmi-audio");
 
   constructor(storage: IStorage) {
     this.storage = storage;
@@ -45,6 +46,10 @@ export class TelecmiService {
     
     if (!fs.existsSync(this.audioDir)) {
       fs.mkdirSync(this.audioDir, { recursive: true });
+    }
+    
+    if (!fs.existsSync(this.publicAudioDir)) {
+      fs.mkdirSync(this.publicAudioDir, { recursive: true });
     }
     
     try {
@@ -65,31 +70,50 @@ export class TelecmiService {
     return filePath;
   }
 
+  private async savePublicAudioFile(buffer: Buffer, filename: string): Promise<string> {
+    const filePath = path.join(this.publicAudioDir, filename);
+    await fs.promises.writeFile(filePath, buffer);
+    console.log(`[TelecmiService] Saved audio to public directory: ${filePath}`);
+    return filePath;
+  }
+
   async getAudioFilePath(filename: string): Promise<string | null> {
     const filePath = path.join(this.audioDir, filename);
     if (fs.existsSync(filePath)) {
       return filePath;
+    }
+    const publicFilePath = path.join(this.publicAudioDir, filename);
+    if (fs.existsSync(publicFilePath)) {
+      return publicFilePath;
     }
     return null;
   }
 
   async cleanupOldAudioFiles(maxAgeMs: number = 24 * 60 * 60 * 1000): Promise<number> {
     let deletedCount = 0;
-    try {
-      const files = await fs.promises.readdir(this.audioDir);
-      const now = Date.now();
-      
-      for (const file of files) {
-        const filePath = path.join(this.audioDir, file);
-        const stats = await fs.promises.stat(filePath);
-        if (now - stats.mtimeMs > maxAgeMs) {
-          await fs.promises.unlink(filePath);
-          deletedCount++;
+    
+    const cleanupDir = async (dir: string) => {
+      try {
+        const files = await fs.promises.readdir(dir);
+        const now = Date.now();
+        
+        for (const file of files) {
+          const filePath = path.join(dir, file);
+          const stats = await fs.promises.stat(filePath);
+          if (now - stats.mtimeMs > maxAgeMs) {
+            await fs.promises.unlink(filePath);
+            deletedCount++;
+            console.log(`[TelecmiService] Deleted old audio file: ${filePath}`);
+          }
         }
+      } catch (error) {
+        console.error(`[TelecmiService] Cleanup error for ${dir}:`, error);
       }
-    } catch (error) {
-      console.error("[TelecmiService] Cleanup error:", error);
-    }
+    };
+    
+    await cleanupDir(this.audioDir);
+    await cleanupDir(this.publicAudioDir);
+    
     return deletedCount;
   }
 
@@ -117,26 +141,12 @@ export class TelecmiService {
       const callId = crypto.randomBytes(8).toString("hex");
       const filename = this.generateAudioFilename(tenantId, callId);
 
-      if (this.audioStorageService) {
-        const uploadResult = await this.audioStorageService.uploadAudioBuffer(
-          result.audioBuffer,
-          filename,
-          "audio/mpeg"
-        );
-
-        if (uploadResult.success && uploadResult.publicUrl) {
-          console.log(`[TelecmiService] Uploaded audio to cloud storage for user ${userId}`);
-          console.log(`[TelecmiService] Public URL: ${uploadResult.publicUrl.substring(0, 80)}...`);
-          return { success: true, audioUrl: uploadResult.publicUrl };
-        }
-
-        console.warn("[TelecmiService] Cloud upload failed, falling back to local storage");
-      }
-
-      await this.saveAudioFile(result.audioBuffer, filename);
-      const audioUrl = `${baseUrl}/api/telecmi/audio/${filename}`;
+      await this.savePublicAudioFile(result.audioBuffer, filename);
       
-      console.log(`[TelecmiService] Generated ElevenLabs audio (local) for user ${userId}: ${audioUrl}`);
+      const audioUrl = `${baseUrl}/api/public/telecmi-audio/${filename}`;
+      
+      console.log(`[TelecmiService] Generated ElevenLabs audio for user ${userId}`);
+      console.log(`[TelecmiService] Public audio URL: ${audioUrl}`);
       return { success: true, audioUrl };
     } catch (error: any) {
       console.error("[TelecmiService] Generate call audio error:", error);
@@ -293,7 +303,7 @@ export class TelecmiService {
       // Note: Piopiy TS definitions say string but runtime checks for number
       // Piopiy SDK expects appId as NUMBER, appSecret as STRING
       const appId = parseInt((config.appId || "").toString());
-      const piopiy = new Piopiy(appId, config.appSecret);
+      const piopiy = new Piopiy(appId as any, config.appSecret);
       const action = new PiopiyAction();
 
       // Build the script from template
@@ -312,29 +322,44 @@ export class TelecmiService {
         };
       }
 
-      // NOTE: Voice cloning with ElevenLabs audio is disabled because:
-      // 1. Replit Object Storage enforces "public access prevention" - can't make files public
-      // 2. Signed URLs have query parameters which Telecmi's servers can't process
-      // 3. For voice cloning to work, audio must be hosted on a truly public CDN
-      // 
-      // For now, we use Telecmi's built-in TTS which works reliably.
-      // Voice cloning feature will work after deploying to production with external CDN.
-
-      // Always use Telecmi's built-in TTS for reliable call audio
-      action.speak(scriptText);
-      console.log(`[TelecmiService] Using Telecmi speak() TTS for script: "${scriptText.substring(0, 50)}..."`);
-      
-      // Log voice clone status for debugging (but don't use it for audio)
-      if (options.userId) {
+      // Check for voice clone and generate audio if available
+      let audioUrl: string | null = null;
+      if (options.userId && options.baseUrl) {
         try {
           const voiceClone = await this.storage.getVoiceCloneByUserId(tenantId, options.userId);
-          if (voiceClone && voiceClone.status === "active") {
-            console.log(`[TelecmiService] Note: User has active voice clone but using TTS due to hosting limitations`);
+          if (voiceClone && voiceClone.status === "active" && voiceClone.elevenLabsVoiceId) {
+            console.log(`[TelecmiService] User has active voice clone, generating ElevenLabs audio...`);
+            
+            const audioResult = await this.generateCallAudio(
+              tenantId,
+              options.userId,
+              scriptText,
+              options.baseUrl
+            );
+            
+            if (audioResult.success && audioResult.audioUrl) {
+              audioUrl = audioResult.audioUrl;
+              console.log(`[TelecmiService] ElevenLabs audio generated: ${audioUrl}`);
+            } else {
+              console.log(`[TelecmiService] Voice clone audio generation failed: ${audioResult.error}`);
+            }
           }
-        } catch (error) {
-          // Ignore voice clone lookup errors
+        } catch (error: any) {
+          console.log(`[TelecmiService] Voice clone check error: ${error.message}`);
         }
       }
+
+      // Use ElevenLabs audio if available, otherwise use Telecmi TTS
+      if (audioUrl) {
+        // Use PCMO action format for playing audio files
+        // PiopiyAction type definition doesn't include play(), but PCMO accepts direct action objects
+        (action as any).play(audioUrl);
+        console.log(`[TelecmiService] Using ElevenLabs cloned voice audio: ${audioUrl}`);
+      } else {
+        action.speak(scriptText);
+        console.log(`[TelecmiService] Using Telecmi speak() TTS for script: "${scriptText.substring(0, 50)}..."`);
+      }
+      
       action.record(); // Enable recording
 
       // Normalize phone numbers with +91 prefix for proper Nation Capacity routing
@@ -380,7 +405,7 @@ export class TelecmiService {
       if (statusCode === 200) {
         return {
           success: true,
-          requestId: response.request_id || response.data?.request_id,
+          requestId: (response as any).request_id || (response as any).data?.request_id,
           message: "Call initiated successfully",
         };
       }
@@ -431,7 +456,7 @@ export class TelecmiService {
       // Note: Piopiy TS definitions say string but runtime checks for number
       // Piopiy SDK expects appId as NUMBER, appSecret as STRING
       const appId = parseInt((config.appId || "").toString());
-      const piopiy = new Piopiy(appId, config.appSecret);
+      const piopiy = new Piopiy(appId as any, config.appSecret);
       const action = new PiopiyAction();
 
       // Initial greeting
@@ -487,7 +512,7 @@ export class TelecmiService {
       if (statusCode === 200) {
         return {
           success: true,
-          requestId: response.request_id || response.data?.request_id,
+          requestId: (response as any).request_id || (response as any).data?.request_id,
           message: "AI call initiated successfully",
         };
       }
@@ -569,7 +594,7 @@ export class TelecmiService {
       
       try {
         // Initialize Piopiy client with correct types: NUMBER for appId, STRING for secret
-        const piopiy = new Piopiy(appId, appSecret);
+        const piopiy = new Piopiy(appId as any, appSecret);
         
         // If we successfully initialize Piopiy without errors, credentials are valid
         console.log(`[TelecmiService] ✅ Piopiy client initialized successfully for tenant ${tenantId}`);
