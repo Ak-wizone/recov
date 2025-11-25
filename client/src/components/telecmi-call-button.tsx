@@ -63,7 +63,7 @@ export function TelecmiCallButton({
   });
 
   const voiceClones = voiceClonesData?.voiceClones || [];
-  const readyVoiceClone = voiceClones.find(vc => vc.status === "ready" && vc.elevenLabsVoiceId);
+  const readyVoiceClone = voiceClones.find(vc => vc.status === "active" && vc.elevenLabsVoiceId);
   const hasClonedVoice = !!readyVoiceClone;
 
   const makeCallMutation = useMutation({

@@ -306,7 +306,7 @@ export class TelecmiService {
             elevenLabsVoiceId: voiceClone?.elevenLabsVoiceId,
             isDefault: voiceClone?.isDefault,
           });
-          if (voiceClone && voiceClone.status === "ready" && voiceClone.elevenLabsVoiceId) {
+          if (voiceClone && voiceClone.status === "active" && voiceClone.elevenLabsVoiceId) {
             console.log(`[TelecmiService] Found cloned voice for user ${options.userId}, generating ElevenLabs audio`);
             
             const audioResult = await this.generateCallAudio(
