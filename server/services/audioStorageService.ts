@@ -50,31 +50,18 @@ export class AudioStorageService {
       const objectName = `${this.audioDir}/${filename}`;
       const file = bucket.file(objectName);
 
+      // Upload file without trying to make it public (Replit buckets have public access prevention)
       await file.save(buffer, {
         metadata: {
           contentType,
         },
-        public: true,
       });
+      console.log(`[AudioStorageService] Uploaded file: ${objectName}`);
 
-      try {
-        await file.makePublic();
-        console.log(`[AudioStorageService] Made file public: ${objectName}`);
-      } catch (aclError) {
-        console.warn(`[AudioStorageService] Could not set public ACL, using signed URL:`, aclError);
-      }
-
-      const directUrl = `https://storage.googleapis.com/${this.bucketName}/${objectName}`;
-      
-      const isPublic = await this.checkIfPublic(directUrl);
-      
-      if (isPublic) {
-        console.log(`[AudioStorageService] Using direct public URL: ${directUrl}`);
-        return { success: true, publicUrl: directUrl };
-      }
-
-      const signedUrl = await this.getSignedUrl(objectName);
-      console.log(`[AudioStorageService] Using signed URL (file not public): ${signedUrl.substring(0, 100)}...`);
+      // Generate signed URL with 1 hour expiration for Telecmi to access
+      // Note: Signed URLs have query parameters which may not work with all external services
+      const signedUrl = await this.getSignedUrl(objectName, 3600); // 1 hour TTL
+      console.log(`[AudioStorageService] Generated signed URL: ${signedUrl.substring(0, 100)}...`);
       
       return { success: true, publicUrl: signedUrl };
     } catch (error: any) {
