@@ -14,7 +14,7 @@ import type { CallTemplate } from "@shared/schema";
 interface VoiceClone {
   id: string;
   userId: string;
-  name: string;
+  voiceName: string;
   status: string;
   isDefault: boolean;
   elevenLabsVoiceId: string | null;
@@ -287,7 +287,7 @@ export function TelecmiCallButton({
                         )}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {useMyVoice ? `Using: ${readyVoiceClone?.name}` : "Use default system voice"}
+                        {useMyVoice ? `Using: ${readyVoiceClone?.voiceName}` : "Use default system voice"}
                       </div>
                     </div>
                   </div>
