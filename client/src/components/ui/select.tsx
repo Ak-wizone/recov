@@ -15,7 +15,7 @@ const SelectValue = SelectPrimitive.Value
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, onPointerDown, ...props }, ref) => (
+>(({ className, children, onPointerDown, onMouseDown, onClick, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
@@ -25,6 +25,14 @@ const SelectTrigger = React.forwardRef<
     onPointerDown={(e) => {
       e.stopPropagation();
       onPointerDown?.(e);
+    }}
+    onMouseDown={(e) => {
+      e.stopPropagation();
+      onMouseDown?.(e);
+    }}
+    onClick={(e) => {
+      e.stopPropagation();
+      onClick?.(e);
     }}
     {...props}
   >
