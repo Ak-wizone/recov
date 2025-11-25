@@ -1,5 +1,6 @@
-import { Storage } from "@google-cloud/storage";
+import { Storage, File } from "@google-cloud/storage";
 import { randomUUID } from "crypto";
+import type { Response } from "express";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
@@ -53,16 +54,41 @@ export class AudioStorageService {
         metadata: {
           contentType,
         },
+        public: true,
       });
 
-      const publicUrl = await this.getSignedUrl(objectName);
+      try {
+        await file.makePublic();
+        console.log(`[AudioStorageService] Made file public: ${objectName}`);
+      } catch (aclError) {
+        console.warn(`[AudioStorageService] Could not set public ACL, using signed URL:`, aclError);
+      }
+
+      const directUrl = `https://storage.googleapis.com/${this.bucketName}/${objectName}`;
       
-      console.log(`[AudioStorageService] Uploaded audio file: ${objectName}, URL: ${publicUrl.substring(0, 100)}...`);
+      const isPublic = await this.checkIfPublic(directUrl);
       
-      return { success: true, publicUrl };
+      if (isPublic) {
+        console.log(`[AudioStorageService] Using direct public URL: ${directUrl}`);
+        return { success: true, publicUrl: directUrl };
+      }
+
+      const signedUrl = await this.getSignedUrl(objectName);
+      console.log(`[AudioStorageService] Using signed URL (file not public): ${signedUrl.substring(0, 100)}...`);
+      
+      return { success: true, publicUrl: signedUrl };
     } catch (error: any) {
       console.error("[AudioStorageService] Upload error:", error);
       return { success: false, error: error.message };
+    }
+  }
+
+  private async checkIfPublic(url: string): Promise<boolean> {
+    try {
+      const response = await fetch(url, { method: "HEAD" });
+      return response.ok;
+    } catch {
+      return false;
     }
   }
 
@@ -135,5 +161,56 @@ export class AudioStorageService {
       console.error("[AudioStorageService] Cleanup error:", error);
     }
     return deletedCount;
+  }
+
+  async getAudioFile(filename: string): Promise<File | null> {
+    try {
+      const bucket = objectStorageClient.bucket(this.bucketName);
+      const objectName = `${this.audioDir}/${filename}`;
+      const file = bucket.file(objectName);
+      
+      const [exists] = await file.exists();
+      if (!exists) {
+        return null;
+      }
+      
+      return file;
+    } catch (error) {
+      console.error("[AudioStorageService] Get file error:", error);
+      return null;
+    }
+  }
+
+  async streamAudioToResponse(filename: string, res: Response): Promise<boolean> {
+    try {
+      const file = await this.getAudioFile(filename);
+      if (!file) {
+        return false;
+      }
+
+      const [metadata] = await file.getMetadata();
+      
+      res.set({
+        "Content-Type": "audio/mpeg",
+        "Content-Length": metadata.size?.toString() || "0",
+        "Cache-Control": "public, max-age=900",
+        "Accept-Ranges": "bytes",
+      });
+
+      const stream = file.createReadStream();
+      
+      stream.on("error", (err) => {
+        console.error("[AudioStorageService] Stream error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Error streaming audio" });
+        }
+      });
+
+      stream.pipe(res);
+      return true;
+    } catch (error) {
+      console.error("[AudioStorageService] Stream error:", error);
+      return false;
+    }
   }
 }
