@@ -359,13 +359,14 @@ export class TelecmiService {
       // Configure PCMO actions for simple call
       if (useElevenLabsAudio && audioUrl) {
         // Bypass SDK validation by directly pushing play action to PCMO array
-        // Piopiy SDK's playMusic() validates URL ending, but signed URLs have query params
+        // Piopiy SDK's playMusic() validates URL ending with .mp3/.wav, but signed URLs have query params
+        // Use file_url for URLs (not file_name which is for local filenames)
         const pcmoActions = action.PCMO() as any[];
         pcmoActions.push({
           action: "play",
-          file_name: audioUrl
+          file_url: audioUrl
         });
-        console.log(`[TelecmiService] Using direct PCMO play action with cloned voice audio`);
+        console.log(`[TelecmiService] Using direct PCMO play action with file_url: ${audioUrl.substring(0, 80)}...`);
       } else {
         // Fall back to Telecmi's built-in TTS
         action.speak(scriptText);
