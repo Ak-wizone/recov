@@ -312,65 +312,28 @@ export class TelecmiService {
         };
       }
 
-      // Check if user has a cloned voice and should use ElevenLabs TTS
-      let useElevenLabsAudio = false;
-      let audioUrl: string | undefined;
+      // NOTE: Voice cloning with ElevenLabs audio is disabled because:
+      // 1. Replit Object Storage enforces "public access prevention" - can't make files public
+      // 2. Signed URLs have query parameters which Telecmi's servers can't process
+      // 3. For voice cloning to work, audio must be hosted on a truly public CDN
+      // 
+      // For now, we use Telecmi's built-in TTS which works reliably.
+      // Voice cloning feature will work after deploying to production with external CDN.
 
-      console.log(`[TelecmiService] Voice clone check params:`, {
-        userId: options.userId,
-        hasBaseUrl: !!options.baseUrl,
-        tenantId,
-      });
-
-      if (options.userId && options.baseUrl) {
+      // Always use Telecmi's built-in TTS for reliable call audio
+      action.speak(scriptText);
+      console.log(`[TelecmiService] Using Telecmi speak() TTS for script: "${scriptText.substring(0, 50)}..."`);
+      
+      // Log voice clone status for debugging (but don't use it for audio)
+      if (options.userId) {
         try {
           const voiceClone = await this.storage.getVoiceCloneByUserId(tenantId, options.userId);
-          console.log(`[TelecmiService] Voice clone lookup result:`, {
-            found: !!voiceClone,
-            status: voiceClone?.status,
-            elevenLabsVoiceId: voiceClone?.elevenLabsVoiceId,
-            isDefault: voiceClone?.isDefault,
-          });
-          if (voiceClone && voiceClone.status === "active" && voiceClone.elevenLabsVoiceId) {
-            console.log(`[TelecmiService] Found cloned voice for user ${options.userId}, generating ElevenLabs audio`);
-            
-            const audioResult = await this.generateCallAudio(
-              tenantId,
-              options.userId,
-              scriptText,
-              options.baseUrl
-            );
-            
-            if (audioResult.success && audioResult.audioUrl) {
-              useElevenLabsAudio = true;
-              audioUrl = audioResult.audioUrl;
-              console.log(`[TelecmiService] Using ElevenLabs cloned voice audio: ${audioUrl}`);
-            } else {
-              console.warn(`[TelecmiService] ElevenLabs audio generation failed: ${audioResult.error}, falling back to Telecmi TTS`);
-            }
+          if (voiceClone && voiceClone.status === "active") {
+            console.log(`[TelecmiService] Note: User has active voice clone but using TTS due to hosting limitations`);
           }
         } catch (error) {
-          console.warn(`[TelecmiService] Error checking voice clone, falling back to Telecmi TTS:`, error);
+          // Ignore voice clone lookup errors
         }
-      } else {
-        console.log(`[TelecmiService] Skipping voice clone check - userId: ${options.userId}, baseUrl: ${options.baseUrl ? 'present' : 'missing'}`);
-      }
-
-      // Configure PCMO actions for simple call
-      if (useElevenLabsAudio && audioUrl) {
-        // Bypass SDK validation by directly pushing play action to PCMO array
-        // Piopiy SDK's playMusic() validates URL ending with .mp3/.wav, but signed URLs have query params
-        // Use file_url for URLs (not file_name which is for local filenames)
-        const pcmoActions = action.PCMO() as any[];
-        pcmoActions.push({
-          action: "play",
-          file_url: audioUrl
-        });
-        console.log(`[TelecmiService] Using direct PCMO play action with file_url: ${audioUrl.substring(0, 80)}...`);
-      } else {
-        // Fall back to Telecmi's built-in TTS
-        action.speak(scriptText);
-        console.log(`[TelecmiService] Using Telecmi speak() TTS`);
       }
       action.record(); // Enable recording
 
