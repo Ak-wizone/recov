@@ -131,13 +131,19 @@ export class ElevenLabsService {
         contentType: this.getContentType(filename),
       });
 
+      // Convert form-data to buffer for native fetch compatibility
+      const formBuffer = formData.getBuffer();
+      const formHeaders = formData.getHeaders();
+
+      console.log("[ElevenLabsService] Sending voice clone request, file size:", audioBuffer.length, "bytes");
+
       const response = await fetch(`${this.baseUrl}/voices/add`, {
         method: "POST",
         headers: {
           "xi-api-key": apiKey,
-          ...formData.getHeaders(),
+          ...formHeaders,
         },
-        body: formData as any,
+        body: formBuffer,
       });
 
       if (!response.ok) {
