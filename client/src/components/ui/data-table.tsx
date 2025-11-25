@@ -278,7 +278,17 @@ export function DataTable<TData, TValue>({
         data-testid={`row-${row.id}`}
       >
         {row.getVisibleCells().map((cell) => (
-          <TableCell key={cell.id} data-testid={`cell-${row.id}-${cell.column.id}`}>
+          <TableCell 
+            key={cell.id} 
+            data-testid={`cell-${row.id}-${cell.column.id}`}
+            onClickCapture={(e) => {
+              const target = e.target as HTMLElement;
+              const isInteractive = target.closest('button, [role="combobox"], a, input, select, [data-radix-select-trigger]');
+              if (isInteractive) {
+                e.stopPropagation();
+              }
+            }}
+          >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </TableCell>
         ))}
