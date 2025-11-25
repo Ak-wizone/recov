@@ -3,6 +3,7 @@ import type { IStorage } from "../storage";
 import { decryptApiKey, encryptApiKey } from "../encryption";
 import crypto from "crypto";
 import { ElevenLabsService } from "./elevenLabsService";
+import { AudioStorageService } from "./audioStorageService";
 import fs from "fs";
 import path from "path";
 
@@ -35,6 +36,7 @@ interface CallResponse {
 export class TelecmiService {
   private storage: IStorage;
   private elevenLabsService: ElevenLabsService;
+  private audioStorageService: AudioStorageService | null = null;
   private audioDir = path.join(process.cwd(), "generated_audio");
 
   constructor(storage: IStorage) {
@@ -43,6 +45,13 @@ export class TelecmiService {
     
     if (!fs.existsSync(this.audioDir)) {
       fs.mkdirSync(this.audioDir, { recursive: true });
+    }
+    
+    try {
+      this.audioStorageService = new AudioStorageService();
+      console.log("[TelecmiService] AudioStorageService initialized for cloud audio hosting");
+    } catch (error) {
+      console.warn("[TelecmiService] AudioStorageService not available, using local storage:", error);
     }
   }
 
@@ -107,11 +116,27 @@ export class TelecmiService {
 
       const callId = crypto.randomBytes(8).toString("hex");
       const filename = this.generateAudioFilename(tenantId, callId);
-      await this.saveAudioFile(result.audioBuffer, filename);
 
+      if (this.audioStorageService) {
+        const uploadResult = await this.audioStorageService.uploadAudioBuffer(
+          result.audioBuffer,
+          filename,
+          "audio/mpeg"
+        );
+
+        if (uploadResult.success && uploadResult.publicUrl) {
+          console.log(`[TelecmiService] Uploaded audio to cloud storage for user ${userId}`);
+          console.log(`[TelecmiService] Public URL: ${uploadResult.publicUrl.substring(0, 80)}...`);
+          return { success: true, audioUrl: uploadResult.publicUrl };
+        }
+
+        console.warn("[TelecmiService] Cloud upload failed, falling back to local storage");
+      }
+
+      await this.saveAudioFile(result.audioBuffer, filename);
       const audioUrl = `${baseUrl}/api/telecmi/audio/${filename}`;
       
-      console.log(`[TelecmiService] Generated ElevenLabs audio for user ${userId}: ${audioUrl}`);
+      console.log(`[TelecmiService] Generated ElevenLabs audio (local) for user ${userId}: ${audioUrl}`);
       return { success: true, audioUrl };
     } catch (error: any) {
       console.error("[TelecmiService] Generate call audio error:", error);
