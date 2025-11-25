@@ -141,9 +141,34 @@ export class ElevenLabsService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        console.error("[ElevenLabsService] Voice clone error:", error);
-        return { success: false, error: error.detail?.message || "Failed to create voice clone" };
+        const errorData = await response.json();
+        console.error("[ElevenLabsService] Voice clone error:", JSON.stringify(errorData, null, 2));
+        console.error("[ElevenLabsService] Response status:", response.status);
+        
+        // Extract error message from various possible formats
+        let errorMessage = "Failed to create voice clone";
+        if (typeof errorData.detail === "string") {
+          errorMessage = errorData.detail;
+        } else if (errorData.detail?.message) {
+          errorMessage = errorData.detail.message;
+        } else if (errorData.detail?.status === "quota_exceeded") {
+          errorMessage = "Voice clone quota exceeded. Please check your ElevenLabs subscription.";
+        } else if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = typeof errorData.error === "string" ? errorData.error : errorData.error.message || "Unknown error";
+        }
+        
+        // Add HTTP status context for common errors
+        if (response.status === 401) {
+          errorMessage = "Invalid API key. Please check your ElevenLabs configuration.";
+        } else if (response.status === 403) {
+          errorMessage = "API key lacks permission for voice cloning. Please enable 'voices_write' permission.";
+        } else if (response.status === 429) {
+          errorMessage = "Rate limit exceeded. Please try again later.";
+        }
+        
+        return { success: false, error: errorMessage };
       }
 
       const data = await response.json();
