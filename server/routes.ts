@@ -2117,6 +2117,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public Telecmi audio serving route - NO AUTHENTICATION REQUIRED
+  // This allows Telecmi servers to fetch ElevenLabs cloned voice audio
+  app.get("/api/public/telecmi-audio/:filename", async (req, res) => {
+    try {
+      const { filename } = req.params;
+      
+      // Validate filename (only allow mp3/wav files, alphanumeric with underscores/hyphens)
+      if (!/^[a-zA-Z0-9_-]+\.(mp3|wav)$/i.test(filename)) {
+        console.log(`[Public Audio] Invalid filename: ${filename}`);
+        return res.status(400).json({ error: "Invalid filename format" });
+      }
+      
+      const fs = await import("fs/promises");
+      const path = await import("path");
+      const audioDir = path.join(process.cwd(), "public", "telecmi-audio");
+      const filePath = path.join(audioDir, filename);
+      
+      // Security check - ensure path is within audio directory
+      if (!filePath.startsWith(audioDir)) {
+        console.log(`[Public Audio] Path traversal attempt: ${filename}`);
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Check if file exists
+      try {
+        await fs.access(filePath);
+      } catch {
+        console.log(`[Public Audio] File not found: ${filename}`);
+        return res.status(404).json({ error: "Audio file not found" });
+      }
+      
+      // Get file stats for Content-Length
+      const stats = await fs.stat(filePath);
+      
+      // Set appropriate headers
+      res.set({
+        "Content-Type": filename.endsWith(".mp3") ? "audio/mpeg" : "audio/wav",
+        "Content-Length": stats.size.toString(),
+        "Cache-Control": "public, max-age=300",
+        "Accept-Ranges": "bytes",
+      });
+      
+      // Stream the file
+      const { createReadStream } = await import("fs");
+      const stream = createReadStream(filePath);
+      stream.pipe(res);
+      
+      console.log(`[Public Audio] Serving file: ${filename}, size: ${stats.size} bytes`);
+    } catch (error: any) {
+      console.error("[Public Audio] Error serving audio:", error);
+      res.status(500).json({ error: "Failed to serve audio file" });
+    }
+  });
+
   // Apply tenant-aware middleware to all API routes EXCEPT public endpoints
   app.use('/api', tenantMiddleware);
 

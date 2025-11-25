@@ -22,6 +22,9 @@ const PUBLIC_ROUTES = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/validate-reset-token',
+  // Telecmi routes - webhooks and public audio serving (external access without auth)
+  '/telecmi/webhook/',
+  '/public/telecmi-audio/',
 ];
 
 // Check if a route is public
