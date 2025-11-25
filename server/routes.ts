@@ -694,6 +694,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Telecmi Service
   const telecmiService = new TelecmiService(storage);
 
+  // Schedule periodic cleanup of ElevenLabs generated audio files (every 6 hours)
+  const audioCleanupInterval = 6 * 60 * 60 * 1000; // 6 hours in ms
+  setInterval(async () => {
+    try {
+      const deletedCount = await telecmiService.cleanupOldAudioFiles();
+      if (deletedCount > 0) {
+        console.log(`[Audio Cleanup] Deleted ${deletedCount} expired audio files`);
+      }
+    } catch (error) {
+      console.error("[Audio Cleanup] Error during cleanup:", error);
+    }
+  }, audioCleanupInterval);
+
+  // Run initial cleanup on startup
+  telecmiService.cleanupOldAudioFiles().then((count) => {
+    if (count > 0) {
+      console.log(`[Audio Cleanup] Initial cleanup deleted ${count} expired audio files`);
+    }
+  }).catch((error) => {
+    console.error("[Audio Cleanup] Initial cleanup error:", error);
+  });
+
   // Public endpoints (BEFORE middleware)
   // Public API for pricing page - Get active subscription plans
   app.get("/api/public/plans", async (req, res) => {
@@ -10146,6 +10168,32 @@ ${profile?.legalName || 'Company'}`;
 
   // ============ TELECMI PIOPIY CALLING ROUTES ============
 
+  // Serve generated audio files for Telecmi playMusic
+  // Note: This route is public because Telecmi servers need to fetch the audio
+  // Security is enforced through unguessable filenames (tenant + random ID + timestamp)
+  app.get("/api/telecmi/audio/:filename", async (req, res) => {
+    try {
+      const { filename } = req.params;
+      
+      // Validate filename format: call_{tenantId}_{randomId}_{timestamp}.mp3
+      if (!filename.match(/^call_[a-f0-9\-]+_[a-f0-9]+_\d+\.mp3$/)) {
+        return res.status(400).json({ message: "Invalid audio file format" });
+      }
+      
+      const filePath = await telecmiService.getAudioFilePath(filename);
+      if (!filePath) {
+        return res.status(404).json({ message: "Audio file not found" });
+      }
+      
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.setHeader("Cache-Control", "private, max-age=3600");
+      res.sendFile(filePath);
+    } catch (error: any) {
+      console.error("[API] Audio file error:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Get Telecmi configuration
   app.get("/api/telecmi/config", async (req, res) => {
     try {
@@ -10332,12 +10380,21 @@ ${profile?.legalName || 'Company'}`;
           return res.status(404).json({ message: "Call template not found" });
         }
 
+        // Build base URL for ElevenLabs audio file serving
+        const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+        const host = req.get('host') || 'localhost:5000';
+        const baseUrl = process.env.REPLIT_DEV_DOMAIN 
+          ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
+          : `${protocol}://${host}`;
+
         result = await telecmiService.makeSimpleCall(req.tenantId!, {
           to: phoneNumber,
           callMode: "simple",
           language: language as "hindi" | "english" | "hinglish",
           templateId,
           context: enrichedCallContext || {},
+          userId: req.userId,
+          baseUrl,
         });
       } else {
         // AI-powered conversation

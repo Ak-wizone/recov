@@ -2,6 +2,9 @@ import { Piopiy, PiopiyAction } from "piopiy";
 import type { IStorage } from "../storage";
 import { decryptApiKey, encryptApiKey } from "../encryption";
 import crypto from "crypto";
+import { ElevenLabsService } from "./elevenLabsService";
+import fs from "fs";
+import path from "path";
 
 interface TelecmiConfig {
   appId: number;
@@ -18,6 +21,8 @@ interface MakeCallOptions {
   templateId?: string;
   scriptText?: string;
   context?: Record<string, any>;
+  userId?: string;
+  baseUrl?: string;
 }
 
 interface CallResponse {
@@ -29,9 +34,89 @@ interface CallResponse {
 
 export class TelecmiService {
   private storage: IStorage;
+  private elevenLabsService: ElevenLabsService;
+  private audioDir = path.join(process.cwd(), "generated_audio");
 
   constructor(storage: IStorage) {
     this.storage = storage;
+    this.elevenLabsService = new ElevenLabsService(storage);
+    
+    if (!fs.existsSync(this.audioDir)) {
+      fs.mkdirSync(this.audioDir, { recursive: true });
+    }
+  }
+
+  private generateAudioFilename(tenantId: string, callId: string): string {
+    return `call_${tenantId}_${callId}_${Date.now()}.mp3`;
+  }
+
+  private async saveAudioFile(buffer: Buffer, filename: string): Promise<string> {
+    const filePath = path.join(this.audioDir, filename);
+    await fs.promises.writeFile(filePath, buffer);
+    return filePath;
+  }
+
+  async getAudioFilePath(filename: string): Promise<string | null> {
+    const filePath = path.join(this.audioDir, filename);
+    if (fs.existsSync(filePath)) {
+      return filePath;
+    }
+    return null;
+  }
+
+  async cleanupOldAudioFiles(maxAgeMs: number = 24 * 60 * 60 * 1000): Promise<number> {
+    let deletedCount = 0;
+    try {
+      const files = await fs.promises.readdir(this.audioDir);
+      const now = Date.now();
+      
+      for (const file of files) {
+        const filePath = path.join(this.audioDir, file);
+        const stats = await fs.promises.stat(filePath);
+        if (now - stats.mtimeMs > maxAgeMs) {
+          await fs.promises.unlink(filePath);
+          deletedCount++;
+        }
+      }
+    } catch (error) {
+      console.error("[TelecmiService] Cleanup error:", error);
+    }
+    return deletedCount;
+  }
+
+  async generateCallAudio(
+    tenantId: string,
+    userId: string,
+    scriptText: string,
+    baseUrl: string
+  ): Promise<{ success: boolean; audioUrl?: string; error?: string }> {
+    try {
+      const voiceClone = await this.storage.getVoiceCloneByUserId(tenantId, userId);
+      if (!voiceClone || voiceClone.status !== "ready" || !voiceClone.elevenLabsVoiceId) {
+        return { success: false, error: "No active voice clone found for user" };
+      }
+
+      const result = await this.elevenLabsService.textToSpeech(
+        scriptText,
+        voiceClone.elevenLabsVoiceId
+      );
+
+      if (!result.success || !result.audioBuffer) {
+        return { success: false, error: result.error || "Failed to generate audio" };
+      }
+
+      const callId = crypto.randomBytes(8).toString("hex");
+      const filename = this.generateAudioFilename(tenantId, callId);
+      await this.saveAudioFile(result.audioBuffer, filename);
+
+      const audioUrl = `${baseUrl}/api/telecmi/audio/${filename}`;
+      
+      console.log(`[TelecmiService] Generated ElevenLabs audio for user ${userId}: ${audioUrl}`);
+      return { success: true, audioUrl };
+    } catch (error: any) {
+      console.error("[TelecmiService] Generate call audio error:", error);
+      return { success: false, error: error.message || "Failed to generate audio" };
+    }
   }
 
   /**
@@ -202,8 +287,46 @@ export class TelecmiService {
         };
       }
 
+      // Check if user has a cloned voice and should use ElevenLabs TTS
+      let useElevenLabsAudio = false;
+      let audioUrl: string | undefined;
+
+      if (options.userId && options.baseUrl) {
+        try {
+          const voiceClone = await this.storage.getVoiceCloneByUserId(tenantId, options.userId);
+          if (voiceClone && voiceClone.status === "ready" && voiceClone.elevenLabsVoiceId) {
+            console.log(`[TelecmiService] Found cloned voice for user ${options.userId}, generating ElevenLabs audio`);
+            
+            const audioResult = await this.generateCallAudio(
+              tenantId,
+              options.userId,
+              scriptText,
+              options.baseUrl
+            );
+            
+            if (audioResult.success && audioResult.audioUrl) {
+              useElevenLabsAudio = true;
+              audioUrl = audioResult.audioUrl;
+              console.log(`[TelecmiService] Using ElevenLabs cloned voice audio: ${audioUrl}`);
+            } else {
+              console.warn(`[TelecmiService] ElevenLabs audio generation failed: ${audioResult.error}, falling back to Telecmi TTS`);
+            }
+          }
+        } catch (error) {
+          console.warn(`[TelecmiService] Error checking voice clone, falling back to Telecmi TTS:`, error);
+        }
+      }
+
       // Configure PCMO actions for simple call
-      action.speak(scriptText);
+      if (useElevenLabsAudio && audioUrl) {
+        // Use playMusic with ElevenLabs generated audio
+        action.playMusic(audioUrl);
+        console.log(`[TelecmiService] Using playMusic with cloned voice audio`);
+      } else {
+        // Fall back to Telecmi's built-in TTS
+        action.speak(scriptText);
+        console.log(`[TelecmiService] Using Telecmi speak() TTS`);
+      }
       action.record(); // Enable recording
 
       // Normalize phone numbers with +91 prefix for proper Nation Capacity routing
