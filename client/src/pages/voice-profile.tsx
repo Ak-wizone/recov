@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader2, Mic, Upload, Play, Trash2, CheckCircle, AlertCircle, Volume2 } from "lucide-react";
+import { Loader2, Mic, Upload, Play, Trash2, CheckCircle, AlertCircle, Volume2, Square, RotateCcw, Pause } from "lucide-react";
 
 interface VoiceClone {
   id: string;
@@ -35,11 +36,274 @@ export default function VoiceProfile() {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const recordedAudioRef = useRef<HTMLAudioElement>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   
   const [voiceName, setVoiceName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("upload");
+  
+  // Recording states
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+  const [isPlayingRecording, setIsPlayingRecording] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  // Recording timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isRecording && !isPaused) {
+      interval = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isRecording, isPaused]);
+
+  // Comprehensive cleanup on unmount - stop recording, close resources
+  useEffect(() => {
+    return () => {
+      // Stop animation
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      
+      // Stop media recorder if active
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {
+          // Recorder may already be stopped
+        }
+        mediaRecorderRef.current = null;
+      }
+      
+      // Stop all media stream tracks (releases microphone)
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => {
+          track.stop();
+        });
+        mediaStreamRef.current = null;
+      }
+      
+      // Close audio context
+      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current = null;
+      }
+      
+      // Clean up analyser
+      analyserRef.current = null;
+      
+      // Revoke blob URL
+      if (recordedUrl) {
+        URL.revokeObjectURL(recordedUrl);
+      }
+    };
+  }, [recordedUrl]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const drawWaveform = useCallback(() => {
+    if (!canvasRef.current || !analyserRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    
+    const analyser = analyserRef.current;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    const draw = () => {
+      if (!isRecording) return;
+      
+      animationRef.current = requestAnimationFrame(draw);
+      analyser.getByteTimeDomainData(dataArray);
+      
+      ctx.fillStyle = "hsl(var(--muted))";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "hsl(var(--primary))";
+      ctx.beginPath();
+      
+      const sliceWidth = canvas.width / bufferLength;
+      let x = 0;
+      
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+        x += sliceWidth;
+      }
+      
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+    };
+    
+    draw();
+  }, [isRecording]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+      
+      // Set up audio analyser for waveform
+      const audioContext = new AudioContext();
+      audioContextRef.current = audioContext;
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+      
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "audio/mp4"
+      });
+      
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        setRecordedBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setRecordedUrl(url);
+        
+        // Stop all tracks and close audio context
+        if (mediaStreamRef.current) {
+          mediaStreamRef.current.getTracks().forEach(track => track.stop());
+          mediaStreamRef.current = null;
+        }
+        if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+          audioContextRef.current.close().catch(() => {});
+          audioContextRef.current = null;
+        }
+        
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+          animationRef.current = null;
+        }
+        analyserRef.current = null;
+      };
+      
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start(100);
+      setIsRecording(true);
+      setIsPaused(false);
+      setRecordingTime(0);
+      setRecordedBlob(null);
+      setRecordedUrl(null);
+      setPermissionDenied(false);
+      
+      // Start drawing waveform
+      setTimeout(() => drawWaveform(), 100);
+      
+    } catch (error: any) {
+      console.error("Error starting recording:", error);
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        setPermissionDenied(true);
+        toast({
+          title: "Microphone Access Denied",
+          description: "Please allow microphone access in your browser to record audio",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Recording Error",
+          description: error.message || "Failed to start recording",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      if (isPaused) {
+        mediaRecorderRef.current.resume();
+        setIsPaused(false);
+        drawWaveform();
+      } else {
+        mediaRecorderRef.current.pause();
+        setIsPaused(true);
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
+      }
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+      setIsRecording(false);
+      setIsPaused(false);
+    }
+  };
+
+  const resetRecording = () => {
+    // Stop any playback
+    if (recordedAudioRef.current) {
+      recordedAudioRef.current.pause();
+      recordedAudioRef.current.currentTime = 0;
+    }
+    
+    // Revoke old URL
+    if (recordedUrl) {
+      URL.revokeObjectURL(recordedUrl);
+    }
+    
+    // Reset state
+    setRecordedBlob(null);
+    setRecordedUrl(null);
+    setRecordingTime(0);
+    setIsPlayingRecording(false);
+  };
+
+  const playRecording = () => {
+    if (recordedAudioRef.current && recordedUrl) {
+      if (isPlayingRecording) {
+        recordedAudioRef.current.pause();
+        recordedAudioRef.current.currentTime = 0;
+        setIsPlayingRecording(false);
+      } else {
+        recordedAudioRef.current.play();
+        setIsPlayingRecording(true);
+      }
+    }
+  };
 
   const { data: voiceClonesData, isLoading } = useQuery<VoiceClonesResponse>({
     queryKey: ["/api/voice-clones"],
@@ -64,9 +328,16 @@ export default function VoiceProfile() {
         title: "Voice Clone Created",
         description: "Your voice has been cloned successfully! You can now use it for calls.",
       });
+      // Reset all form fields including recording
       setVoiceName("");
       setDescription("");
       setSelectedFile(null);
+      if (recordedUrl) {
+        URL.revokeObjectURL(recordedUrl);
+      }
+      setRecordedBlob(null);
+      setRecordedUrl(null);
+      setRecordingTime(0);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
@@ -147,10 +418,14 @@ export default function VoiceProfile() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedFile) {
+    const audioFile = activeTab === "upload" ? selectedFile : recordedBlob;
+    
+    if (!audioFile) {
       toast({
-        title: "Missing File",
-        description: "Please select an audio sample file",
+        title: "Missing Audio",
+        description: activeTab === "upload" 
+          ? "Please select an audio sample file"
+          : "Please record an audio sample first",
         variant: "destructive",
       });
       return;
@@ -166,13 +441,33 @@ export default function VoiceProfile() {
     }
 
     const formData = new FormData();
-    formData.append("audioSample", selectedFile);
+    
+    if (activeTab === "upload" && selectedFile) {
+      formData.append("audioSample", selectedFile);
+    } else if (activeTab === "record" && recordedBlob) {
+      // Convert blob to file with proper extension
+      const extension = recordedBlob.type.includes("webm") ? "webm" : "mp4";
+      const recordedFile = new File([recordedBlob], `recording.${extension}`, { type: recordedBlob.type });
+      formData.append("audioSample", recordedFile);
+    }
+    
     formData.append("voiceName", voiceName);
     if (description) {
       formData.append("description", description);
     }
 
     createVoiceCloneMutation.mutate(formData);
+  };
+  
+  // Handle successful voice clone creation - reset recording too
+  const handleCreateSuccess = () => {
+    setVoiceName("");
+    setDescription("");
+    setSelectedFile(null);
+    resetRecording();
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handlePreview = async (voiceClone: VoiceClone) => {
@@ -224,14 +519,22 @@ export default function VoiceProfile() {
       </div>
 
       <div className="space-y-6">
+        {/* Hidden audio elements */}
+        <audio 
+          ref={recordedAudioRef} 
+          src={recordedUrl || undefined} 
+          className="hidden"
+          onEnded={() => setIsPlayingRecording(false)}
+        />
+        
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
+              <Mic className="h-5 w-5" />
               Create Voice Clone
             </CardTitle>
             <CardDescription>
-              Upload an audio sample of your voice (1-2 minutes, clear speech, minimal background noise)
+              Upload an existing audio file or record directly from your browser (1-2 minutes recommended)
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit}>
@@ -259,54 +562,200 @@ export default function VoiceProfile() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="audioFile">Audio Sample *</Label>
-                <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    id="audioFile"
-                    accept="audio/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    data-testid="input-audio-file"
-                  />
-                  {selectedFile ? (
-                    <div className="space-y-2">
-                      <Mic className="h-8 w-8 mx-auto text-primary" />
-                      <p className="font-medium">{selectedFile.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        Change File
-                      </Button>
+                <Label>Audio Sample *</Label>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="upload" className="flex items-center gap-2" data-testid="tab-upload">
+                      <Upload className="h-4 w-4" />
+                      Upload File
+                    </TabsTrigger>
+                    <TabsTrigger value="record" className="flex items-center gap-2" data-testid="tab-record">
+                      <Mic className="h-4 w-4" />
+                      Record Now
+                    </TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="upload" className="mt-4">
+                    <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        id="audioFile"
+                        accept="audio/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        data-testid="input-audio-file"
+                      />
+                      {selectedFile ? (
+                        <div className="space-y-2">
+                          <Mic className="h-8 w-8 mx-auto text-primary" />
+                          <p className="font-medium">{selectedFile.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            Change File
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                          <p className="text-muted-foreground">
+                            Click to upload or drag and drop
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            MP3, WAV, M4A, WebM (max 50MB)
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                            data-testid="button-upload"
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Select Audio File
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Mic className="h-8 w-8 mx-auto text-muted-foreground" />
-                      <p className="text-muted-foreground">
-                        Click to upload or drag and drop
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        MP3, WAV, M4A (max 50MB)
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        data-testid="button-upload"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        Select Audio File
-                      </Button>
+                  </TabsContent>
+                  
+                  <TabsContent value="record" className="mt-4">
+                    <div className="border-2 border-dashed rounded-lg p-6 space-y-4">
+                      {/* Waveform visualization */}
+                      <div className="relative">
+                        <canvas
+                          ref={canvasRef}
+                          width={500}
+                          height={100}
+                          className="w-full h-24 rounded-lg bg-muted"
+                        />
+                        {!isRecording && !recordedBlob && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <p className="text-muted-foreground text-sm">Waveform will appear here while recording</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Recording timer */}
+                      <div className="text-center">
+                        <span className={`text-3xl font-mono font-bold ${isRecording && !isPaused ? "text-red-500 animate-pulse" : "text-foreground"}`}>
+                          {formatTime(recordingTime)}
+                        </span>
+                        {isRecording && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {isPaused ? "Paused" : "Recording..."}
+                          </p>
+                        )}
+                        {recordingTime > 0 && recordingTime < 60 && !recordedBlob && (
+                          <p className="text-sm text-yellow-600 mt-1">
+                            Recommended: Record at least 1 minute
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Recording controls */}
+                      <div className="flex items-center justify-center gap-3">
+                        {!isRecording && !recordedBlob && (
+                          <Button
+                            type="button"
+                            onClick={startRecording}
+                            className="bg-red-500 hover:bg-red-600"
+                            data-testid="button-start-recording"
+                          >
+                            <Mic className="h-4 w-4 mr-2" />
+                            Start Recording
+                          </Button>
+                        )}
+                        
+                        {isRecording && (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={pauseRecording}
+                              data-testid="button-pause-recording"
+                            >
+                              {isPaused ? (
+                                <>
+                                  <Mic className="h-4 w-4 mr-2" />
+                                  Resume
+                                </>
+                              ) : (
+                                <>
+                                  <Pause className="h-4 w-4 mr-2" />
+                                  Pause
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              onClick={stopRecording}
+                              data-testid="button-stop-recording"
+                            >
+                              <Square className="h-4 w-4 mr-2" />
+                              Stop
+                            </Button>
+                          </>
+                        )}
+                        
+                        {recordedBlob && !isRecording && (
+                          <>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={playRecording}
+                              data-testid="button-play-recording"
+                            >
+                              {isPlayingRecording ? (
+                                <>
+                                  <Square className="h-4 w-4 mr-2" />
+                                  Stop Playback
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="h-4 w-4 mr-2" />
+                                  Play Recording
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={resetRecording}
+                              data-testid="button-reset-recording"
+                            >
+                              <RotateCcw className="h-4 w-4 mr-2" />
+                              Re-record
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                      
+                      {/* Recording ready indicator */}
+                      {recordedBlob && (
+                        <div className="flex items-center justify-center gap-2 text-green-600">
+                          <CheckCircle className="h-4 w-4" />
+                          <span className="text-sm">Recording ready ({formatTime(recordingTime)})</span>
+                        </div>
+                      )}
+                      
+                      {/* Permission denied message */}
+                      {permissionDenied && (
+                        <div className="flex items-center justify-center gap-2 text-red-500">
+                          <AlertCircle className="h-4 w-4" />
+                          <span className="text-sm">Microphone access denied. Please allow access in browser settings.</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </TabsContent>
+                </Tabs>
               </div>
 
               <div className="bg-muted/50 rounded-lg p-4 space-y-2">
@@ -326,7 +775,12 @@ export default function VoiceProfile() {
             <CardFooter>
               <Button
                 type="submit"
-                disabled={createVoiceCloneMutation.isPending || !selectedFile || !voiceName.trim()}
+                disabled={
+                  createVoiceCloneMutation.isPending || 
+                  !voiceName.trim() ||
+                  (activeTab === "upload" && !selectedFile) ||
+                  (activeTab === "record" && !recordedBlob)
+                }
                 data-testid="button-create"
               >
                 {createVoiceCloneMutation.isPending ? (
