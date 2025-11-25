@@ -6,9 +6,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Phone, Loader2, Radio, Zap } from "lucide-react";
+import { Phone, Loader2, Radio, Zap, Mic, User } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import type { CallTemplate } from "@shared/schema";
+
+interface VoiceClone {
+  id: string;
+  userId: string;
+  name: string;
+  status: string;
+  isDefault: boolean;
+  elevenLabsVoiceId: string | null;
+}
 
 interface TelecmiCallButtonProps {
   customerPhone: string;
@@ -38,12 +48,23 @@ export function TelecmiCallButton({
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [language, setLanguage] = useState<"hindi" | "english" | "hinglish">("english");
   const [callMode, setCallMode] = useState<"simple" | "ai">("simple");
+  const [useMyVoice, setUseMyVoice] = useState(false);
 
   // Fetch available call templates for this module
   const { data: templates, isLoading: templatesLoading } = useQuery<CallTemplate[]>({
     queryKey: ["/api/call-templates", module],
     enabled: dialogOpen,
   });
+
+  // Fetch user's voice clones
+  const { data: voiceClonesData } = useQuery<{ voiceClones: VoiceClone[] }>({
+    queryKey: ["/api/voice-clones"],
+    enabled: dialogOpen,
+  });
+
+  const voiceClones = voiceClonesData?.voiceClones || [];
+  const readyVoiceClone = voiceClones.find(vc => vc.status === "ready" && vc.elevenLabsVoiceId);
+  const hasClonedVoice = !!readyVoiceClone;
 
   const makeCallMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -71,6 +92,7 @@ export function TelecmiCallButton({
     setSelectedTemplate("");
     setLanguage("english");
     setCallMode("simple");
+    setUseMyVoice(false);
   };
 
   const handleMakeCall = () => {
@@ -100,6 +122,7 @@ export function TelecmiCallButton({
       callMode,
       language,
       templateId: selectedTemplate,
+      useMyVoice: useMyVoice && hasClonedVoice,
       callContext: {
         customerName: customerName,
         invoiceNumber: invoiceNumber || "",
@@ -245,6 +268,45 @@ export function TelecmiCallButton({
               </div>
             </RadioGroup>
           </div>
+
+          {/* Voice Selection - Only show for Simple TTS Call mode */}
+          {callMode === "simple" && (
+            <div className="space-y-2">
+              <Label>Voice</Label>
+              {hasClonedVoice ? (
+                <div className="flex items-center justify-between p-3 border rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-full ${useMyVoice ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                      <Mic className={`h-4 w-4 ${useMyVoice ? 'text-white' : 'text-gray-500'}`} />
+                    </div>
+                    <div>
+                      <div className="font-medium flex items-center gap-2">
+                        Use My Cloned Voice
+                        {useMyVoice && (
+                          <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full">Active</span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {useMyVoice ? `Using: ${readyVoiceClone?.name}` : "Use default system voice"}
+                      </div>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={useMyVoice}
+                    onCheckedChange={setUseMyVoice}
+                    data-testid="switch-use-my-voice"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-3 border rounded-md bg-gray-50 dark:bg-gray-900 text-gray-500">
+                  <User className="h-4 w-4" />
+                  <div className="text-sm">
+                    No cloned voice available. <a href="/voice-profile" className="text-blue-600 hover:underline">Create one</a> to use your own voice.
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-3">

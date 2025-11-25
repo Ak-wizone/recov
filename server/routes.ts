@@ -10322,7 +10322,8 @@ ${profile?.legalName || 'Company'}`;
         callMode, 
         language, 
         templateId,
-        callContext 
+        callContext,
+        useMyVoice 
       } = req.body;
 
       if (!phoneNumber || !customerName || !module || !callMode || !language) {
@@ -10387,14 +10388,15 @@ ${profile?.legalName || 'Company'}`;
           ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
           : `${protocol}://${host}`;
 
+        // Only pass userId when user explicitly wants to use their cloned voice
         result = await telecmiService.makeSimpleCall(req.tenantId!, {
           to: phoneNumber,
           callMode: "simple",
           language: language as "hindi" | "english" | "hinglish",
           templateId,
           context: enrichedCallContext || {},
-          userId: req.userId,
-          baseUrl,
+          userId: useMyVoice ? req.userId : undefined,
+          baseUrl: useMyVoice ? baseUrl : undefined,
         });
       } else {
         // AI-powered conversation

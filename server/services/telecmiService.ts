@@ -291,9 +291,21 @@ export class TelecmiService {
       let useElevenLabsAudio = false;
       let audioUrl: string | undefined;
 
+      console.log(`[TelecmiService] Voice clone check params:`, {
+        userId: options.userId,
+        hasBaseUrl: !!options.baseUrl,
+        tenantId,
+      });
+
       if (options.userId && options.baseUrl) {
         try {
           const voiceClone = await this.storage.getVoiceCloneByUserId(tenantId, options.userId);
+          console.log(`[TelecmiService] Voice clone lookup result:`, {
+            found: !!voiceClone,
+            status: voiceClone?.status,
+            elevenLabsVoiceId: voiceClone?.elevenLabsVoiceId,
+            isDefault: voiceClone?.isDefault,
+          });
           if (voiceClone && voiceClone.status === "ready" && voiceClone.elevenLabsVoiceId) {
             console.log(`[TelecmiService] Found cloned voice for user ${options.userId}, generating ElevenLabs audio`);
             
@@ -315,6 +327,8 @@ export class TelecmiService {
         } catch (error) {
           console.warn(`[TelecmiService] Error checking voice clone, falling back to Telecmi TTS:`, error);
         }
+      } else {
+        console.log(`[TelecmiService] Skipping voice clone check - userId: ${options.userId}, baseUrl: ${options.baseUrl ? 'present' : 'missing'}`);
       }
 
       // Configure PCMO actions for simple call
