@@ -87,7 +87,7 @@ export function ColumnChooser<TData>({
                     <Checkbox
                       id={`column-${column.id}`}
                       checked={isVisible}
-                      onCheckedChange={column.getToggleVisibilityHandler()}
+                      onCheckedChange={(checked) => column.toggleVisibility(!!checked)}
                       aria-label={`Toggle ${columnHeader} column`}
                       data-testid={`checkbox-column-${column.id}`}
                     />
