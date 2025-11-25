@@ -409,11 +409,34 @@
 
 /* Ensure Select dropdowns work properly in tables with sticky headers */
 [data-radix-select-content] {
-  z-index: 100 !important;
+  z-index: 9999 !important;
   pointer-events: auto !important;
 }
 
 /* Override Radix's aria-hidden blocking for Select dropdown content */
 [aria-hidden="true"] [data-radix-select-content] {
   pointer-events: auto !important;
+}
+
+/* Fix for table cell interactive elements */
+.data-table-interactive table td {
+  position: relative;
+}
+
+/* Ensure all interactive elements in table cells are clickable */
+.data-table-interactive table td button,
+.data-table-interactive table td [data-radix-select-trigger],
+.data-table-interactive table td [role="combobox"],
+.data-table-interactive table td a,
+.data-table-interactive table td input,
+.data-table-interactive table td select {
+  position: relative;
+  z-index: 1;
+  pointer-events: auto !important;
+}
+
+/* Fix scroll container stacking context */
+.data-table-interactive > div > div {
+  position: relative;
+  isolation: auto;
 }
