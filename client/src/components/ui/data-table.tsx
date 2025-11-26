@@ -47,6 +47,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ColumnChooser } from "@/components/ui/column-chooser";
+import { TableCellInteractive } from "@/components/ui/table-cell-wrappers";
 import {
   loadTablePreferences,
   saveTablePreferences,
@@ -149,23 +150,27 @@ export function DataTable<TData, TValue>({
     const selectionColumn: ColumnDef<TData, TValue> = {
       id: "select",
       header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all rows"
-          data-testid="checkbox-select-all-rows"
-        />
+        <TableCellInteractive>
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected() ||
+              (table.getIsSomePageRowsSelected() && "indeterminate")
+            }
+            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            aria-label="Select all rows"
+            data-testid="checkbox-select-all-rows"
+          />
+        </TableCellInteractive>
       ),
       cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-          data-testid={`checkbox-select-row-${row.index}`}
-        />
+        <TableCellInteractive>
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label="Select row"
+            data-testid={`checkbox-select-row-${row.index}`}
+          />
+        </TableCellInteractive>
       ),
       enableSorting: false,
       enableHiding: false,
