@@ -211,10 +211,12 @@ export function DataTable<TData, TValue>({
 
   useEffect(() => {
     if (onRowSelectionChange) {
-      const selectedIds = selectedRows.map(row => (row.original as any).id);
+      const rows = table.getFilteredSelectedRowModel().rows;
+      const selectedIds = rows.map(row => (row.original as any).id);
       onRowSelectionChange(selectedIds);
     }
-  }, [rowSelection, onRowSelectionChange, selectedRows]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowSelection]);
 
   const handleDeleteSelected = async () => {
     if (!onDeleteSelected || !hasSelection) return;
