@@ -198,6 +198,7 @@ export function DataTable<TData, TValue>({
       columnFilters,
     },
     enableRowSelection,
+    enableMultiRowSelection: true,
   });
 
   const selectedRows = table.getFilteredSelectedRowModel().rows;

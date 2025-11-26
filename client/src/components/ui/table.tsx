@@ -82,10 +82,24 @@ TableHead.displayName = "TableHead"
 const TableCell = React.forwardRef<
   HTMLTableCellElement,
   React.TdHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
+>(({ className, onPointerDown, onMouseDown, ...props }, ref) => (
   <td
     ref={ref}
     className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)}
+    onPointerDown={(e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button, [role="combobox"], [role="listbox"], a, input, select, [data-radix-select-trigger], [data-radix-dropdown-menu-trigger]')) {
+        e.stopPropagation();
+      }
+      onPointerDown?.(e);
+    }}
+    onMouseDown={(e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('button, [role="combobox"], [role="listbox"], a, input, select, [data-radix-select-trigger], [data-radix-dropdown-menu-trigger]')) {
+        e.stopPropagation();
+      }
+      onMouseDown?.(e);
+    }}
     {...props}
   />
 ))
