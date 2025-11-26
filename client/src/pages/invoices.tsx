@@ -336,6 +336,8 @@ export default function Invoices() {
       const gracePeriodEnd = new Date(dueDate);
       gracePeriodEnd.setDate(gracePeriodEnd.getDate() + graceDays);
       
+      const daysSinceDueDate = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+      
       switch (categoryFilter) {
         case 'upcoming':
           // Unpaid with due date > today
@@ -346,12 +348,29 @@ export default function Invoices() {
           matchesCategoryFilter = invoice.status === 'Unpaid' && dueDate.getTime() === today.getTime();
           break;
         case 'inGrace':
+        case 'gracePeriod10Days':
           // Unpaid with today > due date and today <= (due date + grace days)
           matchesCategoryFilter = invoice.status === 'Unpaid' && dueDate < today && today <= gracePeriodEnd;
           break;
         case 'overdue':
-          // Unpaid with today > (due date + grace days)
-          matchesCategoryFilter = invoice.status === 'Unpaid' && today > gracePeriodEnd;
+          // Unpaid with today > (due date + grace days) and days since due date <= 30
+          matchesCategoryFilter = invoice.status === 'Unpaid' && today > gracePeriodEnd && daysSinceDueDate <= 30;
+          break;
+        case 'overdue30To60':
+          // Unpaid with 30 < days since due date <= 60
+          matchesCategoryFilter = invoice.status === 'Unpaid' && today > gracePeriodEnd && daysSinceDueDate > 30 && daysSinceDueDate <= 60;
+          break;
+        case 'overdue60To90':
+          // Unpaid with 60 < days since due date <= 90
+          matchesCategoryFilter = invoice.status === 'Unpaid' && today > gracePeriodEnd && daysSinceDueDate > 60 && daysSinceDueDate <= 90;
+          break;
+        case 'overdue90To120':
+          // Unpaid with 90 < days since due date <= 120
+          matchesCategoryFilter = invoice.status === 'Unpaid' && today > gracePeriodEnd && daysSinceDueDate > 90 && daysSinceDueDate <= 120;
+          break;
+        case 'overdue120Plus':
+          // Unpaid with days since due date > 120
+          matchesCategoryFilter = invoice.status === 'Unpaid' && today > gracePeriodEnd && daysSinceDueDate > 120;
           break;
         case 'paidOnTime':
         case 'paidLate':
@@ -432,6 +451,14 @@ export default function Invoices() {
 
   const handleCalculator = (invoice: Invoice) => {
     setSelectedInvoiceIdForCalculator(invoice.id);
+  };
+
+  const handlePaymentDueCardClick = (filter: string) => {
+    if (categoryFilter === filter) {
+      setCategoryFilter(null);
+    } else {
+      setCategoryFilter(filter);
+    }
   };
 
   return (
@@ -858,8 +885,9 @@ export default function Invoices() {
       {activeTab === "payment-due-summary" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card
-            className="cursor-pointer transition-all border-0 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40"
+            className={`cursor-pointer transition-all border-2 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 ${categoryFilter === 'dueToday' ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-transparent'}`}
             data-testid="card-due-today"
+            onClick={() => handlePaymentDueCardClick('dueToday')}
           >
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
@@ -880,8 +908,9 @@ export default function Invoices() {
           </Card>
 
           <Card
-            className="cursor-pointer transition-all border-0 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40"
+            className={`cursor-pointer transition-all border-2 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 ${categoryFilter === 'gracePeriod10Days' ? 'border-yellow-500 ring-2 ring-yellow-500/50' : 'border-transparent'}`}
             data-testid="card-grace-period-10-days"
+            onClick={() => handlePaymentDueCardClick('gracePeriod10Days')}
           >
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
@@ -902,8 +931,9 @@ export default function Invoices() {
           </Card>
 
           <Card
-            className="cursor-pointer transition-all border-0 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40"
+            className={`cursor-pointer transition-all border-2 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 ${categoryFilter === 'overdue' ? 'border-orange-500 ring-2 ring-orange-500/50' : 'border-transparent'}`}
             data-testid="card-overdue"
+            onClick={() => handlePaymentDueCardClick('overdue')}
           >
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
@@ -924,8 +954,9 @@ export default function Invoices() {
           </Card>
 
           <Card
-            className="cursor-pointer transition-all border-0 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40"
+            className={`cursor-pointer transition-all border-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 ${categoryFilter === 'overdue30To60' ? 'border-red-500 ring-2 ring-red-500/50' : 'border-transparent'}`}
             data-testid="card-overdue-30-60"
+            onClick={() => handlePaymentDueCardClick('overdue30To60')}
           >
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
@@ -946,8 +977,9 @@ export default function Invoices() {
           </Card>
 
           <Card
-            className="cursor-pointer transition-all border-0 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40"
+            className={`cursor-pointer transition-all border-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 ${categoryFilter === 'overdue60To90' ? 'border-red-600 ring-2 ring-red-600/50' : 'border-transparent'}`}
             data-testid="card-overdue-60-90"
+            onClick={() => handlePaymentDueCardClick('overdue60To90')}
           >
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
@@ -968,8 +1000,9 @@ export default function Invoices() {
           </Card>
 
           <Card
-            className="cursor-pointer transition-all border-0 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50"
+            className={`cursor-pointer transition-all border-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 ${categoryFilter === 'overdue90To120' ? 'border-red-700 ring-2 ring-red-700/50' : 'border-transparent'}`}
             data-testid="card-overdue-90-120"
+            onClick={() => handlePaymentDueCardClick('overdue90To120')}
           >
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
@@ -990,8 +1023,9 @@ export default function Invoices() {
           </Card>
 
           <Card
-            className="cursor-pointer transition-all border-0 bg-red-200 dark:bg-red-900/40 hover:bg-red-300 dark:hover:bg-red-900/60"
+            className={`cursor-pointer transition-all border-2 bg-red-200 dark:bg-red-900/40 hover:bg-red-300 dark:hover:bg-red-900/60 ${categoryFilter === 'overdue120Plus' ? 'border-red-900 ring-2 ring-red-900/50' : 'border-transparent'}`}
             data-testid="card-overdue-120-plus"
+            onClick={() => handlePaymentDueCardClick('overdue120Plus')}
           >
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
@@ -1010,6 +1044,35 @@ export default function Invoices() {
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Active Filter Indicator */}
+      {categoryFilter && (
+        <div className="flex items-center gap-2 p-3 bg-primary/10 rounded-lg border border-primary/20">
+          <span className="text-sm font-medium text-primary">
+            Filtering by: {
+              categoryFilter === 'dueToday' ? 'Due Today' :
+              categoryFilter === 'gracePeriod10Days' ? 'Grace Period' :
+              categoryFilter === 'inGrace' ? 'Grace Period' :
+              categoryFilter === 'overdue' ? 'Overdue' :
+              categoryFilter === 'overdue30To60' ? 'Overdue 30-60 Days' :
+              categoryFilter === 'overdue60To90' ? 'Overdue 60-90 Days' :
+              categoryFilter === 'overdue90To120' ? 'Overdue 90-120 Days' :
+              categoryFilter === 'overdue120Plus' ? 'Overdue 120+ Days' :
+              categoryFilter
+            }
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCategoryFilter(null)}
+            className="h-6 px-2 text-xs"
+            data-testid="button-clear-filter"
+          >
+            <X className="h-3 w-3 mr-1" />
+            Clear
+          </Button>
         </div>
       )}
 
