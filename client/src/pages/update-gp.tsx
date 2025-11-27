@@ -71,17 +71,37 @@ export default function UpdateGP() {
     }));
   };
 
-  const handleSaveGP = (id: string) => {
+  const handleSaveGP = (id: string, originalGP: string | null) => {
     const gpValue = editedValues[id];
     if (gpValue === undefined) return;
     
+    const originalValue = originalGP ?? "";
+    const trimmedValue = gpValue.trim();
+    
+    if (trimmedValue === originalValue || trimmedValue === "") {
+      setEditedValues(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      if (trimmedValue === "" && originalValue !== "") {
+        toast({
+          title: "GP value cannot be empty",
+          description: "The original value has been restored",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+    
     setSavingIds(prev => new Set(prev).add(id));
-    updateMutation.mutate({ id, gp: gpValue });
+    updateMutation.mutate({ id, gp: trimmedValue });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, id: string) => {
+  const handleKeyDown = (e: React.KeyboardEvent, id: string, originalGP: string | null) => {
     if (e.key === "Enter") {
-      handleSaveGP(id);
+      e.preventDefault();
+      handleSaveGP(id, originalGP);
     }
   };
 
@@ -183,10 +203,10 @@ export default function UpdateGP() {
                             type="text"
                             value={currentGP}
                             onChange={(e) => handleGPChange(invoice.id, e.target.value)}
-                            onKeyDown={(e) => handleKeyDown(e, invoice.id)}
+                            onKeyDown={(e) => handleKeyDown(e, invoice.id, invoice.gp)}
                             onBlur={() => {
                               if (hasChanges) {
-                                handleSaveGP(invoice.id);
+                                handleSaveGP(invoice.id, invoice.gp);
                               }
                             }}
                             className="w-[120px] text-center mx-auto"
@@ -203,7 +223,7 @@ export default function UpdateGP() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => handleSaveGP(invoice.id)}
+                              onClick={() => handleSaveGP(invoice.id, invoice.gp)}
                               disabled={isSaving}
                               data-testid={`button-save-${invoice.id}`}
                             >
