@@ -467,12 +467,6 @@ function Users() {
 
   return (
     <div className="p-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold" data-testid="text-page-title">
-          User Management
-        </h1>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="pt-6">
