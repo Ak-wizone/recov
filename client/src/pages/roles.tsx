@@ -264,7 +264,7 @@ const MODULE_CATEGORIES = [
         operations: ["View", "Create", "Edit", "Delete", "Export", "Import", "Print"]
       },
       {
-        module: "Communication Schedules",
+        module: "Smart Collection Scheduler",
         operations: ["View", "Create", "Edit", "Delete"]
       },
       {

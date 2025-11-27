@@ -46,7 +46,7 @@ export type PermissionModule =
   | "Settings"
   | "User Management"
   | "Roles Management"
-  | "Communication Schedules"
+  | "Smart Collection Scheduler"
   | "Backup & Restore"
   | "Audit Logs"
   | "Email/WhatsApp/Call Integrations"

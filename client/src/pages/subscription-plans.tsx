@@ -140,12 +140,12 @@ const MODULE_HIERARCHY = {
   "Settings": {
     color: "text-gray-600 dark:text-gray-400",
     modules: [
-      { name: "Settings", isParent: true, children: ["Company Profile", "User Management", "Roles Management", "Backup & Restore", "Communication Schedules", "Audit Logs"] },
+      { name: "Settings", isParent: true, children: ["Company Profile", "User Management", "Roles Management", "Backup & Restore", "Smart Collection Scheduler", "Audit Logs"] },
       { name: "Company Profile", isParent: false, parent: "Settings" },
       { name: "User Management", isParent: false, parent: "Settings" },
       { name: "Roles Management", isParent: false, parent: "Settings" },
       { name: "Backup & Restore", isParent: false, parent: "Settings" },
-      { name: "Communication Schedules", isParent: false, parent: "Settings" },
+      { name: "Smart Collection Scheduler", isParent: false, parent: "Settings" },
       { name: "Audit Logs", isParent: false, parent: "Settings" },
     ]
   },

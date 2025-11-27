@@ -26,7 +26,7 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   { path: "/company-settings", module: "Company Profile", permissionModule: "Company Profile" },
   { path: "/settings/users", module: "User Management", permissionModule: "User Management" },
   { path: "/settings/roles", module: "Roles Management", permissionModule: "Roles Management" },
-  { path: "/communication-schedules", module: "Communication Schedules", permissionModule: "Settings" },
+  { path: "/communication-schedules", module: "Smart Collection Scheduler", permissionModule: "Settings" },
 ];
 
 /**

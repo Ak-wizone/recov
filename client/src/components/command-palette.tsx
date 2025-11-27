@@ -270,10 +270,10 @@ const navigationItems: NavigationItem[] = [
     category: "Settings",
   },
   {
-    name: "Communication Schedules",
+    name: "Smart Collection Scheduler",
     path: "/communication-schedules",
     icon: <Settings className="h-4 w-4" />,
-    keywords: ["communication", "schedules", "notifications"],
+    keywords: ["smart", "collection", "scheduler", "communication", "schedules", "notifications"],
     category: "Settings",
   },
   {

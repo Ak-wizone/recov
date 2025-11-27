@@ -39,7 +39,7 @@ const pathToName: Record<string, string> = {
   "/company-settings": "Company Settings",
   "/settings/users": "User Management",
   "/settings/roles": "Roles Management",
-  "/communication-schedules": "Communication Schedules",
+  "/communication-schedules": "Smart Collection Scheduler",
   "/audit-logs": "Audit Logs",
   "/tenant-registrations": "Tenant Registrations",
   "/call-templates": "Call Templates",

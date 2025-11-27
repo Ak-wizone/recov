@@ -85,7 +85,7 @@ const MODULE_MAPPING: Record<string, string> = {
   "Team Performance": "Team Performance",
   "Risk & Recovery": "Risk & Recovery",
   "Credit Control": "Credit Control",
-  "Communication Schedules": "Credit Control",
+  "Smart Collection Scheduler": "Credit Control",
   "Email/WhatsApp/Call Integrations": "Email/WhatsApp/Call Integrations",
   "Masters": "Masters",
   "Settings": "Settings",
@@ -153,7 +153,7 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Urgent Actions": "Credit Control",
   "Follow-up Automation": "Credit Control",
   "Follow-up Rules": "Credit Control",
-  "Communication Schedules": "Credit Control",
+  "Smart Collection Scheduler": "Credit Control",
   
   // Masters - Parent shown if any child is accessible
   "Masters": "Masters - Customers",
@@ -407,7 +407,7 @@ const navItems: NavItem[] = [
         module: "Urgent Actions",
       },
       {
-        name: "Communication Schedules",
+        name: "Smart Collection Scheduler",
         path: "/communication-schedules",
         icon: <Calendar className="h-4 w-4" />,
         module: "Follow-up Automation",
