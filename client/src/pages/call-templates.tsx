@@ -173,46 +173,32 @@ export default function CallTemplates() {
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Link href="/credit-control/followup-automation">
-            <Button variant="ghost" size="sm" data-testid="button-back">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Follow-up Automation
-            </Button>
-          </Link>
-        </div>
-        
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <PhoneCall className="h-8 w-8 text-green-600" />
-              Call Templates
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">
-              Manage text-to-speech scripts for automated payment reminder calls
-            </p>
-          </div>
-          <Button
-            onClick={() => {
-              setEditingTemplate(null);
-              form.reset({
-                module: "invoices",
-                name: "",
-                language: "english",
-                scriptText: "",
-                variables: [],
-                isDefault: "No",
-              });
-              setIsCreateDialogOpen(true);
-            }}
-            className="bg-green-600 hover:bg-green-700"
-            data-testid="button-create-template"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Template
+      <div className="flex items-center justify-between mb-6">
+        <Link href="/credit-control/followup-automation">
+          <Button variant="ghost" size="sm" data-testid="button-back">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Follow-up Automation
           </Button>
-        </div>
+        </Link>
+        <Button
+          onClick={() => {
+            setEditingTemplate(null);
+            form.reset({
+              module: "invoices",
+              name: "",
+              language: "english",
+              scriptText: "",
+              variables: [],
+              isDefault: "No",
+            });
+            setIsCreateDialogOpen(true);
+          }}
+          className="bg-green-600 hover:bg-green-700"
+          data-testid="button-create-template"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Create Template
+        </Button>
       </div>
 
       {/* Stats */}

@@ -29,6 +29,7 @@ const pathToName: Record<string, string> = {
   "/credit-control/category-calculation": "Category Calculation",
   "/credit-control/urgent-actions": "Urgent Actions",
   "/credit-control/followup-automation": "Follow-up Automation",
+  "/credit-control/call-templates": "Call Templates",
   "/action-center/dashboard": "Daily Dashboard",
   "/action-center/tasks": "Tasks",
   "/action-center/call-queue": "Call Queue",
