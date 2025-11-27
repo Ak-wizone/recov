@@ -783,7 +783,7 @@ export default function Landing() {
                   className="group"
                 >
                   <div 
-                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F]"
+                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(255,109,31,0.25)] transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer"
                     style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
                     data-testid={`hexagon-benefit-${index}`}
                   >
@@ -815,7 +815,7 @@ export default function Landing() {
                   className="group"
                 >
                   <div 
-                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F]"
+                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(255,109,31,0.25)] transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer"
                     style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
                     data-testid={`hexagon-benefit-${index + 3}`}
                   >
@@ -847,7 +847,7 @@ export default function Landing() {
                   className="group"
                 >
                   <div 
-                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F]"
+                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(255,109,31,0.25)] transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer"
                     style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
                     data-testid={`hexagon-benefit-${index + 7}`}
                   >
@@ -879,7 +879,7 @@ export default function Landing() {
                   className="group"
                 >
                   <div 
-                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F]"
+                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:shadow-[0_15px_40px_rgba(255,109,31,0.25)] transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer"
                     style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
                     data-testid={`hexagon-benefit-${index + 11}`}
                   >
