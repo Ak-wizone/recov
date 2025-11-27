@@ -177,25 +177,17 @@ export default function RinggScriptMappings() {
 
   return (
     <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Script Mappings</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Manage Ringg.ai script mappings for different modules
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/credit-control/followup-automation">
-            <Button variant="outline" data-testid="button-back">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Configuration
-            </Button>
-          </Link>
-          <Button onClick={handleCreate} data-testid="button-add-mapping">
-            <Plus className="h-4 w-4 mr-2" />
-            Add Script Mapping
+      <div className="flex items-center justify-end gap-2">
+        <Link href="/credit-control/followup-automation">
+          <Button variant="outline" data-testid="button-back">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Configuration
           </Button>
-        </div>
+        </Link>
+        <Button onClick={handleCreate} data-testid="button-add-mapping">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Script Mapping
+        </Button>
       </div>
 
       <div className="border rounded-lg">
