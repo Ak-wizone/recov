@@ -104,10 +104,7 @@ export default function ClientRiskThermometer() {
 
       {/* Client Risk List */}
       <Card>
-        <CardHeader>
-          <CardTitle>Client Risk Assessment</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="space-y-4">
             {riskData.customers.map((customer) => (
               <div
