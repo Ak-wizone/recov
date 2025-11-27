@@ -292,8 +292,8 @@ export default function CommunicationSchedules() {
   }
 
   return (
+    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
     <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -577,7 +577,6 @@ export default function CommunicationSchedules() {
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-end">
@@ -670,5 +669,6 @@ export default function CommunicationSchedules() {
         </CardContent>
       </Card>
     </div>
+    </Dialog>
   );
 }
