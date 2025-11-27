@@ -251,57 +251,45 @@ export default function Ledger() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div className="w-full px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900" data-testid="text-page-title">
-                <FileText className="inline-block w-8 h-8 mr-2 mb-1" />
-                Ledger Account
-              </h1>
-              <p className="text-sm text-gray-500 mt-1">View detailed transaction history and running balance</p>
-            </div>
-            {ledgerData && (
-              <div className="flex gap-2">
-                <Button
-                  onClick={generatePDF}
-                  variant="outline"
-                  size="sm"
-                  data-testid="button-download-pdf"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download PDF
-                </Button>
-                <Button
-                  onClick={handleEmail}
-                  variant="outline"
-                  size="sm"
-                  data-testid="button-email"
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  Email
-                </Button>
-                <Button
-                  onClick={handleWhatsApp}
-                  variant="outline"
-                  size="sm"
-                  className="bg-green-50 hover:bg-green-100"
-                  data-testid="button-whatsapp"
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  WhatsApp
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
       <div className="w-full px-6 lg:px-8 py-8">
         {/* Filters Card */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Filters</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Filters</CardTitle>
+              {ledgerData && (
+                <div className="flex gap-2">
+                  <Button
+                    onClick={generatePDF}
+                    variant="outline"
+                    size="sm"
+                    data-testid="button-download-pdf"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download PDF
+                  </Button>
+                  <Button
+                    onClick={handleEmail}
+                    variant="outline"
+                    size="sm"
+                    data-testid="button-email"
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Email
+                  </Button>
+                  <Button
+                    onClick={handleWhatsApp}
+                    variant="outline"
+                    size="sm"
+                    className="bg-green-50 hover:bg-green-100"
+                    data-testid="button-whatsapp"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    WhatsApp
+                  </Button>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
