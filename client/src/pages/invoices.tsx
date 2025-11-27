@@ -463,18 +463,6 @@ export default function Invoices() {
 
   return (
     <div className="flex flex-col h-full p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Invoices</h1>
-          <p className="text-muted-foreground mt-1">Manage and track all invoices</p>
-        </div>
-        <Button onClick={handleAddNew} className="gap-2" data-testid="button-add-invoice">
-          <Plus className="h-4 w-4" />
-          Add Invoice
-        </Button>
-      </div>
-
       {/* All Filters on One Line */}
       <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex flex-wrap gap-3 items-center">
@@ -652,35 +640,41 @@ export default function Invoices() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-b border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => setActiveTab("invoice-summary")}
-          className={`px-6 py-3 font-medium text-sm transition-colors relative ${
-            activeTab === "invoice-summary"
-              ? "text-blue-600 dark:text-blue-400"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-          }`}
-          data-testid="tab-invoice-summary"
-        >
-          Invoice Summary
-          {activeTab === "invoice-summary" && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
-          )}
-        </button>
-        <button
-          onClick={() => setActiveTab("payment-due-summary")}
-          className={`px-6 py-3 font-medium text-sm transition-colors relative ${
-            activeTab === "payment-due-summary"
-              ? "text-blue-600 dark:text-blue-400"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
-          }`}
-          data-testid="tab-payment-due-summary"
-        >
-          Payment Due Summary
-          {activeTab === "payment-due-summary" && (
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
-          )}
-        </button>
+      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveTab("invoice-summary")}
+            className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+              activeTab === "invoice-summary"
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+            }`}
+            data-testid="tab-invoice-summary"
+          >
+            Invoice Summary
+            {activeTab === "invoice-summary" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("payment-due-summary")}
+            className={`px-6 py-3 font-medium text-sm transition-colors relative ${
+              activeTab === "payment-due-summary"
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+            }`}
+            data-testid="tab-payment-due-summary"
+          >
+            Payment Due Summary
+            {activeTab === "payment-due-summary" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400" />
+            )}
+          </button>
+        </div>
+        <Button onClick={handleAddNew} className="gap-2 mb-2" data-testid="button-add-invoice">
+          <Plus className="h-4 w-4" />
+          Add Invoice
+        </Button>
       </div>
 
       {/* Invoice Summary Tab Content */}
