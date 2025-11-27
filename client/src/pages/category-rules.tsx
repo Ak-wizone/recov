@@ -150,19 +150,8 @@ export default function CategoryRulesPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6 bg-background dark:bg-background">
-      <div className="flex items-center gap-3">
-        <Settings className="h-8 w-8 text-purple-600 dark:text-purple-400" data-testid="icon-settings" />
-        <h1 className="text-3xl font-bold text-foreground dark:text-foreground" data-testid="text-page-title">Category Rules Configuration</h1>
-      </div>
-
       <Card className="bg-card dark:bg-card border-border dark:border-border">
-        <CardHeader>
-          <CardTitle className="text-foreground dark:text-foreground">Recovery Settings</CardTitle>
-          <CardDescription className="text-muted-foreground dark:text-muted-foreground">
-            Configure automatic category escalation based on payment delays
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Auto Mode Toggle */}
