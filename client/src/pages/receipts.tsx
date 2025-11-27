@@ -346,18 +346,6 @@ export default function Receipts() {
 
   return (
     <div className="flex flex-col h-full p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Receipts</h1>
-          <p className="text-muted-foreground mt-1">Manage and track all receipts</p>
-        </div>
-        <Button onClick={handleAddNew} className="gap-2" data-testid="button-add-receipt">
-          <Plus className="h-4 w-4" />
-          Add Receipt
-        </Button>
-      </div>
-
       {/* Date Filter Mode Selector */}
       <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg border">
         <div className="flex items-center gap-2">
@@ -656,35 +644,41 @@ export default function Receipts() {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3">
-        <Button
-          variant="outline"
-          onClick={() => exportMutation.mutate()}
-          disabled={exportMutation.isPending}
-          className="gap-2"
-          data-testid="button-export"
-        >
-          <FileDown className="h-4 w-4" />
-          Export
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setIsImportDialogOpen(true)}
-          className="gap-2"
-          data-testid="button-import"
-        >
-          <FileUp className="h-4 w-4" />
-          Import
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => downloadTemplateMutation.mutate()}
-          disabled={downloadTemplateMutation.isPending}
-          className="gap-2"
-          data-testid="button-template"
-        >
-          <FileDown className="h-4 w-4" />
-          Download Template
+      <div className="flex flex-wrap gap-3 items-center justify-between">
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant="outline"
+            onClick={() => exportMutation.mutate()}
+            disabled={exportMutation.isPending}
+            className="gap-2"
+            data-testid="button-export"
+          >
+            <FileDown className="h-4 w-4" />
+            Export
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setIsImportDialogOpen(true)}
+            className="gap-2"
+            data-testid="button-import"
+          >
+            <FileUp className="h-4 w-4" />
+            Import
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => downloadTemplateMutation.mutate()}
+            disabled={downloadTemplateMutation.isPending}
+            className="gap-2"
+            data-testid="button-template"
+          >
+            <FileDown className="h-4 w-4" />
+            Download Template
+          </Button>
+        </div>
+        <Button onClick={handleAddNew} className="gap-2" data-testid="button-add-receipt">
+          <Plus className="h-4 w-4" />
+          Add Receipt
         </Button>
       </div>
 
