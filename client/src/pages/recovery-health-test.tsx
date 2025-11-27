@@ -55,14 +55,6 @@ export default function RecoveryHealthTest() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Recovery System Health Test</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Evaluate payment recovery process effectiveness</p>
-        </div>
-      </div>
-
       {/* Health Score Card */}
       <Card className={`border-l-4 ${healthStyle.border}`} data-testid="card-health-score">
         <CardHeader>
