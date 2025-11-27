@@ -172,20 +172,6 @@ export default function TelegramLink() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Bot className="h-8 w-8 text-primary" />
-            Telegram Bot Integration
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Link your Telegram account to receive business intelligence updates
-          </p>
-        </div>
-      </div>
-
-      <Separator />
 
       {/* Quick Instructions */}
       <Card>

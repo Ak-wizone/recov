@@ -57,6 +57,7 @@ const pathToName: Record<string, string> = {
   "/backup-restore": "Backup & Restore",
   "/tenant-profile": "Tenant Profile",
   "/payment-analytics": "Payment Analytics",
+  "/telegram-link": "Telegram Bot",
 };
 
 export default function Header() {
