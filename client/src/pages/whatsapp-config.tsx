@@ -112,32 +112,16 @@ export default function WhatsAppConfig() {
 
   return (
     <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <MessageSquare className="h-8 w-8 text-green-600" />
-            WhatsApp Configuration
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Configure WhatsApp API settings for automated messaging
-          </p>
-        </div>
-        <Link href="/credit-control/followup-automation">
-          <Button variant="outline" data-testid="button-back">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Configuration
-          </Button>
-        </Link>
-      </div>
-
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>WhatsApp Configuration</CardTitle>
-              <CardDescription>
-                Choose your WhatsApp API provider and configure the credentials. Or use the simple Click-to-Chat feature (no configuration needed).
-              </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-end">
+              <Link href="/credit-control/followup-automation">
+                <Button variant="outline" data-testid="button-back">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Configuration
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
