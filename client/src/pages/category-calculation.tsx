@@ -226,6 +226,13 @@ export default function CategoryCalculationPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6 bg-background dark:bg-background">
+      <div className="flex items-center gap-3">
+        <Calculator className="h-8 w-8 text-blue-600 dark:text-blue-400" data-testid="icon-calculator" />
+        <h1 className="text-3xl font-bold text-foreground dark:text-foreground" data-testid="text-page-title">
+          Category Calculation & Review
+        </h1>
+      </div>
+
       {/* Filter Panel */}
       <Card className="bg-card dark:bg-card border-border dark:border-border">
         <CardHeader>

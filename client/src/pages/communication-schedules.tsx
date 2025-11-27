@@ -293,7 +293,13 @@ export default function CommunicationSchedules() {
 
   return (
     <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Communication Schedules</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
+            Schedule automated calls, emails, and WhatsApp messages
+          </p>
+        </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={resetForm} data-testid="button-add-schedule">

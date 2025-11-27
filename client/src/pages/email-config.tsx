@@ -233,7 +233,13 @@ export default function EmailConfig() {
 
   return (
     <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Email Configuration</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">
+            Configure email settings for sending notifications and communications
+          </p>
+        </div>
         <Link href="/credit-control/followup-automation">
           <Button variant="outline" data-testid="button-back">
             <ArrowLeft className="h-4 w-4 mr-2" />
