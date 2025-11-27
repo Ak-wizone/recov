@@ -127,37 +127,6 @@ export default function PaymentAnalytics() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                Payment Analytics
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Analyze customer payment behavior and identify reliable payers
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={handleRecalculate}
-                disabled={isRecalculating}
-                variant="outline"
-                data-testid="button-recalculate"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRecalculating ? 'animate-spin' : ''}`} />
-                {isRecalculating ? 'Recalculating...' : 'Recalculate'}
-              </Button>
-              <Link href="/payment-analytics/reliable-customers" data-testid="link-view-report-header">
-                <Button data-testid="button-view-report">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Reliable Customers Report
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-0 shadow-lg">
@@ -231,9 +200,28 @@ export default function PaymentAnalytics() {
 
         {/* Classification Segments */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-            Customer Segments by Payment Behavior
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Customer Segments by Payment Behavior
+            </h2>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleRecalculate}
+                disabled={isRecalculating}
+                variant="outline"
+                data-testid="button-recalculate"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRecalculating ? 'animate-spin' : ''}`} />
+                {isRecalculating ? 'Recalculating...' : 'Recalculate'}
+              </Button>
+              <Link href="/payment-analytics/reliable-customers" data-testid="link-view-report-header">
+                <Button data-testid="button-view-report">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Reliable Customers Report
+                </Button>
+              </Link>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {dashboardData?.segments.map((segment) => {
               const config = getClassificationConfig(segment.classification);
