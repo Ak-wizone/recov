@@ -351,14 +351,6 @@ export default function Home() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Business Overview</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Complete view of your business operations</p>
-        </div>
-      </div>
-
       {/* Financial Snapshot Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {shouldShowCard("Total Revenue", user?.allowedDashboardCards, isPlatformAdmin) && (
