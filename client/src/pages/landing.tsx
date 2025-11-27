@@ -747,9 +747,9 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Benefits Section */}
-      <section id="benefits" className="py-12 md:py-20 px-4 bg-white dark:bg-gray-950">
-        <div className="container mx-auto">
+      {/* Benefits Section - Honeycomb Layout */}
+      <section id="benefits" className="py-12 md:py-20 px-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950 overflow-hidden">
+        <div className="container mx-auto max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -758,49 +758,170 @@ export default function Landing() {
             className="text-center mb-12 md:mb-16"
           >
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 md:mb-6 px-2">
+              <span className="text-gray-900 dark:text-white">Why Choose </span>
               <span className="bg-gradient-to-r from-[#FF6D1F] to-[#FF8C42] bg-clip-text text-transparent">
-                WHY CHOOSE RECOV
+                RECOV
               </span>
             </h2>
-            <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 font-semibold max-w-3xl mx-auto px-4">
+            <p className="text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto px-4">
               Make your slow payments fast, and start recovering your blocked payments today.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* Honeycomb Grid */}
+          <div className="hidden lg:block">
+            {/* Row 1 - 3 hexagons */}
+            <div className="flex justify-center gap-4 mb-[-30px]">
+              {benefits.slice(0, 3).map((benefit, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  className="group"
+                >
+                  <div 
+                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F]"
+                    style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+                    data-testid={`hexagon-benefit-${index}`}
+                  >
+                    <motion.div 
+                      className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-3 group-hover:bg-[#FF6D1F] transition-colors duration-300"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <benefit.icon className="h-7 w-7 text-[#FF6D1F] group-hover:text-white transition-colors duration-300" />
+                    </motion.div>
+                    <h3 className="text-sm font-bold text-center text-gray-900 dark:text-white group-hover:text-[#FF6D1F] transition-colors duration-300 leading-tight px-2">
+                      {benefit.title}
+                    </h3>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Row 2 - 4 hexagons (offset) */}
+            <div className="flex justify-center gap-4 mb-[-30px]">
+              {benefits.slice(3, 7).map((benefit, index) => (
+                <motion.div
+                  key={index + 3}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: (index + 3) * 0.1 }}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  className="group"
+                >
+                  <div 
+                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F]"
+                    style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+                    data-testid={`hexagon-benefit-${index + 3}`}
+                  >
+                    <motion.div 
+                      className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-3 group-hover:bg-[#FF6D1F] transition-colors duration-300"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <benefit.icon className="h-7 w-7 text-[#FF6D1F] group-hover:text-white transition-colors duration-300" />
+                    </motion.div>
+                    <h3 className="text-sm font-bold text-center text-gray-900 dark:text-white group-hover:text-[#FF6D1F] transition-colors duration-300 leading-tight px-2">
+                      {benefit.title}
+                    </h3>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Row 3 - 4 hexagons */}
+            <div className="flex justify-center gap-4 mb-[-30px]">
+              {benefits.slice(7, 11).map((benefit, index) => (
+                <motion.div
+                  key={index + 7}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: (index + 7) * 0.1 }}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  className="group"
+                >
+                  <div 
+                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F]"
+                    style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+                    data-testid={`hexagon-benefit-${index + 7}`}
+                  >
+                    <motion.div 
+                      className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-3 group-hover:bg-[#FF6D1F] transition-colors duration-300"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <benefit.icon className="h-7 w-7 text-[#FF6D1F] group-hover:text-white transition-colors duration-300" />
+                    </motion.div>
+                    <h3 className="text-sm font-bold text-center text-gray-900 dark:text-white group-hover:text-[#FF6D1F] transition-colors duration-300 leading-tight px-2">
+                      {benefit.title}
+                    </h3>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Row 4 - 3 hexagons (offset) */}
+            <div className="flex justify-center gap-4">
+              {benefits.slice(11, 14).map((benefit, index) => (
+                <motion.div
+                  key={index + 11}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: (index + 11) * 0.1 }}
+                  whileHover={{ scale: 1.05, y: -5 }}
+                  className="group"
+                >
+                  <div 
+                    className="w-[220px] h-[250px] bg-white dark:bg-gray-800 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col items-center justify-center p-6 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F]"
+                    style={{ clipPath: "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)" }}
+                    data-testid={`hexagon-benefit-${index + 11}`}
+                  >
+                    <motion.div 
+                      className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-3 group-hover:bg-[#FF6D1F] transition-colors duration-300"
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <benefit.icon className="h-7 w-7 text-[#FF6D1F] group-hover:text-white transition-colors duration-300" />
+                    </motion.div>
+                    <h3 className="text-sm font-bold text-center text-gray-900 dark:text-white group-hover:text-[#FF6D1F] transition-colors duration-300 leading-tight px-2">
+                      {benefit.title}
+                    </h3>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile/Tablet Grid - Regular cards for smaller screens */}
+          <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {benefits.map((benefit, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 40, scale: 0.9 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ 
-                  duration: 0.6, 
-                  delay: index * 0.08,
-                  type: "spring",
-                  stiffness: 100
-                }}
-                whileHover={{ 
-                  y: -8,
-                  transition: { duration: 0.3 }
-                }}
+                transition={{ duration: 0.4, delay: index * 0.05 }}
+                whileHover={{ y: -5 }}
+                className="group"
               >
-                <Card 
-                  className="h-full bg-white dark:bg-gray-900 hover:shadow-2xl transition-all duration-500 border-2 border-gray-100 dark:border-gray-800 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F] group cursor-pointer relative overflow-hidden" 
-                  data-testid={`card-benefit-${index}`}
+                <div 
+                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-6 text-center border border-gray-100 dark:border-gray-700 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F]"
+                  data-testid={`card-benefit-mobile-${index}`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-transparent dark:from-orange-950/20 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <CardHeader className="text-center flex flex-col items-center relative z-10 py-8">
-                    <motion.div 
-                      className={`w-20 h-20 rounded-2xl ${benefit.color} flex items-center justify-center mb-5 shadow-lg group-hover:shadow-xl transition-all duration-300`}
-                      whileHover={{ rotate: [0, -5, 5, 0], scale: 1.1 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <benefit.icon className="h-10 w-10" />
-                    </motion.div>
-                    <CardTitle className="text-lg md:text-xl font-bold group-hover:text-[#FF6D1F] transition-colors duration-300">{benefit.title}</CardTitle>
-                  </CardHeader>
-                </Card>
+                  <div className="w-14 h-14 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mx-auto mb-4 group-hover:bg-[#FF6D1F] transition-colors duration-300">
+                    <benefit.icon className="h-7 w-7 text-[#FF6D1F] group-hover:text-white transition-colors duration-300" />
+                  </div>
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-[#FF6D1F] transition-colors duration-300">
+                    {benefit.title}
+                  </h3>
+                </div>
               </motion.div>
             ))}
           </div>
