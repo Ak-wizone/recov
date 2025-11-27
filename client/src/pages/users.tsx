@@ -511,7 +511,7 @@ function Users() {
         </Card>
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 items-center">
         {hasPermission("User Management", "create") && (
           <Button onClick={handleAdd} data-testid="button-add-user">
             <Plus className="mr-2 h-4 w-4" />
@@ -549,9 +549,7 @@ function Users() {
             Delete Selected ({Object.keys(rowSelection).length})
           </Button>
         )}
-      </div>
-
-      <div className="space-y-4">
+        <div className="flex-1" />
         <Input
           placeholder="Search users..."
           value={globalFilter ?? ""}
@@ -559,7 +557,9 @@ function Users() {
           className="max-w-sm"
           data-testid="input-search"
         />
+      </div>
 
+      <div className="space-y-4">
         <div className="rounded-md border">
           <table className="w-full">
             <thead>
