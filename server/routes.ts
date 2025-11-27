@@ -6636,6 +6636,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Sync customer data to invoices from master customers
+  app.post("/api/invoices/sync-customer-data", requirePermission("Invoices", "edit"), async (req, res) => {
+    try {
+      const allInvoices = await storage.getInvoices(req.tenantId!);
+      const allCustomers = await storage.getMasterCustomers(req.tenantId!);
+      
+      let updated = 0;
+      let skipped = 0;
+      const updates: string[] = [];
+      
+      for (const invoice of allInvoices) {
+        // Skip invoices without customer name
+        if (!invoice.customerName) {
+          skipped++;
+          continue;
+        }
+        
+        // Case-insensitive match on company name (skip customers without clientName)
+        const customer = allCustomers.find(c => 
+          c.clientName && invoice.customerName &&
+          c.clientName.toLowerCase().trim() === invoice.customerName.toLowerCase().trim()
+        );
+        
+        if (!customer) {
+          skipped++;
+          continue;
+        }
+        
+        // Prepare update data from customer master
+        const updateData: any = {};
+        
+        if (customer.primaryMobile) updateData.primaryMobile = customer.primaryMobile;
+        if (customer.city) updateData.city = customer.city;
+        if (customer.pincode) updateData.pincode = customer.pincode;
+        if (customer.paymentTermsDays) {
+          const parsed = parseInt(customer.paymentTermsDays);
+          if (!isNaN(parsed)) updateData.paymentTerms = parsed;
+        }
+        if (customer.creditLimit) updateData.creditLimit = customer.creditLimit;
+        if (customer.interestApplicableFrom) updateData.interestApplicableFrom = customer.interestApplicableFrom;
+        if (customer.interestRate) updateData.interestRate = customer.interestRate;
+        if (customer.salesPerson) updateData.salesPerson = customer.salesPerson;
+        if (customer.category) updateData.category = customer.category;
+        if (customer.primaryEmail) updateData.primaryEmail = customer.primaryEmail;
+        
+        // Only update if there's data to update
+        if (Object.keys(updateData).length > 0) {
+          await storage.updateInvoice(req.tenantId!, invoice.id, updateData);
+          updated++;
+          updates.push(`${invoice.invoiceNumber}: ${Object.keys(updateData).join(', ')}`);
+        } else {
+          skipped++;
+        }
+      }
+      
+      // Broadcast real-time update
+      wsManager.broadcast(req.tenantId!, {
+        type: 'data_change',
+        module: 'invoices',
+        action: 'bulk_update',
+        data: { updated }
+      });
+      
+      res.json({ 
+        message: `Updated ${updated} invoices with customer data, skipped ${skipped} invoices`,
+        updated,
+        skipped,
+        total: allInvoices.length,
+        details: updates.slice(0, 10) // Return first 10 updates for reference
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Delete invoice
   app.delete("/api/invoices/:id", async (req, res) => {
     try {

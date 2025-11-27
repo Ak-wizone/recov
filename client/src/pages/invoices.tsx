@@ -210,13 +210,46 @@ export default function Invoices() {
   const handleSync = async () => {
     setIsSyncing(true);
     try {
+      // First, sync customer data from master customers to invoices
+      const syncResponse = await fetch("/api/invoices/sync-customer-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      let syncMessage = "";
+      let syncError = "";
+      
+      if (syncResponse.ok) {
+        const syncResult = await syncResponse.json();
+        if (syncResult.updated > 0) {
+          syncMessage = ` | ${syncResult.updated} invoices enriched with customer data`;
+        }
+      } else {
+        try {
+          const errorResult = await syncResponse.json();
+          syncError = errorResult.message || "Failed to sync customer data";
+        } catch {
+          syncError = "Failed to sync customer data";
+        }
+      }
+      
+      // Then refresh the data
       await queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
       await queryClient.invalidateQueries({ queryKey: ["/api/invoices/dashboard-stats"] });
       await queryClient.invalidateQueries({ queryKey: ["/api/debtors"] });
-      toast({
-        title: "Success",
-        description: "Invoice data synced successfully from database",
-      });
+      
+      if (syncError) {
+        toast({
+          title: "Partial Success",
+          description: `Data refreshed but customer sync failed: ${syncError}`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: `Invoice data synced successfully${syncMessage}`,
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
