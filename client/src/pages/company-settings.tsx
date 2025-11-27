@@ -210,18 +210,6 @@ export default function CompanySettings() {
   return (
     <div className="flex-1 space-y-8 p-6 overflow-auto bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
       <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <Building2 className="h-9 w-9 text-blue-600 dark:text-blue-400" />
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Company Settings
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Manage your company profile, business information, and team members
-            </p>
-          </div>
-        </div>
-
         {/* Sales Person Management */}
         <div className="mb-8">
           <SalesPersonManagement />
