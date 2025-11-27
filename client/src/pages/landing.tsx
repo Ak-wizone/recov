@@ -110,7 +110,7 @@ const benefits = [
   },
   {
     icon: TrendingDown,
-    title: "Bad Payers",
+    title: "Auto Segregate bad Payers",
     description: "Identify and manage customers with poor payment track records",
     color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
@@ -122,14 +122,20 @@ const benefits = [
   },
   {
     icon: LineChart,
-    title: "Cash Flow Forecaster",
+    title: "Collection Forecast",
     description: "Predict future cash flow based on payment patterns and trends",
     color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   },
   {
     icon: Mic,
-    title: "Use Your Own AI Voice For Collection",
+    title: "Use your own AI voice for collection formula",
     description: "Customize AI voice calls with your own voice for personalized collections",
+    color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
+  },
+  {
+    icon: Zap,
+    title: "30-40% Faster Collection",
+    description: "Accelerate your payment recovery with AI-powered automation and smart follow-ups",
     color: "bg-orange-100 text-[#FF6D1F] dark:bg-orange-900/30 dark:text-orange-400"
   }
 ];
@@ -765,17 +771,34 @@ export default function Landing() {
             {benefits.map((benefit, index) => (
               <motion.div
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 40, scale: 0.9 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
+                transition={{ 
+                  duration: 0.6, 
+                  delay: index * 0.08,
+                  type: "spring",
+                  stiffness: 100
+                }}
+                whileHover={{ 
+                  y: -8,
+                  transition: { duration: 0.3 }
+                }}
               >
-                <Card className="h-full hover:shadow-xl transition-all duration-300 border-2 hover:border-[#FF6D1F]" data-testid={`card-benefit-${index}`}>
-                  <CardHeader className="text-center flex flex-col items-center">
-                    <div className={`w-16 h-16 rounded-lg ${benefit.color} flex items-center justify-center mb-4`}>
-                      <benefit.icon className="h-8 w-8" />
-                    </div>
-                    <CardTitle className="text-lg md:text-xl">{benefit.title}</CardTitle>
+                <Card 
+                  className="h-full bg-white dark:bg-gray-900 hover:shadow-2xl transition-all duration-500 border-2 border-gray-100 dark:border-gray-800 hover:border-[#FF6D1F] dark:hover:border-[#FF6D1F] group cursor-pointer relative overflow-hidden" 
+                  data-testid={`card-benefit-${index}`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-transparent dark:from-orange-950/20 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <CardHeader className="text-center flex flex-col items-center relative z-10 py-8">
+                    <motion.div 
+                      className={`w-20 h-20 rounded-2xl ${benefit.color} flex items-center justify-center mb-5 shadow-lg group-hover:shadow-xl transition-all duration-300`}
+                      whileHover={{ rotate: [0, -5, 5, 0], scale: 1.1 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <benefit.icon className="h-10 w-10" />
+                    </motion.div>
+                    <CardTitle className="text-lg md:text-xl font-bold group-hover:text-[#FF6D1F] transition-colors duration-300">{benefit.title}</CardTitle>
                   </CardHeader>
                 </Card>
               </motion.div>
