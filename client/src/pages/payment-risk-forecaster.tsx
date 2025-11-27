@@ -64,14 +64,6 @@ export default function PaymentRiskForecaster() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Payment Risk Forecaster</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Predict payment delays and stuck transactions</p>
-        </div>
-      </div>
-
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         {shouldShowCard("High Risk", user?.allowedDashboardCards, isPlatformAdmin) && (
