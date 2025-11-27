@@ -299,31 +299,6 @@ export default function CreditManagement() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-white/80 backdrop-blur-lg border-b border-gray-200 sticky top-0 z-10 shadow-sm animate-in slide-in-from-top duration-500">
-        <div className="w-full px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900" data-testid="text-page-title">
-                Credit Management
-              </h1>
-              <p className="text-sm text-gray-500 mt-1">Monitor credit limits and utilization</p>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={() => exportMutation.mutate()}
-                variant="outline"
-                className="shadow-md hover:shadow-lg transition-all duration-200"
-                disabled={exportMutation.isPending}
-                data-testid="button-export"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                {exportMutation.isPending ? "Exporting..." : "Export"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="w-full px-6 lg:px-8 py-8">
         <div className="mb-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -496,6 +471,18 @@ export default function CreditManagement() {
             enableGlobalFilter={true}
             enableColumnVisibility={true}
             enableSorting={true}
+            customToolbarActions={
+              <Button
+                onClick={() => exportMutation.mutate()}
+                variant="outline"
+                size="sm"
+                disabled={exportMutation.isPending}
+                data-testid="button-export"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {exportMutation.isPending ? "Exporting..." : "Export"}
+              </Button>
+            }
           />
         </div>
       </div>
