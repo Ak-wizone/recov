@@ -56,9 +56,10 @@ interface DebtorsTableProps {
   onOpenEmail: (debtor: DebtorData) => void;
   onOpenCall: (debtor: DebtorData) => void;
   onFilteredDataChange?: (rows: DebtorData[]) => void;
+  customToolbarActions?: React.ReactNode;
 }
 
-export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, onFilteredDataChange }: DebtorsTableProps) {
+export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, onFilteredDataChange, customToolbarActions }: DebtorsTableProps) {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { canPerformAction } = useAuth();
@@ -505,6 +506,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
         enableColumnVisibility={true}
         enablePagination={true}
         defaultColumnVisibility={defaultColumnVisibility}
+        customToolbarActions={customToolbarActions}
       />
 
       {/* Customer Actions Dialog */}

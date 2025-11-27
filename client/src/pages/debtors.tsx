@@ -568,56 +568,7 @@ export default function Debtors() {
 
         {/* Debtors Grid */}
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-2xl">
-                  {categoryFilter ? `${categoryFilter} Debtors` : "All Debtors"}
-                  {followUpFilter && (
-                    <span className="text-base font-normal text-gray-600 dark:text-gray-400 ml-2">
-                      - {followUpFilter === "overdue" ? "Overdue" : 
-                         followUpFilter === "dueToday" ? "Due Today" :
-                         followUpFilter === "dueTomorrow" ? "Tomorrow" :
-                         followUpFilter === "dueThisWeek" ? "This Week" :
-                         followUpFilter === "dueThisMonth" ? "This Month" :
-                         "No Follow-Up"}
-                    </span>
-                  )}
-                </CardTitle>
-                {followUpFilter && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    Total Outstanding: <span className="font-semibold text-red-600 dark:text-red-400">{formatCurrency(totalBalanceFiltered)}</span>
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => exportMutation.mutate()}
-                  disabled={exportMutation.isPending}
-                  data-testid="button-export-debtors"
-                >
-                  <FileDown className="h-4 w-4 mr-2" />
-                  {exportMutation.isPending ? "Exporting..." : "Export"}
-                </Button>
-                {(categoryFilter || followUpFilter) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setCategoryFilter(null);
-                      setFollowUpFilter(null);
-                    }}
-                    data-testid="button-clear-filter"
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {isLoading ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">Loading debtors...</p>
@@ -629,6 +580,33 @@ export default function Debtors() {
                 onOpenEmail={handleOpenEmail}
                 onOpenCall={handleOpenCall}
                 onFilteredDataChange={setSearchFilteredDebtors}
+                customToolbarActions={
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => exportMutation.mutate()}
+                      disabled={exportMutation.isPending}
+                      data-testid="button-export-debtors"
+                    >
+                      <FileDown className="h-4 w-4 mr-2" />
+                      {exportMutation.isPending ? "Exporting..." : "Export"}
+                    </Button>
+                    {(categoryFilter || followUpFilter) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCategoryFilter(null);
+                          setFollowUpFilter(null);
+                        }}
+                        data-testid="button-clear-filter"
+                      >
+                        Clear Filters
+                      </Button>
+                    )}
+                  </div>
+                }
               />
             )}
           </CardContent>
