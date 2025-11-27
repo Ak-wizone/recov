@@ -208,41 +208,6 @@ export default function TelecmiConfig() {
 
   return (
     <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">Telecmi PIOPIY Configuration</h1>
-            {connectionStatus && (
-              <Badge 
-                variant={connectionStatus.connected ? "default" : "destructive"}
-                className={connectionStatus.connected ? "bg-green-500 hover:bg-green-600" : ""}
-              >
-                {connectionStatus.connected ? (
-                  <>
-                    <CheckCircle2 className="h-3 w-3 mr-1" />
-                    Connected
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Not Connected
-                  </>
-                )}
-              </Badge>
-            )}
-          </div>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Configure Telecmi PIOPIY voice calling integration for payment reminders
-          </p>
-        </div>
-        <Link href="/credit-control/followup-automation">
-          <Button variant="outline" data-testid="button-back">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Configuration
-          </Button>
-        </Link>
-      </div>
-
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
@@ -254,12 +219,38 @@ export default function TelecmiConfig() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Phone className="h-5 w-5" />
-                API Configuration
-              </CardTitle>
-              <CardDescription>Configure your Telecmi PIOPIY API credentials</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Phone className="h-5 w-5" />
+                  API Configuration
+                  {connectionStatus && (
+                    <Badge 
+                      variant={connectionStatus.connected ? "default" : "destructive"}
+                      className={connectionStatus.connected ? "bg-green-500 hover:bg-green-600" : ""}
+                    >
+                      {connectionStatus.connected ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3 mr-1" />
+                          Connected
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          Not Connected
+                        </>
+                      )}
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>Configure your Telecmi PIOPIY API credentials</CardDescription>
+              </div>
+              <Link href="/credit-control/followup-automation">
+                <Button variant="outline" data-testid="button-back">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Configuration
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
