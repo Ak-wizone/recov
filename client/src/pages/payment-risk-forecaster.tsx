@@ -108,10 +108,7 @@ export default function PaymentRiskForecaster() {
 
       {/* Forecast List */}
       <Card>
-        <CardHeader>
-          <CardTitle>Payment Stuck Probability Forecast</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="space-y-4">
             {forecastData.forecasts.length > 0 ? (
               forecastData.forecasts.map((forecast) => {
