@@ -179,28 +179,17 @@ export default function WhatsAppTemplates() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <MessageSquare className="h-8 w-8 text-green-600" />
-              WhatsApp Templates
-            </h1>
-            <p className="text-gray-500 mt-1">Manage WhatsApp message templates for your business modules</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/credit-control/followup-automation">
-            <Button variant="outline" data-testid="button-back">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Configuration
-            </Button>
-          </Link>
-          <Button onClick={handleCreate} data-testid="button-create-template">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Template
+      <div className="flex items-center justify-end gap-2 mb-6">
+        <Link href="/credit-control/followup-automation">
+          <Button variant="outline" data-testid="button-back">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Configuration
           </Button>
-        </div>
+        </Link>
+        <Button onClick={handleCreate} data-testid="button-create-template">
+          <Plus className="h-4 w-4 mr-2" />
+          Create Template
+        </Button>
       </div>
 
       <Alert className="mb-6 bg-green-50 border-green-200">
