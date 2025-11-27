@@ -733,12 +733,6 @@ export default function Roles() {
 
   return (
     <div className="p-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold" data-testid="text-page-title">
-          Roles Management
-        </h1>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardContent className="pt-6">
@@ -769,7 +763,7 @@ export default function Roles() {
         </Card>
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-4 items-center">
         {hasPermission("Roles Management", "create") && (
           <Button onClick={handleAdd} data-testid="button-add-role">
             <Plus className="mr-2 h-4 w-4" />
@@ -807,9 +801,7 @@ export default function Roles() {
             Delete Selected ({Object.keys(rowSelection).length})
           </Button>
         )}
-      </div>
-
-      <div className="space-y-4">
+        <div className="flex-1" />
         <Input
           placeholder="Search roles..."
           value={globalFilter ?? ""}
@@ -817,7 +809,9 @@ export default function Roles() {
           className="max-w-sm"
           data-testid="input-search"
         />
+      </div>
 
+      <div className="space-y-4">
         <div className="rounded-md border">
           <table className="w-full">
             <thead>
