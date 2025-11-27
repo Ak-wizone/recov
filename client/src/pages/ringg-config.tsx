@@ -134,21 +134,6 @@ export default function RinggConfig() {
 
   return (
     <div className="flex-1 space-y-6 p-6 overflow-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Ringg.ai Configuration</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Configure Ringg.ai calling agent integration settings
-          </p>
-        </div>
-        <Link href="/credit-control/followup-automation">
-          <Button variant="outline" data-testid="button-back">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Configuration
-          </Button>
-        </Link>
-      </div>
-
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
@@ -159,12 +144,20 @@ export default function RinggConfig() {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Phone className="h-5 w-5" />
-                API Configuration
-              </CardTitle>
-              <CardDescription>Configure your Ringg.ai API credentials</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Phone className="h-5 w-5" />
+                  API Configuration
+                </CardTitle>
+                <CardDescription>Configure your Ringg.ai API credentials</CardDescription>
+              </div>
+              <Link href="/credit-control/followup-automation">
+                <Button variant="outline" data-testid="button-back">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Configuration
+                </Button>
+              </Link>
             </CardHeader>
             <CardContent className="space-y-4">
               <FormField
