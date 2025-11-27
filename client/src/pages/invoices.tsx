@@ -23,7 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp, Wallet, MessageSquare, Mail, RefreshCw } from "lucide-react";
+import { Plus, FileDown, FileUp, X, CheckCircle2, AlertCircle, Clock, Users, DollarSign, TrendingUp, Wallet, MessageSquare, Mail, RefreshCw, Pencil } from "lucide-react";
+import { Link } from "wouter";
 import {
   Select,
   SelectContent,
@@ -636,6 +637,15 @@ export default function Invoices() {
             <RefreshCw className={`h-4 w-4 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
             Sync
           </Button>
+          <Link href="/update-gp">
+            <Button
+              variant="outline"
+              data-testid="button-update-gp"
+            >
+              <Pencil className="h-4 w-4 mr-2" />
+              Update GP
+            </Button>
+          </Link>
         </div>
       </div>
 
