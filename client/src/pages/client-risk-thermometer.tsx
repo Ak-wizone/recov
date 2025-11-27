@@ -55,14 +55,6 @@ export default function ClientRiskThermometer() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Client Risk Thermometer</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Predict client payment default probability</p>
-        </div>
-      </div>
-
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="border-l-4 border-l-red-500" data-testid="card-high-risk">
