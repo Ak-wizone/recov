@@ -141,6 +141,152 @@ const PAYMENT_RECEIPT_EMAIL_TEMPLATE = `
 </div>
 `;
 
+// Invoice notification email template
+const INVOICE_NOTIFICATION_EMAIL_TEMPLATE = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+  <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #FF6D1F; padding-bottom: 20px;">
+    <h1 style="color: #FF6D1F; margin: 0; font-size: 28px;">New Invoice</h1>
+    <p style="color: #666; font-size: 16px; margin-top: 10px;">Invoice #{invoiceNumber}</p>
+  </div>
+  
+  <p style="color: #444; font-size: 16px;">Dear {customerName},</p>
+  <p style="color: #666; font-size: 16px;">A new invoice has been generated for you. Please find the details below:</p>
+  
+  <div style="background-color: #f8f9fa; padding: 25px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #FF6D1F;">
+    <h3 style="margin-top: 0; color: #333; font-size: 18px;">Invoice Details</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #666; width: 40%;"><strong>Invoice Number:</strong></td>
+        <td style="padding: 8px 0; color: #333;">{invoiceNumber}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #666;"><strong>Invoice Date:</strong></td>
+        <td style="padding: 8px 0; color: #333;">{invoiceDate}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #666;"><strong>Amount:</strong></td>
+        <td style="padding: 8px 0; color: #FF6D1F; font-size: 20px; font-weight: bold;">₹{invoiceAmount}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #666;"><strong>Payment Terms:</strong></td>
+        <td style="padding: 8px 0; color: #333;">{paymentTerms} days</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #666;"><strong>Due Date:</strong></td>
+        <td style="padding: 8px 0; color: #333;">{dueDate}</td>
+      </tr>
+    </table>
+  </div>
+  
+  <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #ffc107;">
+    <p style="margin: 0; color: #856404; font-size: 14px;">
+      <strong>Payment Reminder:</strong> Please ensure timely payment to avoid any inconvenience. 
+      For any queries regarding this invoice, please contact us.
+    </p>
+  </div>
+  
+  <p style="color: #666; font-size: 16px; margin-top: 30px;">
+    Thank you for your business. We appreciate your prompt attention to this invoice.
+  </p>
+  
+  <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0;">
+    <p style="margin: 5px 0; color: #333;">Best regards,</p>
+    <p style="margin: 5px 0; color: #333;"><strong>{companyName}</strong></p>
+    {companyContact}
+  </div>
+</div>
+`;
+
+// Helper function to send invoice notification email to customer
+async function sendInvoiceNotificationEmail(
+  tenantId: string,
+  invoice: any,
+  companyProfile: any | null
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // Check if customer has email
+    if (!invoice.primaryEmail) {
+      return {
+        success: false,
+        message: "Customer email not available"
+      };
+    }
+
+    // Get tenant's email configuration
+    const emailConfig = await storage.getEmailConfig(tenantId);
+    
+    if (!emailConfig) {
+      return {
+        success: false,
+        message: "Email configuration not found. Please set up email config first."
+      };
+    }
+
+    // Calculate due date based on payment terms
+    const invoiceDate = new Date(invoice.invoiceDate);
+    const paymentTerms = invoice.paymentTerms || 30;
+    const dueDate = new Date(invoiceDate);
+    dueDate.setDate(dueDate.getDate() + paymentTerms);
+
+    // Format amounts
+    const formattedAmount = parseFloat(invoice.invoiceAmount).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+
+    // Build company contact info
+    let companyContact = '';
+    if (companyProfile) {
+      const contactParts = [];
+      if (companyProfile.phone) contactParts.push(`📞 ${companyProfile.phone}`);
+      if (companyProfile.email) contactParts.push(`📧 ${companyProfile.email}`);
+      if (companyProfile.address) contactParts.push(`📍 ${companyProfile.address}`);
+      companyContact = contactParts.map(c => `<p style="margin: 5px 0; color: #666;">${c}</p>`).join('');
+    }
+
+    // Render the email template
+    const emailBody = renderTemplate(INVOICE_NOTIFICATION_EMAIL_TEMPLATE, {
+      invoiceNumber: invoice.invoiceNumber,
+      customerName: invoice.customerName,
+      invoiceDate: invoiceDate.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }),
+      invoiceAmount: formattedAmount,
+      paymentTerms: paymentTerms.toString(),
+      dueDate: dueDate.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }),
+      companyName: companyProfile?.companyName || 'Our Company',
+      companyContact: companyContact
+    });
+
+    // Send the email
+    await sendEmail(
+      emailConfig,
+      invoice.primaryEmail,
+      `Invoice #${invoice.invoiceNumber} - ${companyProfile?.companyName || 'Invoice Notification'}`,
+      emailBody
+    );
+
+    console.log(`✓ Invoice notification email sent to ${invoice.primaryEmail} for invoice ${invoice.invoiceNumber}`);
+
+    return {
+      success: true,
+      message: "Invoice notification email sent successfully"
+    };
+  } catch (error: any) {
+    console.error("Failed to send invoice notification email:", error);
+    return {
+      success: false,
+      message: error.message || "Failed to send invoice notification email"
+    };
+  }
+}
+
 // Helper function to send tenant credentials email
 async function sendTenantCredentials(
   tenantBusinessName: string,
@@ -6389,6 +6535,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get the updated invoice with the calculated status
       const updatedInvoice = await storage.getInvoice(req.tenantId!, invoice.id);
+      
+      // Send invoice notification email to customer (async, don't block response)
+      // Only send if customer has email and email config is set up
+      if (updatedInvoice?.primaryEmail) {
+        const companyProfile = await storage.getCompanyProfile(req.tenantId!);
+        sendInvoiceNotificationEmail(req.tenantId!, updatedInvoice, companyProfile)
+          .then(result => {
+            if (result.success) {
+              console.log(`Invoice email sent for invoice ${updatedInvoice.invoiceNumber}`);
+            } else {
+              console.log(`Invoice email skipped: ${result.message}`);
+            }
+          })
+          .catch(err => {
+            console.error(`Failed to send invoice email: ${err.message}`);
+          });
+      }
       
       // Broadcast real-time update
       wsManager.broadcast(req.tenantId!, {
