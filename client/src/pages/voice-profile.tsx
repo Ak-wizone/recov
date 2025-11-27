@@ -508,15 +508,6 @@ export default function VoiceProfile() {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <audio ref={audioRef} className="hidden" />
-      
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground" data-testid="page-title">
-          My Voice Profile
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Clone your voice and use it for automated calls. Upload a 1-2 minute audio sample of your voice.
-        </p>
-      </div>
 
       <div className="space-y-6">
         {/* Hidden audio elements */}
