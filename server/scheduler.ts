@@ -324,7 +324,7 @@ export class CommunicationScheduler {
     // Generate baseUrl for absolute links in emails
     const baseUrl = process.env.REPLIT_DEV_DOMAIN 
       ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-      : 'http://localhost:5000';
+      : 'http://localhost:3501';
 
     // Get enriched variables with correct parameter order
     const enrichedVars = await getEnrichedEmailVariables(

@@ -5,7 +5,7 @@ const SCOPES = ['https://www.googleapis.com/auth/gmail.send'];
 export function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const redirectUri = `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:5000'}/api/auth/google/callback`;
+  const redirectUri = `${process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : 'http://localhost:3501'}/api/auth/google/callback`;
 
   if (!clientId || !clientSecret) {
     throw new Error('Google OAuth credentials not configured');

@@ -67,9 +67,13 @@ const sessionStore = sessionPool
 console.log('[SESSION CONFIG] Session store type:', sessionStore ? 'PostgreSQL' : 'Memory (MemoryStore)');
 console.log('[SESSION CONFIG] Cookie secure flag:', isProduction);
 
+// Detect if running on localhost without HTTPS
+const isLocalhost = !process.env.REPLIT_DEV_DOMAIN && !process.env.REPLIT_DEPLOYMENT;
+
 // Session cookie configuration
 // Development: Use sameSite: 'none' with secure: true for Replit proxy compatibility
 // Production: Use sameSite: 'lax' with secure: true for standard HTTPS
+// Localhost: Use sameSite: 'lax' with secure: false for local development
 app.use(
   session({
     store: sessionStore,
@@ -77,12 +81,12 @@ app.use(
     resave: false,
     saveUninitialized: false,
     rolling: true, // Refresh cookie on every request
-    proxy: true, // Trust the reverse proxy
+    proxy: !isLocalhost, // Trust the reverse proxy only when not on localhost
     cookie: {
-      secure: true, // Always true since both dev and prod use HTTPS
+      secure: isLocalhost ? false : true, // false for localhost, true for Replit/production
       httpOnly: true, // Re-enabled for security
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: isProduction ? "lax" : "none", // 'none' for dev proxy, 'lax' for prod
+      sameSite: isLocalhost ? "lax" : (isProduction ? "lax" : "none"), // 'lax' for localhost/prod, 'none' for Replit dev
       path: "/",
     },
   })
@@ -186,16 +190,12 @@ app.use((req, res, next) => {
   }
 
     // ALWAYS serve the app on the port specified in the environment variable PORT
-    // Other ports are firewalled. Default to 5000 if not specified.
+    // Other ports are firewalled. Default to 3501 if not specified.
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
-    const port = parseInt(process.env.PORT || '5000', 10);
+    const port = parseInt(process.env.PORT || '3501', 10);
     console.log('[STARTUP] Starting server on port', port, 'with host 0.0.0.0');
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
+    server.listen(port, "0.0.0.0", () => {
       console.log('[STARTUP] ✅ SERVER IS RUNNING on port', port);
       log(`serving on port ${port}`);
     });

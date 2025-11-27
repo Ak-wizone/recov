@@ -10675,7 +10675,7 @@ ${profile?.legalName || 'Company'}`;
 
         // Build base URL for ElevenLabs audio file serving
         const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-        const host = req.get('host') || 'localhost:5000';
+        const host = req.get('host') || 'localhost:3501';
         const baseUrl = process.env.REPLIT_DEV_DOMAIN 
           ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
           : `${protocol}://${host}`;
@@ -10692,7 +10692,7 @@ ${profile?.legalName || 'Company'}`;
         });
       } else {
         // AI-powered conversation
-        const streamUrl = `${process.env.REPLIT_DEV_DOMAIN || 'http://localhost:5000'}/api/telecmi/ai-stream`;
+        const streamUrl = `${process.env.REPLIT_DEV_DOMAIN || 'http://localhost:3501'}/api/telecmi/ai-stream`;
         result = await telecmiService.makeAICall(req.tenantId!, {
           to: phoneNumber,
           callMode: "ai",
