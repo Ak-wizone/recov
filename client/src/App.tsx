@@ -70,6 +70,7 @@ import TelegramBotSettings from "@/pages/telegram-bot-settings";
 import TelegramLink from "@/pages/telegram-link";
 import ElevenLabsSettings from "@/pages/elevenlabs-settings";
 import VoiceProfile from "@/pages/voice-profile";
+import UpdateGP from "@/pages/update-gp";
 
 function Router() {
   return (
@@ -99,6 +100,7 @@ function Router() {
               <Route path="/quotations" component={Quotations} />
               <Route path="/proforma-invoices" component={ProformaInvoices} />
               <Route path="/invoices" component={Invoices} />
+              <Route path="/update-gp" component={UpdateGP} />
               <Route path="/receipts" component={Receipts} />
               <Route path="/debtors" component={Debtors} />
               <Route path="/credit-management" component={CreditManagement} />

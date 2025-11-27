@@ -16,6 +16,7 @@ const pathToName: Record<string, string> = {
   "/quotations": "Quotations",
   "/proforma-invoices": "Proforma Invoices",
   "/invoices": "Invoices",
+  "/update-gp": "Update GP",
   "/receipts": "Receipts",
   "/debtors": "Debtors",
   "/credit-management": "Credit Management",
