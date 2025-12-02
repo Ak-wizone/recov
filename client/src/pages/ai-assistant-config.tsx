@@ -18,6 +18,8 @@ interface AiAssistantConfig {
   id?: number;
   tenantId?: string;
   apiKey?: string;
+  hasApiKey?: boolean;
+  maskedApiKey?: string;
   model: string;
   isEnabled: boolean;
   maxTokens: number;
@@ -167,12 +169,12 @@ export default function AiAssistantConfig() {
             <Label htmlFor="apiKey">OpenAI API Key</Label>
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Input id="apiKey" type={showApiKey ? "text" : "password"} placeholder={config?.apiKey ? "" : "sk-..."} value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="pr-10" />
+                <Input id="apiKey" type={showApiKey ? "text" : "password"} placeholder={config?.maskedApiKey || "sk-..."} value={apiKey} onChange={(e) => setApiKey(e.target.value)} className="pr-10" />
                 <Button type="button" variant="ghost" size="sm" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0" onClick={() => setShowApiKey(!showApiKey)}>
                   {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
               </div>
-              <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || (!apiKey.trim() && !config?.apiKey)}>
+              <Button variant="outline" onClick={handleTestConnection} disabled={isTesting || (!apiKey.trim() && !config?.hasApiKey)}>
                 {isTesting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <TestTube2 className="h-4 w-4 mr-2" />}Test
               </Button>
             </div>

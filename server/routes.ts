@@ -3664,11 +3664,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Return config without the actual API key
+      // Return config with masked API key for display
       const { apiKey, ...safeConfig } = config;
+      const maskedKey = apiKey ? `sk-...${apiKey.slice(-4)}` : "";
+      
       res.json({
         ...safeConfig,
-        hasApiKey: !!apiKey
+        hasApiKey: !!apiKey,
+        maskedApiKey: maskedKey
       });
     } catch (error: any) {
       console.error("Failed to fetch AI Assistant config:", error);
