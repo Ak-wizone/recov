@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { insertCustomerSchema, type InsertCustomer, type Customer } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getSalesPersonNames } from "@/lib/salesPersonStorage";
 import {
   Dialog,
   DialogContent,
@@ -62,7 +63,7 @@ export function CustomerFormDialog({
         name: customer.name,
         amountOwed: customer.amountOwed,
         category: customer.category as "Alpha" | "Beta" | "Gamma" | "Delta",
-        assignedUser: customer.assignedUser as "Manpreet Bedi" | "Bilal Ahamad" | "Anjali Dhiman" | "Princi Soni" | undefined,
+        assignedUser: customer.assignedUser || undefined,
         mobile: customer.mobile,
         email: customer.email,
       });
@@ -211,10 +212,9 @@ export function CustomerFormDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
-                      <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
-                      <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
-                      <SelectItem value="Princi Soni">Princi Soni</SelectItem>
+                      {getSalesPersonNames().map((person) => (
+                        <SelectItem key={person} value={person}>{person}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

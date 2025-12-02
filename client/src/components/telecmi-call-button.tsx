@@ -6,10 +6,47 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Phone, Loader2, Radio, Zap, Mic, User } from "lucide-react";
+import { Phone, Loader2, Radio, Zap, Mic, User, Volume2, AlertTriangle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import type { CallTemplate } from "@shared/schema";
+
+// Voice behaviours for collection calls - ENHANCED with noticeable differences
+const VOICE_BEHAVIOURS = {
+  kind: {
+    name: "Kind & Polite",
+    description: "Slow, soft (-20% speed)",
+    emoji: "😊",
+    color: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+  },
+  normal: {
+    name: "Normal",
+    description: "Standard tone",
+    emoji: "😐",
+    color: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+  },
+  firm: {
+    name: "Firm",
+    description: "Faster, deeper (+15%)",
+    emoji: "😤",
+    color: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300",
+  },
+  strict: {
+    name: "Strict",
+    description: "Fast & loud (+25%)",
+    emoji: "😠",
+    color: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  },
+  final_warning: {
+    name: "Final Warning",
+    description: "Very fast (+35%)",
+    emoji: "🚨",
+    color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+  },
+};
+
+type BehaviourKey = keyof typeof VOICE_BEHAVIOURS;
 
 interface VoiceClone {
   id: string;
@@ -18,6 +55,15 @@ interface VoiceClone {
   status: string;
   isDefault: boolean;
   elevenLabsVoiceId: string | null;
+}
+
+interface EdgeVoice {
+  id: string;
+  name: string;
+  shortName: string;
+  language: string;
+  gender: "Male" | "Female";
+  locale: string;
 }
 
 interface TelecmiCallButtonProps {
@@ -30,6 +76,7 @@ interface TelecmiCallButtonProps {
   buttonText?: string;
   buttonVariant?: "default" | "outline" | "ghost" | "destructive";
   icon?: React.ReactNode;
+  className?: string;
 }
 
 export function TelecmiCallButton({
@@ -42,6 +89,7 @@ export function TelecmiCallButton({
   buttonText = "Call Customer",
   buttonVariant = "outline",
   icon = <Phone className="h-4 w-4" />,
+  className,
 }: TelecmiCallButtonProps) {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -49,6 +97,18 @@ export function TelecmiCallButton({
   const [language, setLanguage] = useState<"hindi" | "english" | "hinglish">("english");
   const [callMode, setCallMode] = useState<"simple" | "ai">("simple");
   const [useMyVoice, setUseMyVoice] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState<string>("");
+  const [selectedBehaviour, setSelectedBehaviour] = useState<BehaviourKey>("normal");
+
+  // Auto-suggest behaviour based on days overdue
+  const getSuggestedBehaviour = (): BehaviourKey => {
+    const days = Math.max(0, daysOverdue || 0);
+    if (days === 0) return "kind";
+    if (days <= 7) return "normal";
+    if (days <= 15) return "firm";
+    if (days <= 30) return "strict";
+    return "final_warning";
+  };
 
   // Fetch available call templates for this module
   const { data: templates, isLoading: templatesLoading } = useQuery<CallTemplate[]>({
@@ -62,9 +122,38 @@ export function TelecmiCallButton({
     enabled: dialogOpen,
   });
 
+  // Fetch available TTS voices
+  const { data: ttsVoicesData } = useQuery<{ voices: EdgeVoice[] }>({
+    queryKey: ["/api/tts/voices"],
+    enabled: dialogOpen && callMode === "simple",
+  });
+
   const voiceClones = voiceClonesData?.voiceClones || [];
   const readyVoiceClone = voiceClones.find(vc => vc.status === "active" && vc.elevenLabsVoiceId);
   const hasClonedVoice = !!readyVoiceClone;
+
+  // Get voices array from response
+  const ttsVoices = ttsVoicesData?.voices || [];
+
+  // Filter voices based on language selection
+  const filteredVoices = ttsVoices.filter(voice => {
+    if (language === "hindi" || language === "hinglish") {
+      return voice.locale === "hi-IN";
+    } else {
+      return voice.locale.startsWith("en-");
+    }
+  });
+
+  // Set default voice when language changes or voices load
+  useEffect(() => {
+    if (filteredVoices.length > 0) {
+      // Default: first female voice
+      const defaultVoice = filteredVoices.find(v => v.gender === "Female") || filteredVoices[0];
+      if (defaultVoice) {
+        setSelectedVoice(defaultVoice.id);
+      }
+    }
+  }, [language, ttsVoices]);
 
   const makeCallMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -93,6 +182,8 @@ export function TelecmiCallButton({
     setLanguage("english");
     setCallMode("simple");
     setUseMyVoice(false);
+    setSelectedVoice("");
+    setSelectedBehaviour("normal");
   };
 
   const handleMakeCall = () => {
@@ -123,6 +214,8 @@ export function TelecmiCallButton({
       language,
       templateId: selectedTemplate,
       useMyVoice: useMyVoice && hasClonedVoice,
+      voiceId: useMyVoice && hasClonedVoice ? undefined : selectedVoice, // Edge TTS voice
+      behaviour: selectedBehaviour, // Voice behaviour/tone
       callContext: {
         customerName: customerName,
         invoiceNumber: invoiceNumber || "",
@@ -170,12 +263,20 @@ export function TelecmiCallButton({
     }
   }, [dialogOpen, templates, daysOverdue, language, selectedTemplate]);
 
+  // Auto-select suggested behaviour when dialog opens based on days overdue
+  useEffect(() => {
+    if (dialogOpen) {
+      const suggestedBehaviour = getSuggestedBehaviour();
+      setSelectedBehaviour(suggestedBehaviour);
+    }
+  }, [dialogOpen, daysOverdue]);
+
   return (
     <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
       <DialogTrigger asChild>
-        <Button variant={buttonVariant} size="sm" data-testid="button-telecmi-call">
+        <Button variant={buttonVariant} size="sm" className={className} data-testid="button-telecmi-call">
           {icon}
-          <span className="ml-2">{buttonText}</span>
+          {buttonText && <span className="ml-1.5">{buttonText}</span>}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
@@ -273,8 +374,8 @@ export function TelecmiCallButton({
           {callMode === "simple" && (
             <div className="space-y-2">
               <Label>Voice</Label>
-              {hasClonedVoice ? (
-                <div className="flex items-center justify-between p-3 border rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
+              {hasClonedVoice && (
+                <div className="flex items-center justify-between p-3 border rounded-md bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 mb-2">
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-full ${useMyVoice ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
                       <Mic className={`h-4 w-4 ${useMyVoice ? 'text-white' : 'text-gray-500'}`} />
@@ -297,14 +398,72 @@ export function TelecmiCallButton({
                     data-testid="switch-use-my-voice"
                   />
                 </div>
-              ) : (
-                <div className="flex items-center gap-3 p-3 border rounded-md bg-gray-50 dark:bg-gray-900 text-gray-500">
-                  <User className="h-4 w-4" />
-                  <div className="text-sm">
-                    No cloned voice available. <a href="/voice-profile" className="text-blue-600 hover:underline">Create one</a> to use your own voice.
+              )}
+              
+              {/* Edge TTS Voice Selection - Show when not using cloned voice */}
+              {!useMyVoice && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <Volume2 className="h-4 w-4" />
+                    <span>Select TTS Voice</span>
                   </div>
+                  <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+                    <SelectTrigger data-testid="select-voice">
+                      <SelectValue placeholder="Select a voice" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredVoices.map(voice => (
+                        <SelectItem key={voice.id} value={voice.id}>
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${voice.gender === 'Female' ? 'bg-pink-500' : 'bg-blue-500'}`} />
+                            <span>{voice.name}</span>
+                            <span className="text-xs text-gray-500">({voice.language})</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!hasClonedVoice && (
+                    <p className="text-xs text-gray-500">
+                      Want to use your own voice? <a href="/voice-profile" className="text-blue-600 hover:underline">Create a voice clone</a>
+                    </p>
+                  )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Voice Behaviour Selection - Only for Simple TTS mode */}
+          {callMode === "simple" && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                Voice Tone / Behaviour
+              </Label>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-xs text-gray-500">Suggested based on {daysOverdue || 0} days overdue:</span>
+                <Badge variant="outline" className={VOICE_BEHAVIOURS[getSuggestedBehaviour()].color}>
+                  {VOICE_BEHAVIOURS[getSuggestedBehaviour()].emoji} {VOICE_BEHAVIOURS[getSuggestedBehaviour()].name}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-5 gap-2">
+                {Object.entries(VOICE_BEHAVIOURS).map(([key, behaviour]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setSelectedBehaviour(key as BehaviourKey)}
+                    className={`p-2 rounded-lg border text-center transition-all ${
+                      selectedBehaviour === key
+                        ? "border-primary bg-primary/10 ring-2 ring-primary"
+                        : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                    }`}
+                    title={behaviour.description}
+                  >
+                    <div className="text-xl mb-1">{behaviour.emoji}</div>
+                    <div className="text-xs font-medium truncate">{behaviour.name.split(' ')[0]}</div>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

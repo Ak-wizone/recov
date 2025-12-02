@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 import { EmailDialog } from "@/components/email-dialog";
 import { CallDialog } from "@/components/call-dialog";
 import { openWhatsApp, getWhatsAppMessageTemplate } from "@/lib/whatsapp";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TelecmiCallButton } from "@/components/telecmi-call-button";
 import * as XLSX from "xlsx";
 
 interface CreditManagementData {
@@ -203,45 +205,8 @@ export default function CreditManagement() {
         ),
         enableSorting: true,
       },
-      {
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }) => (
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleWhatsAppClick(row.original)}
-              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-              data-testid={`button-whatsapp-${row.original.customerId}`}
-            >
-              <MessageSquare className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleEmailClick(row.original)}
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-              data-testid={`button-email-${row.original.customerId}`}
-            >
-              <Mail className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleCallClick(row.original)}
-              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-              data-testid={`button-call-${row.original.customerId}`}
-            >
-              <Phone className="h-4 w-4" />
-            </Button>
-          </div>
-        ),
-        enableSorting: false,
-        enableHiding: false,
-      },
     ],
-    [categoryColors, handleWhatsAppClick, handleEmailClick, handleCallClick]
+    [categoryColors]
   );
 
   const handleExportSelected = (rows: CreditManagementData[]) => {
@@ -298,21 +263,19 @@ export default function CreditManagement() {
   const range76to100 = creditData.filter((c) => c.utilizationPercentage >= 76 && c.utilizationPercentage <= 100).length;
 
   return (
-    <div className="min-h-screen">
-      <div className="w-full px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+    <div className="h-screen flex flex-col">
+      {/* Fixed Top Section - Cards */}
+      <div className="flex-shrink-0 bg-background shadow-sm border-b z-20">
+        <div className="w-full px-4 lg:px-6 py-2">
+          <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
             <Card className="bg-blue-50 border-0" data-testid="card-total-clients">
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4">
-                  <div className="bg-blue-500 p-3 rounded-xl flex-shrink-0">
-                    <Users className="h-6 w-6 text-white" />
+              <CardContent className="p-3">
+                <div className="flex flex-col items-center text-center gap-1">
+                  <div className="bg-blue-500 p-2 rounded-lg">
+                    <Users className="h-4 w-4 text-white" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-1">Total Clients</p>
-                    <p className="text-3xl font-bold text-blue-600">{totalClients}</p>
-                    <p className="text-xs text-blue-500 mt-1">All debtor clients</p>
-                  </div>
+                  <p className="text-2xl font-bold text-blue-600">{totalClients}</p>
+                  <p className="text-[10px] font-medium text-blue-600 uppercase">Total Clients</p>
                 </div>
               </CardContent>
             </Card>
@@ -320,22 +283,19 @@ export default function CreditManagement() {
             <Card 
               className={`cursor-pointer transition-all border-0 ${
                 utilizationFilter === "not-utilized" 
-                  ? "bg-gray-100" 
+                  ? "bg-gray-100 ring-2 ring-gray-400" 
                   : "bg-gray-50 hover:bg-gray-100"
               }`}
               onClick={() => setUtilizationFilter(utilizationFilter === "not-utilized" ? null : "not-utilized")}
               data-testid="card-not-utilized"
             >
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4">
-                  <div className="bg-gray-500 p-3 rounded-xl flex-shrink-0">
-                    <CheckCircle className="h-6 w-6 text-white" />
+              <CardContent className="p-3">
+                <div className="flex flex-col items-center text-center gap-1">
+                  <div className="bg-gray-500 p-2 rounded-lg">
+                    <CheckCircle className="h-4 w-4 text-white" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">Not Utilized</p>
-                    <p className="text-3xl font-bold text-gray-600">{notUtilized}</p>
-                    <p className="text-xs text-gray-500 mt-1">0% utilization</p>
-                  </div>
+                  <p className="text-2xl font-bold text-gray-600">{notUtilized}</p>
+                  <p className="text-[10px] font-medium text-gray-600 uppercase">Not Utilized</p>
                 </div>
               </CardContent>
             </Card>
@@ -343,47 +303,38 @@ export default function CreditManagement() {
             <Card 
               className={`cursor-pointer transition-all border-0 ${
                 utilizationFilter === "over-utilized" 
-                  ? "bg-red-100" 
+                  ? "bg-red-100 ring-2 ring-red-400" 
                   : "bg-red-50 hover:bg-red-100"
               }`}
               onClick={() => setUtilizationFilter(utilizationFilter === "over-utilized" ? null : "over-utilized")}
               data-testid="card-over-utilized"
             >
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4">
-                  <div className="bg-red-500 p-3 rounded-xl flex-shrink-0">
-                    <AlertTriangle className="h-6 w-6 text-white" />
+              <CardContent className="p-3">
+                <div className="flex flex-col items-center text-center gap-1">
+                  <div className="bg-red-500 p-2 rounded-lg">
+                    <AlertTriangle className="h-4 w-4 text-white" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">Over Utilized</p>
-                    <p className="text-3xl font-bold text-red-600">{overUtilized}</p>
-                    <p className="text-xs text-red-500 mt-1">Clients using &gt;100% credit</p>
-                  </div>
+                  <p className="text-2xl font-bold text-red-600">{overUtilized}</p>
+                  <p className="text-[10px] font-medium text-red-600 uppercase">Over Utilized</p>
                 </div>
               </CardContent>
             </Card>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card 
               className={`cursor-pointer transition-all border-0 ${
                 utilizationFilter === "1-25" 
-                  ? "bg-green-100" 
+                  ? "bg-green-100 ring-2 ring-green-400" 
                   : "bg-green-50 hover:bg-green-100"
               }`}
               onClick={() => setUtilizationFilter(utilizationFilter === "1-25" ? null : "1-25")}
               data-testid="card-1-25-utilized"
             >
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4">
-                  <div className="bg-green-500 p-3 rounded-xl flex-shrink-0">
-                    <TrendingUp className="h-6 w-6 text-white" />
+              <CardContent className="p-3">
+                <div className="flex flex-col items-center text-center gap-1">
+                  <div className="bg-green-500 p-2 rounded-lg">
+                    <TrendingUp className="h-4 w-4 text-white" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">1-25% Utilized</p>
-                    <p className="text-3xl font-bold text-green-600">{range1to25}</p>
-                    <p className="text-xs text-green-500 mt-1">Low utilization</p>
-                  </div>
+                  <p className="text-2xl font-bold text-green-600">{range1to25}</p>
+                  <p className="text-[10px] font-medium text-green-600 uppercase">1-25%</p>
                 </div>
               </CardContent>
             </Card>
@@ -391,22 +342,19 @@ export default function CreditManagement() {
             <Card 
               className={`cursor-pointer transition-all border-0 ${
                 utilizationFilter === "26-50" 
-                  ? "bg-yellow-100" 
+                  ? "bg-yellow-100 ring-2 ring-yellow-400" 
                   : "bg-yellow-50 hover:bg-yellow-100"
               }`}
               onClick={() => setUtilizationFilter(utilizationFilter === "26-50" ? null : "26-50")}
               data-testid="card-26-50-utilized"
             >
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4">
-                  <div className="bg-yellow-500 p-3 rounded-xl flex-shrink-0">
-                    <Target className="h-6 w-6 text-white" />
+              <CardContent className="p-3">
+                <div className="flex flex-col items-center text-center gap-1">
+                  <div className="bg-yellow-500 p-2 rounded-lg">
+                    <Target className="h-4 w-4 text-white" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-yellow-600 uppercase tracking-wide mb-1">26-50% Utilized</p>
-                    <p className="text-3xl font-bold text-yellow-600">{range26to50}</p>
-                    <p className="text-xs text-yellow-500 mt-1">Moderate utilization</p>
-                  </div>
+                  <p className="text-2xl font-bold text-yellow-600">{range26to50}</p>
+                  <p className="text-[10px] font-medium text-yellow-600 uppercase">26-50%</p>
                 </div>
               </CardContent>
             </Card>
@@ -414,22 +362,19 @@ export default function CreditManagement() {
             <Card 
               className={`cursor-pointer transition-all border-0 ${
                 utilizationFilter === "51-75" 
-                  ? "bg-orange-100" 
+                  ? "bg-orange-100 ring-2 ring-orange-400" 
                   : "bg-orange-50 hover:bg-orange-100"
               }`}
               onClick={() => setUtilizationFilter(utilizationFilter === "51-75" ? null : "51-75")}
               data-testid="card-51-75-utilized"
             >
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4">
-                  <div className="bg-orange-500 p-3 rounded-xl flex-shrink-0">
-                    <BarChart className="h-6 w-6 text-white" />
+              <CardContent className="p-3">
+                <div className="flex flex-col items-center text-center gap-1">
+                  <div className="bg-orange-500 p-2 rounded-lg">
+                    <BarChart className="h-4 w-4 text-white" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-1">51-75% Utilized</p>
-                    <p className="text-3xl font-bold text-orange-600">{range51to75}</p>
-                    <p className="text-xs text-orange-500 mt-1">High utilization</p>
-                  </div>
+                  <p className="text-2xl font-bold text-orange-600">{range51to75}</p>
+                  <p className="text-[10px] font-medium text-orange-600 uppercase">51-75%</p>
                 </div>
               </CardContent>
             </Card>
@@ -437,28 +382,28 @@ export default function CreditManagement() {
             <Card 
               className={`cursor-pointer transition-all border-0 ${
                 utilizationFilter === "76-100" 
-                  ? "bg-purple-100" 
+                  ? "bg-purple-100 ring-2 ring-purple-400" 
                   : "bg-purple-50 hover:bg-purple-100"
               }`}
               onClick={() => setUtilizationFilter(utilizationFilter === "76-100" ? null : "76-100")}
               data-testid="card-76-100-utilized"
             >
-              <CardContent className="p-5">
-                <div className="flex items-center gap-4">
-                  <div className="bg-purple-500 p-3 rounded-xl flex-shrink-0">
-                    <AlertCircle className="h-6 w-6 text-white" />
+              <CardContent className="p-3">
+                <div className="flex flex-col items-center text-center gap-1">
+                  <div className="bg-purple-500 p-2 rounded-lg">
+                    <AlertCircle className="h-4 w-4 text-white" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-1">76-100% Utilized</p>
-                    <p className="text-3xl font-bold text-purple-600">{range76to100}</p>
-                    <p className="text-xs text-purple-500 mt-1">Near limit</p>
-                  </div>
+                  <p className="text-2xl font-bold text-purple-600">{range76to100}</p>
+                  <p className="text-[10px] font-medium text-purple-600 uppercase">76-100%</p>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
+      </div>
 
+      {/* Scrollable Content Section */}
+      <div className="flex-1 min-h-0 overflow-auto px-4 lg:px-6 py-4">
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '300ms' }}>
           <DataTable
             columns={columns}
@@ -483,6 +428,55 @@ export default function CreditManagement() {
                 {exportMutation.isPending ? "Exporting..." : "Export"}
               </Button>
             }
+            customBulkActions={(selectedRows) => (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedRows.length === 1) {
+                      const customer = selectedRows[0] as CreditManagementData;
+                      const message = getWhatsAppMessageTemplate("credit_management", {
+                        customerName: customer.customerName,
+                        creditLimit: customer.creditLimit,
+                        balance: customer.utilizedLimit,
+                      });
+                      openWhatsApp(customer.mobile || "", message);
+                    } else {
+                      selectedRows.forEach((row) => {
+                        const customer = row as CreditManagementData;
+                        const message = getWhatsAppMessageTemplate("credit_management", {
+                          customerName: customer.customerName,
+                          creditLimit: customer.creditLimit,
+                          balance: customer.utilizedLimit,
+                        });
+                        openWhatsApp(customer.mobile || "", message);
+                      });
+                    }
+                  }}
+                  className="bg-green-100 hover:bg-green-200 border-green-300 text-green-800 hover:text-green-800 dark:bg-green-900 dark:hover:bg-green-800 dark:border-green-700 dark:text-green-200 dark:hover:text-green-200 transition-transform duration-200 hover:scale-105"
+                >
+                  <MessageSquare className="h-4 w-4 mr-1.5" />
+                  WhatsApp
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (selectedRows.length === 1) {
+                      const customer = selectedRows[0] as CreditManagementData;
+                      setSelectedEmailCustomer(customer);
+                      setIsEmailDialogOpen(true);
+                    }
+                  }}
+                  disabled={selectedRows.length !== 1}
+                  className="bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-700 dark:text-blue-200 dark:hover:text-blue-200 transition-transform duration-200 hover:scale-105"
+                >
+                  <Mail className="h-4 w-4 mr-1.5" />
+                  Email
+                </Button>
+              </div>
+            )}
           />
         </div>
       </div>

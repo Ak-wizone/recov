@@ -28,8 +28,10 @@ import {
 export default function UpdateGP() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [editedValues, setEditedValues] = useState<Record<string, string>>({});
-  const [savingIds, setSavingIds] = useState<Set<string>>(new Set());
+  const [editedGPValues, setEditedGPValues] = useState<Record<string, string>>({});
+  const [editedPTValues, setEditedPTValues] = useState<Record<string, string>>({});
+  const [savingGPIds, setSavingGPIds] = useState<Set<string>>(new Set());
+  const [savingPTIds, setSavingPTIds] = useState<Set<string>>(new Set());
   const [dateFilterMode, setDateFilterMode] = useState<"month" | "allTime" | "dateRange">("allTime");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -40,19 +42,20 @@ export default function UpdateGP() {
     queryKey: ["/api/invoices"],
   });
 
-  const updateMutation = useMutation({
+  // GP Update Mutation
+  const updateGPMutation = useMutation({
     mutationFn: async ({ id, gp }: { id: string; gp: string }) => {
       const response = await apiRequest("PUT", `/api/invoices/${id}`, { gp });
       return response.json();
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
-      setSavingIds(prev => {
+      setSavingGPIds(prev => {
         const next = new Set(prev);
         next.delete(variables.id);
         return next;
       });
-      setEditedValues(prev => {
+      setEditedGPValues(prev => {
         const next = { ...prev };
         delete next[variables.id];
         return next;
@@ -63,7 +66,44 @@ export default function UpdateGP() {
       });
     },
     onError: (error: Error, variables) => {
-      setSavingIds(prev => {
+      setSavingGPIds(prev => {
+        const next = new Set(prev);
+        next.delete(variables.id);
+        return next;
+      });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Payment Terms Update Mutation
+  const updatePTMutation = useMutation({
+    mutationFn: async ({ id, paymentTermsOverride }: { id: string; paymentTermsOverride: number | null }) => {
+      const response = await apiRequest("PUT", `/api/invoices/${id}`, { paymentTermsOverride });
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      setSavingPTIds(prev => {
+        const next = new Set(prev);
+        next.delete(variables.id);
+        return next;
+      });
+      setEditedPTValues(prev => {
+        const next = { ...prev };
+        delete next[variables.id];
+        return next;
+      });
+      toast({
+        title: "Saved",
+        description: "Payment Terms updated (will not change on sync)",
+      });
+    },
+    onError: (error: Error, variables) => {
+      setSavingPTIds(prev => {
         const next = new Set(prev);
         next.delete(variables.id);
         return next;
@@ -77,21 +117,28 @@ export default function UpdateGP() {
   });
 
   const handleGPChange = (id: string, value: string) => {
-    setEditedValues(prev => ({
+    setEditedGPValues(prev => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
+  const handlePTChange = (id: string, value: string) => {
+    setEditedPTValues(prev => ({
       ...prev,
       [id]: value,
     }));
   };
 
   const handleSaveGP = (id: string, originalGP: string | null) => {
-    const gpValue = editedValues[id];
+    const gpValue = editedGPValues[id];
     if (gpValue === undefined) return;
     
     const originalValue = originalGP ?? "";
     const trimmedValue = gpValue.trim();
     
     if (trimmedValue === originalValue || trimmedValue === "") {
-      setEditedValues(prev => {
+      setEditedGPValues(prev => {
         const next = { ...prev };
         delete next[id];
         return next;
@@ -106,14 +153,66 @@ export default function UpdateGP() {
       return;
     }
     
-    setSavingIds(prev => new Set(prev).add(id));
-    updateMutation.mutate({ id, gp: trimmedValue });
+    setSavingGPIds(prev => new Set(prev).add(id));
+    updateGPMutation.mutate({ id, gp: trimmedValue });
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent, id: string, originalGP: string | null) => {
+  const handleSavePT = (id: string, originalPT: number | null, overridePT: number | null) => {
+    const ptValue = editedPTValues[id];
+    if (ptValue === undefined) return;
+    
+    const currentValue = overridePT ?? originalPT;
+    const trimmedValue = ptValue.trim();
+    
+    // If empty, restore original
+    if (trimmedValue === "") {
+      setEditedPTValues(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      return;
+    }
+    
+    const newValue = parseInt(trimmedValue, 10);
+    if (isNaN(newValue) || newValue < 0) {
+      toast({
+        title: "Invalid value",
+        description: "Payment terms must be a valid positive number",
+        variant: "destructive",
+      });
+      setEditedPTValues(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      return;
+    }
+    
+    if (newValue === currentValue) {
+      setEditedPTValues(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      return;
+    }
+    
+    setSavingPTIds(prev => new Set(prev).add(id));
+    updatePTMutation.mutate({ id, paymentTermsOverride: newValue });
+  };
+
+  const handleGPKeyDown = (e: React.KeyboardEvent, id: string, originalGP: string | null) => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleSaveGP(id, originalGP);
+    }
+  };
+
+  const handlePTKeyDown = (e: React.KeyboardEvent, id: string, originalPT: number | null, overridePT: number | null) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSavePT(id, originalPT, overridePT);
     }
   };
 
@@ -173,6 +272,15 @@ export default function UpdateGP() {
     "July", "August", "September", "October", "November", "December"
   ];
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i);
+
+  // Helper to get effective payment terms (override takes priority)
+  const getEffectivePaymentTerms = (invoice: Invoice) => {
+    return (invoice as any).paymentTermsOverride ?? invoice.paymentTerms;
+  };
+
+  const hasPaymentTermsOverride = (invoice: Invoice) => {
+    return (invoice as any).paymentTermsOverride !== null && (invoice as any).paymentTermsOverride !== undefined;
+  };
 
   return (
     <div className="space-y-6">
@@ -304,8 +412,8 @@ export default function UpdateGP() {
                   <TableHead className="font-semibold">Customer Name</TableHead>
                   <TableHead className="font-semibold">Invoice Date</TableHead>
                   <TableHead className="font-semibold text-right">Amount</TableHead>
-                  <TableHead className="font-semibold text-center w-[150px]">G.P.</TableHead>
-                  <TableHead className="font-semibold">Remarks</TableHead>
+                  <TableHead className="font-semibold text-center w-[120px]">G.P.</TableHead>
+                  <TableHead className="font-semibold text-center w-[140px]">Payment Terms</TableHead>
                   <TableHead className="font-semibold w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -325,12 +433,31 @@ export default function UpdateGP() {
                   </TableRow>
                 ) : (
                   filteredInvoices.map((invoice) => {
-                    const currentGP = editedValues[invoice.id] ?? invoice.gp ?? "";
-                    const hasChanges = editedValues[invoice.id] !== undefined && editedValues[invoice.id] !== (invoice.gp ?? "");
-                    const isSaving = savingIds.has(invoice.id);
+                    const currentGP = editedGPValues[invoice.id] ?? invoice.gp ?? "";
+                    const hasGPChanges = editedGPValues[invoice.id] !== undefined && editedGPValues[invoice.id] !== (invoice.gp ?? "");
+                    const isSavingGP = savingGPIds.has(invoice.id);
+                    
+                    const effectivePT = getEffectivePaymentTerms(invoice);
+                    const currentPT = editedPTValues[invoice.id] ?? (effectivePT?.toString() ?? "");
+                    const hasPTChanges = editedPTValues[invoice.id] !== undefined && editedPTValues[invoice.id] !== (effectivePT?.toString() ?? "");
+                    const isSavingPT = savingPTIds.has(invoice.id);
+                    const hasOverride = hasPaymentTermsOverride(invoice);
+                    
+                    const hasAnyChanges = hasGPChanges || hasPTChanges;
+                    const isSavingAny = isSavingGP || isSavingPT;
+                    
+                    // Row highlight class:
+                    // - Unsaved changes: mint green
+                    // - Saved manual override: light orange/peach
+                    let rowClassName = "";
+                    if (hasAnyChanges) {
+                      rowClassName = "bg-emerald-50 dark:bg-emerald-900/20 transition-colors duration-300";
+                    } else if (hasOverride) {
+                      rowClassName = "bg-amber-50 dark:bg-amber-900/20";  // Saved manual override
+                    }
                     
                     return (
-                      <TableRow key={invoice.id} data-testid={`row-invoice-${invoice.id}`}>
+                      <TableRow key={invoice.id} className={rowClassName} data-testid={`row-invoice-${invoice.id}`}>
                         <TableCell className="font-medium" data-testid={`text-invoice-no-${invoice.id}`}>
                           {invoice.invoiceNumber}
                         </TableCell>
@@ -348,31 +475,56 @@ export default function UpdateGP() {
                             type="text"
                             value={currentGP}
                             onChange={(e) => handleGPChange(invoice.id, e.target.value)}
-                            onKeyDown={(e) => handleKeyDown(e, invoice.id, invoice.gp)}
+                            onKeyDown={(e) => handleGPKeyDown(e, invoice.id, invoice.gp)}
                             onBlur={() => {
-                              if (hasChanges) {
+                              if (hasGPChanges) {
                                 handleSaveGP(invoice.id, invoice.gp);
                               }
                             }}
-                            className="w-[120px] text-center mx-auto"
-                            placeholder="Enter GP"
-                            disabled={isSaving}
+                            className="w-[100px] text-center mx-auto"
+                            placeholder="GP"
+                            disabled={isSavingGP}
                             data-testid={`input-gp-${invoice.id}`}
                           />
                         </TableCell>
-                        <TableCell className="max-w-[200px] truncate" data-testid={`text-remarks-${invoice.id}`}>
-                          {invoice.remarks || "-"}
+                        <TableCell className="text-center">
+                          <div className="flex flex-col items-center gap-0.5">
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="text"
+                                value={currentPT}
+                                onChange={(e) => handlePTChange(invoice.id, e.target.value)}
+                                onKeyDown={(e) => handlePTKeyDown(e, invoice.id, invoice.paymentTerms, (invoice as any).paymentTermsOverride)}
+                                onBlur={() => {
+                                  if (hasPTChanges) {
+                                    handleSavePT(invoice.id, invoice.paymentTerms, (invoice as any).paymentTermsOverride);
+                                  }
+                                }}
+                                className={`w-[70px] text-center ${hasOverride ? 'border-orange-400 bg-orange-50 dark:bg-orange-900/20' : ''}`}
+                                placeholder="Days"
+                                disabled={isSavingPT}
+                                data-testid={`input-pt-${invoice.id}`}
+                              />
+                              <span className="text-xs text-muted-foreground">days</span>
+                            </div>
+                            {hasOverride && (
+                              <span className="text-[10px] text-orange-600 dark:text-orange-400">Manual</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
-                          {hasChanges && (
+                          {hasAnyChanges && (
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => handleSaveGP(invoice.id, invoice.gp)}
-                              disabled={isSaving}
+                              onClick={() => {
+                                if (hasGPChanges) handleSaveGP(invoice.id, invoice.gp);
+                                if (hasPTChanges) handleSavePT(invoice.id, invoice.paymentTerms, (invoice as any).paymentTermsOverride);
+                              }}
+                              disabled={isSavingAny}
                               data-testid={`button-save-${invoice.id}`}
                             >
-                              {isSaving ? (
+                              {isSavingAny ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (
                                 <Save className="h-4 w-4 text-green-600" />

@@ -1,4 +1,4 @@
-import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type UserColumnPreference, type InsertUserColumnPreference, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type TelecmiConfig, type InsertTelecmiConfig, type CallTemplate, type InsertCallTemplate, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type PaymentPattern, type InsertPaymentPattern, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, userColumnPreferences, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, telecmiConfigs, callTemplates, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, paymentPatterns, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory, type WhisperConfig, type InsertWhisperConfig, type WhisperCredits, type InsertWhisperCredits, type WhisperUsage, type InsertWhisperUsage, type WhisperTransaction, type InsertWhisperTransaction, assistantSettings, whisperConfig, whisperCredits, whisperUsage, whisperTransactions, telegramBotConfig, telegramUserMappings, telegramLinkingCodes, telegramQueryLogs, type ElevenLabsConfig, type InsertElevenLabsConfig, type VoiceClone, type InsertVoiceClone, type VoiceCloneUsage, type InsertVoiceCloneUsage, elevenLabsConfig, voiceClones, voiceCloneUsage } from "@shared/schema";
+import { type Customer, type InsertCustomer, type Payment, type InsertPayment, type FollowUp, type InsertFollowUp, type MasterCustomer, type InsertMasterCustomer, type MasterItem, type InsertMasterItem, type Invoice, type InsertInvoice, type Receipt, type InsertReceipt, type Lead, type InsertLead, type LeadFollowUp, type InsertLeadFollowUp, type CompanyProfile, type InsertCompanyProfile, type Quotation, type InsertQuotation, type QuotationItem, type InsertQuotationItem, type QuotationSettings, type InsertQuotationSettings, type ProformaInvoice, type InsertProformaInvoice, type ProformaInvoiceItem, type InsertProformaInvoiceItem, type DebtorsFollowUp, type InsertDebtorsFollowUp, type Role, type InsertRole, type User, type InsertUser, type UserColumnPreference, type InsertUserColumnPreference, type EmailConfig, type InsertEmailConfig, type EmailTemplate, type InsertEmailTemplate, type WhatsappConfig, type InsertWhatsappConfig, type WhatsappTemplate, type InsertWhatsappTemplate, type RinggConfig, type InsertRinggConfig, type TelecmiConfig, type InsertTelecmiConfig, type CallTemplate, type InsertCallTemplate, type CallScriptMapping, type InsertCallScriptMapping, type CallLog, type InsertCallLog, type CommunicationSchedule, type InsertCommunicationSchedule, type CategoryRules, type InsertCategoryRules, type FollowupRules, type InsertFollowupRules, type RecoverySettings, type InsertRecoverySettings, type FollowupAutomationSettings, type InsertFollowupAutomationSettings, type FollowupSchedule, type InsertFollowupSchedule, type CategoryChangeLog, type InsertCategoryChangeLog, type PaymentPattern, type InsertPaymentPattern, type LegalNoticeTemplate, type InsertLegalNoticeTemplate, type LegalNoticeSent, type InsertLegalNoticeSent, type Task, type InsertTask, type ActivityLog, type InsertActivityLog, type UserMetric, type InsertUserMetric, type DailyTarget, type InsertDailyTarget, type Notification, type InsertNotification, type SubscriptionPlan, type InsertSubscriptionPlan, type BackupHistory, type InsertBackupHistory, customers, payments, followUps, masterCustomers, masterItems, invoices, receipts, leads, leadFollowUps, companyProfile, quotations, quotationItems, quotationSettings, proformaInvoices, proformaInvoiceItems, debtorsFollowUps, roles, users, userColumnPreferences, emailConfigs, emailTemplates, whatsappConfigs, whatsappTemplates, ringgConfigs, telecmiConfigs, callTemplates, callScriptMappings, callLogs, communicationSchedules, categoryRules, followupRules, recoverySettings, followupAutomationSettings, followupSchedules, categoryChangeLog, paymentPatterns, legalNoticeTemplates, legalNoticesSent, tasks, activityLogs, userMetrics, dailyTargets, notifications, subscriptionPlans, tenants, backupHistory, type WhisperConfig, type InsertWhisperConfig, type WhisperCredits, type InsertWhisperCredits, type WhisperUsage, type InsertWhisperUsage, type WhisperTransaction, type InsertWhisperTransaction, assistantSettings, whisperConfig, whisperCredits, whisperUsage, whisperTransactions, telegramBotConfig, telegramUserMappings, telegramLinkingCodes, telegramQueryLogs, type ElevenLabsConfig, type InsertElevenLabsConfig, type VoiceClone, type InsertVoiceClone, type VoiceCloneUsage, type InsertVoiceCloneUsage, elevenLabsConfig, voiceClones, voiceCloneUsage, type SurepassConfig, type InsertSurepassConfig, type SurepassLog, type InsertSurepassLog, surepassConfig, surepassLogs, type UserTablePreferences, type InsertUserTablePreferences, userTablePreferences, type TtsSettings, type InsertTtsSettings, ttsSettings, type AiAssistantConfig, type InsertAiAssistantConfig, aiAssistantConfig } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, isNull, lt, gte, lte } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -367,6 +367,17 @@ export interface IStorage {
   // Voice Clone Usage operations
   createVoiceCloneUsage(usage: any): Promise<any>;
   getVoiceCloneUsage(tenantId: string): Promise<any[]>;
+  
+  // TTS Settings operations
+  getTtsSettings(tenantId: string, userId: string): Promise<any | undefined>;
+  saveTtsSettings(settings: any): Promise<any>;
+  updateTtsSettings(tenantId: string, userId: string, updates: any): Promise<any | undefined>;
+  
+  // AI Assistant (Hey Recov) Configuration operations
+  getAiAssistantConfig(): Promise<any | undefined>;
+  getAiAssistantConfigSecure(): Promise<{ config: any; decryptedApiKey: string } | undefined>;
+  createAiAssistantConfig(config: any): Promise<any>;
+  updateAiAssistantConfig(id: number, updates: any): Promise<any | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -3578,6 +3589,271 @@ export class DatabaseStorage implements IStorage {
       .from(voiceCloneUsage)
       .where(eq(voiceCloneUsage.tenantId, tenantId))
       .orderBy(desc(voiceCloneUsage.createdAt));
+  }
+
+  // ============================================
+  // Surepass KYC Configuration Operations
+  // ============================================
+
+  async getSurepassConfig(tenantId: string): Promise<SurepassConfig | undefined> {
+    const [config] = await db
+      .select()
+      .from(surepassConfig)
+      .where(eq(surepassConfig.tenantId, tenantId));
+    return config;
+  }
+
+  async getSurepassConfigDecrypted(tenantId: string): Promise<(SurepassConfig & { decryptedToken?: string }) | undefined> {
+    const config = await this.getSurepassConfig(tenantId);
+    if (!config) return undefined;
+    
+    try {
+      const decryptedToken = decryptApiKey(config.apiToken);
+      return { ...config, decryptedToken };
+    } catch (error) {
+      console.error('[Surepass] Failed to decrypt token:', error);
+      return { ...config, decryptedToken: undefined };
+    }
+  }
+
+  async createSurepassConfig(config: InsertSurepassConfig): Promise<SurepassConfig> {
+    // Encrypt the API token before storing
+    const encryptedToken = encryptApiKey(config.apiToken);
+    
+    const [created] = await db
+      .insert(surepassConfig)
+      .values({
+        ...config,
+        apiToken: encryptedToken,
+      })
+      .returning();
+    return created;
+  }
+
+  async updateSurepassConfig(tenantId: string, updates: Partial<InsertSurepassConfig>): Promise<SurepassConfig | undefined> {
+    // If updating token, encrypt it
+    const updateData: any = { ...updates, updatedAt: new Date() };
+    if (updates.apiToken) {
+      updateData.apiToken = encryptApiKey(updates.apiToken);
+    }
+
+    const [updated] = await db
+      .update(surepassConfig)
+      .set(updateData)
+      .where(eq(surepassConfig.tenantId, tenantId))
+      .returning();
+    return updated;
+  }
+
+  async deleteSurepassConfig(tenantId: string): Promise<boolean> {
+    const result = await db
+      .delete(surepassConfig)
+      .where(eq(surepassConfig.tenantId, tenantId))
+      .returning();
+    return result.length > 0;
+  }
+
+  async updateSurepassLastVerified(tenantId: string): Promise<void> {
+    await db
+      .update(surepassConfig)
+      .set({ lastVerifiedAt: new Date(), updatedAt: new Date() })
+      .where(eq(surepassConfig.tenantId, tenantId));
+  }
+
+  async incrementSurepassApiCalls(tenantId: string, count: number = 1): Promise<void> {
+    const config = await this.getSurepassConfig(tenantId);
+    if (config) {
+      await db
+        .update(surepassConfig)
+        .set({ 
+          totalApiCalls: (config.totalApiCalls || 0) + count,
+          updatedAt: new Date() 
+        })
+        .where(eq(surepassConfig.tenantId, tenantId));
+    }
+  }
+
+  // ============================================
+  // Surepass Logs Operations
+  // ============================================
+
+  async createSurepassLog(log: InsertSurepassLog): Promise<SurepassLog> {
+    const [created] = await db
+      .insert(surepassLogs)
+      .values(log)
+      .returning();
+    return created;
+  }
+
+  async getSurepassLogs(tenantId: string, limit: number = 100): Promise<SurepassLog[]> {
+    return await db
+      .select()
+      .from(surepassLogs)
+      .where(eq(surepassLogs.tenantId, tenantId))
+      .orderBy(desc(surepassLogs.createdAt))
+      .limit(limit);
+  }
+
+  async getSurepassLogsByType(tenantId: string, apiType: string): Promise<SurepassLog[]> {
+    return await db
+      .select()
+      .from(surepassLogs)
+      .where(and(
+        eq(surepassLogs.tenantId, tenantId),
+        eq(surepassLogs.apiType, apiType)
+      ))
+      .orderBy(desc(surepassLogs.createdAt));
+  }
+
+  // ============================================
+  // User Table Preferences Operations
+  // ============================================
+
+  async getUserTablePreferences(tenantId: string, userId: string, tableKey: string): Promise<UserTablePreferences | undefined> {
+    const [prefs] = await db
+      .select()
+      .from(userTablePreferences)
+      .where(and(
+        eq(userTablePreferences.tenantId, tenantId),
+        eq(userTablePreferences.userId, userId),
+        eq(userTablePreferences.tableKey, tableKey)
+      ))
+      .limit(1);
+    return prefs;
+  }
+
+  async saveUserTablePreferences(data: InsertUserTablePreferences): Promise<UserTablePreferences> {
+    // Check if exists
+    const existing = await this.getUserTablePreferences(data.tenantId, data.userId, data.tableKey);
+    
+    if (existing) {
+      // Update
+      const [updated] = await db
+        .update(userTablePreferences)
+        .set({
+          columnVisibility: data.columnVisibility,
+          columnOrder: data.columnOrder,
+          pageSize: data.pageSize,
+          updatedAt: new Date(),
+        })
+        .where(eq(userTablePreferences.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Insert
+      const [created] = await db
+        .insert(userTablePreferences)
+        .values(data)
+        .returning();
+      return created;
+    }
+  }
+
+  async deleteUserTablePreferences(tenantId: string, userId: string, tableKey: string): Promise<boolean> {
+    const result = await db
+      .delete(userTablePreferences)
+      .where(and(
+        eq(userTablePreferences.tenantId, tenantId),
+        eq(userTablePreferences.userId, userId),
+        eq(userTablePreferences.tableKey, tableKey)
+      ))
+      .returning();
+    return result.length > 0;
+  }
+
+  // ============================================
+  // TTS Settings Operations
+  // ============================================
+
+  async getTtsSettings(tenantId: string, userId: string): Promise<TtsSettings | undefined> {
+    const [settings] = await db
+      .select()
+      .from(ttsSettings)
+      .where(and(
+        eq(ttsSettings.tenantId, tenantId),
+        eq(ttsSettings.userId, userId)
+      ))
+      .limit(1);
+    return settings;
+  }
+
+  async saveTtsSettings(data: InsertTtsSettings): Promise<TtsSettings> {
+    // Check if exists
+    const existing = await this.getTtsSettings(data.tenantId, data.userId);
+    
+    if (existing) {
+      // Update
+      const [updated] = await db
+        .update(ttsSettings)
+        .set({
+          voiceId: data.voiceId,
+          voiceName: data.voiceName,
+          language: data.language,
+          gender: data.gender,
+          rate: data.rate,
+          pitch: data.pitch,
+          volume: data.volume,
+          useEdgeTts: data.useEdgeTts,
+          updatedAt: new Date(),
+        })
+        .where(eq(ttsSettings.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      // Insert
+      const [created] = await db
+        .insert(ttsSettings)
+        .values(data)
+        .returning();
+      return created;
+    }
+  }
+
+  async updateTtsSettings(tenantId: string, userId: string, updates: Partial<InsertTtsSettings>): Promise<TtsSettings | undefined> {
+    const existing = await this.getTtsSettings(tenantId, userId);
+    if (!existing) return undefined;
+
+    const [updated] = await db
+      .update(ttsSettings)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(ttsSettings.id, existing.id))
+      .returning();
+    return updated;
+  }
+
+  // ============ AI ASSISTANT (HEY RECOV) CONFIGURATION ============
+
+  async getAiAssistantConfig(): Promise<AiAssistantConfig | undefined> {
+    const [config] = await db.select().from(aiAssistantConfig).limit(1);
+    return config || undefined;
+  }
+
+  async getAiAssistantConfigSecure(): Promise<{ config: AiAssistantConfig; decryptedApiKey: string } | undefined> {
+    const config = await this.getAiAssistantConfig();
+    if (!config || !config.apiKey) return undefined;
+    
+    // Return API key as-is (no encryption for now)
+    return { config, decryptedApiKey: config.apiKey };
+  }
+
+  async createAiAssistantConfig(insertConfig: InsertAiAssistantConfig): Promise<AiAssistantConfig> {
+    const [config] = await db
+      .insert(aiAssistantConfig)
+      .values(insertConfig)
+      .returning();
+    return config;
+  }
+
+  async updateAiAssistantConfig(id: number, updates: Partial<InsertAiAssistantConfig>): Promise<AiAssistantConfig | undefined> {
+    const [config] = await db
+      .update(aiAssistantConfig)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(aiAssistantConfig.id, id))
+      .returning();
+    return config || undefined;
   }
 }
 

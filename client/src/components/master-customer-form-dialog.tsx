@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { getSalesPersons } from "@/lib/salesPersonStorage";
+import { getSalesPersonNames } from "@/lib/salesPersonStorage";
 
 interface MasterCustomerFormDialogProps {
   open: boolean;
@@ -605,7 +605,7 @@ export function MasterCustomerFormDialog({
                       control={form.control}
                       name="salesPerson"
                       render={({ field }) => {
-                        const salesPersons = getSalesPersons();
+                        const salesPersons = getSalesPersonNames();
                         return (
                           <FormItem>
                             <FormLabel>Assigned Sales Person</FormLabel>

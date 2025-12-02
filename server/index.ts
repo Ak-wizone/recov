@@ -153,6 +153,32 @@ app.use((req, res, next) => {
     await seedDatabase();
     console.log('[STARTUP] Database seed complete');
 
+    // Ensure tts_settings table exists (Edge TTS feature)
+    if (sessionPool) {
+      try {
+        await sessionPool.query(`
+          CREATE TABLE IF NOT EXISTS tts_settings (
+            id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid(),
+            tenant_id VARCHAR(255) NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+            user_id VARCHAR(255) NOT NULL,
+            voice_id TEXT NOT NULL DEFAULT 'hi-IN-SwaraNeural',
+            voice_name TEXT NOT NULL DEFAULT 'Swara (Female)',
+            language TEXT NOT NULL DEFAULT 'hindi',
+            gender TEXT NOT NULL DEFAULT 'Female',
+            rate TEXT DEFAULT '+0%',
+            pitch TEXT DEFAULT '+0Hz',
+            volume TEXT DEFAULT '+0%',
+            use_edge_tts BOOLEAN NOT NULL DEFAULT true,
+            created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+            updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+          );
+        `);
+        console.log('[STARTUP] TTS settings table verified');
+      } catch (error) {
+        console.error('[STARTUP] TTS settings table check failed:', error);
+      }
+    }
+
     console.log('[STARTUP] Initializing communication scheduler...');
     const scheduler = createScheduler(storage);
     scheduler.start();

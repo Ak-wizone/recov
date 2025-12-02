@@ -25,8 +25,6 @@ import {
   Plus,
   Upload,
   Download,
-  Pencil,
-  Trash2,
   Users,
   CheckCircle2,
   AlertCircle,
@@ -42,7 +40,7 @@ import { TableCellInteractive } from "@/components/ui/table-cell-wrappers";
 import { ImportModal } from "@/components/import-modal";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { getSalesPersons } from "@/lib/salesPersonStorage";
+import { getSalesPersonNames } from "@/lib/salesPersonStorage";
 import * as XLSX from "xlsx";
 
 export default function MasterCustomers() {
@@ -301,7 +299,7 @@ export default function MasterCustomers() {
           </div>
         ),
         enableSorting: true,
-        enableHiding: false,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "category",
@@ -348,7 +346,7 @@ export default function MasterCustomers() {
           );
         },
         enableSorting: true,
-        enableHiding: false,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "primaryContactName",
@@ -362,6 +360,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "primaryMobile",
@@ -375,6 +374,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "primaryEmail",
@@ -388,6 +388,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "secondaryContactName",
@@ -401,6 +402,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "secondaryMobile",
@@ -414,6 +416,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "secondaryEmail",
@@ -427,6 +430,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "gstNumber",
@@ -440,6 +444,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "billingAddress",
@@ -453,6 +458,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "city",
@@ -466,6 +472,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "state",
@@ -479,6 +486,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "pincode",
@@ -492,6 +500,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "paymentTermsDays",
@@ -505,6 +514,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "creditLimit",
@@ -518,6 +528,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "interestApplicableFrom",
@@ -550,6 +561,7 @@ export default function MasterCustomers() {
           </TableCellInteractive>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "interestRate",
@@ -563,6 +575,7 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "openingBalance",
@@ -576,12 +589,13 @@ export default function MasterCustomers() {
           </span>
         ),
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "salesPerson",
         header: "SALES PERSON",
         cell: ({ row }) => {
-          const salesPersons = getSalesPersons();
+          const salesPersons = getSalesPersonNames();
           return (
             <TableCellInteractive>
               <Select
@@ -614,6 +628,7 @@ export default function MasterCustomers() {
           );
         },
         enableSorting: true,
+        enableColumnFilter: true,
       },
       {
         accessorKey: "isActive",
@@ -644,53 +659,10 @@ export default function MasterCustomers() {
           </TableCellInteractive>
         ),
         enableSorting: true,
-      },
-      {
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }) => (
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedCustomer(row.original);
-                setIsFormOpen(true);
-              }}
-              className="hover:bg-blue-50"
-              data-testid={`button-edit-${row.original.id}`}
-              aria-label={`Edit ${row.original.clientName}`}
-            >
-              <Pencil className="h-4 w-4 text-blue-600" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (
-                  window.confirm(
-                    `Are you sure you want to delete ${row.original.clientName}?`,
-                  )
-                ) {
-                  deleteMutation.mutate(row.original.id);
-                }
-              }}
-              className="hover:bg-red-50"
-              data-testid={`button-delete-${row.original.id}`}
-              aria-label={`Delete ${row.original.clientName}`}
-            >
-              <Trash2 className="h-4 w-4 text-red-600" />
-            </Button>
-          </div>
-        ),
-        enableSorting: false,
-        enableHiding: false,
+        enableColumnFilter: true,
       },
     ],
     [
-      deleteMutation,
       updateFieldMutation,
       categoryColors,
       statusColors,
@@ -698,6 +670,11 @@ export default function MasterCustomers() {
       toast,
     ],
   );
+
+  const handleEditSelected = (customer: MasterCustomer) => {
+    setSelectedCustomer(customer);
+    setIsFormOpen(true);
+  };
 
   const handleDeleteSelected = async (rows: MasterCustomer[]) => {
     if (
@@ -784,9 +761,10 @@ export default function MasterCustomers() {
   });
 
   return (
-    <div className="min-h-screen">
-      <div className="w-full px-6 lg:px-8 py-8">
-        <div className="mb-8">
+    <div className="h-screen flex flex-col">
+      {/* Fixed Top Section - Cards */}
+      <div className="sticky top-0 z-20 bg-background">
+        <div className="w-full px-6 lg:px-8 py-4 pb-0">
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <Card
               className={`cursor-pointer transition-all border-0 ${
@@ -957,7 +935,10 @@ export default function MasterCustomers() {
             </Card>
           </div>
         </div>
+      </div>
 
+      {/* Scrollable Content Section */}
+      <div className="flex-1 overflow-auto px-6 lg:px-8 py-4">
         <div
           className="animate-in fade-in slide-in-from-bottom-4 duration-500"
           style={{ animationDelay: "300ms" }}
@@ -969,6 +950,7 @@ export default function MasterCustomers() {
             isLoading={isLoading}
             onDeleteSelected={handleDeleteSelected}
             onExportSelected={handleExportSelected}
+            onEditSelected={handleEditSelected}
             onRowSelectionChange={setSelectedRowIds}
             enableRowSelection={true}
             enableBulkActions={true}
@@ -1255,3 +1237,4 @@ export default function MasterCustomers() {
     </div>
   );
 }
+

@@ -6,6 +6,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Mail, Phone, BookOpen, Activity, Calendar, UserPlus } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -402,96 +403,7 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
       ),
       enableColumnFilter: true,
     },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocation(`/ledger?customerId=${row.original.customerId}`)}
-            data-testid={`button-ledger-${row.original.customerId}`}
-            title="View Ledger"
-          >
-            <BookOpen className="h-4 w-4 text-indigo-500" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLocation(`/payment-analytics/scorecard?customerId=${row.original.customerId}`)}
-            data-testid={`button-payment-score-${row.original.customerId}`}
-            title="Payment Scorecard"
-          >
-            <Activity className="h-4 w-4 text-yellow-500" />
-          </Button>
-          {canPerformAction("canWhatsApp") && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleWhatsAppClick(row.original)}
-              data-testid={`button-whatsapp-${row.original.customerId}`}
-              title={row.original.mobile ? "Send WhatsApp" : "No mobile number"}
-              disabled={!row.original.mobile}
-            >
-              <MessageSquare className="h-4 w-4 text-green-500" />
-            </Button>
-          )}
-          {canPerformAction("canEmail") && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenEmail(row.original)}
-              data-testid={`button-email-${row.original.customerId}`}
-              title={row.original.email ? "Send Email" : "No email address"}
-            >
-              <Mail className={`h-4 w-4 ${row.original.email ? 'text-blue-500' : 'text-gray-300'}`} />
-            </Button>
-          )}
-          {canPerformAction("canCall") && (
-            <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpenCall(row.original)}
-                data-testid={`button-call-${row.original.customerId}`}
-                title={row.original.mobile ? "Call via Ringg.ai" : "No mobile number"}
-                disabled={!row.original.mobile}
-              >
-                <Phone className="h-4 w-4 text-purple-500" />
-              </Button>
-              {row.original.mobile && (
-                <TelecmiCallButton
-                  customerPhone={row.original.mobile}
-                  customerName={row.original.name}
-                  module="debtors"
-                  amount={row.original.balance}
-                  daysOverdue={
-                    row.original.lastInvoiceDate
-                      ? differenceInDays(new Date(), new Date(row.original.lastInvoiceDate))
-                      : 0
-                  }
-                  buttonText=""
-                  buttonVariant="ghost"
-                  icon={<Phone className="h-4 w-4 text-blue-600" />}
-                />
-              )}
-            </>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onOpenFollowUp(row.original)}
-            data-testid={`button-followup-${row.original.customerId}`}
-            title="Schedule Follow-up"
-          >
-            <Calendar className="h-4 w-4 text-gray-500" />
-          </Button>
-        </div>
-      ),
-      enableHiding: false,
-    },
-  ], [canPerformAction, setLocation, onOpenEmail, onOpenCall, onOpenFollowUp]);
+  ], []);
 
   return (
     <>
@@ -507,6 +419,107 @@ export function DebtorsTable({ data, onOpenFollowUp, onOpenEmail, onOpenCall, on
         enablePagination={true}
         defaultColumnVisibility={defaultColumnVisibility}
         customToolbarActions={customToolbarActions}
+        customBulkActions={(selectedDebtors: DebtorData[]) => (
+          <div className="flex items-center gap-2">
+            {selectedDebtors.length === 1 && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation(`/ledger?customerId=${selectedDebtors[0].customerId}`)}
+                  className="bg-indigo-100 hover:bg-indigo-200 border-indigo-300 text-indigo-800 hover:text-indigo-800 dark:bg-indigo-900 dark:hover:bg-indigo-800 dark:border-indigo-700 dark:text-indigo-200 dark:hover:text-indigo-200 transition-transform duration-200 hover:scale-105"
+                  data-testid="button-bulk-ledger"
+                >
+                  <BookOpen className="h-4 w-4 mr-1.5" />
+                  Ledger
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation(`/payment-analytics/scorecard?customerId=${selectedDebtors[0].customerId}`)}
+                  className="bg-yellow-100 hover:bg-yellow-200 border-yellow-300 text-yellow-800 hover:text-yellow-800 dark:bg-yellow-900 dark:hover:bg-yellow-800 dark:border-yellow-700 dark:text-yellow-200 dark:hover:text-yellow-200 transition-transform duration-200 hover:scale-105"
+                  data-testid="button-bulk-scorecard"
+                >
+                  <Activity className="h-4 w-4 mr-1.5" />
+                  Scorecard
+                </Button>
+              </>
+            )}
+            {canPerformAction("canWhatsApp") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectedDebtors.forEach(d => handleWhatsAppClick(d))}
+                className="bg-green-100 hover:bg-green-200 border-green-300 text-green-800 hover:text-green-800 dark:bg-green-900 dark:hover:bg-green-800 dark:border-green-700 dark:text-green-200 dark:hover:text-green-200 transition-transform duration-200 hover:scale-105"
+                data-testid="button-bulk-whatsapp"
+              >
+                <MessageSquare className="h-4 w-4 mr-1.5" />
+                WhatsApp
+              </Button>
+            )}
+            {canPerformAction("canEmail") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectedDebtors.forEach(d => onOpenEmail(d))}
+                className="bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-700 dark:text-blue-200 dark:hover:text-blue-200 transition-transform duration-200 hover:scale-105"
+                data-testid="button-bulk-email"
+              >
+                <Mail className="h-4 w-4 mr-1.5" />
+                Email
+              </Button>
+            )}
+            {canPerformAction("canCall") && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => selectedDebtors.forEach(d => onOpenCall(d))}
+                className="bg-purple-100 hover:bg-purple-200 border-purple-300 text-purple-800 hover:text-purple-800 dark:bg-purple-900 dark:hover:bg-purple-800 dark:border-purple-700 dark:text-purple-200 dark:hover:text-purple-200 transition-transform duration-200 hover:scale-105"
+                data-testid="button-bulk-call"
+              >
+                <Phone className="h-4 w-4 mr-1.5" />
+                AI Call
+              </Button>
+            )}
+            {canPerformAction("canCall") && selectedDebtors.length === 1 && (
+              <TelecmiCallButton
+                customerPhone={selectedDebtors[0].mobile || ""}
+                customerName={selectedDebtors[0].name || ""}
+                module="debtors"
+                amount={Number(selectedDebtors[0].balance) || 0}
+                buttonText="IVR Call"
+                buttonVariant="outline"
+                className="bg-orange-100 hover:bg-orange-200 border-orange-300 text-orange-800 hover:text-orange-800 dark:bg-orange-900 dark:hover:bg-orange-800 dark:border-orange-700 dark:text-orange-200 dark:hover:text-orange-200 transition-transform duration-200 hover:scale-105"
+              />
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectedDebtors.forEach(d => onOpenFollowUp(d))}
+              className="bg-gray-100 hover:bg-gray-200 border-gray-300 text-gray-800 hover:text-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:text-gray-200 transition-transform duration-200 hover:scale-105"
+              data-testid="button-bulk-followup"
+            >
+              <Calendar className="h-4 w-4 mr-1.5" />
+              Follow-up
+            </Button>
+            {selectedDebtors.length === 1 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedDebtorForActions(selectedDebtors[0]);
+                  setReassignSalesPerson(selectedDebtors[0].salesPerson || "");
+                  setIsReassignDialogOpen(true);
+                }}
+                className="bg-orange-100 hover:bg-orange-200 border-orange-300 text-orange-800 hover:text-orange-800 dark:bg-orange-900 dark:hover:bg-orange-800 dark:border-orange-700 dark:text-orange-200 dark:hover:text-orange-200 transition-transform duration-200 hover:scale-105"
+                data-testid="button-bulk-reassign"
+              >
+                <UserPlus className="h-4 w-4 mr-1.5" />
+                Reassign
+              </Button>
+            )}
+          </div>
+        )}
       />
 
       {/* Customer Actions Dialog */}

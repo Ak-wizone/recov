@@ -10,6 +10,7 @@ import {
 } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { getSalesPersonNames } from "@/lib/salesPersonStorage";
 import {
   Dialog,
   DialogContent,
@@ -586,16 +587,9 @@ export function LeadFormDialog({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Manpreet Bedi">
-                            Manpreet Bedi
-                          </SelectItem>
-                          <SelectItem value="Bilal Ahamad">
-                            Bilal Ahamad
-                          </SelectItem>
-                          <SelectItem value="Anjali Dhiman">
-                            Anjali Dhiman
-                          </SelectItem>
-                          <SelectItem value="Princi Soni">Princi Soni</SelectItem>
+                          {getSalesPersonNames().map((person) => (
+                            <SelectItem key={person} value={person}>{person}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />

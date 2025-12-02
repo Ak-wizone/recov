@@ -345,9 +345,11 @@ export default function Receipts() {
   };
 
   return (
-    <div className="flex flex-col h-full p-6 space-y-6">
-      {/* Date Filter Mode Selector */}
-      <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg border">
+    <div className="flex flex-col h-full">
+      {/* Fixed Top Section */}
+      <div className="sticky top-0 z-20 bg-background p-6 pb-4 space-y-4 border-b">
+        {/* Date Filter Mode Selector */}
+        <div className="flex items-center gap-4 bg-white dark:bg-gray-800 p-4 rounded-lg border">
         <div className="flex items-center gap-2">
           <Calendar className="h-5 w-5 text-gray-500" />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter by:</span>
@@ -439,8 +441,49 @@ export default function Receipts() {
             Clear Filter
           </Button>
         )}
+        
+        {/* Spacer */}
+        <div className="flex-1" />
+        
+        {/* Action Buttons in Fixed Header */}
+        <Button
+          variant="outline"
+          onClick={() => downloadTemplateMutation.mutate()}
+          disabled={downloadTemplateMutation.isPending}
+          className="gap-2"
+          data-testid="button-template"
+        >
+          <FileDown className="h-4 w-4" />
+          Template
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => setIsImportDialogOpen(true)}
+          className="gap-2"
+          data-testid="button-import"
+        >
+          <FileUp className="h-4 w-4" />
+          Import
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => exportMutation.mutate()}
+          disabled={exportMutation.isPending}
+          className="gap-2"
+          data-testid="button-export"
+        >
+          <FileDown className="h-4 w-4" />
+          Export
+        </Button>
+        <Button onClick={handleAddNew} className="gap-2" data-testid="button-add-receipt">
+          <Plus className="h-4 w-4" />
+          Add Receipt
+        </Button>
+      </div>
       </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-auto p-6 pt-4 space-y-6">
       {/* Dashboard Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Today Card */}
@@ -643,47 +686,8 @@ export default function Receipts() {
         </Card>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3">
-          <Button
-            variant="outline"
-            onClick={() => exportMutation.mutate()}
-            disabled={exportMutation.isPending}
-            className="gap-2"
-            data-testid="button-export"
-          >
-            <FileDown className="h-4 w-4" />
-            Export
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setIsImportDialogOpen(true)}
-            className="gap-2"
-            data-testid="button-import"
-          >
-            <FileUp className="h-4 w-4" />
-            Import
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => downloadTemplateMutation.mutate()}
-            disabled={downloadTemplateMutation.isPending}
-            className="gap-2"
-            data-testid="button-template"
-          >
-            <FileDown className="h-4 w-4" />
-            Download Template
-          </Button>
-        </div>
-        <Button onClick={handleAddNew} className="gap-2" data-testid="button-add-receipt">
-          <Plus className="h-4 w-4" />
-          Add Receipt
-        </Button>
-      </div>
-
       {/* Table */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0 border rounded-lg">
         <ReceiptTable
           receipts={filteredReceipts}
           isLoading={isLoading}
@@ -694,6 +698,7 @@ export default function Receipts() {
           onCall={handleCall}
           onBulkDelete={handleBulkDelete}
         />
+      </div>
       </div>
 
       {/* Add Dialog */}

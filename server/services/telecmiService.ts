@@ -3,6 +3,7 @@ import type { IStorage } from "../storage";
 import { decryptApiKey, encryptApiKey } from "../encryption";
 import crypto from "crypto";
 import { ElevenLabsService } from "./elevenLabsService";
+import { EdgeTtsService, VoiceBehaviour, getSuggestedBehaviour } from "./edgeTtsService";
 import { AudioStorageService } from "./audioStorageService";
 import fs from "fs";
 import path from "path";
@@ -24,6 +25,10 @@ interface MakeCallOptions {
   context?: Record<string, any>;
   userId?: string;
   baseUrl?: string;
+  voiceId?: string; // Edge TTS voice ID (e.g., "hi-IN-SwaraNeural")
+  useClonedVoice?: boolean; // Flag to use ElevenLabs cloned voice instead of Edge TTS
+  behaviour?: VoiceBehaviour; // Voice behaviour: kind, normal, firm, strict, final_warning
+  daysOverdue?: number; // For auto-suggesting behaviour
 }
 
 interface CallResponse {
@@ -36,6 +41,7 @@ interface CallResponse {
 export class TelecmiService {
   private storage: IStorage;
   private elevenLabsService: ElevenLabsService;
+  private edgeTtsService: EdgeTtsService;
   private audioStorageService: AudioStorageService | null = null;
   private audioDir = path.join(process.cwd(), "generated_audio");
   private publicAudioDir = path.join(process.cwd(), "public", "telecmi-audio");
@@ -43,6 +49,7 @@ export class TelecmiService {
   constructor(storage: IStorage) {
     this.storage = storage;
     this.elevenLabsService = new ElevenLabsService(storage);
+    this.edgeTtsService = new EdgeTtsService();
     
     if (!fs.existsSync(this.audioDir)) {
       fs.mkdirSync(this.audioDir, { recursive: true });
@@ -121,35 +128,86 @@ export class TelecmiService {
     tenantId: string,
     userId: string,
     scriptText: string,
-    baseUrl: string
+    baseUrl: string,
+    voiceId?: string,
+    useEdgeTts: boolean = true
   ): Promise<{ success: boolean; audioUrl?: string; error?: string }> {
     try {
-      const voiceClone = await this.storage.getVoiceCloneByUserId(tenantId, userId);
-      if (!voiceClone || voiceClone.status !== "active" || !voiceClone.elevenLabsVoiceId) {
-        return { success: false, error: "No active voice clone found for user" };
-      }
-
-      const result = await this.elevenLabsService.textToSpeech(
-        scriptText,
-        voiceClone.elevenLabsVoiceId
-      );
-
-      if (!result.success || !result.audioBuffer) {
-        return { success: false, error: result.error || "Failed to generate audio" };
-      }
-
       const callId = crypto.randomBytes(8).toString("hex");
       const filename = this.generateAudioFilename(tenantId, callId);
 
-      await this.savePublicAudioFile(result.audioBuffer, filename);
-      
-      const audioUrl = `${baseUrl}/api/public/telecmi-audio/${filename}`;
-      
-      console.log(`[TelecmiService] Generated ElevenLabs audio for user ${userId}`);
-      console.log(`[TelecmiService] Public audio URL: ${audioUrl}`);
-      return { success: true, audioUrl };
+      // Try Edge TTS first (free, unlimited)
+      if (useEdgeTts) {
+        // Get user's preferred voice or use default
+        const ttsSettings = await this.storage.getTtsSettings(tenantId, userId);
+        const selectedVoice = voiceId || ttsSettings?.voiceId || "hi-IN-SwaraNeural";
+        
+        console.log(`[TelecmiService] Generating audio with Edge TTS voice: ${selectedVoice}`);
+        
+        const result = await this.edgeTtsService.textToSpeech(scriptText, selectedVoice);
+        
+        if (result.success && result.audioBuffer) {
+          await this.savePublicAudioFile(result.audioBuffer, filename);
+          const audioUrl = `${baseUrl}/api/public/telecmi-audio/${filename}`;
+          
+          console.log(`[TelecmiService] Generated Edge TTS audio for user ${userId}`);
+          console.log(`[TelecmiService] Public audio URL: ${audioUrl}`);
+          return { success: true, audioUrl };
+        }
+        
+        console.log(`[TelecmiService] Edge TTS failed: ${result.error}, trying ElevenLabs fallback...`);
+      }
+
+      // Fallback to ElevenLabs if user has voice clone
+      const voiceClone = await this.storage.getVoiceCloneByUserId(tenantId, userId);
+      if (voiceClone && voiceClone.status === "active" && voiceClone.elevenLabsVoiceId) {
+        const result = await this.elevenLabsService.textToSpeech(
+          scriptText,
+          voiceClone.elevenLabsVoiceId
+        );
+
+        if (result.success && result.audioBuffer) {
+          await this.savePublicAudioFile(result.audioBuffer, filename);
+          const audioUrl = `${baseUrl}/api/public/telecmi-audio/${filename}`;
+          
+          console.log(`[TelecmiService] Generated ElevenLabs audio for user ${userId}`);
+          console.log(`[TelecmiService] Public audio URL: ${audioUrl}`);
+          return { success: true, audioUrl };
+        }
+        
+        return { success: false, error: result.error || "Failed to generate audio" };
+      }
+
+      return { success: false, error: "No TTS voice configured. Please set up voice in TTS Settings." };
     } catch (error: any) {
       console.error("[TelecmiService] Generate call audio error:", error);
+      return { success: false, error: error.message || "Failed to generate audio" };
+    }
+  }
+
+  /**
+   * Generate audio using Edge TTS directly (for previews and tests)
+   */
+  async generateEdgeTtsAudio(
+    text: string,
+    voiceId: string,
+    baseUrl: string,
+    options?: { rate?: string; pitch?: string; volume?: string; behaviour?: VoiceBehaviour }
+  ): Promise<{ success: boolean; audioUrl?: string; audioBuffer?: Buffer; error?: string }> {
+    try {
+      const result = await this.edgeTtsService.textToSpeech(text, voiceId, options);
+      
+      if (result.success && result.audioBuffer) {
+        const filename = `preview_${Date.now()}_${crypto.randomBytes(4).toString("hex")}.mp3`;
+        await this.savePublicAudioFile(result.audioBuffer, filename);
+        const audioUrl = `${baseUrl}/api/public/telecmi-audio/${filename}`;
+        
+        return { success: true, audioUrl, audioBuffer: result.audioBuffer };
+      }
+      
+      return { success: false, error: result.error || "Failed to generate audio" };
+    } catch (error: any) {
+      console.error("[TelecmiService] Edge TTS audio error:", error);
       return { success: false, error: error.message || "Failed to generate audio" };
     }
   }
@@ -200,7 +258,16 @@ export class TelecmiService {
         throw new Error(`Failed to decrypt app secret: ${decryptError instanceof Error ? decryptError.message : 'Unknown error'}`);
       }
 
-      const decryptedWebhookSecret = config.webhookSecret ? decryptApiKey(config.webhookSecret) : undefined;
+      // Safely decrypt webhookSecret - don't fail if it's invalid/missing
+      let decryptedWebhookSecret: string | undefined;
+      try {
+        if (config.webhookSecret && config.webhookSecret.startsWith('{')) {
+          decryptedWebhookSecret = decryptApiKey(config.webhookSecret);
+        }
+      } catch (webhookError) {
+        console.warn(`[TelecmiService] Could not decrypt webhookSecret, continuing without it:`, webhookError);
+        decryptedWebhookSecret = undefined;
+      }
 
       // CRITICAL FIX: PIOPIY SDK requires appId as NUMBER and appSecret as STRING
       const appId = Number(config.appId);
@@ -322,13 +389,73 @@ export class TelecmiService {
         };
       }
 
-      // Check for voice clone and generate audio if available
+      // Generate audio: Edge TTS (voiceId) or ElevenLabs (voice clone)
       let audioUrl: string | null = null;
-      if (options.userId && options.baseUrl) {
+      
+      // Fetch user's saved TTS settings for voice parameters
+      let ttsSettings: any = null;
+      if (options.userId) {
+        try {
+          ttsSettings = await this.storage.getTtsSettings(tenantId, options.userId);
+          if (ttsSettings) {
+            console.log(`[TelecmiService] Found user TTS settings:`, {
+              voiceId: ttsSettings.voiceId,
+              rate: ttsSettings.rate,
+              pitch: ttsSettings.pitch,
+              volume: ttsSettings.volume,
+              behaviour: ttsSettings.behaviour,
+            });
+          }
+        } catch (e) {
+          console.log(`[TelecmiService] Could not fetch TTS settings`);
+        }
+      }
+      
+      // Determine behaviour: use provided, or from settings, or auto-suggest based on days overdue
+      let callBehaviour: VoiceBehaviour = options.behaviour || 
+        (ttsSettings?.behaviour as VoiceBehaviour) || 
+        (options.daysOverdue !== undefined ? getSuggestedBehaviour(options.daysOverdue) : "normal");
+      
+      console.log(`[TelecmiService] Using voice behaviour: ${callBehaviour}` + 
+        (options.daysOverdue !== undefined ? ` (days overdue: ${options.daysOverdue})` : ''));
+      
+      // Option 1: Use Edge TTS with selected voice
+      if (options.voiceId && options.baseUrl) {
+        try {
+          // Use voice parameters from saved TTS settings + behaviour
+          const voiceOptions = {
+            rate: ttsSettings?.rate || "+0%",
+            pitch: ttsSettings?.pitch || "+0Hz",
+            volume: ttsSettings?.volume || "+0%",
+            behaviour: callBehaviour,
+          };
+          
+          console.log(`[TelecmiService] Generating Edge TTS audio with voice: ${options.voiceId}`, voiceOptions);
+          
+          const audioResult = await this.generateEdgeTtsAudio(
+            scriptText,
+            options.voiceId,
+            options.baseUrl,
+            voiceOptions
+          );
+          
+          if (audioResult.success && audioResult.audioUrl) {
+            audioUrl = audioResult.audioUrl;
+            console.log(`[TelecmiService] ✅ Edge TTS audio generated: ${audioUrl}`);
+          } else {
+            console.log(`[TelecmiService] Edge TTS audio generation failed: ${audioResult.error}`);
+          }
+        } catch (error: any) {
+          console.log(`[TelecmiService] Edge TTS error: ${error.message}`);
+        }
+      }
+      
+      // Option 2: Use ElevenLabs voice clone if user explicitly opted for it
+      if (!audioUrl && options.useClonedVoice && options.userId && options.baseUrl) {
         try {
           const voiceClone = await this.storage.getVoiceCloneByUserId(tenantId, options.userId);
           if (voiceClone && voiceClone.status === "active" && voiceClone.elevenLabsVoiceId) {
-            console.log(`[TelecmiService] User has active voice clone, generating ElevenLabs audio...`);
+            console.log(`[TelecmiService] User opted for cloned voice, generating ElevenLabs audio...`);
             
             const audioResult = await this.generateCallAudio(
               tenantId,
@@ -349,20 +476,27 @@ export class TelecmiService {
         }
       }
 
-      // Build PCMO actions - use direct array format for ElevenLabs audio
+      // Build PCMO actions - use direct array format for custom audio
       // PiopiyAction doesn't have play() method, so we build PCMO array manually
       let pcmoActions: any;
       
-      if (audioUrl) {
+      // Check if audio URL is publicly accessible (not localhost)
+      const isPubliclyAccessible = audioUrl && !audioUrl.includes('localhost') && !audioUrl.includes('127.0.0.1');
+      
+      if (audioUrl && isPubliclyAccessible) {
         // Manual PCMO format for playing audio file URL
         // Telecmi PCMO play action format: { action: "play", file_url: "..." }
         pcmoActions = [
           { action: "play", file_url: audioUrl },
           { action: "record" }
         ];
-        console.log(`[TelecmiService] Using ElevenLabs cloned voice audio: ${audioUrl}`);
+        console.log(`[TelecmiService] Using custom audio URL: ${audioUrl}`);
       } else {
-        // Use PiopiyAction for TTS
+        // Use PiopiyAction for TTS (fallback when audio URL is localhost or not available)
+        if (audioUrl && !isPubliclyAccessible) {
+          console.log(`[TelecmiService] ⚠️ Audio URL is localhost - not accessible by Telecmi servers`);
+          console.log(`[TelecmiService] ⚠️ Falling back to Telecmi built-in TTS. For Edge TTS, deploy to public server or use ngrok/cloudflare tunnel.`);
+        }
         action.speak(scriptText);
         action.record();
         pcmoActions = action.PCMO();

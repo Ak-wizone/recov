@@ -753,7 +753,7 @@ export function generateSampleTemplate(): any[] {
       "OPENING BALANCE": "50000",
       "INTEREST APPLICABLE FROM": "After Due Date",
       "INTEREST RATE": "18",
-      "SALES PERSON": "Manpreet Bedi",
+      "SALES PERSON": "",
       "STATUS": "Active",
     },
     {
@@ -775,7 +775,7 @@ export function generateSampleTemplate(): any[] {
       "OPENING BALANCE": "",
       "INTEREST APPLICABLE FROM": "30 Days After Invoice",
       "INTEREST RATE": "15",
-      "SALES PERSON": "Bilal Ahamad",
+      "SALES PERSON": "",
       "STATUS": "Active",
     },
     {
@@ -797,7 +797,7 @@ export function generateSampleTemplate(): any[] {
       "OPENING BALANCE": "25000",
       "INTEREST APPLICABLE FROM": "Immediate",
       "INTEREST RATE": "12",
-      "SALES PERSON": "Anjali Dhiman",
+      "SALES PERSON": "",
       "STATUS": "Active",
     },
   ];
@@ -859,7 +859,7 @@ export function generateInvoicesTemplate(): any[] {
       "Invoice Amount": "125000",
       "G.P.": "25000",
       "Status": "Unpaid",
-      "Assigned User": "Manpreet Bedi",
+      "Assigned User": "",
       "Remarks": "Q1 software licensing fees",
     },
     {
@@ -869,7 +869,7 @@ export function generateInvoicesTemplate(): any[] {
       "Invoice Amount": "75000",
       "G.P.": "15000",
       "Status": "Paid",
-      "Assigned User": "Bilal Ahamad",
+      "Assigned User": "",
       "Remarks": "Hardware supplies - January batch",
     },
     {
@@ -879,7 +879,7 @@ export function generateInvoicesTemplate(): any[] {
       "Invoice Amount": "200000",
       "G.P.": "50000",
       "Status": "Partial",
-      "Assigned User": "Anjali Dhiman",
+      "Assigned User": "",
       "Remarks": "Annual maintenance contract - paid 50%",
     },
   ];

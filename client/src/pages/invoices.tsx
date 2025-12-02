@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Invoice } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { getSalesPersonNames } from "@/lib/salesPersonStorage";
 import { InvoiceTable } from "@/components/invoice-table";
 import InvoiceFormDialog from "@/components/invoice-form-dialog";
 import { ImportModal } from "@/components/import-modal";
@@ -496,9 +497,11 @@ export default function Invoices() {
   };
 
   return (
-    <div className="flex flex-col h-full p-6 space-y-6">
-      {/* All Filters on One Line */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
+    <div className="flex flex-col h-full">
+      {/* Fixed Top Section */}
+      <div className="sticky top-0 z-20 bg-background p-6 pb-0 space-y-4 border-b">
+        {/* All Filters on One Line */}
+        <div className="flex flex-wrap gap-3 items-center justify-between">
         <div className="flex flex-wrap gap-3 items-center">
           <Select 
             value={dateFilterMode} 
@@ -611,10 +614,9 @@ export default function Invoices() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Users</SelectItem>
-              <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
-              <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
-              <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
-              <SelectItem value="Princi Soni">Princi Soni</SelectItem>
+              {getSalesPersonNames().map((person) => (
+                <SelectItem key={person} value={person}>{person}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -676,14 +678,14 @@ export default function Invoices() {
               data-testid="button-update-gp"
             >
               <Pencil className="h-4 w-4 mr-2" />
-              Update GP
+              Update GP & PT
             </Button>
           </Link>
         </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between border-gray-200 dark:border-gray-700 pb-2">
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab("invoice-summary")}
@@ -714,12 +716,15 @@ export default function Invoices() {
             )}
           </button>
         </div>
-        <Button onClick={handleAddNew} className="gap-2 mb-2" data-testid="button-add-invoice">
+        <Button onClick={handleAddNew} className="gap-2" data-testid="button-add-invoice">
           <Plus className="h-4 w-4" />
           Add Invoice
         </Button>
       </div>
+      </div>
 
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-auto p-6 pt-4 space-y-6">
       {/* Invoice Summary Tab Content */}
       {activeTab === "invoice-summary" && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -955,7 +960,7 @@ export default function Invoices() {
                   <AlertCircle className="h-6 w-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Grace Period 10 Days</p>
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-1">Grace Period {graceDays} Days</p>
                   <p className="text-xl font-bold text-yellow-600 dark:text-yellow-400 break-all">
                     ₹{(paymentDueStats?.gracePeriod10Days?.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
@@ -1114,7 +1119,7 @@ export default function Invoices() {
       )}
 
       {/* Invoice Table */}
-      <div className="flex-1 overflow-auto border rounded-lg">
+      <div className="flex-1 min-h-0 border rounded-lg">
         <InvoiceTable
           invoices={filteredInvoices}
           isLoading={isLoading}
@@ -1127,6 +1132,7 @@ export default function Invoices() {
           onBulkDelete={handleBulkDelete}
           onFiltersChange={setTableFilters}
         />
+      </div>
       </div>
 
       {/* Add Dialog */}

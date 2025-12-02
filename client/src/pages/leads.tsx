@@ -4,6 +4,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Lead } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/use-permissions";
+import { getSalesPersonNames } from "@/lib/salesPersonStorage";
 import { LeadTable } from "@/components/lead-table";
 import { LeadFormDialog } from "@/components/lead-form-dialog";
 import { LeadFollowUpDialog } from "@/components/lead-followup-dialog";
@@ -618,10 +619,9 @@ export default function Leads() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Users</SelectItem>
-                <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
-                <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
-                <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
-                <SelectItem value="Princi Soni">Princi Soni</SelectItem>
+                {getSalesPersonNames().map((person) => (
+                  <SelectItem key={person} value={person}>{person}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

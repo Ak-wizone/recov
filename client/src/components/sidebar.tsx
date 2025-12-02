@@ -49,6 +49,7 @@ import {
   PhoneCall,
   FileEdit,
   History,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
@@ -126,6 +127,7 @@ const NAV_TO_PERMISSION_MODULE: Record<string, string | undefined> = {
   "Ledger": "Ledger",
   "Credit Management": "Credit Management",
   "Payment Analytics": "Payment Analytics",
+  "Interest Summary Report": "Debtors",
   
   // Action Center - Parent permission covers all sub-items
   "Action Center": "Action Center",
@@ -226,6 +228,11 @@ const platformAdminNavItems: NavItem[] = [
     path: "/elevenlabs-settings",
     icon: <Mic className="h-5 w-5" />,
   },
+  {
+    name: "AI Assistant (Hey Recov)",
+    path: "/ai-assistant-config",
+    icon: <Sparkles className="h-5 w-5" />,
+  },
 ];
 
 // Tenant User navigation items
@@ -240,6 +247,12 @@ const navItems: NavItem[] = [
     name: "Customer Kundli",
     path: "/customer-analytics",
     icon: <BarChart3 className="h-5 w-5" />,
+    module: "Customer Analytics",
+  },
+  {
+    name: "Background Verification",
+    path: "/background-verification",
+    icon: <ShieldCheck className="h-5 w-5" />,
     module: "Customer Analytics",
   },
   {
@@ -301,6 +314,12 @@ const navItems: NavItem[] = [
         path: "/payment-analytics",
         icon: <Activity className="h-4 w-4" />,
         module: "Payment Analytics",
+      },
+      {
+        name: "Interest Summary Report",
+        path: "/reports",
+        icon: <TrendingDown className="h-4 w-4" />,
+        module: "Debtors",
       },
     ],
   },
@@ -480,6 +499,12 @@ const navItems: NavItem[] = [
         icon: <FileEdit className="h-4 w-4" />,
         module: "Email/WhatsApp/Call Integrations",
       },
+      {
+        name: "Surepass KYC",
+        path: "/surepass-settings",
+        icon: <ShieldCheck className="h-4 w-4" />,
+        module: "Email/WhatsApp/Call Integrations",
+      },
     ],
   },
   {
@@ -525,6 +550,12 @@ const navItems: NavItem[] = [
         path: "/settings/roles",
         icon: <Shield className="h-4 w-4" />,
         module: "Roles Management",
+      },
+      {
+        name: "Surepass KYC",
+        path: "/surepass-settings",
+        icon: <ShieldCheck className="h-4 w-4" />,
+        module: "Settings",
       },
       {
         name: "Backup & Restore",

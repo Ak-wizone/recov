@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Customer } from "@shared/schema";
+import { getSalesPersonNames } from "@/lib/salesPersonStorage";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -642,10 +643,9 @@ export function CustomersTable({
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="Manpreet Bedi">Manpreet Bedi</SelectItem>
-                            <SelectItem value="Bilal Ahamad">Bilal Ahamad</SelectItem>
-                            <SelectItem value="Anjali Dhiman">Anjali Dhiman</SelectItem>
-                            <SelectItem value="Princi Soni">Princi Soni</SelectItem>
+                            {getSalesPersonNames().map((person) => (
+                              <SelectItem key={person} value={person}>{person}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </TableCell>

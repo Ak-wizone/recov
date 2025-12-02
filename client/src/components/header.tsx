@@ -12,11 +12,12 @@ import { formatCurrency } from "@/lib/utils";
 const pathToName: Record<string, string> = {
   "/": "Dashboard",
   "/customer-analytics": "Customer Analytics",
+  "/background-verification": "Background Verification",
   "/leads": "Leads",
   "/quotations": "Quotations",
   "/proforma-invoices": "Proforma Invoices",
   "/invoices": "Invoices",
-  "/update-gp": "Update GP",
+  "/update-gp": "Update GP & PT",
   "/receipts": "Receipts",
   "/debtors": "Debtors",
   "/credit-management": "Credit Management",
@@ -60,6 +61,8 @@ const pathToName: Record<string, string> = {
   "/payment-analytics": "Payment Analytics",
   "/telegram-link": "Telegram Bot",
   "/voice-profile": "My Voice Profile",
+  "/reports": "Customer-wise Interest Summary with Payment Tracking",
+  "/ai-assistant-config": "AI Assistant Configuration",
 };
 
 export default function Header() {
@@ -109,6 +112,12 @@ export default function Header() {
 
   // Get current page name
   const pageName = pathToName[location] || "Dashboard";
+
+  // Hide default header for pages with custom headers
+  const pagesWithCustomHeader = ['/company-settings'];
+  if (pagesWithCustomHeader.includes(location)) {
+    return null;
+  }
 
   return (
     <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-3 sticky top-0 z-10 pointer-events-none" data-testid="header">

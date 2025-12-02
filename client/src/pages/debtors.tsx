@@ -201,10 +201,12 @@ export default function Debtors() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <div className="max-w-7xl mx-auto space-y-4">
-        {/* Date Filter */}
-        <Card>
+    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Fixed Top Section */}
+      <div className="sticky top-0 z-20 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 pb-0">
+        <div className="max-w-7xl mx-auto">
+          {/* Date Filter */}
+          <Card>
           <CardContent className="pt-4 pb-4">
             <div className="flex flex-wrap gap-4 items-center justify-between">
               <div className="flex items-center gap-2 flex-wrap">
@@ -303,7 +305,12 @@ export default function Debtors() {
             </div>
           </CardContent>
         </Card>
+        </div>
+      </div>
 
+      {/* Scrollable Content Section */}
+      <div className="flex-1 overflow-auto p-4 pt-4">
+        <div className="max-w-7xl mx-auto space-y-4">
         {/* Category Cards */}
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           {/* Alpha Card */}
@@ -611,6 +618,8 @@ export default function Debtors() {
             )}
           </CardContent>
         </Card>
+        </div>
+      </div>
 
         {/* Follow-up Dialog */}
         <DebtorsFollowUpDialog
@@ -647,7 +656,6 @@ export default function Debtors() {
             customerId: selectedDebtorForCall?.id || selectedDebtorForCall?.customerId || "",
           }}
         />
-      </div>
     </div>
   );
 }

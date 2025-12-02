@@ -70,7 +70,12 @@ import TelegramBotSettings from "@/pages/telegram-bot-settings";
 import TelegramLink from "@/pages/telegram-link";
 import ElevenLabsSettings from "@/pages/elevenlabs-settings";
 import VoiceProfile from "@/pages/voice-profile";
+import TtsSettings from "@/pages/tts-settings";
+import SurepassSettings from "@/pages/surepass-settings";
+import BackgroundVerification from "@/pages/background-verification";
 import UpdateGP from "@/pages/update-gp";
+import Reports from "@/pages/reports";
+import AiAssistantConfig from "@/pages/ai-assistant-config";
 
 function Router() {
   return (
@@ -96,6 +101,7 @@ function Router() {
               <Route path="/" component={Home} />
               <Route path="/dashboard" component={Home} />
               <Route path="/customer-analytics" component={CustomerAnalytics} />
+              <Route path="/background-verification" component={BackgroundVerification} />
               <Route path="/leads" component={Leads} />
               <Route path="/quotations" component={Quotations} />
               <Route path="/proforma-invoices" component={ProformaInvoices} />
@@ -147,7 +153,11 @@ function Router() {
               <Route path="/whisper-credits" component={WhisperCredits} />
               <Route path="/whisper-voice" component={WhisperVoicePage} />
               <Route path="/elevenlabs-settings" component={ElevenLabsSettings} />
+              <Route path="/surepass-settings" component={SurepassSettings} />
               <Route path="/voice-profile" component={VoiceProfile} />
+              <Route path="/tts-settings" component={TtsSettings} />
+              <Route path="/ai-assistant-config" component={AiAssistantConfig} />
+              <Route path="/reports" component={Reports} />
               <Route component={NotFound} />
             </Switch>
           </Layout>

@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Settings, Save } from "lucide-react";
-import type { CategoryRules, FollowupRules, RecoverySettings } from "@shared/schema";
+import type { CategoryRules, RecoverySettings } from "@shared/schema";
 
 const categoryRulesFormSchema = z.object({
   alphaDays: z.coerce.number().min(0, "Must be at least 0 days"),
@@ -21,10 +21,6 @@ const categoryRulesFormSchema = z.object({
   deltaDays: z.coerce.number().min(1, "Must be at least 1 day"),
   partialPaymentThresholdPercent: z.coerce.number().min(0, "Must be 0-100%").max(100, "Must be 0-100%"),
   graceDays: z.coerce.number().min(0, "Must be at least 0 days").max(365, "Must be at most 365 days"),
-  alphaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
-  betaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
-  gammaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
-  deltaFollowupDays: z.coerce.number().min(1, "Must be at least 1 day"),
   autoUpgradeEnabled: z.boolean(),
 });
 
@@ -35,10 +31,6 @@ export default function CategoryRulesPage() {
 
   const { data: categoryRules, isLoading: rulesLoading } = useQuery<CategoryRules | null>({
     queryKey: ["/api/recovery/category-rules"],
-  });
-
-  const { data: followupRules, isLoading: followupLoading } = useQuery<FollowupRules | null>({
-    queryKey: ["/api/recovery/followup-rules"],
   });
 
   const { data: settings, isLoading: settingsLoading } = useQuery<RecoverySettings | null>({
@@ -54,10 +46,6 @@ export default function CategoryRulesPage() {
       deltaDays: 100,
       partialPaymentThresholdPercent: 80,
       graceDays: 7,
-      alphaFollowupDays: 7,
-      betaFollowupDays: 4,
-      gammaFollowupDays: 2,
-      deltaFollowupDays: 1,
       autoUpgradeEnabled: false,
     },
   });
@@ -65,9 +53,9 @@ export default function CategoryRulesPage() {
   // Update form when data loads
   useQuery({
     queryKey: ["category-rules-loaded"],
-    enabled: !!categoryRules && !!followupRules && !!settings,
+    enabled: !!categoryRules && !!settings,
     queryFn: () => {
-      if (categoryRules && followupRules && settings) {
+      if (categoryRules && settings) {
         form.reset({
           alphaDays: categoryRules.alphaDays,
           betaDays: categoryRules.betaDays,
@@ -75,10 +63,6 @@ export default function CategoryRulesPage() {
           deltaDays: categoryRules.deltaDays,
           partialPaymentThresholdPercent: categoryRules.partialPaymentThresholdPercent,
           graceDays: categoryRules.graceDays ?? 7,
-          alphaFollowupDays: followupRules.alphaDays,
-          betaFollowupDays: followupRules.betaDays,
-          gammaFollowupDays: followupRules.gammaDays,
-          deltaFollowupDays: followupRules.deltaDays,
           autoUpgradeEnabled: settings.autoUpgradeEnabled,
         });
       }
@@ -88,7 +72,7 @@ export default function CategoryRulesPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: CategoryRulesFormValues) => {
-      // Save all three configurations
+      // Save category rules and settings
       await Promise.all([
         apiRequest("PUT", "/api/recovery/category-rules", {
           alphaDays: data.alphaDays,
@@ -98,12 +82,6 @@ export default function CategoryRulesPage() {
           partialPaymentThresholdPercent: data.partialPaymentThresholdPercent,
           graceDays: data.graceDays,
         }),
-        apiRequest("PUT", "/api/recovery/followup-rules", {
-          alphaDays: data.alphaFollowupDays,
-          betaDays: data.betaFollowupDays,
-          gammaDays: data.gammaFollowupDays,
-          deltaDays: data.deltaFollowupDays,
-        }),
         apiRequest("PUT", "/api/recovery/settings", {
           autoUpgradeEnabled: data.autoUpgradeEnabled,
         }),
@@ -111,7 +89,6 @@ export default function CategoryRulesPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recovery/category-rules"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/recovery/followup-rules"] });
       queryClient.invalidateQueries({ queryKey: ["/api/recovery/settings"] });
       // Invalidate dashboard cards to reflect grace period changes immediately
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/invoice-status-cards"] });
@@ -133,7 +110,7 @@ export default function CategoryRulesPage() {
     saveMutation.mutate(data);
   };
 
-  const isLoading = rulesLoading || followupLoading || settingsLoading;
+  const isLoading = rulesLoading || settingsLoading;
 
   if (isLoading) {
     return (
@@ -182,10 +159,10 @@ export default function CategoryRulesPage() {
 
               {/* Two Column Layout */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Payment Delay Thresholds */}
+                {/* Left Side - Category Grace Periods */}
                 <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 border-purple-200 dark:border-purple-800">
                   <CardHeader>
-                    <CardTitle className="text-purple-900 dark:text-purple-100">Payment Delay Thresholds</CardTitle>
+                    <CardTitle className="text-purple-900 dark:text-purple-100">Category Grace Periods</CardTitle>
                     <CardDescription className="text-purple-700 dark:text-purple-300">
                       Days overdue before category upgrade
                     </CardDescription>
@@ -302,7 +279,18 @@ export default function CategoryRulesPage() {
                         </FormItem>
                       )}
                     />
+                  </CardContent>
+                </Card>
 
+                {/* Right Side - Payment Settings */}
+                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200 dark:border-blue-800">
+                  <CardHeader>
+                    <CardTitle className="text-blue-900 dark:text-blue-100">Payment Settings</CardTitle>
+                    <CardDescription className="text-blue-700 dark:text-blue-300">
+                      Configure payment thresholds and grace periods
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <FormField
                       control={form.control}
                       name="partialPaymentThresholdPercent"
@@ -336,7 +324,7 @@ export default function CategoryRulesPage() {
                       name="graceDays"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-foreground dark:text-foreground">Grace Days</FormLabel>
+                          <FormLabel className="text-foreground dark:text-foreground">Invoice Grace Days</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
@@ -354,117 +342,6 @@ export default function CategoryRulesPage() {
                           <p className="text-xs text-muted-foreground dark:text-muted-foreground">
                             Days after invoice due date that counts as grace period (for Paid On Time / In Grace classification)
                           </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-
-                {/* Follow-up Thresholds */}
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200 dark:border-blue-800">
-                  <CardHeader>
-                    <CardTitle className="text-blue-900 dark:text-blue-100">Follow-up Thresholds</CardTitle>
-                    <CardDescription className="text-blue-700 dark:text-blue-300">
-                      Days between follow-up reminders
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="alphaFollowupDays"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground dark:text-foreground">Alpha Category Follow-up</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                type="number"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                className="bg-white dark:bg-gray-900 text-foreground dark:text-foreground border-border dark:border-border"
-                                data-testid="input-alpha-followup"
-                              />
-                              <span className="absolute right-3 top-2.5 text-sm text-muted-foreground dark:text-muted-foreground">
-                                days
-                              </span>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="betaFollowupDays"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground dark:text-foreground">Beta Category Follow-up</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                type="number"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                className="bg-white dark:bg-gray-900 text-foreground dark:text-foreground border-border dark:border-border"
-                                data-testid="input-beta-followup"
-                              />
-                              <span className="absolute right-3 top-2.5 text-sm text-muted-foreground dark:text-muted-foreground">
-                                days
-                              </span>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="gammaFollowupDays"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground dark:text-foreground">Gamma Category Follow-up</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                type="number"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                className="bg-white dark:bg-gray-900 text-foreground dark:text-foreground border-border dark:border-border"
-                                data-testid="input-gamma-followup"
-                              />
-                              <span className="absolute right-3 top-2.5 text-sm text-muted-foreground dark:text-muted-foreground">
-                                days
-                              </span>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="deltaFollowupDays"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-foreground dark:text-foreground">Delta Category Follow-up</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                type="number"
-                                {...field}
-                                onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                                className="bg-white dark:bg-gray-900 text-foreground dark:text-foreground border-border dark:border-border"
-                                data-testid="input-delta-followup"
-                              />
-                              <span className="absolute right-3 top-2.5 text-sm text-muted-foreground dark:text-muted-foreground">
-                                days
-                              </span>
-                            </div>
-                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}

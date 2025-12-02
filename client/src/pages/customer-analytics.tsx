@@ -455,7 +455,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty State for Analytics */}
       {!selectedCustomerId && (
         <div className="flex items-center justify-center min-h-[300px]">
           <div className="text-center px-6">
@@ -470,7 +470,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Loading State */}
+      {/* Loading State for Analytics */}
       {selectedCustomerId && isLoadingAnalytics && (
         <div className="flex items-center justify-center min-h-[300px]">
           <div className="text-center">

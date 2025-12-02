@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   ColumnDef,
   ColumnOrderState,
@@ -22,6 +22,7 @@ import {
   ChevronsRight,
   Download,
   Eye,
+  Pencil,
   Search,
   Trash2,
   X,
@@ -61,6 +62,7 @@ interface DataTableProps<TData, TValue> {
   tableKey: string;
   onDeleteSelected?: (rows: TData[]) => void | Promise<void>;
   onExportSelected?: (rows: TData[]) => void | Promise<void>;
+  onEditSelected?: (row: TData) => void;
   onFiltersChange?: (filters: { globalFilter: string; columnFilters: ColumnFiltersState }) => void;
   onRowSelectionChange?: (selectedRowIds: string[]) => void;
   customBulkActions?: (selectedRows: TData[]) => React.ReactNode;
@@ -75,6 +77,7 @@ interface DataTableProps<TData, TValue> {
   enableColumnVisibility?: boolean;
   enableSorting?: boolean;
   enablePagination?: boolean;
+  getRowClassName?: (row: TData) => string;
 }
 
 export function DataTable<TData, TValue>({
@@ -83,6 +86,7 @@ export function DataTable<TData, TValue>({
   tableKey,
   onDeleteSelected,
   onExportSelected,
+  onEditSelected,
   onFiltersChange,
   onRowSelectionChange,
   customBulkActions,
@@ -97,6 +101,7 @@ export function DataTable<TData, TValue>({
   enableColumnVisibility = true,
   enableSorting = true,
   enablePagination = true,
+  getRowClassName,
 }: DataTableProps<TData, TValue>) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -111,32 +116,70 @@ export function DataTable<TData, TValue>({
   const [columnChooserOpen, setColumnChooserOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Load preferences on mount (async)
   useEffect(() => {
-    const preferences = loadTablePreferences(tableKey);
-    if (preferences) {
-      if (preferences.columnVisibility) {
-        setColumnVisibility(preferences.columnVisibility);
+    const loadPrefs = async () => {
+      try {
+        const preferences = await loadTablePreferences(tableKey);
+        if (preferences) {
+          if (preferences.columnVisibility) {
+            setColumnVisibility(preferences.columnVisibility);
+          }
+          if (preferences.columnOrder && preferences.columnOrder.length > 0) {
+            // Ensure 'select' is always first if row selection is enabled
+            const savedOrder = preferences.columnOrder;
+            const orderWithSelect = enableRowSelection && !savedOrder.includes('select')
+              ? ['select', ...savedOrder]
+              : savedOrder;
+            setColumnOrder(orderWithSelect);
+          }
+          if (preferences.pageSize) {
+            setPagination((prev) => ({ ...prev, pageSize: preferences.pageSize }));
+          }
+        } else if (Object.keys(defaultColumnVisibility).length > 0) {
+          setColumnVisibility(defaultColumnVisibility);
+        }
+      } catch (error) {
+        console.error("Failed to load preferences:", error);
+        if (Object.keys(defaultColumnVisibility).length > 0) {
+          setColumnVisibility(defaultColumnVisibility);
+        }
+      } finally {
+        setPrefsLoaded(true);
       }
-      if (preferences.columnOrder && preferences.columnOrder.length > 0) {
-        setColumnOrder(preferences.columnOrder);
-      }
-      if (preferences.pageSize) {
-        setPagination((prev) => ({ ...prev, pageSize: preferences.pageSize }));
-      }
-    } else if (Object.keys(defaultColumnVisibility).length > 0) {
-      setColumnVisibility(defaultColumnVisibility);
-    }
+    };
+    loadPrefs();
   }, [tableKey]);
 
+  // Debounced save preferences
+  const debouncedSavePrefs = useCallback((visibility: VisibilityState, order: ColumnOrderState, pageSize: number) => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        // Filter out 'select' and 'actions' from saved order
+        const filteredOrder = order.filter(id => id !== 'select' && id !== 'actions');
+        await saveTablePreferences(tableKey, {
+          columnVisibility: visibility,
+          columnOrder: filteredOrder,
+          pageSize,
+        });
+      } catch (error) {
+        console.error("Failed to save preferences:", error);
+      }
+    }, 500); // Debounce 500ms
+  }, [tableKey]);
+
+  // Save preferences when changed (after initial load)
   useEffect(() => {
-    const preferences = {
-      columnVisibility,
-      columnOrder,
-      pageSize: pagination.pageSize,
-    };
-    saveTablePreferences(tableKey, preferences);
-  }, [columnVisibility, columnOrder, pagination.pageSize, tableKey]);
+    if (prefsLoaded) {
+      debouncedSavePrefs(columnVisibility, columnOrder, pagination.pageSize);
+    }
+  }, [columnVisibility, columnOrder, pagination.pageSize, prefsLoaded, debouncedSavePrefs]);
 
   useEffect(() => {
     if (onFiltersChange) {
@@ -245,8 +288,8 @@ export function DataTable<TData, TValue>({
     }
   };
 
-  const handleColumnVisibilityReset = () => {
-    clearTablePreferences(tableKey);
+  const handleColumnVisibilityReset = async () => {
+    await clearTablePreferences(tableKey);
     setColumnVisibility(defaultColumnVisibility);
     setColumnOrder([]);
     setPagination({ pageIndex: 0, pageSize: defaultPageSize });
@@ -257,7 +300,7 @@ export function DataTable<TData, TValue>({
       return Array.from({ length: pagination.pageSize }).map((_, index) => (
         <TableRow key={index} data-testid={`skeleton-row-${index}`}>
           {columnsWithSelection.map((_, cellIndex) => (
-            <TableCell key={cellIndex}>
+            <TableCell key={cellIndex} className="py-2 px-3">
               <Skeleton className="h-6 w-full" data-testid={`skeleton-cell-${index}-${cellIndex}`} />
             </TableCell>
           ))}
@@ -270,7 +313,7 @@ export function DataTable<TData, TValue>({
         <TableRow>
           <TableCell
             colSpan={columnsWithSelection.length}
-            className="h-24 text-center"
+            className="h-24 text-center py-2 px-3"
             data-testid="text-empty-state"
           >
             {emptyMessage}
@@ -284,10 +327,12 @@ export function DataTable<TData, TValue>({
         key={row.id}
         data-state={row.getIsSelected() && "selected"}
         data-testid={`row-${row.id}`}
+        className={getRowClassName ? getRowClassName(row.original) : ""}
       >
         {row.getVisibleCells().map((cell) => (
           <TableCell 
             key={cell.id} 
+            className="py-2 px-3 whitespace-nowrap"
             data-testid={`cell-${row.id}-${cell.column.id}`}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -347,22 +392,36 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
       {enableBulkActions && hasSelection && (
-        <div className="flex items-center gap-2 p-3 rounded-lg border border-pastel-blue-icon/20 text-[#ffffff] bg-[#1ab7ff]">
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-pastel-blue-icon/20 text-[#ffffff] bg-[#1ab7ff] sticky top-0 z-20">
           <span className="text-sm font-medium" data-testid="text-selected-count">
             {selectedRows.length} row(s) selected
           </span>
           <div className="flex gap-2 ml-auto">
             {customBulkActions && customBulkActions(selectedRows.map((row) => row.original))}
+            {onEditSelected && selectedRows.length === 1 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onEditSelected(selectedRows[0].original)}
+                className="bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-800 hover:text-amber-800 dark:bg-amber-900 dark:hover:bg-amber-800 dark:border-amber-700 dark:text-amber-200 dark:hover:text-amber-200 transition-transform duration-200 hover:scale-105"
+                data-testid="button-edit-selected"
+                aria-label="Edit selected row"
+              >
+                <Pencil className="h-4 w-4 mr-1.5" />
+                Edit
+              </Button>
+            )}
             {onExportSelected && (
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleExportSelected}
                 disabled={isExporting}
+                className="bg-gray-100 hover:bg-gray-200 border-gray-400 text-gray-800 hover:text-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:hover:text-gray-200 transition-transform duration-200 hover:scale-105"
                 data-testid="button-export-selected"
                 aria-label="Export selected rows"
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-4 w-4 mr-1.5" />
                 {isExporting ? "Exporting..." : "Export"}
               </Button>
             )}
@@ -382,7 +441,7 @@ export function DataTable<TData, TValue>({
           </div>
         </div>
       )}
-      <div className="rounded-md border bg-card">
+      <div className="rounded-md border bg-card overflow-hidden">
         <style>{`
           .scrollbar-horizontal::-webkit-scrollbar,
           .scrollbar-vertical::-webkit-scrollbar {
@@ -420,16 +479,16 @@ export function DataTable<TData, TValue>({
         `}</style>
         {/* Outer container for horizontal scrolling - scrollbar stays at bottom of visible area */}
         <div 
-          className="overflow-x-auto scrollbar-horizontal"
+          className="overflow-auto scrollbar-horizontal scrollbar-vertical max-h-[60vh]"
           style={{
             scrollbarWidth: "auto",
             scrollbarColor: "rgb(156 163 175) transparent"
           }}
         >
-            <Table className="min-w-max">
-              <TableHeader>
+            <Table className="w-auto table-auto">
+              <TableHeader className="sticky top-0 z-10">
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="border-b-2 border-gray-300 dark:border-gray-600">
+                <TableRow key={headerGroup.id} className="border-b-2 border-gray-300 dark:border-gray-600 bg-[#F1F5F9] dark:bg-gray-800">
                   {headerGroup.headers.map((header) => {
                     const canSort = header.column.getCanSort();
                     const sortDirection = header.column.getIsSorted();
@@ -438,7 +497,7 @@ export function DataTable<TData, TValue>({
                       <TableHead
                         key={header.id}
                         className={cn(
-                          "whitespace-nowrap font-semibold py-2 bg-[#F1F5F9] dark:bg-gray-800"
+                          "whitespace-nowrap font-semibold py-2 px-3 bg-[#F1F5F9] dark:bg-gray-800"
                         )}
                         data-testid={`header-${header.id}`}
                         aria-sort={
@@ -482,6 +541,32 @@ export function DataTable<TData, TValue>({
                   })}
                 </TableRow>
               ))}
+              {/* Per-column filter row */}
+              <TableRow className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 sticky top-[41px] z-10">
+                {table.getHeaderGroups()[0]?.headers.map((header) => {
+                  const canFilter = header.column.getCanFilter();
+                  const columnId = header.column.id;
+                  
+                  // Skip filter for select and actions columns
+                  if (columnId === "select" || columnId === "actions") {
+                    return <TableHead key={`filter-${header.id}`} className="py-1 px-2" />;
+                  }
+                  
+                  return (
+                    <TableHead key={`filter-${header.id}`} className="py-1 px-2">
+                      {canFilter && (
+                        <Input
+                          placeholder="Search..."
+                          value={(header.column.getFilterValue() as string) ?? ""}
+                          onChange={(e) => header.column.setFilterValue(e.target.value)}
+                          className="h-7 text-xs w-full min-w-[80px]"
+                          data-testid={`filter-${columnId}`}
+                        />
+                      )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
             </TableHeader>
             <TableBody>{renderTableBody()}</TableBody>
           </Table>
@@ -561,8 +646,15 @@ export function DataTable<TData, TValue>({
         <ColumnChooser
           open={columnChooserOpen}
           onOpenChange={setColumnChooserOpen}
-          columns={table.getAllColumns()}
+          columns={table.getAllColumns().filter(col => col.id !== 'select' && col.id !== 'actions')}
           onReset={handleColumnVisibilityReset}
+          onColumnOrderChange={(newOrder) => {
+            // Always keep 'select' at the beginning if row selection is enabled
+            const orderWithSelect = enableRowSelection 
+              ? ['select', ...newOrder.filter(id => id !== 'select')]
+              : newOrder;
+            setColumnOrder(orderWithSelect);
+          }}
         />
       )}
     </div>

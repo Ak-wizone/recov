@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, decimal, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, decimal, timestamp, integer, boolean, doublePrecision } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -243,9 +243,7 @@ export const insertCustomerSchema = createInsertSchema(customers).pick({
   category: z.enum(["Alpha", "Beta", "Gamma", "Delta"], {
     errorMap: () => ({ message: "Category must be Alpha, Beta, Gamma, or Delta" }),
   }),
-  assignedUser: z.enum(["Manpreet Bedi", "Bilal Ahamad", "Anjali Dhiman", "Princi Soni"], {
-    errorMap: () => ({ message: "Invalid assigned user" }),
-  }).optional(),
+  assignedUser: z.string().optional(),
   mobile: z.string().min(1, "Mobile number is required"),
   email: z.string().email("Invalid email address"),
 });
@@ -320,7 +318,7 @@ export const masterCustomers = pgTable("master_customers", {
   secondaryMobile: text("secondary_mobile"),
   secondaryEmail: text("secondary_email"),
   // Payment & Credit Terms
-  paymentTermsDays: text("payment_terms_days").notNull(),
+  paymentTermsDays: text("payment_terms_days"), // Nullable to support existing data
   creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }),
   openingBalance: decimal("opening_balance", { precision: 15, scale: 2 }),
   // Interest Configuration
@@ -331,6 +329,7 @@ export const masterCustomers = pgTable("master_customers", {
   // Status
   isActive: text("is_active").notNull().default("Active"), // Active, Inactive
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertMasterCustomerSchema = createInsertSchema(masterCustomers).pick({
@@ -526,11 +525,13 @@ export const invoices = pgTable("invoices", {
   city: text("city"),
   pincode: text("pincode"),
   paymentTerms: integer("payment_terms"),
+  paymentTermsOverride: integer("payment_terms_override"), // Manual override - won't be changed by sync
   creditLimit: decimal("credit_limit", { precision: 15, scale: 2 }),
   interestApplicableFrom: text("interest_applicable_from"),
   interestRate: decimal("interest_rate", { precision: 5, scale: 2 }),
   salesPerson: text("sales_person"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  raw: text("raw"), // Raw data from import
 });
 
 export const insertInvoiceSchema = createInsertSchema(invoices).pick({
@@ -546,6 +547,7 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   city: true,
   pincode: true,
   paymentTerms: true,
+  paymentTermsOverride: true,
   creditLimit: true,
   interestApplicableFrom: true,
   interestRate: true,
@@ -567,6 +569,7 @@ export const insertInvoiceSchema = createInsertSchema(invoices).pick({
   city: z.string().optional(),
   pincode: z.string().optional(),
   paymentTerms: z.number().optional(),
+  paymentTermsOverride: z.number().optional().nullable(),
   creditLimit: z.string().optional(),
   interestApplicableFrom: z.string().optional(),
   interestRate: z.string().optional(),
@@ -594,6 +597,7 @@ export const receipts = pgTable("receipts", {
   remarks: text("remarks"),
   primaryEmail: text("primary_email"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  raw: text("raw"), // Raw data from import
 });
 
 export const insertReceiptSchema = createInsertSchema(receipts).pick({
@@ -697,9 +701,7 @@ export const insertLeadSchema = createInsertSchema(leads).pick({
   priority: z.enum(["High", "Medium", "Low"], {
     errorMap: () => ({ message: "Priority must be High, Medium, or Low" }),
   }).optional(),
-  assignedUser: z.enum(["Manpreet Bedi", "Bilal Ahamad", "Anjali Dhiman", "Princi Soni"], {
-    errorMap: () => ({ message: "Invalid assigned user" }),
-  }).optional(),
+  assignedUser: z.string().optional(),
   estimatedDealAmount: z.string().refine((val) => val === "" || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0), {
     message: "Estimated deal amount must be a valid positive number",
   }).optional(),
@@ -2742,6 +2744,45 @@ export const insertVoiceCloneSchema = createInsertSchema(voiceClones).omit({
 export type InsertVoiceClone = z.infer<typeof insertVoiceCloneSchema>;
 export type VoiceClone = typeof voiceClones.$inferSelect;
 
+// TTS Settings (Edge TTS voice preferences per user)
+export const ttsSettings = pgTable("tts_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull(),
+  voiceId: text("voice_id").notNull().default("hi-IN-SwaraNeural"), // Edge TTS voice ID
+  voiceName: text("voice_name").notNull().default("Swara (Female)"),
+  language: text("language").notNull().default("hindi"), // hindi, english_in, english_us, english_uk
+  gender: text("gender").notNull().default("Female"), // Male, Female
+  rate: text("rate").default("+0%"), // Speech rate adjustment
+  pitch: text("pitch").default("+0Hz"), // Pitch adjustment
+  volume: text("volume").default("+0%"), // Volume adjustment
+  behaviour: text("behaviour").default("normal"), // kind, normal, firm, strict, final_warning
+  useEdgeTts: boolean("use_edge_tts").notNull().default(true), // Use Edge TTS (true) or ElevenLabs (false)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertTtsSettingsSchema = createInsertSchema(ttsSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  tenantId: z.string().min(1, "Tenant ID is required"),
+  userId: z.string().min(1, "User ID is required"),
+  voiceId: z.string().min(1, "Voice ID is required"),
+  voiceName: z.string().min(1, "Voice name is required"),
+  language: z.enum(["hindi", "english_in", "english_us", "english_uk"]).default("hindi"),
+  gender: z.enum(["Male", "Female"]).default("Female"),
+  rate: z.string().default("+0%"),
+  pitch: z.string().default("+0Hz"),
+  volume: z.string().default("+0%"),
+  behaviour: z.enum(["kind", "normal", "firm", "strict", "final_warning"]).default("normal"),
+  useEdgeTts: z.boolean().default(true),
+});
+
+export type InsertTtsSettings = z.infer<typeof insertTtsSettingsSchema>;
+export type TtsSettings = typeof ttsSettings.$inferSelect;
+
 // Voice clone usage logs (for tracking/billing)
 export const voiceCloneUsage = pgTable("voice_clone_usage", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -2771,3 +2812,147 @@ export const insertVoiceCloneUsageSchema = createInsertSchema(voiceCloneUsage).o
 export type InsertVoiceCloneUsage = z.infer<typeof insertVoiceCloneUsageSchema>;
 export type VoiceCloneUsage = typeof voiceCloneUsage.$inferSelect;
 
+// Surepass KYC Configuration (per tenant)
+export const surepassConfig = pgTable("surepass_config", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }).unique(),
+  apiToken: text("api_token").notNull(), // Bearer token (encrypted)
+  environment: text("environment").notNull().default("sandbox"), // sandbox, production
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  // API permissions
+  gstinEnabled: boolean("gstin_enabled").notNull().default(true),
+  tdsEnabled: boolean("tds_enabled").notNull().default(true),
+  creditReportEnabled: boolean("credit_report_enabled").notNull().default(true),
+  // Usage tracking
+  lastVerifiedAt: timestamp("last_verified_at"),
+  totalApiCalls: integer("total_api_calls").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSurepassConfigSchema = createInsertSchema(surepassConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastVerifiedAt: true,
+  totalApiCalls: true,
+}).extend({
+  tenantId: z.string().min(1, "Tenant ID is required"),
+  apiToken: z.string().min(1, "API Token is required"),
+  environment: z.enum(["sandbox", "production"]).default("sandbox"),
+  isEnabled: z.boolean().default(true),
+  gstinEnabled: z.boolean().default(true),
+  tdsEnabled: z.boolean().default(true),
+  creditReportEnabled: z.boolean().default(true),
+});
+
+export type InsertSurepassConfig = z.infer<typeof insertSurepassConfigSchema>;
+export type SurepassConfig = typeof surepassConfig.$inferSelect;
+
+// Surepass API Logs (for tracking and audit)
+export const surepassLogs = pgTable("surepass_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  apiType: text("api_type").notNull(), // gstin, tds, credit_report, credit_report_pdf
+  requestData: text("request_data"), // JSON string of request (masked sensitive data)
+  responseStatus: integer("response_status"), // HTTP status code
+  responseData: text("response_data"), // JSON string of response (masked)
+  isSuccess: boolean("is_success").notNull().default(false),
+  errorMessage: text("error_message"),
+  creditsUsed: decimal("credits_used", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSurepassLogSchema = createInsertSchema(surepassLogs).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  tenantId: z.string().min(1),
+  userId: z.string().optional(),
+  apiType: z.enum(["gstin", "tds", "credit_report", "credit_report_pdf"]),
+  requestData: z.string().optional(),
+  responseStatus: z.number().int().optional(),
+  responseData: z.string().optional(),
+  isSuccess: z.boolean().default(false),
+  errorMessage: z.string().optional(),
+  creditsUsed: z.string().optional(),
+});
+
+export type InsertSurepassLog = z.infer<typeof insertSurepassLogSchema>;
+export type SurepassLog = typeof surepassLogs.$inferSelect;
+
+// User Table Preferences - per user, per table key
+export const userTablePreferences = pgTable("user_table_preferences", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: varchar("tenant_id").notNull().references(() => tenants.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tableKey: text("table_key").notNull(), // e.g., "invoices", "customers", "debtors"
+  columnVisibility: text("column_visibility"), // JSON string of {columnId: boolean}
+  columnOrder: text("column_order"), // JSON string of column IDs in order
+  pageSize: integer("page_size").notNull().default(10),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertUserTablePreferencesSchema = createInsertSchema(userTablePreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  tenantId: z.string().min(1, "Tenant ID is required"),
+  userId: z.string().min(1, "User ID is required"),
+  tableKey: z.string().min(1, "Table key is required"),
+  columnVisibility: z.string().optional(),
+  columnOrder: z.string().optional(),
+  pageSize: z.number().int().min(5).max(100).default(10),
+});
+
+export type InsertUserTablePreferences = z.infer<typeof insertUserTablePreferencesSchema>;
+export type UserTablePreferences = typeof userTablePreferences.$inferSelect;
+
+// Express Session table (managed by connect-pg-simple)
+// This table must be in schema to prevent drizzle from deleting it
+export const session = pgTable("session", {
+  sid: varchar("sid").primaryKey(),
+  sess: text("sess").notNull(),
+  expire: timestamp("expire", { precision: 6 }).notNull(),
+});
+
+// ============ AI ASSISTANT (HEY RECOV) CONFIGURATION ============
+
+// Platform-level AI Assistant Configuration
+export const aiAssistantConfig = pgTable("ai_assistant_config", {
+  id: integer("id").primaryKey(),
+  tenantId: varchar("tenant_id", { length: 50 }).notNull().unique(),
+  apiKey: text("api_key"), // AES-256-GCM encrypted OpenAI API key
+  keyVersion: integer("key_version").notNull().default(1), // For key rotation support
+  model: varchar("model", { length: 50 }).default("gpt-4o"),
+  isEnabled: boolean("is_enabled").notNull().default(false),
+  maxTokens: integer("max_tokens").notNull().default(2000),
+  temperature: doublePrecision("temperature").default(0.7),
+  systemPrompt: text("system_prompt"),
+  lastTestedAt: timestamp("last_tested_at"),
+  isApiValid: boolean("is_api_valid").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAiAssistantConfigSchema = createInsertSchema(aiAssistantConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  tenantId: z.string().min(1, "Tenant ID is required"),
+  apiKey: z.string().optional(),
+  keyVersion: z.number().int().default(1),
+  model: z.string().default("gpt-4o"),
+  isEnabled: z.boolean().default(false),
+  maxTokens: z.number().int().min(100).max(8000).default(2000),
+  temperature: z.number().min(0).max(2).default(0.7),
+  systemPrompt: z.string().optional(),
+  isApiValid: z.boolean().default(false),
+});
+
+export type InsertAiAssistantConfig = z.infer<typeof insertAiAssistantConfigSchema>;
+export type AiAssistantConfig = typeof aiAssistantConfig.$inferSelect;

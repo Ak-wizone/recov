@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, MessageSquare, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/lib/auth";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ReceiptTableProps {
   receipts: Receipt[];
@@ -132,53 +133,8 @@ export function ReceiptTable({
           return dateStr.toLowerCase().includes(filterValue.toLowerCase());
         },
       },
-      {
-        id: "actions",
-        header: "Actions",
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2">
-            {canPerformAction("canWhatsApp") && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onWhatsApp?.(row.original)}
-                data-testid={`button-whatsapp-${row.original.id}`}
-              >
-                <MessageSquare className="h-4 w-4 text-green-500" />
-              </Button>
-            )}
-            {canPerformAction("canEmail") && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEmail?.(row.original)}
-                data-testid={`button-email-${row.original.id}`}
-              >
-                <Mail className="h-4 w-4 text-blue-500" />
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(row.original)}
-              data-testid={`button-edit-${row.original.id}`}
-            >
-              <Pencil className="h-4 w-4 text-blue-500" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onDelete(row.original)}
-              data-testid={`button-delete-${row.original.id}`}
-            >
-              <Trash2 className="h-4 w-4 text-red-500" />
-            </Button>
-          </div>
-        ),
-        enableHiding: false,
-      },
     ],
-    [onEdit, onDelete, onWhatsApp, onEmail, canPerformAction]
+    [canPerformAction]
   );
 
   const handleBulkDelete = async (rows: Receipt[]) => {
@@ -186,6 +142,10 @@ export function ReceiptTable({
       const ids = rows.map(row => row.id);
       onBulkDelete(ids);
     }
+  };
+
+  const handleEditSelected = (receipt: Receipt) => {
+    onEdit(receipt);
   };
 
   return (
@@ -200,6 +160,35 @@ export function ReceiptTable({
       enableColumnVisibility={true}
       enablePagination={true}
       onDeleteSelected={handleBulkDelete}
+      onEditSelected={handleEditSelected}
+      customBulkActions={(selectedReceipts: Receipt[]) => (
+        <div className="flex items-center gap-2">
+          {canPerformAction("canWhatsApp") && onWhatsApp && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectedReceipts.forEach(r => onWhatsApp(r))}
+              className="bg-green-100 hover:bg-green-200 border-green-300 text-green-800 hover:text-green-800 dark:bg-green-900 dark:hover:bg-green-800 dark:border-green-700 dark:text-green-200 dark:hover:text-green-200 transition-transform duration-200 hover:scale-105"
+              data-testid="button-bulk-whatsapp"
+            >
+              <MessageSquare className="h-4 w-4 mr-1.5" />
+              WhatsApp
+            </Button>
+          )}
+          {canPerformAction("canEmail") && onEmail && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => selectedReceipts.forEach(r => onEmail(r))}
+              className="bg-blue-100 hover:bg-blue-200 border-blue-300 text-blue-800 hover:text-blue-800 dark:bg-blue-900 dark:hover:bg-blue-800 dark:border-blue-700 dark:text-blue-200 dark:hover:text-blue-200 transition-transform duration-200 hover:scale-105"
+              data-testid="button-bulk-email"
+            >
+              <Mail className="h-4 w-4 mr-1.5" />
+              Email
+            </Button>
+          )}
+        </div>
+      )}
     />
   );
 }

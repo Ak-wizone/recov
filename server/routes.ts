@@ -61,6 +61,130 @@ const audioUpload = multer({
   }
 });
 
+// ==================== CATEGORY CALCULATION HELPERS ====================
+
+// Category priority order (lower index = better category)
+const CATEGORY_ORDER = ['Alpha', 'Beta', 'Gamma', 'Delta'];
+
+/**
+ * Calculate category for a single invoice based on payment delay
+ * @param invoice - The invoice to evaluate
+ * @param categoryRules - The tenant's category rules configuration
+ * @returns Category name (Alpha, Beta, Gamma, Delta)
+ */
+function calculateInvoiceCategory(
+  invoice: { status: string; invoiceDate: string | Date; paymentTerms?: number | null },
+  categoryRules: { alphaDays: number; betaDays: number; gammaDays: number; deltaDays: number }
+): string {
+  // Calculate due date from invoice date + payment terms
+  const invoiceDate = new Date(invoice.invoiceDate);
+  const paymentTerms = invoice.paymentTerms || 30; // Default 30 days if not set
+  const dueDate = new Date(invoiceDate);
+  dueDate.setDate(dueDate.getDate() + paymentTerms);
+  
+  // Use current date for evaluation
+  const today = new Date();
+  
+  // If invoice is paid, consider it as Alpha (good category)
+  // For unpaid invoices, check current delay
+  if (invoice.status === 'Paid') {
+    return 'Alpha'; // Paid invoices are good
+  }
+  
+  // Calculate days overdue (negative means not yet due)
+  const daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  if (daysOverdue <= 0) {
+    return 'Alpha'; // Not yet due
+  }
+  
+  // Check against cumulative thresholds
+  const alphaThreshold = categoryRules.alphaDays;
+  const betaThreshold = alphaThreshold + categoryRules.betaDays;
+  const gammaThreshold = betaThreshold + categoryRules.gammaDays;
+  
+  if (daysOverdue <= alphaThreshold) {
+    return 'Alpha';
+  } else if (daysOverdue <= betaThreshold) {
+    return 'Beta';
+  } else if (daysOverdue <= gammaThreshold) {
+    return 'Gamma';
+  } else {
+    return 'Delta';
+  }
+}
+
+/**
+ * Calculate customer's final category based on their last 3 invoices
+ * Rules:
+ * - If 2 or 3 invoices have same category -> that category wins
+ * - If all 3 are different -> middle category in sequence wins
+ * @param customerName - Name of the customer
+ * @param allInvoices - All invoices in the system
+ * @param categoryRules - The tenant's category rules configuration
+ * @returns Computed category name
+ */
+function calculateCustomerCategory(
+  customerName: string,
+  allInvoices: Array<{ customerName: string; status: string; invoiceDate: string | Date; paymentTerms?: number | null }>,
+  categoryRules: { alphaDays: number; betaDays: number; gammaDays: number; deltaDays: number } | null
+): string {
+  // Default rules if not configured
+  const rules = categoryRules || { alphaDays: 5, betaDays: 20, gammaDays: 40, deltaDays: 100 };
+  
+  // Get customer's invoices sorted by invoice date (newest first)
+  const customerInvoices = allInvoices
+    .filter(inv => inv.customerName?.toLowerCase().trim() === customerName?.toLowerCase().trim())
+    .sort((a, b) => new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime());
+  
+  // If no invoices, return Alpha (best category for new customers)
+  if (customerInvoices.length === 0) {
+    return 'Alpha';
+  }
+  
+  // Take last 3 invoices (or less if fewer exist)
+  const last3Invoices = customerInvoices.slice(0, 3);
+  
+  // Calculate category for each invoice
+  const categories = last3Invoices.map(inv => calculateInvoiceCategory(inv, rules));
+  
+  // If only 1 invoice, return its category
+  if (categories.length === 1) {
+    return categories[0];
+  }
+  
+  // If only 2 invoices
+  if (categories.length === 2) {
+    if (categories[0] === categories[1]) {
+      return categories[0]; // Same category
+    }
+    // Different categories - return the worse one (higher index in CATEGORY_ORDER)
+    const idx0 = CATEGORY_ORDER.indexOf(categories[0]);
+    const idx1 = CATEGORY_ORDER.indexOf(categories[1]);
+    return idx0 > idx1 ? categories[0] : categories[1];
+  }
+  
+  // 3 invoices - check for majority (2 or more same)
+  const categoryCounts: Record<string, number> = {};
+  categories.forEach(cat => {
+    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+  });
+  
+  // Find if any category has 2 or more
+  for (const [category, count] of Object.entries(categoryCounts)) {
+    if (count >= 2) {
+      return category; // Majority wins
+    }
+  }
+  
+  // All 3 are different - return the middle one in sequence
+  const sortedIndices = categories
+    .map(cat => CATEGORY_ORDER.indexOf(cat))
+    .sort((a, b) => a - b);
+  
+  return CATEGORY_ORDER[sortedIndices[1]]; // Middle category
+}
+
 // Centralized credential email template
 const CREDENTIAL_EMAIL_TEMPLATE = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
@@ -3519,6 +3643,722 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ========== END ELEVENLABS VOICE CLONING API ==========
 
+  // ========== HEY RECOV AI ASSISTANT API ==========
+  
+  // Platform Admin - Get AI Assistant Configuration
+  app.get("/api/ai-assistant/config", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getAiAssistantConfig();
+      
+      if (!config) {
+        return res.json({
+          hasApiKey: false,
+          isEnabled: false,
+          model: "gpt-4o",
+          maxTokens: 2048,
+          temperature: 0.7,
+          systemPrompt: "",
+          lastTestedAt: null,
+          isApiValid: false,
+          message: "AI Assistant configuration not set up yet"
+        });
+      }
+      
+      // Return config without the actual API key
+      const { apiKey, ...safeConfig } = config;
+      res.json({
+        ...safeConfig,
+        hasApiKey: !!apiKey
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch AI Assistant config:", error);
+      res.status(500).json({ code: "FETCH_ERROR", message: error.message });
+    }
+  });
+  
+  // Platform Admin - Create/Update AI Assistant Configuration
+  app.post("/api/ai-assistant/config", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { apiKey, isEnabled, model, maxTokens, temperature, systemPrompt } = req.body;
+      
+      const existingConfig = await storage.getAiAssistantConfig();
+      
+      let result;
+      if (existingConfig) {
+        // Update existing config
+        const updates: any = {};
+        if (apiKey !== undefined && apiKey !== "") {
+          updates.apiKey = apiKey; // Storage layer handles encryption
+        }
+        if (isEnabled !== undefined) updates.isEnabled = isEnabled;
+        if (model !== undefined) updates.model = model;
+        if (maxTokens !== undefined) updates.maxTokens = maxTokens;
+        if (temperature !== undefined) updates.temperature = temperature;
+        if (systemPrompt !== undefined) updates.systemPrompt = systemPrompt;
+        
+        result = await storage.updateAiAssistantConfig(existingConfig.id, updates);
+      } else {
+        // Create new config - need tenantId for platform config, use "platform" as a placeholder
+        if (!apiKey) {
+          return res.status(400).json({ message: "API key is required for initial setup" });
+        }
+        
+        result = await storage.createAiAssistantConfig({
+          tenantId: "platform", // Platform-level config
+          apiKey: apiKey, // Storage layer handles encryption
+          isEnabled: isEnabled ?? true,
+          model: model ?? "gpt-4o",
+          maxTokens: maxTokens ?? 2048,
+          temperature: temperature ?? 0.7,
+          systemPrompt: systemPrompt ?? ""
+        });
+      }
+      
+      if (!result) {
+        return res.status(500).json({ message: "Failed to save AI Assistant configuration" });
+      }
+      
+      const { apiKey: encryptedKey, ...safeConfig } = result;
+      
+      res.json({
+        success: true,
+        message: existingConfig ? "Configuration updated successfully" : "Configuration created successfully",
+        config: {
+          ...safeConfig,
+          hasApiKey: !!encryptedKey
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to save AI Assistant config:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+  
+  // Platform Admin - Test OpenAI API Connection for AI Assistant
+  app.post("/api/ai-assistant/test", adminOnlyMiddleware, async (req, res) => {
+    try {
+      const { apiKey } = req.body;
+      
+      let testApiKey = apiKey;
+      
+      // If no API key provided in request or "use-stored" placeholder, use stored one
+      if (!testApiKey || testApiKey === "use-stored") {
+        const configData = await storage.getAiAssistantConfigSecure();
+        if (!configData || !configData.decryptedApiKey) {
+          return res.status(400).json({ 
+            success: false,
+            message: "No API key configured. Please enter an API key first." 
+          });
+        }
+        testApiKey = configData.decryptedApiKey;
+      }
+      
+      // Test the API key by making a simple request
+      const OpenAI = (await import("openai")).default;
+      const openai = new OpenAI({ apiKey: testApiKey });
+      
+      // Use chat completions to test - this is what Hey Recov will use
+      const response = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: "Say hello" }],
+        max_tokens: 10
+      });
+      
+      if (response.choices && response.choices.length > 0) {
+        // Update the config to mark API as valid
+        const existingConfig = await storage.getAiAssistantConfig();
+        if (existingConfig) {
+          await storage.updateAiAssistantConfig(existingConfig.id, {
+            isApiValid: true,
+            lastTestedAt: new Date()
+          });
+        }
+        
+        res.json({
+          success: true,
+          message: "OpenAI API connection successful! Your API key is working correctly."
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: "Unexpected response from OpenAI API"
+        });
+      }
+    } catch (error: any) {
+      console.error("AI Assistant API test failed:", error);
+      
+      // Update config to mark API as invalid
+      const existingConfig = await storage.getAiAssistantConfig();
+      if (existingConfig) {
+        await storage.updateAiAssistantConfig(existingConfig.id, {
+          isApiValid: false,
+          lastTestedAt: new Date()
+        });
+      }
+      
+      if (error.status === 401) {
+        return res.status(401).json({ 
+          success: false,
+          message: "Invalid API key. Please check your OpenAI API key." 
+        });
+      }
+      
+      if (error.status === 429) {
+        return res.status(429).json({ 
+          success: false,
+          message: "Rate limit exceeded. Please try again later." 
+        });
+      }
+      
+      res.status(500).json({ 
+        success: false,
+        message: error.message || "Failed to connect to OpenAI API. Please check your API key." 
+      });
+    }
+  });
+  
+  // ========== END HEY RECOV AI ASSISTANT API ==========
+
+  // ========== EDGE TTS API (Free Text-to-Speech) ==========
+  
+  const { EdgeTtsService, ALL_VOICES, VOICE_CATEGORIES, VOICE_BEHAVIOURS, getSuggestedBehaviour } = await import("./services/edgeTtsService");
+  const edgeTtsService = new EdgeTtsService();
+
+  // Get TTS Settings for current user
+  app.get("/api/tts/settings", tenantMiddleware, async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const settings = await storage.getTtsSettings(req.tenantId!, sessionUser.id);
+      res.json({ settings: settings || null });
+    } catch (error: any) {
+      console.error("Failed to fetch TTS settings:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Save TTS Settings
+  app.post("/api/tts/settings", tenantMiddleware, async (req, res) => {
+    try {
+      const sessionUser = (req.session as any).user;
+      if (!sessionUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const { voiceId, voiceName, language, gender, rate, pitch, volume, behaviour, useEdgeTts } = req.body;
+
+      if (!voiceId || !voiceName) {
+        return res.status(400).json({ message: "Voice ID and name are required" });
+      }
+
+      const settings = await storage.saveTtsSettings({
+        tenantId: req.tenantId!,
+        userId: sessionUser.id,
+        voiceId,
+        voiceName,
+        language: language || "hindi",
+        gender: gender || "Female",
+        rate: rate || "+0%",
+        pitch: pitch || "+0Hz",
+        volume: volume || "+0%",
+        behaviour: behaviour || "normal",
+        useEdgeTts: useEdgeTts !== false,
+      });
+
+      res.json({ success: true, settings });
+    } catch (error: any) {
+      console.error("Failed to save TTS settings:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get available voices and behaviours
+  app.get("/api/tts/voices", tenantMiddleware, async (req, res) => {
+    try {
+      res.json({
+        voices: ALL_VOICES,
+        categories: VOICE_CATEGORIES,
+        behaviours: VOICE_BEHAVIOURS,
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch TTS voices:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get suggested behaviour based on days overdue
+  app.get("/api/tts/suggested-behaviour", tenantMiddleware, async (req, res) => {
+    try {
+      const daysOverdue = parseInt(req.query.daysOverdue as string) || 0;
+      const suggestedBehaviour = getSuggestedBehaviour(daysOverdue);
+      const behaviourConfig = VOICE_BEHAVIOURS[suggestedBehaviour];
+      
+      res.json({
+        daysOverdue,
+        suggestedBehaviour,
+        behaviourConfig,
+      });
+    } catch (error: any) {
+      console.error("Failed to get suggested behaviour:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Preview TTS voice with behaviour
+  app.post("/api/tts/preview", tenantMiddleware, async (req, res) => {
+    try {
+      const { text, voiceId, rate, pitch, volume, behaviour } = req.body;
+
+      if (!text || !voiceId) {
+        return res.status(400).json({ message: "Text and voice ID are required" });
+      }
+
+      console.log(`[TTS Preview] Generating audio for voice: ${voiceId}, behaviour: ${behaviour || 'normal'}`);
+      console.log(`[TTS Preview] Text: ${text.substring(0, 100)}...`);
+
+      const result = await edgeTtsService.textToSpeech(text, voiceId, {
+        rate: rate || "+0%",
+        pitch: pitch || "+0Hz",
+        volume: volume || "+0%",
+        behaviour: behaviour || undefined,
+      });
+
+      if (!result.success || !result.audioBuffer) {
+        return res.status(500).json({ message: result.error || "Failed to generate audio" });
+      }
+
+      res.set({
+        "Content-Type": "audio/mpeg",
+        "Content-Disposition": `inline; filename="tts-preview.mp3"`,
+      });
+      res.send(result.audioBuffer);
+    } catch (error: any) {
+      console.error("TTS preview failed:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Test TTS connection
+  app.post("/api/tts/test", tenantMiddleware, async (req, res) => {
+    try {
+      const result = await edgeTtsService.testConnection();
+      res.json(result);
+    } catch (error: any) {
+      console.error("TTS test failed:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Generate TTS audio with template variables
+  app.post("/api/tts/generate", tenantMiddleware, async (req, res) => {
+    try {
+      const { template, variables, voiceId } = req.body;
+
+      if (!template) {
+        return res.status(400).json({ message: "Template text is required" });
+      }
+
+      const sessionUser = (req.session as any).user;
+      let selectedVoice = voiceId;
+
+      // Get user's preferred voice if not specified
+      if (!selectedVoice && sessionUser) {
+        const settings = await storage.getTtsSettings(req.tenantId!, sessionUser.id);
+        selectedVoice = settings?.voiceId || "hi-IN-SwaraNeural";
+      }
+
+      const result = await edgeTtsService.generateAudioFromTemplate(
+        template,
+        variables || {},
+        selectedVoice || "hi-IN-SwaraNeural"
+      );
+
+      if (!result.success || !result.audioBuffer) {
+        return res.status(500).json({ message: result.error || "Failed to generate audio" });
+      }
+
+      res.set({
+        "Content-Type": "audio/mpeg",
+        "Content-Disposition": `inline; filename="tts-generated.mp3"`,
+      });
+      res.send(result.audioBuffer);
+    } catch (error: any) {
+      console.error("TTS generation failed:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ========== END EDGE TTS API ==========
+
+  // ========== SUREPASS KYC API ==========
+  
+  const { createSurepassService } = await import("./services/surepassService");
+
+  // Tenant Admin - Get Surepass Configuration
+  app.get("/api/surepass/config", tenantMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getSurepassConfig(req.tenantId!);
+      
+      if (!config) {
+        return res.json({
+          exists: false,
+          message: "Surepass KYC not configured yet"
+        });
+      }
+      
+      // Don't expose the actual token
+      const { apiToken, ...safeConfig } = config;
+      
+      res.json({
+        exists: true,
+        config: {
+          ...safeConfig,
+          hasToken: !!apiToken
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch Surepass config:", error);
+      res.status(500).json({ code: "FETCH_ERROR", message: error.message });
+    }
+  });
+
+  // Tenant Admin - Create/Update Surepass Configuration
+  app.post("/api/surepass/config", tenantMiddleware, async (req, res) => {
+    try {
+      const { apiToken, environment, isEnabled, gstinEnabled, tdsEnabled, creditReportEnabled } = req.body;
+      
+      const existingConfig = await storage.getSurepassConfig(req.tenantId!);
+      
+      if (existingConfig) {
+        // Update existing config
+        const updates: any = {};
+        
+        if (apiToken) updates.apiToken = apiToken;
+        if (environment !== undefined) updates.environment = environment;
+        if (isEnabled !== undefined) updates.isEnabled = isEnabled;
+        if (gstinEnabled !== undefined) updates.gstinEnabled = gstinEnabled;
+        if (tdsEnabled !== undefined) updates.tdsEnabled = tdsEnabled;
+        if (creditReportEnabled !== undefined) updates.creditReportEnabled = creditReportEnabled;
+        
+        const updated = await storage.updateSurepassConfig(req.tenantId!, updates);
+        res.json({ success: true, config: updated });
+      } else {
+        // Create new config
+        if (!apiToken) {
+          return res.status(400).json({ message: "API Token is required for initial setup" });
+        }
+        
+        const created = await storage.createSurepassConfig({
+          tenantId: req.tenantId!,
+          apiToken,
+          environment: environment || "sandbox",
+          isEnabled: isEnabled ?? true,
+          gstinEnabled: gstinEnabled ?? true,
+          tdsEnabled: tdsEnabled ?? true,
+          creditReportEnabled: creditReportEnabled ?? true,
+        });
+        res.json({ success: true, config: created });
+      }
+    } catch (error: any) {
+      console.error("Failed to save Surepass config:", error);
+      res.status(500).json({ code: "SAVE_ERROR", message: error.message });
+    }
+  });
+
+  // Tenant Admin - Test Surepass API Connection
+  app.post("/api/surepass/test-connection", tenantMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getSurepassConfigDecrypted(req.tenantId!);
+      
+      if (!config || !config.decryptedToken) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Surepass not configured. Please save your API token first." 
+        });
+      }
+      
+      const surepassService = createSurepassService(
+        config.decryptedToken, 
+        config.environment as 'sandbox' | 'production'
+      );
+      
+      const result = await surepassService.testConnection();
+      
+      if (result.success) {
+        // Update last verified timestamp
+        await storage.updateSurepassLastVerified(req.tenantId!);
+        
+        res.json({
+          success: true,
+          message: "Successfully connected to Surepass API",
+          environment: config.environment,
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: result.error || "Failed to connect to Surepass API",
+        });
+      }
+    } catch (error: any) {
+      console.error("Surepass connection test failed:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Tenant Admin - Delete Surepass Configuration
+  app.delete("/api/surepass/config", tenantMiddleware, async (req, res) => {
+    try {
+      const deleted = await storage.deleteSurepassConfig(req.tenantId!);
+      res.json({ success: deleted });
+    } catch (error: any) {
+      console.error("Failed to delete Surepass config:", error);
+      res.status(500).json({ code: "DELETE_ERROR", message: error.message });
+    }
+  });
+
+  // Tenant - Verify GSTIN
+  app.post("/api/surepass/verify-gstin", tenantMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getSurepassConfigDecrypted(req.tenantId!);
+      
+      if (!config || !config.decryptedToken) {
+        return res.status(400).json({ message: "Surepass not configured" });
+      }
+      
+      if (!config.isEnabled || !config.gstinEnabled) {
+        return res.status(403).json({ message: "GSTIN verification is disabled" });
+      }
+      
+      const { gstin, financialYear, filingStatus, hsnInfo, filingFrequency, splitAddress } = req.body;
+      
+      if (!gstin) {
+        return res.status(400).json({ message: "GSTIN number is required" });
+      }
+      
+      const surepassService = createSurepassService(
+        config.decryptedToken,
+        config.environment as 'sandbox' | 'production'
+      );
+      
+      const result = await surepassService.verifyGstin(gstin, {
+        financialYear,
+        filingStatus,
+        hsnInfo,
+        filingFrequency,
+        splitAddress,
+      });
+      
+      // Log full response for debugging
+      console.log('[Surepass GSTIN Response]', JSON.stringify(result.data, null, 2));
+      
+      // Log the API call
+      await storage.createSurepassLog({
+        tenantId: req.tenantId!,
+        userId: req.userId,
+        apiType: "gstin",
+        requestData: JSON.stringify({ gstin: gstin.substring(0, 4) + "****" }),
+        responseStatus: result.statusCode,
+        isSuccess: result.success,
+        errorMessage: result.error,
+      });
+      
+      // Increment API call counter
+      await storage.incrementSurepassApiCalls(req.tenantId!);
+      
+      if (result.success) {
+        res.json({ success: true, data: result.data });
+      } else {
+        res.status(400).json({ success: false, message: result.error });
+      }
+    } catch (error: any) {
+      console.error("GSTIN verification failed:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tenant - Verify TDS/TAN
+  app.post("/api/surepass/verify-tds", tenantMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getSurepassConfigDecrypted(req.tenantId!);
+      
+      if (!config || !config.decryptedToken) {
+        return res.status(400).json({ message: "Surepass not configured" });
+      }
+      
+      if (!config.isEnabled || !config.tdsEnabled) {
+        return res.status(403).json({ message: "TDS verification is disabled" });
+      }
+      
+      const { tan } = req.body;
+      
+      if (!tan) {
+        return res.status(400).json({ message: "TAN number is required" });
+      }
+      
+      const surepassService = createSurepassService(
+        config.decryptedToken,
+        config.environment as 'sandbox' | 'production'
+      );
+      
+      const result = await surepassService.verifyTds(tan);
+      
+      // Log the API call
+      await storage.createSurepassLog({
+        tenantId: req.tenantId!,
+        userId: req.userId,
+        apiType: "tds",
+        requestData: JSON.stringify({ tan: tan.substring(0, 4) + "****" }),
+        responseStatus: result.statusCode,
+        isSuccess: result.success,
+        errorMessage: result.error,
+      });
+      
+      // Increment API call counter
+      await storage.incrementSurepassApiCalls(req.tenantId!);
+      
+      if (result.success) {
+        res.json({ success: true, data: result.data });
+      } else {
+        res.status(400).json({ success: false, message: result.error });
+      }
+    } catch (error: any) {
+      console.error("TDS verification failed:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tenant - Get Credit Report (CIBIL)
+  app.post("/api/surepass/credit-report", tenantMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getSurepassConfigDecrypted(req.tenantId!);
+      
+      if (!config || !config.decryptedToken) {
+        return res.status(400).json({ message: "Surepass not configured" });
+      }
+      
+      if (!config.isEnabled || !config.creditReportEnabled) {
+        return res.status(403).json({ message: "Credit Report is disabled" });
+      }
+      
+      const { name, pan, mobile, dob, address, pincode } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Name is required for credit report" });
+      }
+      
+      const surepassService = createSurepassService(
+        config.decryptedToken,
+        config.environment as 'sandbox' | 'production'
+      );
+      
+      const result = await surepassService.getCreditReport({
+        name,
+        pan,
+        mobile,
+        dob,
+        address,
+        pincode,
+      });
+      
+      // Log the API call
+      await storage.createSurepassLog({
+        tenantId: req.tenantId!,
+        userId: req.userId,
+        apiType: "credit_report",
+        requestData: JSON.stringify({ name, pan: pan ? pan.substring(0, 4) + "****" : undefined }),
+        responseStatus: result.statusCode,
+        isSuccess: result.success,
+        errorMessage: result.error,
+      });
+      
+      // Increment API call counter
+      await storage.incrementSurepassApiCalls(req.tenantId!);
+      
+      if (result.success) {
+        res.json({ success: true, data: result.data });
+      } else {
+        res.status(400).json({ success: false, message: result.error });
+      }
+    } catch (error: any) {
+      console.error("Credit report fetch failed:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Tenant - Get Credit Report PDF (CIBIL)
+  app.post("/api/surepass/credit-report-pdf", tenantMiddleware, async (req, res) => {
+    try {
+      const config = await storage.getSurepassConfigDecrypted(req.tenantId!);
+      
+      if (!config || !config.decryptedToken) {
+        return res.status(400).json({ message: "Surepass not configured" });
+      }
+      
+      if (!config.isEnabled || !config.creditReportEnabled) {
+        return res.status(403).json({ message: "Credit Report is disabled" });
+      }
+      
+      const { name, pan, mobile, dob, address, pincode } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Name is required for credit report" });
+      }
+      
+      const surepassService = createSurepassService(
+        config.decryptedToken,
+        config.environment as 'sandbox' | 'production'
+      );
+      
+      const result = await surepassService.getCreditReportPdf({
+        name,
+        pan,
+        mobile,
+        dob,
+        address,
+        pincode,
+      });
+      
+      // Log the API call
+      await storage.createSurepassLog({
+        tenantId: req.tenantId!,
+        userId: req.userId,
+        apiType: "credit_report_pdf",
+        requestData: JSON.stringify({ name, pan: pan ? pan.substring(0, 4) + "****" : undefined }),
+        responseStatus: result.statusCode,
+        isSuccess: result.success,
+        errorMessage: result.error,
+      });
+      
+      // Increment API call counter
+      await storage.incrementSurepassApiCalls(req.tenantId!);
+      
+      if (result.success) {
+        res.json({ success: true, data: result.data });
+      } else {
+        res.status(400).json({ success: false, message: result.error });
+      }
+    } catch (error: any) {
+      console.error("Credit report PDF fetch failed:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get Surepass API Logs
+  app.get("/api/surepass/logs", tenantMiddleware, async (req, res) => {
+    try {
+      const logs = await storage.getSurepassLogs(req.tenantId!, 50);
+      res.json(logs);
+    } catch (error: any) {
+      console.error("Failed to fetch Surepass logs:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ========== END SUREPASS KYC API ==========
+
   // Cleanup orphaned users (admin only) - Deletes users whose tenant no longer exists
   app.post("/api/cleanup-orphaned-users", adminOnlyMiddleware, async (req, res) => {
     try {
@@ -4671,7 +5511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           Name: "John Doe",
           "Amount Owed": "15000.00",
           Category: "Alpha",
-          "Assigned User": "Manpreet Bedi",
+          "Assigned User": "",
           Mobile: "+919876543210",
           Email: "john.doe@example.com",
         },
@@ -4679,7 +5519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           Name: "Jane Smith",
           "Amount Owed": "25000.50",
           Category: "Beta",
-          "Assigned User": "Bilal Ahamad",
+          "Assigned User": "",
           Mobile: "+918765432109",
           Email: "jane.smith@example.com",
         },
@@ -4687,7 +5527,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           Name: "Robert Johnson",
           "Amount Owed": "10500.75",
           Category: "Gamma",
-          "Assigned User": "Anjali Dhiman",
+          "Assigned User": "",
           Mobile: "+917654321098",
           Email: "robert.j@example.com",
         },
@@ -5014,7 +5854,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      res.json(customers);
+      // Calculate computed category based on last 3 invoices
+      const [allInvoices, categoryRulesData] = await Promise.all([
+        storage.getInvoices(req.tenantId!),
+        storage.getCategoryRules(req.tenantId!)
+      ]);
+      
+      // Add computed category to each customer
+      const customersWithComputedCategory = customers.map(customer => {
+        const computedCategory = calculateCustomerCategory(
+          customer.clientName,
+          allInvoices.map(inv => ({
+            customerName: inv.customerName,
+            status: inv.status,
+            invoiceDate: inv.invoiceDate,
+            paymentTerms: inv.paymentTerms
+          })),
+          categoryRulesData || null
+        );
+        
+        return {
+          ...customer,
+          computedCategory, // New computed category based on last 3 invoices
+          originalCategory: customer.category, // Keep original for reference
+          category: computedCategory // Override category with computed value
+        };
+      });
+      
+      res.json(customersWithComputedCategory);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
@@ -6610,6 +7477,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let skipped = 0;
       
       for (const invoice of allInvoices) {
+        // Skip if has manual override
+        if (invoice.paymentTermsOverride !== null && invoice.paymentTermsOverride !== undefined) {
+          skipped++;
+          continue;
+        }
+        
         // Skip if already has payment terms
         if (invoice.paymentTerms !== null && invoice.paymentTerms !== undefined) {
           skipped++;
@@ -6670,7 +7543,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (customer.primaryMobile) updateData.primaryMobile = customer.primaryMobile;
         if (customer.city) updateData.city = customer.city;
         if (customer.pincode) updateData.pincode = customer.pincode;
-        if (customer.paymentTermsDays) {
+        // Only update payment terms if there's no manual override
+        if (customer.paymentTermsDays && !invoice.paymentTermsOverride) {
           const parsed = parseInt(customer.paymentTermsDays);
           if (!isNaN(parsed)) updateData.paymentTerms = parsed;
         }
@@ -7645,7 +8519,7 @@ ${profile?.legalName || 'Company'}`;
           "Remarks": "Interested in web development services",
           "Industry": "IT Services",
           "Priority": "High",
-          "Assigned User": "Manpreet Bedi",
+          "Assigned User": "",
           "Date Created": "2024-01-15",
           "Last Follow Up": "2024-01-20",
           "Next Follow Up": "2024-01-25"
@@ -7665,7 +8539,7 @@ ${profile?.legalName || 'Company'}`;
           "Remarks": "Needs social media management",
           "Industry": "Marketing",
           "Priority": "Medium",
-          "Assigned User": "Bilal Ahamad",
+          "Assigned User": "",
           "Date Created": "2024-01-10",
           "Last Follow Up": "2024-01-18",
           "Next Follow Up": "2024-01-22"
@@ -7685,7 +8559,7 @@ ${profile?.legalName || 'Company'}`;
           "Remarks": "Looking for complete e-commerce platform",
           "Industry": "Retail",
           "Priority": "High",
-          "Assigned User": "Anjali Dhiman",
+          "Assigned User": "",
           "Date Created": "2024-01-05",
           "Last Follow Up": "2024-01-19",
           "Next Follow Up": "2024-01-26"
@@ -10615,7 +11489,10 @@ ${profile?.legalName || 'Company'}`;
         language, 
         templateId,
         callContext,
-        useMyVoice 
+        useMyVoice,
+        voiceId, // Edge TTS voice ID (e.g., "hi-IN-SwaraNeural")
+        behaviour, // Voice behaviour: kind, normal, firm, strict, final_warning
+        daysOverdue // For auto-suggesting behaviour
       } = req.body;
 
       if (!phoneNumber || !customerName || !module || !callMode || !language) {
@@ -10673,22 +11550,26 @@ ${profile?.legalName || 'Company'}`;
           return res.status(404).json({ message: "Call template not found" });
         }
 
-        // Build base URL for ElevenLabs audio file serving
-        const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-        const host = req.get('host') || 'localhost:3501';
-        const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-          ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-          : `${protocol}://${host}`;
+        // Build base URL for audio file serving - must be publicly accessible for Telecmi
+        // Priority: PUBLIC_BASE_URL env > REPLIT_DEV_DOMAIN > public IP fallback
+        const baseUrl = process.env.PUBLIC_BASE_URL 
+          || (process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null)
+          || 'http://103.122.85.61:3501';
 
-        // Only pass userId when user explicitly wants to use their cloned voice
+        // Pass voiceId for Edge TTS or userId for cloned voice
+        // Always pass userId to fetch user's TTS settings (rate, pitch, volume)
         result = await telecmiService.makeSimpleCall(req.tenantId!, {
           to: phoneNumber,
           callMode: "simple",
           language: language as "hindi" | "english" | "hinglish",
           templateId,
           context: enrichedCallContext || {},
-          userId: useMyVoice ? req.userId : undefined,
-          baseUrl: useMyVoice ? baseUrl : undefined,
+          userId: req.userId, // Always pass userId for TTS settings lookup
+          baseUrl, // Always pass baseUrl for Edge TTS audio
+          voiceId: !useMyVoice ? voiceId : undefined, // Edge TTS voice when not using cloned voice
+          useClonedVoice: useMyVoice, // Flag to indicate if user wants cloned voice
+          behaviour: behaviour || undefined, // Voice behaviour: kind, normal, firm, strict, final_warning
+          daysOverdue: daysOverdue !== undefined ? parseInt(daysOverdue) : undefined, // For auto-suggesting behaviour
         });
       } else {
         // AI-powered conversation
@@ -13353,6 +14234,847 @@ ${profile?.legalName || 'Company'}`;
       res.json({ success: true });
     } catch (error: any) {
       console.error("Failed to unlink telegram user:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // ========== USER TABLE PREFERENCES API ==========
+
+  // Get table preferences for a specific table
+  app.get("/api/table-preferences/:tableKey", tenantMiddleware, async (req, res) => {
+    try {
+      const { tableKey } = req.params;
+      
+      if (!req.userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const prefs = await storage.getUserTablePreferences(req.tenantId!, req.userId, tableKey);
+      
+      if (!prefs) {
+        return res.json({ 
+          exists: false,
+          preferences: null 
+        });
+      }
+
+      res.json({
+        exists: true,
+        preferences: {
+          columnVisibility: prefs.columnVisibility ? JSON.parse(prefs.columnVisibility) : {},
+          columnOrder: prefs.columnOrder ? JSON.parse(prefs.columnOrder) : [],
+          pageSize: prefs.pageSize,
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to get table preferences:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Save table preferences
+  app.post("/api/table-preferences/:tableKey", tenantMiddleware, async (req, res) => {
+    try {
+      const { tableKey } = req.params;
+      const { columnVisibility, columnOrder, pageSize } = req.body;
+      
+      if (!req.userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const saved = await storage.saveUserTablePreferences({
+        tenantId: req.tenantId!,
+        userId: req.userId,
+        tableKey,
+        columnVisibility: columnVisibility ? JSON.stringify(columnVisibility) : undefined,
+        columnOrder: columnOrder ? JSON.stringify(columnOrder) : undefined,
+        pageSize: pageSize || 10,
+      });
+
+      res.json({ 
+        success: true, 
+        preferences: {
+          columnVisibility: saved.columnVisibility ? JSON.parse(saved.columnVisibility) : {},
+          columnOrder: saved.columnOrder ? JSON.parse(saved.columnOrder) : [],
+          pageSize: saved.pageSize,
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to save table preferences:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Reset/Delete table preferences
+  app.delete("/api/table-preferences/:tableKey", tenantMiddleware, async (req, res) => {
+    try {
+      const { tableKey } = req.params;
+      
+      if (!req.userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      const deleted = await storage.deleteUserTablePreferences(req.tenantId!, req.userId, tableKey);
+      res.json({ success: deleted });
+    } catch (error: any) {
+      console.error("Failed to delete table preferences:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // =============================================
+  // CUSTOMER TRACK RECORD & CATEGORY CALCULATION API
+  // =============================================
+  
+  // Get all customers with track record for category calculation page
+  app.get("/api/credit-control/customers-track-record", tenantMiddleware, async (req, res) => {
+    try {
+      const masterCustomers = await storage.getMasterCustomers(req.tenantId!);
+      const allInvoices = await storage.getInvoices(req.tenantId!);
+      const allReceipts = await storage.getReceipts(req.tenantId!);
+      const categoryRules = await storage.getCategoryRules(req.tenantId!) || {
+        alphaDays: 5,
+        betaDays: 25,
+        gammaDays: 65,
+        deltaDays: 100,
+        gracePeriod: 5
+      };
+      
+      const gracePeriod = categoryRules.gracePeriod || 5;
+      const today = new Date();
+      
+      // Build customer track records
+      const customersWithTrackRecord = masterCustomers.map(customer => {
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+        
+        // Calculate total amounts (like reports page)
+        const totalInvoiceAmount = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
+        const totalReceiptAmount = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+        const openingBalance = parseFloat(customer.openingBalance || "0");
+        const totalPaidAmount = totalReceiptAmount; // Same as reports page
+        const totalPendingAmount = Math.max(0, (totalInvoiceAmount + openingBalance) - totalReceiptAmount);
+        
+        // RECEIPT-BASED APPROACH: Use receipts as source of truth for payments
+        // An invoice is considered "paid" if there's a receipt for it OR status is 'Paid'
+        
+        // Calculate payment performance for each receipt
+        let onTimeCount = 0;
+        let lateCount = 0;
+        let veryLateCount = 0;
+        
+        const paymentBreakdown = {
+          alpha: 0, // 0-5 days (on-time with grace)
+          beta: 0,  // 6-25 days
+          gamma: 0, // 26-65 days
+          delta: 0  // 66+ days
+        };
+        
+        const invoiceAnalysis: any[] = [];
+        const processedInvoices = new Set<string>(); // Track which invoices we've processed
+        
+        // First, analyze all receipts - these are actual payments
+        for (const receipt of customerReceipts) {
+          const receiptDate = new Date(receipt.date);
+          
+          // Try to find the matching invoice for this receipt
+          const linkedInvoice = customerInvoices.find(inv => inv.invoiceNumber === receipt.invoiceNumber);
+          
+          let dueDate: Date;
+          let invoiceDate: Date;
+          let invoiceAmount = parseFloat(String(receipt.amount)) || 0;
+          let invoiceNumber = receipt.invoiceNumber || receipt.voucherNumber;
+          
+          if (linkedInvoice) {
+            // We have invoice details - calculate due date properly
+            invoiceDate = new Date(linkedInvoice.invoiceDate);
+            const paymentTerms = parseInt(String(linkedInvoice.paymentTermsOverride || linkedInvoice.paymentTerms || "30"));
+            dueDate = new Date(invoiceDate);
+            dueDate.setDate(dueDate.getDate() + paymentTerms);
+            invoiceAmount = parseFloat(linkedInvoice.invoiceAmount);
+            invoiceNumber = linkedInvoice.invoiceNumber;
+            processedInvoices.add(linkedInvoice.invoiceNumber);
+          } else {
+            // No linked invoice - use receipt date as reference with default 30 day terms
+            invoiceDate = new Date(receiptDate);
+            invoiceDate.setDate(invoiceDate.getDate() - 30); // Assume invoice was 30 days before receipt
+            dueDate = new Date(receiptDate); // Due date = receipt date (consider on-time)
+          }
+          
+          const delayDays = Math.floor((receiptDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+          const adjustedDelay = Math.max(0, delayDays - gracePeriod); // Apply grace period
+          
+          // Categorize based on delay
+          let invoiceCategory = 'Alpha';
+          if (adjustedDelay <= 0) {
+            onTimeCount++;
+            paymentBreakdown.alpha++;
+            invoiceCategory = 'Alpha';
+          } else if (adjustedDelay <= 25) {
+            lateCount++;
+            paymentBreakdown.beta++;
+            invoiceCategory = 'Beta';
+          } else if (adjustedDelay <= 65) {
+            lateCount++;
+            paymentBreakdown.gamma++;
+            invoiceCategory = 'Gamma';
+          } else {
+            veryLateCount++;
+            paymentBreakdown.delta++;
+            invoiceCategory = 'Delta';
+          }
+          
+          invoiceAnalysis.push({
+            invoiceNumber: invoiceNumber,
+            invoiceDate: invoiceDate.toISOString().split('T')[0],
+            dueDate: dueDate.toISOString().split('T')[0],
+            paymentDate: receiptDate.toISOString().split('T')[0],
+            delayDays: Math.max(0, delayDays),
+            adjustedDelay,
+            category: invoiceCategory,
+            status: 'Paid',
+            amount: invoiceAmount
+          });
+        }
+        
+        // Now add invoices that don't have receipts (truly unpaid)
+        const unpaidInvoices = customerInvoices.filter(inv => 
+          !processedInvoices.has(inv.invoiceNumber) && inv.status !== 'Paid'
+        );
+        
+        for (const invoice of unpaidInvoices) {
+          const invoiceDate = new Date(invoice.invoiceDate);
+          const paymentTerms = parseInt(String(invoice.paymentTermsOverride || invoice.paymentTerms || "30"));
+          const dueDate = new Date(invoiceDate);
+          dueDate.setDate(dueDate.getDate() + paymentTerms);
+          
+          const delayDays = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+          const adjustedDelay = Math.max(0, delayDays - gracePeriod);
+          
+          let invoiceCategory = 'Alpha';
+          if (adjustedDelay <= 0) {
+            invoiceCategory = 'Alpha';
+          } else if (adjustedDelay <= 25) {
+            invoiceCategory = 'Beta';
+          } else if (adjustedDelay <= 65) {
+            invoiceCategory = 'Gamma';
+          } else {
+            invoiceCategory = 'Delta';
+          }
+          
+          invoiceAnalysis.push({
+            invoiceNumber: invoice.invoiceNumber,
+            invoiceDate: invoice.invoiceDate,
+            dueDate: dueDate.toISOString().split('T')[0],
+            paymentDate: null,
+            delayDays: Math.max(0, delayDays),
+            adjustedDelay,
+            category: invoiceCategory,
+            status: 'Unpaid',
+            amount: parseFloat(invoice.invoiceAmount)
+          });
+        }
+        
+        // Totals: Paid = receipts count, Unpaid = invoices without receipts
+        const totalPaidReceipts = customerReceipts.length;
+        const onTimePercentage = totalPaidReceipts > 0 
+          ? Math.round((onTimeCount / totalPaidReceipts) * 100) 
+          : 0;
+        
+        // Calculate recommended category based on percentage
+        let recommendedCategory = 'New';
+        let categoryScore = onTimePercentage;
+        
+        if (totalPaidReceipts === 0) {
+          recommendedCategory = 'New'; // No payment history
+        } else if (onTimePercentage >= 90) {
+          recommendedCategory = 'Alpha';
+        } else if (onTimePercentage >= 75) {
+          recommendedCategory = 'Beta';
+        } else if (onTimePercentage >= 50) {
+          recommendedCategory = 'Gamma';
+        } else {
+          recommendedCategory = 'Delta';
+        }
+        
+        // Override rules check
+        let overrideApplied = false;
+        let overrideReason = '';
+        
+        // Check last 3 consecutive late payments (force downgrade)
+        const sortedPaidInvoices = invoiceAnalysis
+          .filter(inv => inv.status === 'Paid')
+          .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
+        
+        if (sortedPaidInvoices.length >= 3) {
+          const last3 = sortedPaidInvoices.slice(0, 3);
+          const allDelta = last3.every(inv => inv.category === 'Delta');
+          if (allDelta && recommendedCategory !== 'Delta') {
+            recommendedCategory = 'Delta';
+            overrideApplied = true;
+            overrideReason = 'Last 3 consecutive payments were 66+ days late';
+          }
+        }
+        
+        // Check if current is Alpha but last payment was Gamma/Delta
+        if (customer.category === 'Alpha' && sortedPaidInvoices.length > 0) {
+          const lastPayment = sortedPaidInvoices[0];
+          if (lastPayment.category === 'Gamma' || lastPayment.category === 'Delta') {
+            if (recommendedCategory === 'Alpha') {
+              recommendedCategory = 'Beta';
+              overrideApplied = true;
+              overrideReason = `Last payment was ${lastPayment.adjustedDelay} days late`;
+            }
+          }
+        }
+        
+        // Monthly trend - Financial Year (April to March)
+        const monthlyTrend: any[] = [];
+        
+        // Calculate current financial year
+        const currentMonth = today.getMonth(); // 0-indexed (0=Jan, 11=Dec)
+        const currentYear = today.getFullYear();
+        // Financial year starts in April (month index 3)
+        // If current month is Jan-Mar (0-2), FY started last year
+        // If current month is Apr-Dec (3-11), FY started this year
+        const fyStartYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+        
+        // Generate 12 months from April of FY to March of next year
+        for (let i = 0; i < 12; i++) {
+          const monthIndex = (3 + i) % 12; // Start from April (index 3)
+          const year = monthIndex < 3 ? fyStartYear + 1 : fyStartYear; // Jan-Mar belongs to next calendar year
+          const monthKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+          
+          const monthDate = new Date(year, monthIndex, 1);
+          
+          const monthInvoices = invoiceAnalysis.filter(inv => {
+            const invDate = new Date(inv.paymentDate || inv.invoiceDate);
+            return `${invDate.getFullYear()}-${String(invDate.getMonth() + 1).padStart(2, '0')}` === monthKey;
+          });
+          
+          const monthOnTime = monthInvoices.filter(inv => inv.status === 'Paid' && inv.adjustedDelay <= 0).length;
+          const monthLate = monthInvoices.filter(inv => inv.status === 'Paid' && inv.adjustedDelay > 0).length;
+          const monthUnpaid = monthInvoices.filter(inv => inv.status === 'Unpaid').length;
+          
+          monthlyTrend.push({
+            month: monthKey,
+            monthName: monthDate.toLocaleString('en-US', { month: 'short', year: '2-digit' }),
+            onTime: monthOnTime,
+            late: monthLate,
+            unpaid: monthUnpaid,
+            total: monthInvoices.length
+          });
+        }
+        
+        return {
+          id: customer.id,
+          customerName: customer.clientName,
+          customerCode: customer.customerCode || '-',
+          currentCategory: customer.category || 'Gamma',
+          recommendedCategory,
+          categoryScore,
+          overrideApplied,
+          overrideReason,
+          
+          // Summary stats - Now using receipts as source of truth
+          totalInvoices: customerInvoices.length,
+          paidInvoices: totalPaidReceipts, // Number of receipts = number of payments
+          unpaidInvoices: unpaidInvoices.length,
+          totalReceipts: customerReceipts.length,
+          
+          // Amount totals (same calculation as reports page)
+          totalInvoiceAmount,
+          totalPaidAmount,      // Sum of all receipt amounts
+          totalPendingAmount,   // (invoices + opening) - receipts
+          openingBalance,
+          
+          // Payment performance
+          onTimeCount,
+          lateCount,
+          veryLateCount,
+          onTimePercentage,
+          
+          // Breakdown by category
+          paymentBreakdown,
+          
+          // For charts
+          monthlyTrend,
+          
+          // Detailed invoice list (sorted by date desc)
+          invoices: invoiceAnalysis.sort((a, b) => 
+            new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
+          ).slice(0, 20), // Last 20 invoices
+          
+          // Category thresholds
+          thresholds: {
+            gracePeriod,
+            alpha: '90-100% on-time',
+            beta: '75-89% on-time',
+            gamma: '50-74% on-time',
+            delta: '<50% on-time'
+          }
+        };
+      });
+      
+      // Filter out customers with no invoices if needed
+      const activeCustomers = customersWithTrackRecord.filter(c => c.totalInvoices > 0);
+      const newCustomers = customersWithTrackRecord.filter(c => c.totalInvoices === 0);
+      
+      // Summary statistics
+      const summary = {
+        totalCustomers: customersWithTrackRecord.length,
+        activeCustomers: activeCustomers.length,
+        newCustomers: newCustomers.length,
+        byRecommendedCategory: {
+          alpha: activeCustomers.filter(c => c.recommendedCategory === 'Alpha').length,
+          beta: activeCustomers.filter(c => c.recommendedCategory === 'Beta').length,
+          gamma: activeCustomers.filter(c => c.recommendedCategory === 'Gamma').length,
+          delta: activeCustomers.filter(c => c.recommendedCategory === 'Delta').length,
+        },
+        byCurrentCategory: {
+          alpha: activeCustomers.filter(c => c.currentCategory === 'Alpha').length,
+          beta: activeCustomers.filter(c => c.currentCategory === 'Beta').length,
+          gamma: activeCustomers.filter(c => c.currentCategory === 'Gamma').length,
+          delta: activeCustomers.filter(c => c.currentCategory === 'Delta').length,
+        },
+        willChange: activeCustomers.filter(c => c.currentCategory !== c.recommendedCategory).length,
+        averageOnTimePercentage: activeCustomers.length > 0 
+          ? Math.round(activeCustomers.reduce((sum, c) => sum + c.onTimePercentage, 0) / activeCustomers.length)
+          : 0
+      };
+      
+      res.json({
+        customers: [...activeCustomers, ...newCustomers.map(c => ({ ...c, recommendedCategory: 'New' }))],
+        summary,
+        rules: {
+          gracePeriod,
+          categoryThresholds: {
+            alpha: '90-100% on-time payments',
+            beta: '75-89% on-time payments',
+            gamma: '50-74% on-time payments',
+            delta: '<50% on-time payments'
+          },
+          overrideRules: [
+            'Force Delta: Last 3 consecutive payments 66+ days late',
+            'Downgrade Alpha to Beta: Last payment was Gamma/Delta level'
+          ]
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch customers track record:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get single customer detailed track record
+  app.get("/api/credit-control/customer-track-record/:customerId", tenantMiddleware, async (req, res) => {
+    try {
+      const { customerId } = req.params;
+      const customer = await storage.getMasterCustomer(req.tenantId!, customerId);
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      
+      const allInvoices = await storage.getInvoices(req.tenantId!);
+      const allReceipts = await storage.getReceipts(req.tenantId!);
+      const categoryRules = await storage.getCategoryRules(req.tenantId!) || {
+        alphaDays: 5,
+        betaDays: 25,
+        gammaDays: 65,
+        deltaDays: 100,
+        gracePeriod: 5
+      };
+      
+      const gracePeriod = categoryRules.gracePeriod || 5;
+      const today = new Date();
+      
+      const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+      const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+      
+      // Full analysis for single customer
+      const paidInvoices = customerInvoices.filter(inv => inv.status === 'Paid');
+      const unpaidInvoices = customerInvoices.filter(inv => inv.status !== 'Paid');
+      
+      let onTimeCount = 0;
+      let lateCount = 0;
+      let veryLateCount = 0;
+      
+      const paymentBreakdown = { alpha: 0, beta: 0, gamma: 0, delta: 0 };
+      const invoiceAnalysis: any[] = [];
+      
+      // Analyze all invoices
+      for (const invoice of customerInvoices) {
+        const invoiceDate = new Date(invoice.invoiceDate);
+        const paymentTerms = parseInt(String(invoice.paymentTermsOverride || invoice.paymentTerms || "30"));
+        const dueDate = new Date(invoiceDate);
+        dueDate.setDate(dueDate.getDate() + paymentTerms);
+        
+        const isPaid = invoice.status === 'Paid';
+        let paymentDate = null;
+        let delayDays = 0;
+        
+        if (isPaid) {
+          const linkedReceipts = customerReceipts.filter(r => r.invoiceNumber === invoice.invoiceNumber);
+          if (linkedReceipts.length > 0) {
+            const sortedReceipts = linkedReceipts.sort((a, b) => 
+              new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+            paymentDate = new Date(sortedReceipts[0].date);
+          } else if (invoice.updatedAt) {
+            paymentDate = new Date(invoice.updatedAt);
+          }
+          
+          if (paymentDate) {
+            delayDays = Math.floor((paymentDate.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+          }
+        } else {
+          delayDays = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+        }
+        
+        const adjustedDelay = Math.max(0, delayDays - gracePeriod);
+        
+        let invoiceCategory = 'Alpha';
+        if (adjustedDelay <= 0) {
+          if (isPaid) {
+            onTimeCount++;
+            paymentBreakdown.alpha++;
+          }
+          invoiceCategory = 'Alpha';
+        } else if (adjustedDelay <= 25) {
+          if (isPaid) {
+            lateCount++;
+            paymentBreakdown.beta++;
+          }
+          invoiceCategory = 'Beta';
+        } else if (adjustedDelay <= 65) {
+          if (isPaid) {
+            lateCount++;
+            paymentBreakdown.gamma++;
+          }
+          invoiceCategory = 'Gamma';
+        } else {
+          if (isPaid) {
+            veryLateCount++;
+            paymentBreakdown.delta++;
+          }
+          invoiceCategory = 'Delta';
+        }
+        
+        invoiceAnalysis.push({
+          id: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          invoiceDate: invoice.invoiceDate,
+          dueDate: dueDate.toISOString().split('T')[0],
+          paymentDate: paymentDate?.toISOString().split('T')[0] || null,
+          delayDays: Math.max(0, delayDays),
+          adjustedDelay,
+          category: invoiceCategory,
+          status: isPaid ? 'Paid' : 'Unpaid',
+          amount: parseFloat(invoice.invoiceAmount)
+        });
+      }
+      
+      const totalPaidInvoices = paidInvoices.length;
+      const onTimePercentage = totalPaidInvoices > 0 
+        ? Math.round((onTimeCount / totalPaidInvoices) * 100) 
+        : 0;
+      
+      let recommendedCategory = 'New';
+      if (totalPaidInvoices === 0) {
+        recommendedCategory = 'New';
+      } else if (onTimePercentage >= 90) {
+        recommendedCategory = 'Alpha';
+      } else if (onTimePercentage >= 75) {
+        recommendedCategory = 'Beta';
+      } else if (onTimePercentage >= 50) {
+        recommendedCategory = 'Gamma';
+      } else {
+        recommendedCategory = 'Delta';
+      }
+      
+      // Override checks
+      let overrideApplied = false;
+      let overrideReason = '';
+      
+      const sortedPaidInvoices = invoiceAnalysis
+        .filter(inv => inv.status === 'Paid')
+        .sort((a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime());
+      
+      if (sortedPaidInvoices.length >= 3) {
+        const last3 = sortedPaidInvoices.slice(0, 3);
+        if (last3.every(inv => inv.category === 'Delta') && recommendedCategory !== 'Delta') {
+          recommendedCategory = 'Delta';
+          overrideApplied = true;
+          overrideReason = 'Last 3 consecutive payments were 66+ days late';
+        }
+      }
+      
+      if (customer.category === 'Alpha' && sortedPaidInvoices.length > 0) {
+        const lastPayment = sortedPaidInvoices[0];
+        if ((lastPayment.category === 'Gamma' || lastPayment.category === 'Delta') && recommendedCategory === 'Alpha') {
+          recommendedCategory = 'Beta';
+          overrideApplied = true;
+          overrideReason = `Last payment was ${lastPayment.adjustedDelay} days late`;
+        }
+      }
+      
+      // Monthly trend - Financial Year (April to March)
+      const monthlyTrend: any[] = [];
+      
+      // Calculate current financial year
+      const currentMonth = today.getMonth(); // 0-indexed (0=Jan, 11=Dec)
+      const currentYear = today.getFullYear();
+      // Financial year starts in April (month index 3)
+      const fyStartYear = currentMonth < 3 ? currentYear - 1 : currentYear;
+      
+      // Generate 12 months from April of FY to March of next year
+      for (let i = 0; i < 12; i++) {
+        const monthIndex = (3 + i) % 12; // Start from April (index 3)
+        const year = monthIndex < 3 ? fyStartYear + 1 : fyStartYear;
+        const monthKey = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+        
+        const monthDate = new Date(year, monthIndex, 1);
+        
+        const monthInvoices = invoiceAnalysis.filter(inv => {
+          const invDate = new Date(inv.paymentDate || inv.invoiceDate);
+          return `${invDate.getFullYear()}-${String(invDate.getMonth() + 1).padStart(2, '0')}` === monthKey;
+        });
+        
+        monthlyTrend.push({
+          month: monthKey,
+          monthName: monthDate.toLocaleString('en-US', { month: 'short', year: '2-digit' }),
+          onTime: monthInvoices.filter(inv => inv.status === 'Paid' && inv.adjustedDelay <= 0).length,
+          late: monthInvoices.filter(inv => inv.status === 'Paid' && inv.adjustedDelay > 0).length,
+          unpaid: monthInvoices.filter(inv => inv.status === 'Unpaid').length,
+          total: monthInvoices.length
+        });
+      }
+      
+      res.json({
+        customer: {
+          id: customer.id,
+          customerName: customer.clientName,
+          customerCode: customer.customerCode,
+          currentCategory: customer.category,
+          contactName: customer.contactName,
+          primaryMobile: customer.primaryMobile,
+          primaryEmail: customer.primaryEmail
+        },
+        trackRecord: {
+          recommendedCategory,
+          categoryScore: onTimePercentage,
+          overrideApplied,
+          overrideReason,
+          totalInvoices: customerInvoices.length,
+          paidInvoices: paidInvoices.length,
+          unpaidInvoices: unpaidInvoices.length,
+          onTimeCount,
+          lateCount,
+          veryLateCount,
+          onTimePercentage,
+          paymentBreakdown,
+          monthlyTrend,
+          invoices: invoiceAnalysis.sort((a, b) => 
+            new Date(b.invoiceDate).getTime() - new Date(a.invoiceDate).getTime()
+          )
+        },
+        thresholds: {
+          gracePeriod,
+          alpha: '90-100% on-time',
+          beta: '75-89% on-time',
+          gamma: '50-74% on-time',
+          delta: '<50% on-time'
+        }
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch customer track record:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // =============================================
+  // INTEREST SUMMARY REPORT API
+  // =============================================
+  app.get("/api/reports/interest-summary", tenantMiddleware, async (req, res) => {
+    try {
+      // Get all master customers
+      const masterCustomers = await storage.getMasterCustomers(req.tenantId!);
+      
+      // Get all invoices
+      const allInvoices = await storage.getInvoices(req.tenantId!);
+      
+      // Get all receipts
+      const allReceipts = await storage.getReceipts(req.tenantId!);
+      
+      const today = new Date();
+      
+      // Calculate interest for each invoice
+      const calculateInvoiceInterest = (invoice: any): number => {
+        const interestRate = parseFloat(invoice.interestRate || "0");
+        const invoiceAmt = parseFloat(invoice.invoiceAmount);
+        const paymentTerms = parseInt(String(invoice.paymentTermsOverride || invoice.paymentTerms || "0"));
+        
+        if (interestRate <= 0 || !invoice.interestApplicableFrom) {
+          return 0;
+        }
+        
+        let applicableDate: Date | null = null;
+        
+        // If "Due Date", calculate from invoice date + payment terms
+        if (invoice.interestApplicableFrom.toLowerCase() === 'due date') {
+          applicableDate = new Date(invoice.invoiceDate);
+          applicableDate.setDate(applicableDate.getDate() + paymentTerms);
+        } else {
+          // Try to parse as actual date
+          applicableDate = new Date(invoice.interestApplicableFrom);
+        }
+        
+        // Check if date is valid
+        if (applicableDate && !isNaN(applicableDate.getTime())) {
+          const diffTime = today.getTime() - applicableDate.getTime();
+          const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (daysOverdue > 0) {
+            // Interest = (Amount × Rate × Days) / (100 × 365)
+            return (invoiceAmt * interestRate * daysOverdue) / (100 * 365);
+          }
+        }
+        
+        return 0;
+      };
+      
+      // Calculate due date for invoice
+      const calculateDueDate = (invoice: any): Date | null => {
+        const paymentTerms = parseInt(String(invoice.paymentTermsOverride || invoice.paymentTerms || "0"));
+        const dueDate = new Date(invoice.invoiceDate);
+        dueDate.setDate(dueDate.getDate() + paymentTerms);
+        return dueDate;
+      };
+      
+      // Calculate days overdue
+      const calculateDaysOverdue = (invoice: any): number => {
+        const dueDate = calculateDueDate(invoice);
+        if (!dueDate) return 0;
+        
+        const diffTime = today.getTime() - dueDate.getTime();
+        const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return Math.max(0, days);
+      };
+      
+      // Build customer summaries
+      const customerSummaries = masterCustomers.map((customer) => {
+        // Get customer's invoices
+        const customerInvoices = allInvoices.filter(inv => inv.customerName === customer.clientName);
+        
+        // Get customer's receipts
+        const customerReceipts = allReceipts.filter(rec => rec.customerName === customer.clientName);
+        
+        // Calculate totals
+        const totalInvoiceAmount = customerInvoices.reduce((sum, inv) => sum + parseFloat(inv.invoiceAmount), 0);
+        const totalReceiptAmount = customerReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+        const openingBalance = parseFloat(customer.openingBalance || "0");
+        
+        // Pending = (Total Invoice + Opening Balance) - Total Receipts
+        const totalPending = Math.max(0, (totalInvoiceAmount + openingBalance) - totalReceiptAmount);
+        const totalPaid = totalReceiptAmount;
+        
+        // Calculate total interest
+        let totalInterest = 0;
+        
+        // Build invoice details with interest and payment info
+        const invoiceDetails = customerInvoices.map(invoice => {
+          const invoiceAmt = parseFloat(invoice.invoiceAmount);
+          const dueDate = calculateDueDate(invoice);
+          const daysOverdue = calculateDaysOverdue(invoice);
+          const interest = calculateInvoiceInterest(invoice);
+          totalInterest += interest;
+          
+          // Get receipts linked to this invoice
+          const invoiceReceipts = customerReceipts.filter(rec => 
+            rec.invoiceNumber === invoice.invoiceNumber
+          );
+          
+          // Calculate paid amount for this invoice from linked receipts
+          const paidAmount = invoiceReceipts.reduce((sum, rec) => sum + parseFloat(rec.amount), 0);
+          const pendingAmount = Math.max(0, invoiceAmt - paidAmount);
+          
+          // Determine payment status
+          let paymentStatus: 'paid' | 'partial' | 'unpaid' = 'unpaid';
+          if (paidAmount >= invoiceAmt) {
+            paymentStatus = 'paid';
+          } else if (paidAmount > 0) {
+            paymentStatus = 'partial';
+          }
+          
+          return {
+            id: invoice.id,
+            invoiceNo: invoice.invoiceNumber,
+            invoiceDate: invoice.invoiceDate,
+            dueDate: dueDate?.toISOString(),
+            amount: invoiceAmt,
+            paidAmount,
+            pendingAmount,
+            daysOverdue,
+            interestRate: parseFloat(invoice.interestRate || "0"),
+            interest,
+            paymentStatus,
+            payments: invoiceReceipts.map(rec => ({
+              date: rec.date,
+              amount: parseFloat(rec.amount),
+              method: rec.paymentMode || 'Unknown',
+              voucherNumber: rec.voucherNumber,
+            })),
+          };
+        });
+        
+        // Calculate average days overdue for overdue invoices
+        const overdueInvoices = invoiceDetails.filter(inv => inv.daysOverdue > 0 && inv.pendingAmount > 0);
+        const avgDaysOverdue = overdueInvoices.length > 0
+          ? Math.round(overdueInvoices.reduce((sum, inv) => sum + inv.daysOverdue, 0) / overdueInvoices.length)
+          : 0;
+        
+        // Count partial payments
+        const partialPayments = invoiceDetails.filter(inv => inv.paymentStatus === 'partial').length;
+        
+        return {
+          id: customer.id,
+          customerName: customer.clientName,
+          customerCode: customer.customerCode || '-',
+          mobile: customer.primaryMobile || '-',
+          email: customer.primaryEmail || '-',
+          contactPerson: customer.contactName || '-',
+          category: customer.category || 'Gamma',
+          openingBalance,
+          totalInvoices: customerInvoices.length,
+          totalReceipts: customerReceipts.length,
+          totalAmount: totalInvoiceAmount + openingBalance,
+          totalPaid,
+          totalPending,
+          totalInterest,
+          partialPayments,
+          avgDaysOverdue,
+          invoices: invoiceDetails,
+        };
+      });
+      
+      // Calculate grand totals - show all customers
+      const grandTotals = {
+        customers: customerSummaries.length,
+        invoices: customerSummaries.reduce((sum, c) => sum + c.totalInvoices, 0),
+        amount: customerSummaries.reduce((sum, c) => sum + c.totalAmount, 0),
+        paid: customerSummaries.reduce((sum, c) => sum + c.totalPaid, 0),
+        pending: customerSummaries.reduce((sum, c) => sum + c.totalPending, 0),
+        interest: customerSummaries.reduce((sum, c) => sum + c.totalInterest, 0),
+        openingBalance: customerSummaries.reduce((sum, c) => sum + c.openingBalance, 0),
+      };
+      
+      res.json({
+        customers: customerSummaries,
+        grandTotals,
+      });
+    } catch (error: any) {
+      console.error("Failed to fetch interest summary report:", error);
       res.status(500).json({ message: error.message });
     }
   });
